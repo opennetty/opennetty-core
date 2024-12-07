@@ -1,0 +1,21 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFrameworks>net8.0;net9.0</TargetFrameworks>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\OpenNetty\OpenNetty.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="MQTTnet.Extensions.ManagedClient" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Using Include="OpenNetty" />
+    <Using Include="OpenNetty.Mqtt" />
+    <Using Include="OpenNetty.OpenNettyResources" Alias="SR" />
+  </ItemGroup>
+
+</Project>

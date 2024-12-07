@@ -1,0 +1,135 @@
+name: build
+
+on:
+  push:
+    branches: [ dev, rel/* ]
+    tags: [ '*' ]
+  pull_request:
+    branches: [ dev, rel/* ]
+  workflow_dispatch:
+
+env:
+  DOTNET_MULTILEVEL_LOOKUP: 0
+  DOTNET_SKIP_FIRST_TIME_EXPERIENCE: 1
+  DOTNET_SYSTEM_CONSOLE_ALLOW_ANSI_COLOR_REDIRECTION: 1
+  NUGET_XMLDOC_MODE: skip
+  TERM: xterm
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    name: build-${{ matrix.os }}
+    runs-on: ${{ matrix.os }}
+
+    permissions:
+      attestations: write
+      contents: read
+      id-token: write
+
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ macos-latest, ubuntu-latest, windows-latest ]
+        include:
+        - os: macos-latest
+          os_name: macos
+        - os: ubuntu-latest
+          os_name: linux
+        - os: windows-latest
+          os_name: windows
+
+    steps:
+    - name: Select Xcode version
+      if: ${{ runner.os == 'macOS' }}
+      run: sudo xcode-select -s "/Applications/Xcode_15.4.app"
+
+    - name: Checkout code
+      uses: actions/checkout@692973e3d937129bcbf40652eb9f2f61becf3332 # v4.1.7
+
+    # Arcade only allows the revision to contain up to two characters, and GitHub Actions does not roll-over
+    # build numbers every day like Azure DevOps does. To balance these two requirements, set the official
+    # build ID to be the same format as the built-in default from Arcade, except with the revision number
+    # being the number of the quarter hour of the current time of day (24 * 4 = 96, which is less than 100).
+    # So a build between 00:00 and 00:14 would have a revision of 1, and a build between 23:45 and 23:59:59
+    # would have a revision of 97.
+    - name: Set Build ID
+      if: ${{ startsWith(github.ref, 'refs/pull/') == false }}
+      shell: pwsh
+      run: |
+        $Now = (Get-Date).ToUniversalTime()
+        $Hours = $Now.Hour * 4
+        $QuarterHours = [Math]::Floor($Now.Minute / 15.0)
+        $Revision = $Hours + $QuarterHours + 1
+        $BuildId = $Now.ToString("yyyyMMdd") + "." + $Revision
+        Write-Output "_ComputedOfficialBuildId=${BuildId}" | Out-File -FilePath $env:GITHUB_ENV -Encoding utf8 -Append
+
+    - name: Build, test and pack
+      if: ${{ runner.os == 'Windows' }}
+      run: eng\common\CIBuild.cmd -configuration Release -prepareMachine -integrationTest /p:RestoreDotNetWorkloads=true
+
+    - name: Build, test and pack
+      if: ${{ runner.os != 'Windows' }}
+      shell: pwsh
+      run: ./eng/common/cibuild.sh -configuration Release -prepareMachine -integrationTest /p:RestoreDotNetWorkloads=true
+
+    - name: Attest artifacts
+      uses: actions/attest-build-provenance@bdd51370e0416ac948727f861e03c2f05d32d78e # v1.3.2
+      if: |
+        runner.os == 'Windows' &&
+        github.event.repository.fork == false &&
+        startsWith(github.ref, 'refs/tags/')
+      with:
+        subject-path: |
+          ./artifacts/bin/**/Release/**/OpenNetty.*.dll
+          ./artifacts/packages/Release/Shipping/*
+
+    - name: Publish logs
+      if: ${{ always() }}
+      uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+      with:
+        name: logs-${{ matrix.os_name }}
+        path: ./artifacts/log/Release
+
+    - name: Publish NuGet packages
+      uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+      with:
+        name: packages-${{ matrix.os_name }}
+        path: ./artifacts/packages/Release/Shipping
+
+    - name: Publish test results
+      if: ${{ always() }}
+      uses: actions/upload-artifact@65462800fd760344b1a7b4382951275a0abb4808 # v4.3.3
+      with:
+        name: testresults-${{ matrix.os_name }}
+        path: ./artifacts/TestResults/Release
+
+  validate-packages:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+    - name: Download packages
+      uses: actions/download-artifact@65a9edc5881444af0b9093a5e628f2fe47ea3b2e # v4.1.7
+      with:
+        name: packages-windows
+
+    - name: Setup .NET
+      uses: actions/setup-dotnet@4d6c8fcf3c8f7a60068d26b594648e99df24cee3 # v4.0.0
+
+    - name: Validate NuGet packages
+      shell: pwsh
+      run: |
+        dotnet tool install --global dotnet-validate --version 0.0.1-preview.304
+        $packages = Get-ChildItem -Filter "*.nupkg" | ForEach-Object { $_.FullName }
+        $invalidPackages = 0
+        foreach ($package in $packages) {
+          dotnet validate package local $package
+          if ($LASTEXITCODE -ne 0) {
+            $invalidPackages++
+          }
+        }
+        if ($invalidPackages -gt 0) {
+          Write-Output "::error::$invalidPackages NuGet package(s) failed validation."
+          exit 1
+        }

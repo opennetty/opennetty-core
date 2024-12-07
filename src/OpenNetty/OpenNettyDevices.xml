@@ -1,0 +1,599 @@
+﻿<Devices>
+
+  <!--
+                    ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+                    █▄ ▄██ ▀██ ████ ▄▄▄ ██ ▀██ ██ ▄▄▄████ ▄▄▀██ ███ ████ █████ ▄▄▄██ ▄▄ ██ ▄▄▀█ ▄▄▀██ ▀██ ██ ▄▄▀██
+                    ██ ███ █ █ ████ ███ ██ █ █ ██ ▄▄▄████ ▄▄▀██▄▀▀▀▄████ █████ ▄▄▄██ █▀▀██ ▀▀▄█ ▀▀ ██ █ █ ██ ██ ██
+                    █▀ ▀██ ██▄ ████ ▀▀▀ ██ ██▄ ██ ▀▀▀████ ▀▀ ████ ██████ ▀▀ ██ ▀▀▀██ ▀▀▄██ ██ █ ██ ██ ██▄ ██ ▀▀ ██
+                    ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
+  -->
+
+  <Device Protocol="Nitoo" Media="Powerline">
+    <Identity Brand="Legrand" Model="03600" />
+
+    <Capability Name="Device description" />
+
+    <Unit Id="1" AssociatedUnitId="3">
+      <Capability Name="Dimming scenario" />
+      <Capability Name="On/off scenario" />
+      <Capability Name="Unit description" />
+    </Unit>
+
+    <Unit Id="2" AssociatedUnitId="4">
+      <Capability Name="Dimming scenario" />
+      <Capability Name="On/off scenario" />
+      <Capability Name="Unit description" />
+    </Unit>
+
+    <Unit Id="3">
+      <Capability Name="Memory reading" />
+      <Capability Name="Memory writing" />
+      <Capability Name="On/off switch state" />
+      <Capability Name="On/off switching" />
+      <Capability Name="Unit description" />
+    </Unit>
+
+    <Unit Id="4">
+      <Capability Name="Memory reading" />
+      <Capability Name="Memory writing" />
+      <Capability Name="On/off switch state" />
+      <Capability Name="On/off switching" />
+      <Capability Name="Unit description" />
+    </Unit>
+  </Device>
+
+  <Device Protocol="Nitoo" Media="Powerline">
+    <Identity Brand="Legrand" Model="03648" />
+
+    <Capability Name="Device description" />
+
+    <Unit Id="1">
+      <Capability Name="Basic scenario" />
+      <Capability Name="Unit description" />
+    </Unit>
+
+    <Unit Id="2">
+      <Capability Name="Basic scenario" />
+      <Capability Name="Unit description" />
+    </Unit>
+
+    <Unit Id="3">
+      <Capability Name="Basic scenario" />
+      <Capability Name="Unit description" />
+    </Unit>
+
+    <Unit Id="4">
+      <Capability Name="Basic scenario" />
+      <Capability Name="Unit description" />
+    </Unit>
+
+    <Unit Id="5">
+      <Capability Name="Basic scenario" />
+      <Capability Name="Unit description" />
+    </Unit>
+
+    <Unit Id="6">
+      <Capability Name="Basic scenario" />
+      <Capability Name="Unit description" />
+    </Unit>
+
+    <Unit Id="7">
+      <Capability Name="Basic scenario" />
+      <Capability Name="Unit description" />
+    </Unit>
+
+    <Unit Id="8">
+      <Capability Name="Basic scenario" />
+      <Capability Name="Unit description" />
+    </Unit>
+
+    <Unit Id="9">
+      <Capability Name="Basic scenario" />
+      <Capability Name="Unit description" />
+    </Unit>
+
+    <Unit Id="10">
+      <Capability Name="Basic scenario" />
+      <Capability Name="Unit description" />
+    </Unit>
+
+    <Unit Id="11">
+      <Capability Name="Basic scenario" />
+      <Capability Name="Unit description" />
+    </Unit>
+
+    <Unit Id="12">
+      <Capability Name="Unit description" />
+    </Unit>
+
+    <Unit Id="13">
+      <Capability Name="Unit description" />
+    </Unit>
+
+    <Unit Id="14">
+      <Capability Name="Unit description" />
+    </Unit>
+  </Device>
+
+  <Device Protocol="Nitoo" Media="Powerline">
+    <Identity Brand="Legrand" Model="03809" />
+
+    <Capability Name="Device description" />
+
+    <Unit Id="1">
+      <Capability Name="Memory reading" />
+      <Capability Name="Memory writing" />
+      <Capability Name="Unit description" />
+      <Capability Name="Water heating" />
+    </Unit>
+
+    <Unit Id="2">
+      <Capability Name="Memory reading" />
+      <Capability Name="Memory writing" />
+      <Capability Name="Smart meter indexes" />
+      <Capability Name="Smart meter information" />
+      <Capability Name="Unit description" />
+    </Unit>
+  </Device>
+
+  <Device Protocol="Nitoo" Media="Radio">
+    <Identity Brand="Legrand" Model="43214" />
+
+    <Capability Name="Wireless burglar alarm state" />
+
+    <Unit Id="1">
+      <Capability Name="Wireless burglar alarm scenario" />
+    </Unit>
+
+    <Unit Id="2">
+      <Capability Name="Basic scenario" />
+      <Capability Name="Wireless burglar alarm scenario" />
+    </Unit>
+
+    <Unit Id="3">
+      <Capability Name="Basic scenario" />
+      <Capability Name="Wireless burglar alarm scenario" />
+    </Unit>
+
+    <Unit Id="4">
+      <Capability Name="Basic scenario" />
+      <Capability Name="Wireless burglar alarm scenario" />
+    </Unit>
+
+    <Unit Id="5">
+      <Capability Name="Basic scenario" />
+      <Capability Name="Wireless burglar alarm scenario" />
+    </Unit>
+
+    <Unit Id="6">
+      <Capability Name="Basic scenario" />
+      <Capability Name="Wireless burglar alarm scenario" />
+    </Unit>
+
+    <Unit Id="7">
+      <Capability Name="Basic scenario" />
+      <Capability Name="Wireless burglar alarm scenario" />
+    </Unit>
+
+    <Unit Id="8">
+      <Capability Name="Basic scenario" />
+      <Capability Name="Wireless burglar alarm scenario" />
+    </Unit>
+
+    <Unit Id="9">
+      <Capability Name="Basic scenario" />
+      <Capability Name="Wireless burglar alarm scenario" />
+    </Unit>
+  </Device>
+
+  <Device Protocol="Nitoo" Media="Powerline">
+    <Identity Brand="Legrand" Model="67201" />
+    <Identity Brand="Legrand" Model="67203" />
+
+    <Capability Name="Device description" />
+
+    <Unit Id="1" AssociatedUnitId="2">
+      <Capability Name="Dimming scenario" />
+      <Capability Name="On/off scenario" />
+      <Capability Name="Unit description" />
+    </Unit>
+
+    <Unit Id="2">
+      <Capability Name="Memory reading" />
+      <Capability Name="Memory writing" />
+      <Capability Name="On/off switch state" />
+      <Capability Name="On/off switching" />
+      <Capability Name="Unit description" />
+    </Unit>
+  </Device>
+
+  <Device Protocol="Nitoo" Media="Powerline">
+    <Identity Brand="Legrand" Model="67202" />
+    <Identity Brand="Legrand" Model="67204" />
+
+    <Capability Name="Device description" />
+
+    <Unit Id="1" AssociatedUnitId="3">
+      <Capability Name="Dimming scenario" />
+      <Capability Name="On/off scenario" />
+      <Capability Name="Unit description" />
+    </Unit>
+
+    <Unit Id="2" AssociatedUnitId="4">
+      <Capability Name="Dimming scenario" />
+      <Capability Name="On/off scenario" />
+      <Capability Name="Unit description" />
+    </Unit>
+
+    <Unit Id="3">
+      <Capability Name="Memory reading" />
+      <Capability Name="Memory writing" />
+      <Capability Name="On/off switch state" />
+      <Capability Name="On/off switching" />
+      <Capability Name="Unit description" />
+    </Unit>
+
+    <Unit Id="4">
+      <Capability Name="Memory reading" />
+      <Capability Name="Memory writing" />
+      <Capability Name="On/off switch state" />
+      <Capability Name="On/off switching" />
+      <Capability Name="Unit description" />
+    </Unit>
+  </Device>
+
+  <Device Protocol="Nitoo" Media="Powerline">
+    <Identity Brand="Legrand" Model="67208" />
+
+    <Capability Name="Device description" />
+
+    <Unit Id="1">
+      <Capability Name="Dimming scenario" />
+      <Capability Name="On/off scenario" />
+      <Capability Name="Unit description" />
+    </Unit>
+
+    <Unit Id="2">
+      <Capability Name="Basic scenario" />
+      <Capability Name="Dimming scenario" />
+      <Capability Name="Unit description" />
+    </Unit>
+
+    <Unit Id="3">
+      <Capability Name="Basic scenario" />
+      <Capability Name="Dimming scenario" />
+      <Capability Name="Unit description" />
+    </Unit>
+  </Device>
+
+  <Device Protocol="Nitoo" Media="Powerline">
+    <Identity Brand="Legrand" Model="67210" />
+    <Identity Brand="Legrand" Model="67212" />
+    <Identity Brand="Legrand" Model="67214" />
+
+    <Capability Name="Device description" />
+
+    <Unit Id="1" AssociatedUnitId="4">
+      <Capability Name="Dimming scenario" />
+      <Capability Name="On/off scenario" />
+      <Capability Name="Unit description" />
+    </Unit>
+
+    <Unit Id="2" AssociatedUnitId="4">
+      <Capability Name="Basic scenario" />
+      <Capability Name="Dimming scenario" />
+      <Capability Name="Unit description" />
+    </Unit>
+
+    <Unit Id="3" AssociatedUnitId="4">
+      <Capability Name="Basic scenario" />
+      <Capability Name="Dimming scenario" />
+      <Capability Name="Unit description" />
+    </Unit>
+
+    <Unit Id="4">
+      <Capability Name="Advanced dimming control" />
+      <Capability Name="Advanced dimming state" />
+      <Capability Name="Memory reading" />
+      <Capability Name="Memory writing" />
+      <Capability Name="On/off switch state" />
+      <Capability Name="On/off switching" />
+      <Capability Name="Unit description" />
+    </Unit>
+  </Device>
+
+  <Device Protocol="Nitoo" Media="Powerline">
+    <Identity Brand="Legrand" Model="67215" />
+
+    <Capability Name="Device description" />
+
+    <Unit Id="1" AssociatedUnitId="3">
+      <Capability Name="Timed scenario" />
+      <Capability Name="Unit description" />
+    </Unit>
+
+    <Unit Id="2" AssociatedUnitId="3">
+      <Capability Name="On/off scenario" />
+      <Capability Name="Unit description" />
+    </Unit>
+
+    <Unit Id="3">
+      <Capability Name="Memory reading" />
+      <Capability Name="Memory writing" />
+      <Capability Name="On/off switch state" />
+      <Capability Name="On/off switching" />
+      <Capability Name="Unit description" />
+    </Unit>
+  </Device>
+
+  <Device Protocol="Nitoo" Media="Powerline">
+    <Identity Brand="Legrand" Model="67220" />
+
+    <Capability Name="Device description" />
+
+    <Unit Id="1" AssociatedUnitId="2">
+      <Capability Name="Dimming scenario" />
+      <Capability Name="On/off scenario" />
+      <Capability Name="Unit description" />
+    </Unit>
+
+    <Unit Id="2">
+      <Capability Name="On/off switch state" />
+      <Capability Name="On/off switching" />
+      <Capability Name="Unit description" />
+    </Unit>
+  </Device>
+
+  <Device Protocol="Nitoo" Media="Powerline">
+    <Identity Brand="Legrand" Model="67222" />
+
+    <Capability Name="Device description" />
+
+    <Unit Id="1" AssociatedUnitId="4">
+      <Capability Name="Dimming scenario" />
+      <Capability Name="On/off scenario" />
+      <Capability Name="Unit description" />
+    </Unit>
+
+    <Unit Id="2" AssociatedUnitId="4">
+      <Capability Name="Basic scenario" />
+      <Capability Name="Dimming scenario" />
+      <Capability Name="Unit description" />
+    </Unit>
+
+    <Unit Id="3" AssociatedUnitId="4">
+      <Capability Name="Basic scenario" />
+      <Capability Name="Dimming scenario" />
+      <Capability Name="Unit description" />
+    </Unit>
+
+    <Unit Id="4">
+      <Capability Name="Advanced dimming control" />
+      <Capability Name="Advanced dimming state" />
+      <Capability Name="Memory reading" />
+      <Capability Name="Memory writing" />
+      <Capability Name="On/off switch state" />
+      <Capability Name="On/off switching" />
+      <Capability Name="Unit description" />
+    </Unit>
+  </Device>
+
+  <Device Protocol="Nitoo" Media="Powerline">
+    <Identity Brand="Legrand" Model="67280" />
+
+    <Capability Name="Device description" />
+
+    <Unit Id="1">
+      <Capability Name="Basic scenario" />
+      <Capability Name="Dimming scenario" />
+      <Capability Name="Unit description" />
+    </Unit>
+
+    <Unit Id="2">
+      <Capability Name="Basic scenario" />
+      <Capability Name="Dimming scenario" />
+      <Capability Name="Unit description" />
+    </Unit>
+
+    <Unit Id="3">
+      <Capability Name="Basic scenario" />
+      <Capability Name="Dimming scenario" />
+      <Capability Name="Unit description" />
+    </Unit>
+
+    <Unit Id="4">
+      <Capability Name="Basic scenario" />
+      <Capability Name="Dimming scenario" />
+      <Capability Name="Unit description" />
+    </Unit>
+  </Device>
+
+  <Device Protocol="Nitoo" Media="Radio">
+    <Identity Brand="Legrand" Model="67290" />
+
+    <Unit Id="1">
+      <Capability Name="Basic scenario" />
+    </Unit>
+
+    <Unit Id="2">
+      <Capability Name="Basic scenario" />
+    </Unit>
+
+    <Unit Id="3">
+      <Capability Name="Basic scenario" />
+    </Unit>
+
+    <Unit Id="4">
+      <Capability Name="Basic scenario" />
+    </Unit>
+  </Device>
+
+  <Device Protocol="Nitoo" Media="Powerline">
+    <Identity Brand="Legrand" Model="67445" />
+
+    <Capability Name="Device description" />
+
+    <Unit Id="1">
+      <Capability Name="Memory reading" />
+      <Capability Name="Memory writing" />
+      <Capability Name="Pilot wire heating" />
+      <Capability Name="Unit description" />
+    </Unit>
+  </Device>
+
+  <Device Protocol="Nitoo" Media="Powerline">
+    <Identity Brand="Legrand" Model="67448" />
+
+    <Capability Name="Device description" />
+
+    <Unit Id="1">
+      <Capability Name="Memory reading" />
+      <Capability Name="Memory writing" />
+      <Capability Name="Pilot wire heating" />
+      <Capability Name="Pilot wire scenario" />
+      <Capability Name="Unit description" />
+    </Unit>
+  </Device>
+
+  <Device Protocol="Nitoo" Media="Radio">
+    <Identity Brand="Legrand" Model="69510" />
+
+    <Unit Id="1">
+      <Capability Name="On/off switching" />
+      <Capability Name="Unit description" />
+    </Unit>
+  </Device>
+
+  <Device Protocol="Nitoo" Media="Radio">
+    <Identity Brand="Legrand" Model="88205" />
+
+    <Unit Id="1">
+      <Capability Name="Basic scenario" />
+    </Unit>
+
+    <Unit Id="2">
+      <Capability Name="Basic scenario" />
+    </Unit>
+
+    <Unit Id="3">
+      <Capability Name="Basic scenario" />
+    </Unit>
+
+    <Unit Id="4">
+      <Capability Name="Basic scenario" />
+    </Unit>
+  </Device>
+
+  <Device Protocol="Nitoo" Media="Powerline">
+    <Identity Brand="Legrand" Model="88213" />
+
+    <Capability Name="OpenWebNet gateway" />
+    <Capability Name="OpenWebNet generic session" />
+
+    <Setting Name="Serial port baud rate" Value="115200" />
+    <Setting Name="Serial port data bits" Value="8" />
+    <Setting Name="Serial port parity" Value="None" />
+    <Setting Name="Serial port stop bits" Value="1" />
+  </Device>
+
+  <!--
+                                            ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+                                            ██ ▄▀▄ ██ ███ ██ ██ ██ ▄▄▄ ██ ▄▀▄ ██ ▄▄▄██
+                                            ██ █ █ ██▄▀▀▀▄██ ▄▄ ██ ███ ██ █ █ ██ ▄▄▄██
+                                            ██ ███ ████ ████ ██ ██ ▀▀▀ ██ ███ ██ ▀▀▀██
+                                            ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
+  -->
+
+  <Device Protocol="Scs" Media="Bus">
+    <Identity Brand="BTicino" Model="F411U1" />
+    <Identity Brand="Legrand" Model="03847" />
+
+    <Capability Name="On/off switch state" />
+    <Capability Name="On/off switching" />
+  </Device>
+
+  <Device Protocol="Scs" Media="Bus">
+    <Identity Brand="BTicino" Model="F411U2" />
+    <Identity Brand="Legrand" Model="03848" />
+
+    <Capability Name="On/off switch state" />
+    <Capability Name="On/off switching" />
+  </Device>
+
+  <Device Protocol="Scs" Media="Bus">
+    <Identity Brand="BTicino" Model="F418U2" />
+    <Identity Brand="Legrand" Model="03651" />
+
+    <Capability Name="Advanced dimming control" />
+    <Capability Name="Advanced dimming state" />
+    <Capability Name="Basic dimming control" />
+    <Capability Name="Basic dimming state" />
+    <Capability Name="On/off switch state" />
+    <Capability Name="On/off switching" />
+  </Device>
+
+  <Device Protocol="Scs" Media="Bus">
+    <Identity Brand="BTicino" Model="F454" />
+    <Identity Brand="Legrand" Model="03598" />
+
+    <Capability Name="Date/time" />
+    <Capability Name="OpenWebNet command session" />
+    <Capability Name="OpenWebNet event session" />
+    <Capability Name="OpenWebNet gateway" />
+    <Capability Name="Uptime" />
+  </Device>
+
+  <Device Protocol="Scs" Media="Bus">
+    <Identity Brand="BTicino" Model="MH202" />
+    <Identity Brand="Legrand" Model="03535" />
+
+    <Capability Name="Date/time" />
+    <Capability Name="OpenWebNet command session" />
+    <Capability Name="OpenWebNet event session" />
+    <Capability Name="OpenWebNet gateway" />
+    <Capability Name="Uptime" />
+  </Device>
+
+  <!--
+                                ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+                                ██ ▄▀▄ ██ ███ ██ ██ ██ ▄▄▄ ██ ▄▀▄ ██ ▄▄▄████ ▄▄ ██ ████ ▄▄▀██ ███ ██
+                                ██ █ █ ██▄▀▀▀▄██ ▄▄ ██ ███ ██ █ █ ██ ▄▄▄████ ▀▀ ██ ████ ▀▀ ██▄▀▀▀▄██
+                                ██ ███ ████ ████ ██ ██ ▀▀▀ ██ ███ ██ ▀▀▀████ █████ ▀▀ █ ██ ████ ████
+                                ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
+  -->
+
+  <Device Protocol="Zigbee" Media="Radio">
+    <Identity Brand="Legrand" Model="67223" />
+
+    <Unit Id="1">
+      <Capability Name="Toggle scenario" />
+    </Unit>
+
+    <Capability Name="Battery" />
+  </Device>
+
+  <Device Protocol="Zigbee" Media="Radio">
+    <Identity Brand="BTicino" Model="3578" />
+    <Identity Brand="Legrand" Model="88328" />
+
+    <Capability Name="OpenWebNet gateway" />
+    <Capability Name="OpenWebNet generic session" />
+    <Capability Name="Zigbee binding" />
+    <Capability Name="Zigbee supervision" />
+
+    <Setting Name="Serial port baud rate" Value="19200" />
+    <Setting Name="Serial port data bits" Value="8" />
+    <Setting Name="Serial port parity" Value="None" />
+    <Setting Name="Serial port stop bits" Value="1" />
+  </Device>
+
+  <Device Protocol="Zigbee" Media="Radio">
+    <Identity Brand="Legrand" Model="88337" />
+
+    <Unit Id="1">
+      <Capability Name="On/off switch state" />
+      <Capability Name="On/off switching" />
+    </Unit>
+  </Device>
+
+</Devices>

@@ -1,0 +1,47 @@
+<Project>
+
+  <!--
+                                          ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+                                          █████ ▀██ ██ ▄▄▄█▄▄ ▄▄███▀▄▄▀████ ▄▄ ██
+                                          █▀▀██ █ █ ██ ▄▄▄███ █████▀▄▄▀█▀▀█ ▀▄ ██
+                                          █▄▄██ ██▄ ██ ▀▀▀███ █████▄▀▀▄█▄▄█ ▀▀ ██
+                                          ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
+  -->
+
+  <ItemGroup Label="Package versions for .NET 8.0"
+    Condition=" '$(TargetFrameworkIdentifier)' == '.NETCoreApp' And $([MSBuild]::VersionEquals($(TargetFrameworkVersion), '8.0')) ">
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions"    Version="8.0.1"          />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Systemd"         Version="8.0.1"          />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.WindowsServices" Version="8.0.1"          />
+    <PackageVersion Include="Microsoft.Extensions.Logging"                 Version="8.0.1"          />
+    <PackageVersion Include="MQTTnet.Extensions.ManagedClient"             Version="4.3.7.1207"     />
+    <PackageVersion Include="Polly.Core"                                   Version="8.4.2"          />
+    <PackageVersion Include="System.Interactive.Async"                     Version="6.0.1"          />
+    <PackageVersion Include="System.IO.Pipelines"                          Version="8.0.0"          />
+    <PackageVersion Include="System.IO.Ports"                              Version="8.0.0"          />
+    <PackageVersion Include="System.Reactive.Async"                        Version="6.0.0-alpha.18" />
+  </ItemGroup>
+
+  <!--
+                                          ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
+                                          █████ ▀██ ██ ▄▄▄█▄▄ ▄▄███▀▄▄▀████ ▄▄ ██
+                                          █▀▀██ █ █ ██ ▄▄▄███ █████▄▀▀ █▀▀█ ▀▄ ██
+                                          █▄▄██ ██▄ ██ ▀▀▀███ ██████▀▀▄█▄▄█ ▀▀ ██
+                                          ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
+  -->
+
+  <ItemGroup Label="Package versions for .NET 9.0"
+    Condition=" '$(TargetFrameworkIdentifier)' == '.NETCoreApp' And $([MSBuild]::VersionEquals($(TargetFrameworkVersion), '9.0')) ">
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions"    Version="9.0.0"          />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Systemd"         Version="9.0.0"          />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.WindowsServices" Version="9.0.0"          />
+    <PackageVersion Include="Microsoft.Extensions.Logging"                 Version="9.0.0"          />
+    <PackageVersion Include="MQTTnet.Extensions.ManagedClient"             Version="4.3.7.1207"     />
+    <PackageVersion Include="Polly.Core"                                   Version="8.4.2"          />
+    <PackageVersion Include="System.Interactive.Async"                     Version="6.0.1"          />
+    <PackageVersion Include="System.IO.Pipelines"                          Version="9.0.0"          />
+    <PackageVersion Include="System.IO.Ports"                              Version="9.0.0"          />
+    <PackageVersion Include="System.Reactive.Async"                        Version="6.0.0-alpha.18" />
+  </ItemGroup>
+
+</Project>

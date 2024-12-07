@@ -1,0 +1,75 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.33530.505
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OpenNetty", "src\OpenNetty\OpenNetty.csproj", "{E2B5ED97-FF3F-42AC-9B62-CD7FBD147C9A}"
+EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "OpenNetty.Mqtt", "src\OpenNetty.Mqtt\OpenNetty.Mqtt.csproj", "{5D575A92-DD1E-48CE-9946-0850F2D1A9E3}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "OpenNetty.Daemon", "src\OpenNetty.Daemon\OpenNetty.Daemon.csproj", "{C4599CC7-E6D9-48E5-859C-DBED20DFAC32}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "src", "src", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "root", "root", "{0570A3E6-8025-4B6D-AE9F-527B5E3CCE89}"
+	ProjectSection(SolutionItems) = preProject
+		.editorconfig = .editorconfig
+		.gitattributes = .gitattributes
+		.gitignore = .gitignore
+		Build.cmd = Build.cmd
+		build.sh = build.sh
+		Directory.Build.props = Directory.Build.props
+		Directory.Build.targets = Directory.Build.targets
+		Directory.Packages.props = Directory.Packages.props
+		global.json = global.json
+		LICENSE.md = LICENSE.md
+		NuGet.config = NuGet.config
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "eng", "eng", "{B2C1F565-2CCD-47FD-941C-4F01871186EA}"
+	ProjectSection(SolutionItems) = preProject
+		eng\Build.props = eng\Build.props
+		eng\key.snk = eng\key.snk
+		eng\Signing.props = eng\Signing.props
+		eng\Tools.props = eng\Tools.props
+		eng\Version.Details.xml = eng\Version.Details.xml
+		eng\Versions.props = eng\Versions.props
+		eng\_._ = eng\_._
+	EndProjectSection
+EndProject
+Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "workflows", "workflows", "{02EA681E-C7D8-13C7-8484-4AC65E1B71E8}"
+	ProjectSection(SolutionItems) = preProject
+		.github\workflows\build.yml = .github\workflows\build.yml
+	EndProjectSection
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{E2B5ED97-FF3F-42AC-9B62-CD7FBD147C9A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{E2B5ED97-FF3F-42AC-9B62-CD7FBD147C9A}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{E2B5ED97-FF3F-42AC-9B62-CD7FBD147C9A}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{E2B5ED97-FF3F-42AC-9B62-CD7FBD147C9A}.Release|Any CPU.Build.0 = Release|Any CPU
+		{5D575A92-DD1E-48CE-9946-0850F2D1A9E3}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{5D575A92-DD1E-48CE-9946-0850F2D1A9E3}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{5D575A92-DD1E-48CE-9946-0850F2D1A9E3}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{5D575A92-DD1E-48CE-9946-0850F2D1A9E3}.Release|Any CPU.Build.0 = Release|Any CPU
+		{C4599CC7-E6D9-48E5-859C-DBED20DFAC32}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{C4599CC7-E6D9-48E5-859C-DBED20DFAC32}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{C4599CC7-E6D9-48E5-859C-DBED20DFAC32}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{C4599CC7-E6D9-48E5-859C-DBED20DFAC32}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(NestedProjects) = preSolution
+		{E2B5ED97-FF3F-42AC-9B62-CD7FBD147C9A} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{5D575A92-DD1E-48CE-9946-0850F2D1A9E3} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+		{C4599CC7-E6D9-48E5-859C-DBED20DFAC32} = {02EA681E-C7D8-13C7-8484-4AC65E1B71E8}
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {3B0D7022-4BD5-4969-A20C-1EB8686B74EB}
+	EndGlobalSection
+EndGlobal

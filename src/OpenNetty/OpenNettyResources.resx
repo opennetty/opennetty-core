@@ -1,0 +1,453 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="ID0001" xml:space="preserve">
+    <value>The frame must start with a '*' character.</value>
+  </data>
+  <data name="ID0002" xml:space="preserve">
+    <value>The frame cannot contain two consecutive '#', except when used at the end of the frame.</value>
+  </data>
+  <data name="ID0003" xml:space="preserve">
+    <value>The frame must end with two '#' characters.</value>
+  </data>
+  <data name="ID0004" xml:space="preserve">
+    <value>The value can only include digits from 0 to 9.</value>
+  </data>
+  <data name="ID0005" xml:space="preserve">
+    <value>The parameter cannot contain two consecutive '#'.</value>
+  </data>
+  <data name="ID0006" xml:space="preserve">
+    <value>The specified brand is not supported.</value>
+  </data>
+  <data name="ID0007" xml:space="preserve">
+    <value>The connection has been disposed.</value>
+  </data>
+  <data name="ID0008" xml:space="preserve">
+    <value>The connection has already been started.</value>
+  </data>
+  <data name="ID0009" xml:space="preserve">
+    <value>The session has been disposed and is no longer usable.</value>
+  </data>
+  <data name="ID0010" xml:space="preserve">
+    <value>The protocol attached to the message isn't valid.</value>
+  </data>
+  <data name="ID0011" xml:space="preserve">
+    <value>Action validation is only supported by Nitoo devices.</value>
+  </data>
+  <data name="ID0012" xml:space="preserve">
+    <value>Action validation is only supported for BUS COMMAND and DIMENSION SET messages.</value>
+  </data>
+  <data name="ID0013" xml:space="preserve">
+    <value>Action validation is only supported for unicast transmissions.</value>
+  </data>
+  <data name="ID0014" xml:space="preserve">
+    <value>Action validation is only supported when specifying a destination address.</value>
+  </data>
+  <data name="ID0015" xml:space="preserve">
+    <value>A message is already being sent by this session.</value>
+  </data>
+  <data name="ID0016" xml:space="preserve">
+    <value>No acknowledgement frame was received in the allowed time frame.</value>
+  </data>
+  <data name="ID0017" xml:space="preserve">
+    <value>The gateway was too busy to process the specified frame.</value>
+  </data>
+  <data name="ID0018" xml:space="preserve">
+    <value>The frame was rejected by the gateway.</value>
+  </data>
+  <data name="ID0019" xml:space="preserve">
+    <value>No action validation frame was received in the allowed time frame.</value>
+  </data>
+  <data name="ID0020" xml:space="preserve">
+    <value>The specified session type is not valid.</value>
+  </data>
+  <data name="ID0021" xml:space="preserve">
+    <value>The specified session type is not supported by the gateway.</value>
+  </data>
+  <data name="ID0022" xml:space="preserve">
+    <value>The gateway didn't acknowledge the session request.</value>
+  </data>
+  <data name="ID0023" xml:space="preserve">
+    <value>The authentication method returned by the OpenWebNet gateway is not supported.</value>
+  </data>
+  <data name="ID0024" xml:space="preserve">
+    <value>Authentication is required for this gateway but no password was provided.</value>
+  </data>
+  <data name="ID0025" xml:space="preserve">
+    <value>The gateway returned an invalid nonce.</value>
+  </data>
+  <data name="ID0026" xml:space="preserve">
+    <value>The authentication data was rejected by the gateway.</value>
+  </data>
+  <data name="ID0027" xml:space="preserve">
+    <value>The gateway returned an invalid authentication hash.</value>
+  </data>
+  <data name="ID0028" xml:space="preserve">
+    <value>The session request was not acknowledged in the allowed time frame.</value>
+  </data>
+  <data name="ID0029" xml:space="preserve">
+    <value>The specified value is not valid.</value>
+  </data>
+  <data name="ID0030" xml:space="preserve">
+    <value>This operation is not supported for Nitoo devices</value>
+  </data>
+  <data name="ID0031" xml:space="preserve">
+    <value>The specified protocol is not supported by the selected gateway.</value>
+  </data>
+  <data name="ID0032" xml:space="preserve">
+    <value>No gateway supporting the specified protocol is available to process the request.</value>
+  </data>
+  <data name="ID0033" xml:space="preserve">
+    <value>No dimension reply was received in the allowed time frame.</value>
+  </data>
+  <data name="ID0034" xml:space="preserve">
+    <value>No status reply was received in the allowed time frame.</value>
+  </data>
+  <data name="ID0035" xml:space="preserve">
+    <value>The operation was rejected by the remote device.</value>
+  </data>
+  <data name="ID0036" xml:space="preserve">
+    <value>The operation was not acknowledged by the remote device.</value>
+  </data>
+  <data name="ID0037" xml:space="preserve">
+    <value>The frame couldn't be processed by a worker in the allowed time frame.</value>
+  </data>
+  <data name="ID0038" xml:space="preserve">
+    <value>The specified stream doesn't support read operations.</value>
+  </data>
+  <data name="ID0039" xml:space="preserve">
+    <value>The specified stream doesn't support write operations.</value>
+  </data>
+  <data name="ID0040" xml:space="preserve">
+    <value>The pipe has been disposed.</value>
+  </data>
+  <data name="ID0041" xml:space="preserve">
+    <value>A read operation is already being processed.</value>
+  </data>
+  <data name="ID0042" xml:space="preserve">
+    <value>A write operation is already being processed.</value>
+  </data>
+  <data name="ID0043" xml:space="preserve">
+    <value>The specified address type is not supported.</value>
+  </data>
+  <data name="ID0044" xml:space="preserve">
+    <value>The identifier must be between 0 and 2^24.</value>
+  </data>
+  <data name="ID0045" xml:space="preserve">
+    <value>The unit must be between 0 and 15.</value>
+  </data>
+  <data name="ID0046" xml:space="preserve">
+    <value>The area must be between 0 and 10.</value>
+  </data>
+  <data name="ID0047" xml:space="preserve">
+    <value>The extension must be between 0 and 15.</value>
+  </data>
+  <data name="ID0048" xml:space="preserve">
+    <value>The group must be between 0 and 10.</value>
+  </data>
+  <data name="ID0049" xml:space="preserve">
+    <value>The light point must be between 1 and 15.</value>
+  </data>
+  <data name="ID0050" xml:space="preserve">
+    <value>The unit must be between 0 and 99.</value>
+  </data>
+  <data name="ID0051" xml:space="preserve">
+    <value>The specified identifier is not a valid hexadecimal identifier.</value>
+  </data>
+  <data name="ID0052" xml:space="preserve">
+    <value>The address doesn't represent a Nitoo address.</value>
+  </data>
+  <data name="ID0053" xml:space="preserve">
+    <value>The address doesn't represent a valid Nitoo address.</value>
+  </data>
+  <data name="ID0054" xml:space="preserve">
+    <value>The address doesn't represent a SCS light point area address.</value>
+  </data>
+  <data name="ID0055" xml:space="preserve">
+    <value>The address doesn't represent a valid SCS light point area address.</value>
+  </data>
+  <data name="ID0056" xml:space="preserve">
+    <value>The address doesn't represent a SCS light point general address.</value>
+  </data>
+  <data name="ID0057" xml:space="preserve">
+    <value>The address doesn't represent a valid SCS light point general address.</value>
+  </data>
+  <data name="ID0058" xml:space="preserve">
+    <value>The address doesn't represent a SCS light point group address.</value>
+  </data>
+  <data name="ID0059" xml:space="preserve">
+    <value>The address doesn't represent a valid SCS light point group address.</value>
+  </data>
+  <data name="ID0060" xml:space="preserve">
+    <value>The address doesn't represent a SCS light point point-to-point address.</value>
+  </data>
+  <data name="ID0061" xml:space="preserve">
+    <value>The address doesn't represent a valid SCS light point point-to-point address.</value>
+  </data>
+  <data name="ID0062" xml:space="preserve">
+    <value>The address doesn't represent a Zigbee address.</value>
+  </data>
+  <data name="ID0063" xml:space="preserve">
+    <value>The address doesn't represent a valid Zigbee address.</value>
+  </data>
+  <data name="ID0064" xml:space="preserve">
+    <value>The specified protocol is not supported.</value>
+  </data>
+  <data name="ID0065" xml:space="preserve">
+    <value>Busy negative acknowledgements are only valid for Zigbee messages.</value>
+  </data>
+  <data name="ID0066" xml:space="preserve">
+    <value>The specified WHERE field is malformed.</value>
+  </data>
+  <data name="ID0067" xml:space="preserve">
+    <value>At least one value must be specified for dimension read messages.</value>
+  </data>
+  <data name="ID0068" xml:space="preserve">
+    <value>At least one value must be specified for dimension set messages.</value>
+  </data>
+  <data name="ID0069" xml:space="preserve">
+    <value>The specified media is not supported.</value>
+  </data>
+  <data name="ID0070" xml:space="preserve">
+    <value>A serial port must be attached for gateways using serial connections.</value>
+  </data>
+  <data name="ID0071" xml:space="preserve">
+    <value>An Internet Protocol endpoint must be attached for gateways using TCP connections.</value>
+  </data>
+  <data name="ID0072" xml:space="preserve">
+    <value>The specified connection type is not supported.</value>
+  </data>
+  <data name="ID0073" xml:space="preserve">
+    <value>An error occurred while opening the internal devices database.</value>
+  </data>
+  <data name="ID0074" xml:space="preserve">
+    <value>An essential resilience property couldn't be found in the context properties.</value>
+  </data>
+  <data name="ID0075" xml:space="preserve">
+    <value>An invalid or unexpected value was received.</value>
+  </data>
+  <data name="ID0076" xml:space="preserve">
+    <value>The specified endpoint doesn't have the capability required to perform this action.</value>
+  </data>
+  <data name="ID0077" xml:space="preserve">
+    <value>The specified OpenNetty configuration file was not found.</value>
+  </data>
+  <data name="ID0078" xml:space="preserve">
+    <value>The specified OpenNetty configuration file is malformed. Make sure it specifies a 'Configuration' root node.</value>
+  </data>
+  <data name="ID0079" xml:space="preserve">
+    <value>The channel was closed by the hosted service.</value>
+  </data>
+  <data name="ID0080" xml:space="preserve">
+    <value>Gateway nodes can only be defined under a device node.</value>
+  </data>
+  <data name="ID0081" xml:space="preserve">
+    <value>Gateways must include a non-null '{0}' attribute.</value>
+  </data>
+  <data name="ID0082" xml:space="preserve">
+    <value>A non-null '{0}' attribute is required for gateways using serial port connections.</value>
+  </data>
+  <data name="ID0083" xml:space="preserve">
+    <value>A non-null '{0}' attribute is required for gateways using TCP connections.</value>
+  </data>
+  <data name="ID0084" xml:space="preserve">
+    <value>The specified connection type is not valid.</value>
+  </data>
+  <data name="ID0085" xml:space="preserve">
+    <value>An endpoint with the name '{0}' has already been added.</value>
+  </data>
+  <data name="ID0086" xml:space="preserve">
+    <value>Nitoo and Zigbee units must include a non-null '{0}' attribute.</value>
+  </data>
+  <data name="ID0087" xml:space="preserve">
+    <value>'{0}' is not a valid address type.</value>
+  </data>
+  <data name="ID0088" xml:space="preserve">
+    <value>An address type couldn't be automatically inferred for the endpoint '{0}'. Consider adding an explicit '{1}' attribute.</value>
+  </data>
+  <data name="ID0089" xml:space="preserve">
+    <value>A non-null '{0}' attribute is required for Nitoo devices.</value>
+  </data>
+  <data name="ID0090" xml:space="preserve">
+    <value>A non-null '{0}' attribute is required for Nitoo units.</value>
+  </data>
+  <data name="ID0091" xml:space="preserve">
+    <value>A non-null '{0}' attribute is required for SCS light point area addresses.</value>
+  </data>
+  <data name="ID0092" xml:space="preserve">
+    <value>A non-null '{0}' attribute is required for SCS light point group addresses.</value>
+  </data>
+  <data name="ID0093" xml:space="preserve">
+    <value>A non-null '{0}' attribute is required for SCS light point point-to-point addresses.</value>
+  </data>
+  <data name="ID0094" xml:space="preserve">
+    <value>A non-null '{0}' attribute is required for Zigbee devices.</value>
+  </data>
+  <data name="ID0095" xml:space="preserve">
+    <value>A non-null '{0}' attribute is required for Zigbee units.</value>
+  </data>
+  <data name="ID0096" xml:space="preserve">
+    <value>A non-null '{0}' attribute is required for endpoint capabilities.</value>
+  </data>
+  <data name="ID0097" xml:space="preserve">
+    <value>A non-null '{0}' attribute is required for device nodes.</value>
+  </data>
+  <data name="ID0098" xml:space="preserve">
+    <value>The device model {0} '{1}' is not valid or is not supported.</value>
+  </data>
+  <data name="ID0099" xml:space="preserve">
+    <value>A non-null '{0}' attribute is required for endpoint, device or unit settings.</value>
+  </data>
+  <data name="ID0100" xml:space="preserve">
+    <value>The unit '{0}' is not valid for the device {1} '{2}'.</value>
+  </data>
+  <data name="ID0101" xml:space="preserve">
+    <value>A non-null '{0}' attribute is required for Nitoo scenarios.</value>
+  </data>
+  <data name="ID0102" xml:space="preserve">
+    <value>The gateway '{0}' doesn't exist or is not valid.</value>
+  </data>
+  <data name="ID0103" xml:space="preserve">
+    <value>The '{0}' node required when enabling the MQTT integration was not found in the configuration file.</value>
+  </data>
+  <data name="ID0104" xml:space="preserve">
+    <value>A non-null '{0}' attribute is required for the MQTT configuration node.</value>
+  </data>
+  <data name="ID0105" xml:space="preserve">
+    <value>This operation is not valid for open serial ports.</value>
+  </data>
+  <data name="ID0106" xml:space="preserve">
+    <value>'{0}' is not a valid serial port parity.</value>
+  </data>
+  <data name="ID0107" xml:space="preserve">
+    <value>'{0}' is not a valid stop bits value.</value>
+  </data>
+  <data name="ID0108" xml:space="preserve">
+    <value>'{0}' is not a supported socket protocol.</value>
+  </data>
+  <data name="ID0109" xml:space="preserve">
+    <value>The gateway didn't acknowledge the supervision mode request.</value>
+  </data>
+  <data name="ID0110" xml:space="preserve">
+    <value>Only passwords containing ASCII digit characters (9 at most) can be used with gateways that don't support digest authentication.</value>
+  </data>
+  <data name="ID2000" xml:space="preserve">
+    <value>Endpoint names cannot contain the '+' or '*' characters.</value>
+  </data>
+</root>

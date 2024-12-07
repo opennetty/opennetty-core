@@ -1,0 +1,78 @@
+<Project>
+
+  <Import Project="Sdk.props" Sdk="Microsoft.DotNet.Arcade.Sdk" />
+
+  <PropertyGroup>
+    <LangVersion>preview</LangVersion>
+    <EnableNETAnalyzers>true</EnableNETAnalyzers>
+    <AnalysisLevel>preview</AnalysisLevel>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <NoWarn>$(NoWarn);CS1591;NETSDK1206;NU5118;NU5128;xUnit2002</NoWarn>
+    <WarningsNotAsErrors>NU1901;NU1902;NU1903;NU1904</WarningsNotAsErrors>
+    <NuGetAuditMode>direct</NuGetAuditMode>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <DebugSymbols>true</DebugSymbols>
+    <DebugType>portable</DebugType>
+    <SymbolPackageFormat>snupkg</SymbolPackageFormat>
+    <SuppressSymbolPackageFormatValidation>true</SuppressSymbolPackageFormatValidation>
+    <EnableXlfLocalization>false</EnableXlfLocalization>
+    <GenerateResxSourceEmitFormatMethods>true</GenerateResxSourceEmitFormatMethods>
+    <ProduceReferenceAssembly>true</ProduceReferenceAssembly>
+    <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
+    <CentralPackageTransitivePinningEnabled>false</CentralPackageTransitivePinningEnabled>
+    <AccelerateBuildsInVisualStudio>true</AccelerateBuildsInVisualStudio>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <StrongNameKeyId>OpenNetty</StrongNameKeyId>
+    <AssemblyOriginatorKeyFile>$(MSBuildThisFileDirectory)eng\key.snk</AssemblyOriginatorKeyFile>
+    <SignAssembly>true</SignAssembly>
+    <DelaySign>false</DelaySign>
+    <PublicSign>false</PublicSign>
+    <PublicKey>0024000004800000940000000602000000240000525341310004000001000100ede88273f5b5fa40626c313bbc686c05a3a9d46fc032f8b9585e864c55279d894ff710ea74eb671196303047c59cb27981bcea2a295c55751a05f7f8b16b47a4fc4f1f9f4878ba76b6e1016759b884b486407945503c480a4093e7057b8f48c77057268968422f35cab9daaf3444cb0f4bb0f59554434c262c7d5081caa8a1c6</PublicKey>
+    <PublicKeyToken>a17b902d06b60845</PublicKeyToken>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <Authors>Kévin Chalet</Authors>
+    <Company>$(Authors)</Company>
+    <Product>OpenNetty</Product>
+    <_ProjectCopyright>© Kévin Chalet. All rights reserved.</_ProjectCopyright>
+    <PackageIconFullPath>$(MSBuildThisFileDirectory)package-icon.png</PackageIconFullPath>
+    <PackageProjectUrl>https://github.com/opennetty/opennetty-core</PackageProjectUrl>
+    <PackageLicenseExpression>Apache-2.0</PackageLicenseExpression>
+    <PackageTags>bticino;inone;iobl;legrand;myhome;nitoo;opennetty;openwebnet;scs;zigbee</PackageTags>
+    <RepositoryType>git</RepositoryType>
+    <RepositoryUrl>https://github.com/opennetty/opennetty-core.git</RepositoryUrl>
+  </PropertyGroup>
+
+  <PropertyGroup>
+    <RepoRelativeProjectDir>$([MSBuild]::MakeRelative($(RepoRoot), $(MSBuildProjectDirectory)))</RepoRelativeProjectDir>
+    <WarnOnPackingNonPackableProject>false</WarnOnPackingNonPackableProject>
+    <CheckEolTargetFramework>false</CheckEolTargetFramework>
+  </PropertyGroup>
+
+  <!--
+    These are set per-project so versioning is applied correctly, but are not set globally otherwise
+    the Arcade SDK will attempt to publish artifacts such as symbols to Microsoft's servers.
+  -->
+  <PropertyGroup Condition=" '$(GITHUB_ACTIONS)' == 'true' And '$(GITHUB_REF.StartsWith(`refs/pull/`))' == 'false' ">
+    <OfficialBuild>true</OfficialBuild>
+    <OfficialBuildId>$(_ComputedOfficialBuildId)</OfficialBuildId>
+  </PropertyGroup>
+
+  <PropertyGroup Condition=" $(RepoRelativeProjectDir.Contains('src')) ">
+    <GenerateDocumentationFile>true</GenerateDocumentationFile>
+    <IncludeSymbols>true</IncludeSymbols>
+    <IsPackable>true</IsPackable>
+    <IsShipping>true</IsShipping>
+    <Serviceable>false</Serviceable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectCapability Include="DynamicDependentFile" />
+    <ProjectCapability Include="DynamicFileNesting" />
+  </ItemGroup>
+
+</Project>
