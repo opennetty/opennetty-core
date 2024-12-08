@@ -25,6 +25,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "root", "root", "{0570A3E6-8
 		LICENSE.md = LICENSE.md
 		NuGet.config = NuGet.config
 		README.md = README.md
+		SECURITY.md = SECURITY.md
 	EndProjectSection
 EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "eng", "eng", "{B2C1F565-2CCD-47FD-941C-4F01871186EA}"
