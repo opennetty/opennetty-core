@@ -33,17 +33,61 @@ gateways and a higher-level MQTT integration that can be directly used with home
 
 --------------
 
+## Supported devices
+
+The following Legrand and BTicino products have been tested and are partially or fully supported by OpenNetty:
+
+| Product series    | Design series | Legrand reference | BTicino reference |
+|-------------------|---------------|-------------------|-------------------|
+| In One by Legrand | Lexic         | 03600             |                   |
+| In One by Legrand | Lexic         | 03648             |                   |
+| In One by Legrand | Lexic         | 03809             |                   |
+| In One by Legrand |               | 43214             |                   |
+| In One by Legrand | Céliane       | 67201             |                   |
+| In One by Legrand | Céliane       | 67202             |                   |
+| In One by Legrand | Céliane       | 67203             |                   |
+| In One by Legrand | Céliane       | 67204             |                   |
+| In One by Legrand | Céliane       | 67208             |                   |
+| In One by Legrand | Céliane       | 67210             |                   |
+| In One by Legrand | Céliane       | 67212             |                   |
+| In One by Legrand | Céliane       | 67214             |                   |
+| In One by Legrand | Céliane       | 67215             |                   |
+| In One by Legrand | Céliane       | 67220             |                   |
+| In One by Legrand | Céliane       | 67222             |                   |
+| In One by Legrand | Céliane       | 67280             |                   |
+| In One by Legrand | Céliane       | 67290             |                   |
+| In One by Legrand | Céliane       | 67445             |                   |
+| In One by Legrand | Céliane       | 67448             |                   |
+| In One by Legrand | Plexo         | 69510             |                   |
+| In One by Legrand |               | 88205             |                   |
+| In One by Legrand |               | 88213             |                   |
+|                   |               |                   |                   |
+| MyHome Up         |               | 03847             | F411U1            |
+| MyHome Up         |               | 03848             | F411U2            |
+| MyHome Up         |               | 03651             | F418U2            |
+| MyHome Up         |               | 03598             | F454              |
+| MyHome Up         |               | 03535             | MH202             |
+|                   |               |                   |                   |
+| MyHome Play       | Céliane       | 67223             |                   |
+| MyHome Play       |               | 88328             | 3578              |
+| MyHome Play       |               | 88337             |                   |
+
+> [!NOTE]
+> Support for additional devices will be progressively added depending on the demand.
+
+--------------
+
 ## Core components
 
 ### Primitives
 
 To represent raw OpenWebNet frames, OpenNetty exposes 3 low-level structures – `OpenNettyFrame`, `OpenNettyField` and `OpenNettyParameter` – and
 one high-level primitive – `OpenNettyMessage` – that can be used to represent any message type supported by the 3 OpenWebNet specifications:
-  - Bus commands
-  - Dimension requests
-  - Dimension reads
-  - Dimension sets
-  - Status requests
+  - Bus commands.
+  - Dimension requests.
+  - Dimension reads.
+  - Dimension sets.
+  - Status requests.
 
 ```csharp
 var message = OpenNettyMessage.CreateCommand(
@@ -126,7 +170,7 @@ It also automatically retransmit failed outgoing messages using a retry policy d
 
 Once the OpenNetty services are registered using the dedicated `.AddOpenNetty()` extension, the low-level `IOpenNettyService`
 interface can be leveraged to execute any arbitrary bus command, dimension request, dimension set or status request
-and return the corresponding response returned by the gateway, if applicable:
+and extract the corresponding response returned by the gateway, if applicable:
 
 ```csharp
 var builder = Host.CreateApplicationBuilder();
