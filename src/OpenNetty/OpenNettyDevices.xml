@@ -8,8 +8,8 @@
                     ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
   -->
 
-  <Device Protocol="Nitoo" Media="Powerline">
-    <Identity Brand="Legrand" Model="03600" />
+  <Device Series="In One by Legrand" Protocol="Nitoo" Media="Powerline">
+    <Identity Brand="Legrand" Collection="Lexic" Model="03600" />
 
     <Capability Name="Device description" />
 
@@ -42,8 +42,8 @@
     </Unit>
   </Device>
 
-  <Device Protocol="Nitoo" Media="Powerline">
-    <Identity Brand="Legrand" Model="03648" />
+  <Device Series="In One by Legrand" Protocol="Nitoo" Media="Powerline">
+    <Identity Brand="Legrand" Collection="Lexic" Model="03648" />
 
     <Capability Name="Device description" />
 
@@ -115,8 +115,8 @@
     </Unit>
   </Device>
 
-  <Device Protocol="Nitoo" Media="Powerline">
-    <Identity Brand="Legrand" Model="03809" />
+  <Device Series="In One by Legrand" Protocol="Nitoo" Media="Powerline">
+    <Identity Brand="Legrand" Collection="Lexic" Model="03809" />
 
     <Capability Name="Device description" />
 
@@ -136,7 +136,7 @@
     </Unit>
   </Device>
 
-  <Device Protocol="Nitoo" Media="Radio">
+  <Device Series="In One by Legrand" Protocol="Nitoo" Media="Radio">
     <Identity Brand="Legrand" Model="43214" />
 
     <Capability Name="Wireless burglar alarm state" />
@@ -186,9 +186,10 @@
     </Unit>
   </Device>
 
-  <Device Protocol="Nitoo" Media="Powerline">
-    <Identity Brand="Legrand" Model="67201" />
-    <Identity Brand="Legrand" Model="67203" />
+  <Device Series="In One by Legrand" Protocol="Nitoo" Media="Powerline">
+    <Identity Brand="Legrand" Collection="Céliane" Model="67201" />
+    <Identity Brand="Legrand" Collection="Céliane" Model="67203" />
+    <Identity Brand="Legrand" Collection="Sagane"  Model="84531" />
 
     <Capability Name="Device description" />
 
@@ -207,9 +208,10 @@
     </Unit>
   </Device>
 
-  <Device Protocol="Nitoo" Media="Powerline">
-    <Identity Brand="Legrand" Model="67202" />
-    <Identity Brand="Legrand" Model="67204" />
+  <Device Series="In One by Legrand" Protocol="Nitoo" Media="Powerline">
+    <Identity Brand="Legrand" Collection="Céliane" Model="67202" />
+    <Identity Brand="Legrand" Collection="Céliane" Model="67204" />
+    <Identity Brand="Legrand" Collection="Sagane"  Model="84520" />
 
     <Capability Name="Device description" />
 
@@ -242,8 +244,8 @@
     </Unit>
   </Device>
 
-  <Device Protocol="Nitoo" Media="Powerline">
-    <Identity Brand="Legrand" Model="67208" />
+  <Device Series="In One by Legrand" Protocol="Nitoo" Media="Powerline">
+    <Identity Brand="Legrand" Collection="Céliane" Model="67208" />
 
     <Capability Name="Device description" />
 
@@ -266,10 +268,10 @@
     </Unit>
   </Device>
 
-  <Device Protocol="Nitoo" Media="Powerline">
-    <Identity Brand="Legrand" Model="67210" />
-    <Identity Brand="Legrand" Model="67212" />
-    <Identity Brand="Legrand" Model="67214" />
+  <Device Series="In One by Legrand" Protocol="Nitoo" Media="Powerline">
+    <Identity Brand="Legrand" Collection="Céliane" Model="67210" />
+    <Identity Brand="Legrand" Collection="Céliane" Model="67212" />
+    <Identity Brand="Legrand" Collection="Céliane" Model="67214" />
 
     <Capability Name="Device description" />
 
@@ -302,8 +304,9 @@
     </Unit>
   </Device>
 
-  <Device Protocol="Nitoo" Media="Powerline">
-    <Identity Brand="Legrand" Model="67215" />
+  <Device Series="In One by Legrand" Protocol="Nitoo" Media="Powerline">
+    <Identity Brand="Legrand" Collection="Céliane" Model="67215" />
+    <Identity Brand="Legrand" Collection="Sagane"  Model="84522" />
 
     <Capability Name="Device description" />
 
@@ -326,8 +329,9 @@
     </Unit>
   </Device>
 
-  <Device Protocol="Nitoo" Media="Powerline">
-    <Identity Brand="Legrand" Model="67220" />
+  <Device Series="In One by Legrand" Protocol="Nitoo" Media="Powerline">
+    <Identity Brand="Legrand" Collection="Céliane" Model="67220" />
+    <Identity Brand="Legrand" Collection="Sagane"  Model="84523" />
 
     <Capability Name="Device description" />
 
@@ -344,8 +348,9 @@
     </Unit>
   </Device>
 
-  <Device Protocol="Nitoo" Media="Powerline">
-    <Identity Brand="Legrand" Model="67222" />
+  <Device Series="In One by Legrand" Protocol="Nitoo" Media="Powerline">
+    <Identity Brand="Legrand" Collection="Céliane" Model="67222" />
+    <Identity Brand="Legrand" Collection="Sagane"  Model="84524" />
 
     <Capability Name="Device description" />
 
@@ -378,8 +383,9 @@
     </Unit>
   </Device>
 
-  <Device Protocol="Nitoo" Media="Powerline">
-    <Identity Brand="Legrand" Model="67280" />
+  <Device Series="In One by Legrand" Protocol="Nitoo" Media="Powerline">
+    <Identity Brand="Legrand" Collection="Céliane" Model="67280" />
+    <Identity Brand="Legrand" Collection="Sagane"  Model="84525" />
 
     <Capability Name="Device description" />
 
@@ -408,8 +414,9 @@
     </Unit>
   </Device>
 
-  <Device Protocol="Nitoo" Media="Radio">
-    <Identity Brand="Legrand" Model="67290" />
+  <Device Series="In One by Legrand" Protocol="Nitoo" Media="Radio">
+    <Identity Brand="Legrand" Collection="Céliane" Model="67290" />
+    <Identity Brand="Legrand" Collection="Sagane"  Model="84542" />
 
     <Unit Id="1">
       <Capability Name="Basic scenario" />
@@ -428,8 +435,9 @@
     </Unit>
   </Device>
 
-  <Device Protocol="Nitoo" Media="Powerline">
-    <Identity Brand="Legrand" Model="67445" />
+  <Device Series="In One by Legrand" Protocol="Nitoo" Media="Powerline">
+    <Identity Brand="Legrand" Collection="Céliane" Model="67445" />
+    <Identity Brand="Legrand" Collection="Sagane"  Model="84530" />
 
     <Capability Name="Device description" />
 
@@ -441,8 +449,9 @@
     </Unit>
   </Device>
 
-  <Device Protocol="Nitoo" Media="Powerline">
-    <Identity Brand="Legrand" Model="67448" />
+  <Device Series="In One by Legrand" Protocol="Nitoo" Media="Powerline">
+    <Identity Brand="Legrand" Collection="Céliane" Model="67448" />
+    <Identity Brand="Legrand" Collection="Sagane"  Model="84529" />
 
     <Capability Name="Device description" />
 
@@ -455,8 +464,8 @@
     </Unit>
   </Device>
 
-  <Device Protocol="Nitoo" Media="Radio">
-    <Identity Brand="Legrand" Model="69510" />
+  <Device Series="In One by Legrand" Protocol="Nitoo" Media="Radio">
+    <Identity Brand="Legrand" Collection="Plexo" Model="69510" />
 
     <Unit Id="1">
       <Capability Name="On/off switching" />
@@ -464,7 +473,7 @@
     </Unit>
   </Device>
 
-  <Device Protocol="Nitoo" Media="Radio">
+  <Device Series="In One by Legrand" Protocol="Nitoo" Media="Radio">
     <Identity Brand="Legrand" Model="88205" />
 
     <Unit Id="1">
@@ -484,7 +493,7 @@
     </Unit>
   </Device>
 
-  <Device Protocol="Nitoo" Media="Powerline">
+  <Device Series="In One by Legrand" Protocol="Nitoo" Media="Powerline">
     <Identity Brand="Legrand" Model="88213" />
 
     <Capability Name="OpenWebNet gateway" />
@@ -504,7 +513,7 @@
                                             ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
   -->
 
-  <Device Protocol="Scs" Media="Bus">
+  <Device Series="MyHome" Protocol="Scs" Media="Bus">
     <Identity Brand="BTicino" Model="F411U1" />
     <Identity Brand="Legrand" Model="03847" />
 
@@ -512,7 +521,7 @@
     <Capability Name="On/off switching" />
   </Device>
 
-  <Device Protocol="Scs" Media="Bus">
+  <Device Series="MyHome" Protocol="Scs" Media="Bus">
     <Identity Brand="BTicino" Model="F411U2" />
     <Identity Brand="Legrand" Model="03848" />
 
@@ -520,7 +529,7 @@
     <Capability Name="On/off switching" />
   </Device>
 
-  <Device Protocol="Scs" Media="Bus">
+  <Device Series="MyHome" Protocol="Scs" Media="Bus">
     <Identity Brand="BTicino" Model="F418U2" />
     <Identity Brand="Legrand" Model="03651" />
 
@@ -532,7 +541,7 @@
     <Capability Name="On/off switching" />
   </Device>
 
-  <Device Protocol="Scs" Media="Bus">
+  <Device Series="MyHome" Protocol="Scs" Media="Bus">
     <Identity Brand="BTicino" Model="F454" />
     <Identity Brand="Legrand" Model="03598" />
 
@@ -543,7 +552,7 @@
     <Capability Name="Uptime" />
   </Device>
 
-  <Device Protocol="Scs" Media="Bus">
+  <Device Series="MyHome" Protocol="Scs" Media="Bus">
     <Identity Brand="BTicino" Model="MH202" />
     <Identity Brand="Legrand" Model="03535" />
 
@@ -562,8 +571,8 @@
                                 ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
   -->
 
-  <Device Protocol="Zigbee" Media="Radio">
-    <Identity Brand="Legrand" Model="67223" />
+  <Device Series="MyHome Play" Protocol="Zigbee" Media="Radio">
+    <Identity Brand="Legrand" Collection="Céliane" Model="67223" />
 
     <Unit Id="1">
       <Capability Name="Toggle scenario" />
@@ -572,7 +581,7 @@
     <Capability Name="Battery" />
   </Device>
 
-  <Device Protocol="Zigbee" Media="Radio">
+  <Device Series="MyHome Play" Protocol="Zigbee" Media="Radio">
     <Identity Brand="BTicino" Model="3578" />
     <Identity Brand="Legrand" Model="88328" />
 
@@ -587,7 +596,7 @@
     <Setting Name="Serial port stop bits" Value="1" />
   </Device>
 
-  <Device Protocol="Zigbee" Media="Radio">
+  <Device Series="MyHome Play" Protocol="Zigbee" Media="Radio">
     <Identity Brand="Legrand" Model="88337" />
 
     <Unit Id="1">

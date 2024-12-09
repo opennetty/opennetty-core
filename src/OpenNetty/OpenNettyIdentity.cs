@@ -18,25 +18,31 @@ public readonly struct OpenNettyIdentity : IEquatable<OpenNettyIdentity>
     public required OpenNettyBrand Brand { get; init; }
 
     /// <summary>
+    /// Gets or sets the collection, if applicable.
+    /// </summary>
+    public required string? Collection { get; init; }
+
+    /// <summary>
     /// Gets or sets the model.
     /// </summary>
     public required string Model { get; init; }
 
     /// <inheritdoc/>
     public bool Equals(OpenNettyIdentity other) => Brand == other.Brand &&
+        string.Equals(Collection, other.Collection, StringComparison.OrdinalIgnoreCase) &&
         string.Equals(Model, other.Model, StringComparison.OrdinalIgnoreCase);
 
     /// <inheritdoc/>
     public override bool Equals(object? obj) => obj is OpenNettyIdentity identity && Equals(identity);
 
     /// <inheritdoc/>
-    public override int GetHashCode() => HashCode.Combine(Brand, Model);
+    public override int GetHashCode() => HashCode.Combine(Brand, Collection, Model);
 
     /// <summary>
     /// Computes the <see cref="string"/> representation of the current identity.
     /// </summary>
     /// <returns>The <see cref="string"/> representation of the current identity.</returns>
-    public override string ToString() => $"{Enum.GetName(Brand)} {Model}";
+    public override string ToString() => $"{Enum.GetName(Brand)} {Collection} {Model}";
 
     /// <summary>
     /// Determines whether two <see cref="OpenNettyIdentity"/> instances are equal.

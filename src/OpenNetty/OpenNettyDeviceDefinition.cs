@@ -5,7 +5,6 @@
  */
 
 using System.Collections.Immutable;
-using System.Reactive;
 
 namespace OpenNetty;
 
@@ -35,6 +34,11 @@ public sealed class OpenNettyDeviceDefinition : IEquatable<OpenNettyDeviceDefini
     public required OpenNettyProtocol Protocol { get; init; }
 
     /// <summary>
+    /// Gets or sets the series associated with the device definition.
+    /// </summary>
+    public required string Series { get; init; }
+
+    /// <summary>
     /// Gets or sets the OpenNetty-defined settings associated with the device definition.
     /// </summary>
     public ImmutableDictionary<OpenNettySetting, string> Settings { get; init; } =
@@ -58,6 +62,7 @@ public sealed class OpenNettyDeviceDefinition : IEquatable<OpenNettyDeviceDefini
             Identities.Length == other.Identities.Length && !Identities.Except(other.Identities).Any() &&
             Media == other.Media &&
             Protocol == other.Protocol &&
+            string.Equals(Series, other.Series, StringComparison.OrdinalIgnoreCase) &&
             Settings.Count == other.Settings.Count && !Settings.Except(other.Settings).Any() &&
             Units.Length == other.Units.Length && !Units.Except(other.Units).Any();
     }
@@ -84,6 +89,7 @@ public sealed class OpenNettyDeviceDefinition : IEquatable<OpenNettyDeviceDefini
 
         hash.Add(Media);
         hash.Add(Protocol);
+        hash.Add(Series);
 
         hash.Add(Settings.Count);
         foreach (var (name, value) in Settings)

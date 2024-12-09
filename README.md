@@ -35,42 +35,51 @@ gateways and a higher-level MQTT integration that can be directly used with home
 
 ## Supported devices
 
-The following Legrand and BTicino products have been tested and are partially or fully supported by OpenNetty:
+The following Legrand and BTicino products are partially or fully supported by OpenNetty:
 
-| Product series    | Design series | Legrand reference | BTicino reference |
-|-------------------|---------------|-------------------|-------------------|
-| In One by Legrand | Lexic         | 03600             |                   |
-| In One by Legrand | Lexic         | 03648             |                   |
-| In One by Legrand | Lexic         | 03809             |                   |
-| In One by Legrand |               | 43214             |                   |
-| In One by Legrand | Céliane       | 67201             |                   |
-| In One by Legrand | Céliane       | 67202             |                   |
-| In One by Legrand | Céliane       | 67203             |                   |
-| In One by Legrand | Céliane       | 67204             |                   |
-| In One by Legrand | Céliane       | 67208             |                   |
-| In One by Legrand | Céliane       | 67210             |                   |
-| In One by Legrand | Céliane       | 67212             |                   |
-| In One by Legrand | Céliane       | 67214             |                   |
-| In One by Legrand | Céliane       | 67215             |                   |
-| In One by Legrand | Céliane       | 67220             |                   |
-| In One by Legrand | Céliane       | 67222             |                   |
-| In One by Legrand | Céliane       | 67280             |                   |
-| In One by Legrand | Céliane       | 67290             |                   |
-| In One by Legrand | Céliane       | 67445             |                   |
-| In One by Legrand | Céliane       | 67448             |                   |
-| In One by Legrand | Plexo         | 69510             |                   |
-| In One by Legrand |               | 88205             |                   |
-| In One by Legrand |               | 88213             |                   |
-|                   |               |                   |                   |
-| MyHome Up         |               | 03847             | F411U1            |
-| MyHome Up         |               | 03848             | F411U2            |
-| MyHome Up         |               | 03651             | F418U2            |
-| MyHome Up         |               | 03598             | F454              |
-| MyHome Up         |               | 03535             | MH202             |
-|                   |               |                   |                   |
-| MyHome Play       | Céliane       | 67223             |                   |
-| MyHome Play       |               | 88328             | 3578              |
-| MyHome Play       |               | 88337             |                   |
+| Product series    | Product collection | Legrand reference | BTicino reference |
+|-------------------|--------------------|-------------------|-------------------|
+| In One by Legrand | Lexic              | 03600             |                   |
+| In One by Legrand | Lexic              | 03648             |                   |
+| In One by Legrand | Lexic              | 03809             |                   |
+| In One by Legrand |                    | 43214             |                   |
+| In One by Legrand | Céliane            | 67201             |                   |
+| In One by Legrand | Céliane            | 67202             |                   |
+| In One by Legrand | Céliane            | 67203             |                   |
+| In One by Legrand | Céliane            | 67204             |                   |
+| In One by Legrand | Céliane            | 67208             |                   |
+| In One by Legrand | Céliane            | 67210             |                   |
+| In One by Legrand | Céliane            | 67212             |                   |
+| In One by Legrand | Céliane            | 67214             |                   |
+| In One by Legrand | Céliane            | 67215             |                   |
+| In One by Legrand | Céliane            | 67220             |                   |
+| In One by Legrand | Céliane            | 67222             |                   |
+| In One by Legrand | Céliane            | 67280             |                   |
+| In One by Legrand | Céliane            | 67290             |                   |
+| In One by Legrand | Céliane            | 67445             |                   |
+| In One by Legrand | Céliane            | 67448             |                   |
+| In One by Legrand | Plexo              | 69510             |                   |
+| In One by Legrand | Sagane             | 84520             |                   |
+| In One by Legrand | Sagane             | 84522             |                   |
+| In One by Legrand | Sagane             | 84523             |                   |
+| In One by Legrand | Sagane             | 84524             |                   |
+| In One by Legrand | Sagane             | 84525             |                   |
+| In One by Legrand | Sagane             | 84529             |                   |
+| In One by Legrand | Sagane             | 84530             |                   |
+| In One by Legrand | Sagane             | 84531             |                   |
+| In One by Legrand | Sagane             | 84542             |                   |
+| In One by Legrand |                    | 88205             |                   |
+| In One by Legrand |                    | 88213             |                   |
+|                   |                    |                   |                   |
+| MyHome Up         |                    | 03847             | F411U1            |
+| MyHome Up         |                    | 03848             | F411U2            |
+| MyHome Up         |                    | 03651             | F418U2            |
+| MyHome Up         |                    | 03598             | F454              |
+| MyHome Up         |                    | 03535             | MH202             |
+|                   |                    |                   |                   |
+| MyHome Play       | Céliane            | 67223             |                   |
+| MyHome Play       |                    | 88328             | 3578              |
+| MyHome Play       |                    | 88337             |                   |
 
 > [!NOTE]
 > Support for additional devices will be progressively added depending on the demand.

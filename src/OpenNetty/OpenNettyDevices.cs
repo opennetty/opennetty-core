@@ -81,7 +81,7 @@ public static class OpenNettyDevices
 
         if (!Enum.IsDefined(brand))
         {
-            throw new ArgumentException(SR.GetResourceString(SR.ID0005), nameof(brand));
+            throw new ArgumentException(SR.GetResourceString(SR.ID0006), nameof(brand));
         }
 
         using var stream = Assembly.GetAssembly(typeof(OpenNettyDevices))?.GetManifestResourceStream(
@@ -135,6 +135,7 @@ public static class OpenNettyDevices
             identities.Add(new OpenNettyIdentity
             {
                 Brand = Enum.Parse<OpenNettyBrand>((string) identity.Attribute("Brand")!),
+                Collection = (string?) identity.Attribute("Collection"),
                 Model = (string) identity.Attribute("Model")!
             });
         }
@@ -155,6 +156,7 @@ public static class OpenNettyDevices
             Identities = [.. identities],
             Media = Enum.Parse<OpenNettyMedia>((string) node.Attribute("Media")!),
             Protocol = Enum.Parse<OpenNettyProtocol>((string) node.Attribute("Protocol")!),
+            Series = (string) node.Attribute("Series")!,
             Settings = settings.ToImmutableDictionary(),
             Units = [.. units]
         };
