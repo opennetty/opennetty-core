@@ -151,8 +151,11 @@ await Task.Delay(-1);
 >     parity  : Parity.None,
 >     dataBits: 8,
 >     stopBits: StopBits.One);
+>
+> using var source = new CancellationTokenSource();
+> source.CancelAfter(TimeSpan.FromSeconds(10));
 > 
-> await using var connection = await OpenNettyConnection.CreateSerialConnectionAsync(port);
+> await using var connection = await OpenNettyConnection.CreateSerialConnectionAsync(port, source.Token);
 > 
 > var message = OpenNettyMessage.CreateCommand(
 >     protocol: OpenNettyProtocol.Zigbee,
@@ -161,9 +164,9 @@ await Task.Delay(-1);
 >     media   : OpenNettyMedia.Radio,
 >     mode    : OpenNettyMode.Unicast);
 > 
-> await connection.SendAsync(message.Frame, CancellationToken.None);
+> await connection.SendAsync(message.Frame, source.Token);
 > 
-> if (await connection.ReceiveAsync(CancellationToken.None) != OpenNettyFrames.Acknowledgement)
+> if (await connection.ReceiveAsync(source.Token) != OpenNettyFrames.Acknowledgement)
 > {
 >     throw new ApplicationException("The frame was not acknowledged by the gateway.");
 > }

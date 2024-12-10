@@ -62,7 +62,7 @@ public abstract class OpenNettyConnection : IAsyncDisposable
     /// A <see cref="ValueTask"/> that can be used to monitor the asynchronous
     /// operation and whose result returns the created connection.
     /// </returns>
-    public static ValueTask<OpenNettyConnection> CreateAsync(OpenNettyGateway gateway, CancellationToken cancellationToken = default)
+    public static ValueTask<OpenNettyConnection> CreateAsync(OpenNettyGateway gateway, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(gateway);
 
@@ -87,7 +87,7 @@ public abstract class OpenNettyConnection : IAsyncDisposable
     /// A <see cref="ValueTask"/> that can be used to monitor the asynchronous
     /// operation and whose result returns the created serial connection.
     /// </returns>
-    public static async ValueTask<OpenNettyConnection> CreateSerialConnectionAsync(SerialPort port, CancellationToken cancellationToken = default)
+    public static async ValueTask<OpenNettyConnection> CreateSerialConnectionAsync(SerialPort port, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(port);
 
@@ -110,7 +110,7 @@ public abstract class OpenNettyConnection : IAsyncDisposable
     /// A <see cref="ValueTask"/> that can be used to monitor the asynchronous
     /// operation and whose result returns the created TCP connection.
     /// </returns>
-    public static async ValueTask<OpenNettyConnection> CreateTcpConnectionAsync(IPEndPoint endpoint, CancellationToken cancellationToken = default)
+    public static async ValueTask<OpenNettyConnection> CreateTcpConnectionAsync(IPEndPoint endpoint, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 
