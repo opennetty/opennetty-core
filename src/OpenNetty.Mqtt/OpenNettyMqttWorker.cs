@@ -125,36 +125,6 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             case OpenNettyMqttAttributes.PilotWireDerogationMode when operation is OpenNettyMqttOperation.Set:
                                 switch (message.ConvertPayloadToString()?.ToLowerInvariant())
                                 {
-                                    case "comfort":
-                                        await _controller.SetPilotWireSetpointModeAsync(endpoint,
-                                            OpenNettyModels.TemperatureControl.PilotWireMode.Comfort);
-                                        break;
-
-                                    case "comfort-1":
-                                        await _controller.SetPilotWireSetpointModeAsync(endpoint,
-                                            OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusOne);
-                                        break;
-
-                                    case "comfort-2":
-                                        await _controller.SetPilotWireSetpointModeAsync(endpoint,
-                                            OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusTwo);
-                                        break;
-
-                                    case "eco":
-                                        await _controller.SetPilotWireSetpointModeAsync(endpoint,
-                                            OpenNettyModels.TemperatureControl.PilotWireMode.Eco);
-                                        break;
-
-                                    case "frost_protection":
-                                        await _controller.SetPilotWireSetpointModeAsync(endpoint,
-                                            OpenNettyModels.TemperatureControl.PilotWireMode.FrostProtection);
-                                        break;
-                                }
-                                break;
-
-                            case OpenNettyMqttAttributes.PilotWireSetpointMode when operation is OpenNettyMqttOperation.Set:
-                                switch (message.ConvertPayloadToString()?.ToLowerInvariant())
-                                {
                                     case "none":
                                         await _controller.CancelPilotWireDerogationModeAsync(endpoint);
                                         break;
@@ -247,6 +217,36 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                         await _controller.SetPilotWireDerogationModeAsync(endpoint,
                                             OpenNettyModels.TemperatureControl.PilotWireMode.FrostProtection,
                                             OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours);
+                                        break;
+                                }
+                                break;
+
+                            case OpenNettyMqttAttributes.PilotWireSetpointMode when operation is OpenNettyMqttOperation.Set:
+                                switch (message.ConvertPayloadToString()?.ToLowerInvariant())
+                                {
+                                    case "comfort":
+                                        await _controller.SetPilotWireSetpointModeAsync(endpoint,
+                                            OpenNettyModels.TemperatureControl.PilotWireMode.Comfort);
+                                        break;
+
+                                    case "comfort-1":
+                                        await _controller.SetPilotWireSetpointModeAsync(endpoint,
+                                            OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusOne);
+                                        break;
+
+                                    case "comfort-2":
+                                        await _controller.SetPilotWireSetpointModeAsync(endpoint,
+                                            OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusTwo);
+                                        break;
+
+                                    case "eco":
+                                        await _controller.SetPilotWireSetpointModeAsync(endpoint,
+                                            OpenNettyModels.TemperatureControl.PilotWireMode.Eco);
+                                        break;
+
+                                    case "frost_protection":
+                                        await _controller.SetPilotWireSetpointModeAsync(endpoint,
+                                            OpenNettyModels.TemperatureControl.PilotWireMode.FrostProtection);
                                         break;
                                 }
                                 break;
