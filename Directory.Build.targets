@@ -15,6 +15,11 @@
     <PublicSign>false</PublicSign>
   </PropertyGroup>
 
+  <PropertyGroup
+    Condition=" ('$(TargetFrameworkIdentifier)' == '.NETCoreApp' And $([MSBuild]::VersionGreaterThanOrEquals($(TargetFrameworkVersion), '9.0'))) ">
+    <DefineConstants>$(DefineConstants);SUPPORTS_CERTIFICATE_LOADER</DefineConstants>
+  </PropertyGroup>
+
   <!--
     Note: Arcade always generates .resx backing files with internal static methods/constants.
     To ensure the OpenNetty resources are public, the default visibility is manually overridden.

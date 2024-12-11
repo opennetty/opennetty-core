@@ -5,6 +5,7 @@
  */
 
 using System.ComponentModel;
+using System.Security.Cryptography.X509Certificates;
 using System.Xml.Linq;
 using Microsoft.Extensions.FileProviders;
 using MQTTnet.Client;
@@ -136,7 +137,10 @@ public sealed class OpenNettyMqttBuilder
         var element = document.Root.Element("Mqtt") ?? throw new InvalidOperationException(SR.FormatID0103("Mqtt"));
         var builder = new MqttClientOptionsBuilder();
 
-        builder.WithTcpServer((string?) element.Attribute("Server") ?? throw new InvalidOperationException(SR.FormatID0104("Server")));
+        builder.WithTcpServer(
+            host: (string?) element.Attribute("Server") ?? throw new InvalidOperationException(SR.FormatID0104("Server")),
+            port: (int?) element.Attribute("Port"));
+
         builder.WithProtocolVersion(MqttProtocolVersion.V500);
 
         var username = (string?) element.Attribute("Username");
@@ -147,7 +151,78 @@ public sealed class OpenNettyMqttBuilder
             builder.WithCredentials(username, password);
         }
 
+        builder.WithTlsOptions(builder =>
+        {
+            var certificates = GetServerCertificates(element);
+            if (certificates is { Count: > 0 })
+            {
+                builder.UseTls()
+                    .WithRevocationMode(X509RevocationMode.NoCheck)
+                    .WithTrustChain(certificates);
+
+                var host = (string?) element.Attribute("TlsServerTargetHost");
+                if (!string.IsNullOrEmpty(host))
+                {
+                    builder.WithTargetHost(host);
+                }
+
+                certificates = GetClientCertificates(element);
+                if (certificates is { Count: > 0 })
+                {
+                    builder.WithClientCertificates(certificates);
+                }
+            }
+
+            else
+            {
+                builder.UseTls(false);
+            }
+        });
+
         return Configure(options => options.ClientOptions = builder.Build());
+
+        static X509Certificate2Collection? GetServerCertificates(XElement element)
+        {
+            var path = (string?) element.Attribute("TlsServerCertificateAuthorityFile");
+            if (string.IsNullOrEmpty(path))
+            {
+                return null;
+            }
+
+            var certificates = new X509Certificate2Collection();
+            certificates.ImportFromPemFile(path);
+            return certificates;
+        }
+
+        static X509Certificate2Collection? GetClientCertificates(XElement element)
+        {
+            var paths = (
+                TlsClientCertificateFile: (string?) element.Attribute("TlsClientCertificateFile"),
+                TlsClientCertificatePrivateKeyFile: (string?) element.Attribute("TlsClientCertificatePrivateKeyFile"));
+
+            if (string.IsNullOrEmpty(paths.TlsClientCertificateFile))
+            {
+                return null;
+            }
+
+            if (string.IsNullOrEmpty(paths.TlsClientCertificatePrivateKeyFile))
+            {
+                throw new InvalidOperationException(SR.GetResourceString(SR.ID0111));
+            }
+
+            var certificate = X509Certificate2.CreateFromPemFile(
+                paths.TlsClientCertificateFile, paths.TlsClientCertificatePrivateKeyFile);
+
+            // Note: on Windows, the client certificate is exported and re-imported to work around a limitation
+            // of the cryptographic stack that doesn't allow using an ephemeral key for TLS client authentication.
+            return OperatingSystem.IsWindows() ?
+#if SUPPORTS_CERTIFICATE_LOADER
+                [X509CertificateLoader.LoadPkcs12(certificate.Export(X509ContentType.Pkcs12), password: null)] :
+#else
+                [new X509Certificate2(certificate.Export(X509ContentType.Pkcs12))] :
+#endif
+                [certificate];
+        }
     }
 
     /// <inheritdoc/>

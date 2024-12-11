@@ -447,6 +447,9 @@
   <data name="ID0110" xml:space="preserve">
     <value>Only passwords containing ASCII digit characters (9 at most) can be used with gateways that don't support digest authentication.</value>
   </data>
+  <data name="ID0111" xml:space="preserve">
+    <value>A private key file must be specified when using a TLS client certificate.</value>
+  </data>
   <data name="ID2000" xml:space="preserve">
     <value>Endpoint names cannot contain the '+' or '*' characters.</value>
   </data>
