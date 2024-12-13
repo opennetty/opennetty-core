@@ -29,6 +29,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
 {
     private readonly IManagedMqttClient _client;
     private readonly OpenNettyEvents _events;
+    private readonly OpenNettyLogger<OpenNettyMqttHostedService> _logger;
     private readonly IOptionsMonitor<OpenNettyMqttOptions> _options;
     private readonly IOpenNettyMqttWorker _worker;
 
@@ -37,16 +38,19 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
     /// </summary>
     /// <param name="client">The MQTT client.</param>
     /// <param name="events">The OpenNetty events.</param>
+    /// <param name="logger">The OpenNetty logger.</param>
     /// <param name="options">The OpenNetty MQTT options.</param>
     /// <param name="worker">The OpenNetty MQTT worker.</param>
     public OpenNettyMqttHostedService(
         IManagedMqttClient client,
         OpenNettyEvents events,
+        OpenNettyLogger<OpenNettyMqttHostedService> logger,
         IOptionsMonitor<OpenNettyMqttOptions> options,
         IOpenNettyMqttWorker worker)
     {
         _client = client ?? throw new ArgumentNullException(nameof(client));
         _events = events ?? throw new ArgumentNullException(nameof(events));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _worker = worker ?? throw new ArgumentNullException(nameof(worker));
     }
@@ -348,6 +352,14 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
         _client.ApplicationMessageReceivedAsync += async (MqttApplicationMessageReceivedEventArgs arguments) =>
         {
             await channel.Writer.WriteAsync(arguments.ApplicationMessage);
+        };
+
+        // Use the ConnectingFailedAsync event to log connection errors.
+        _client.ConnectingFailedAsync += (ConnectingFailedEventArgs arguments) =>
+        {
+            _logger.MqttBrokerConnectionError(arguments.Exception);
+
+            return Task.CompletedTask;
         };
 
         // Start the managed MQTT client.

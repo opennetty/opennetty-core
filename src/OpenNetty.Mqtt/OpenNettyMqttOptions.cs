@@ -30,5 +30,5 @@ public sealed class OpenNettyMqttOptions
     /// <summary>
     /// Gets or sets the MQTT root topic (by default, "opennetty").
     /// </summary>
-    public string RootTopic { get; set; } = "opennetty";
+    public string RootTopic { get; set; } = default!;
 }

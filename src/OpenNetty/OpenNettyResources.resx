@@ -453,4 +453,7 @@
   <data name="ID2000" xml:space="preserve">
     <value>Endpoint names cannot contain the '+' or '*' characters.</value>
   </data>
+  <data name="ID2001" xml:space="preserve">
+    <value>The MQTT root topic cannot contain the '+' or '*' characters.</value>
+  </data>
 </root>

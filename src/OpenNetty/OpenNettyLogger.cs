@@ -224,12 +224,22 @@ public partial class OpenNettyLogger<TService>
     public partial void MessageRetransmitted(OpenNettyMessage message, OpenNettyGateway gateway, uint attempt);
 
     /// <summary>
-    /// Logs a message indicating that an exception occurred in a Reactive Extensions event handler.
+    /// Logs a message indicating that an exception was thrown by a Reactive Extensions event handler.
     /// </summary>
     /// <param name="exception">The exception.</param>
     [LoggerMessage(
         EventId = 6018,
         Level = LogLevel.Warning,
-        Message = "An unhandled exception occurred in a Reactive Extensions event handler.")]
+        Message = "An unhandled exception was thrown by a Reactive Extensions event handler.")]
     public partial void UnhandledEventHandlerException(Exception exception);
+
+    /// <summary>
+    /// Logs a message indicating that an error occurred while trying to connect to the MQTT broker.
+    /// </summary>
+    /// <param name="exception">The exception.</param>
+    [LoggerMessage(
+        EventId = 6019,
+        Level = LogLevel.Error,
+        Message = "An error occurred while trying to connect to the MQTT broker.")]
+    public partial void MqttBrokerConnectionError(Exception exception);
 }

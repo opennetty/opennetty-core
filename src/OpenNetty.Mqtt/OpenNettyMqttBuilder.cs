@@ -179,7 +179,16 @@ public sealed class OpenNettyMqttBuilder
             }
         });
 
-        return Configure(options => options.ClientOptions = builder.Build());
+        return Configure(options =>
+        {
+            var topic = (string?) element.Attribute("RootTopic");
+            if (!string.IsNullOrEmpty(topic))
+            {
+                options.RootTopic = topic;
+            }
+
+            options.ClientOptions = builder.Build();
+        });
 
         static X509Certificate2Collection? GetServerCertificates(XElement element)
         {
