@@ -5,7 +5,7 @@
 OpenNetty aims at providing an **advanced solution** for implementing [OpenWebNet](https://en.wikipedia.org/wiki/OpenWebNet)
 support in .NET 8.0+ applications.
 
-OpenWebNet is a protocol developed by [BTicino](https://www.bticino.it/) and [Legrand](https://www.legrand.fr/) since 2000 to manage
+OpenWebNet is a protocol developed by [BTicino](https://www.bticino.it/) and [Legrand](https://www.legrand.fr/) around 2000 to manage
 electrical networks. While it uses a very basic wire format initially designed to be usable over PSTN phone lines, the OpenWebNet
 protocol is actually fairly complex to implement properly but also quite powerful.
 
@@ -87,7 +87,224 @@ The following Legrand and BTicino products are partially or fully supported by O
 
 --------------
 
-## Core components
+## Using OpenNetty as an OpenWebNet/MQTT gateway
+
+OpenNetty ships with an `OpenNetty.Daemon` executable that can be directly used as an OpenWebNet/MQTT
+gateway on any x64, ARM32 or ARM64 Linux distribution that supports .NET 8.0 and uses systemd.
+
+### Deploy the daemon
+
+Compiled binaries can be found in the [opennetty-resources](https://github.com/opennetty/opennetty-resources) repository, under the releases folder.
+
+> [!NOTE]
+> These binaries are self-contained .NET applications that embed all the required dependencies so you don't
+> have to install any global package on the machine on which OpenNetty is deployed.
+
+> [!TIP]
+> Make sure you select the correct architecture when downloading the compiled binaries:
+>   - x64: typically used for bare metal and virtual machines.
+>   - ARM32: compatible with Single Board Computers (like Raspberry PIs) that don't support 64 bits.
+>   - ARM64: best used for Single Board Computers that support 64 bits (e.g Raspberry PIs 3+ on which Raspbian 64 bits is installed).
+
+First, you'll need to create a folder on the machine that will contain all the files required by OpenNetty: while it can
+be deployed anywhere, a folder under `/usr/local/bin` (e.g `/usr/local/bin/opennetty`) is probably the best option.
+
+The recommended option to deploy the daemon is to use an SSH/SFTP client (like [Bitvise SSH client](https://bitvise.com/ssh-client-download))
+and create the folder via SSH:
+
+```bash
+sudo mkdir /usr/local/bin/opennetty
+sudo chmod 777 /usr/local/bin/opennetty
+```
+
+Once created, you can copy the daemon files under `/usr/local/bin/opennetty`. You'll need to make the `opennetty-daemon` file executable:
+
+```bash
+sudo chmod +x /usr/local/bin/opennetty/opennetty-daemon
+```
+
+### Create the systemd service
+
+To ensure the OpenNetty daemon is started and tracked by the operating system, a systemd service must be created under `/etc/systemd/systemd`
+(e.g `/etc/systemd/system/opennetty.service`). For that, you can use your SSH client to create the necessary file:
+
+```bash
+sudo nano /etc/systemd/system/opennetty.service
+```
+
+```
+[Unit]
+Description=OpenWebNet/MQTT gateway
+After=network.target
+
+[Service]
+Type=notify
+User=root
+WorkingDirectory=/usr/local/bin/opennetty
+ExecStart=/usr/local/bin/opennetty/opennetty-daemon
+Restart=always
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target
+```
+
+Once the file is saved, use `systemctl enable` to register the OpenNetty service:
+
+```bash
+sudo systemctl enable opennetty
+```
+
+> [!TIP]
+> At this point, do not start OpenNetty yet, as you'll first need to add the configuration
+> file required to communicate with the OpenWebNet gateways and the MQTT broker.
+
+### Create the configuration file
+
+The OpenNetty daemon relies on a configuration file to locate the OpenWebNet gateways and devices. For that, create
+a new XML file named `OpenNettyConfiguration.xml` locally with the following content and replace the
+server/port/username/password attributes to match the values used by your MQTT broker:
+
+```xml
+<Configuration>
+
+  <Mqtt Server="192.168.5.1" Port="1883" Username="jeedom" Password="koIiuhTFGtrdRkjLKhYGvgfFSDr" />
+
+</Configuration>
+```
+
+> [!TIP]
+> Using a code editor like [Visual Studio Code](https://code.visualstudio.com/) greatly simplifies writing the configuration file.
+
+### Configure the gateways
+
+OpenNetty requires listing the gateways in the configuration file.
+
+For that, you need to a `Device` node with the correct brand/model attributes for each gateway present in the installation
+and a `Gateway` node containing the gateway details, including its unique name and whether OpenNetty will use a serial or TCP
+socket to initiate OpenWebNet sessions:
+
+```xml
+<Configuration>
+
+  <Mqtt Server="192.168.5.1" Port="1883" Username="jeedom" Password="koIiuhTFGtrdRkjLKhYGvgfFSDr" />
+
+  <!-- In One by Legrand gateway -->
+
+  <Device Brand="Legrand" Model="88213">
+    <Gateway Name="OPEN-Nitoo gateway" Type="Serial" Port="/dev/serial/by-id/usb-Btcino_Terraneo_Mod._SFERA_Tele_Loop-if00" />
+  </Device>
+
+  <!-- MyHome Play gateway -->
+
+  <Device Brand="Legrand" Model="88328">
+    <Gateway Name="OPEN-Zigbee gateway" Type="Serial" Port="/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0" />
+  </Device>
+
+  <!-- MyHome Up gateway -->
+
+  <Device Brand="BTicino" Model="F454">
+    <Gateway Name="OPEN-SCS gateway" Type="Tcp" Server="192.168.5.10" Password="aJhYiBHk8" />
+  </Device>
+
+</Configuration>
+```
+
+### Configure the endpoints
+
+To be able to communicate with "In One by Legrand", "MyHome Play" and "MyHome Up" devices, OpenNetty requires listing them in the configuration file.
+
+For that, you need to a `Device` node with the correct brand/model attributes for each device present in the installation:
+  - The serial number is required for In One by Legrand and MyHome Play devices and optional for MyHome Up devices.
+  - The unit node is not used for MyHome Up devices but is generally required for In One by Legrand and MyHome Play devices.
+  - The unit must match one of the unit identifiers offered by the specific device. If you're unsure what identifier should be used,
+  you can see [OpenNettyDevices.xml](src/OpenNetty/OpenNettyDevices.xml) for a list of all the supported devices and the units they expose.
+  - For MyHome Up devices, the area/point attributes must match the values assigned via [MyHome Suite](https://www.homesystems-legrandgroup.com/home?p_p_id=it_smc_bticino_homesystems_search_AutocompletesearchPortlet&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_it_smc_bticino_homesystems_search_AutocompletesearchPortlet_journalArticleId=2493426&_it_smc_bticino_homesystems_search_AutocompletesearchPortlet_mvcPath=%2Fview_journal_article_content.jsp).
+  - The endpoint name must be chosen carefully as it will be used to infer the MQTT topic used for the endpoint (e.g state changes dispatched
+  by an endpoint named `Bedroom/Wall light` will be posted under the `opennetty/bedroom/wall light` MQTT topic).
+
+```xml
+<Configuration>
+
+  <Mqtt Server="192.168.5.1" Port="1883" Username="jeedom" Password="koIiuhTFGtrdRkjLKhYGvgfFSDr" />
+
+  <!-- In One by Legrand gateway -->
+
+  <Device Brand="Legrand" Model="88213">
+    <Gateway Name="OPEN-Nitoo gateway" Type="Serial" Port="/dev/serial/by-id/usb-Btcino_Terraneo_Mod._SFERA_Tele_Loop-if00" />
+  </Device>
+
+  <!-- MyHome Play gateway -->
+
+  <Device Brand="Legrand" Model="88328">
+    <Gateway Name="OPEN-Zigbee gateway" Type="Serial" Port="/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0" />
+  </Device>
+
+  <!-- MyHome Up gateway -->
+
+  <Device Brand="BTicino" Model="F454">
+    <Gateway Name="OPEN-SCS gateway" Type="Tcp" Server="192.168.5.10" Password="aJhYiBHk8" />
+  </Device>
+
+  <!-- In One by Legrand one-gang PLC switch -->
+
+  <Device Brand="Legrand" Model="67201" SerialNumber="597132">
+    <Unit Id="2">
+      <Endpoint Name="Bedroom/Wall light" />
+    </Unit>
+  </Device>
+
+  <!-- In One by Legrand two-gang PLC switch -->
+
+  <Device Brand="Legrand" Model="67202" SerialNumber="479632">
+    <Unit Id="3">
+      <Endpoint Name="Bedroom/Bedside lamp 1" />
+    </Unit>
+
+    <Unit Id="4">
+      <Endpoint Name="Bedroom/Bedside lamp 2" />
+    </Unit>
+  </Device>
+
+  <!-- MyHome Play one-gang wireless command -->
+
+  <Device Brand="Legrand" Model="67223" SerialNumber="0014AC87">
+    <Unit Id="1">
+      <Endpoint Name="Bedroom/Wireless command/Short press" />
+    </Unit>
+  </Device>
+
+  <!-- MyHome Up two-way dimmer -->
+
+  <Device Brand="BTicino" Model="F418U2" SerialNumber="00B582A5">
+    <Endpoint Name="Living room/Wall light 1" Area="1" Point="1" />
+    <Endpoint Name="Living room/Wall light 2" Area="1" Point="2" />
+  </Device>
+
+</Configuration>
+```
+
+### Deploy the configuration file and start the daemon
+
+Once your configuration file is ready, copy it to the folder you created to host OpenNetty's files and start the daemon:
+
+```bash
+sudo service opennetty start
+```
+
+> [!TIP]
+> You can use `sudo service opennetty status` to determine if the daemon is correctly running.
+>
+> You can also use [MQTT Explorer](http://mqtt-explorer.com/) to ensure state changes are correctly posted
+> to MQTT and trigger commands that will be executed by the In One by Legrand/MyHome Play/MyHome Up devices.
+>
+> For instance, to turn the `Bedroom/Wall light` on, post the `ON` value under the `opennetty/bedroom/wall light/switch_state/set`
+> topic: if the command was correctly executed by the device, the `ON` value will be posted back by OpenNetty under the
+> `opennetty/bedroom/wall light/switch_state` topic.
+>
+> You can also send an empty `opennetty/bedroom/wall light/switch_state/get` message to get the current switch state of the endpoint.
+
+## Using OpenNetty as a library
 
 ### Primitives
 
