@@ -218,7 +218,7 @@ For that, you need to a `Device` node with the correct brand/model attributes fo
   - The serial number is required for In One by Legrand and MyHome Play devices and optional for MyHome Up devices.
   - The unit node is not used for MyHome Up devices but is generally required for In One by Legrand and MyHome Play devices.
   - The unit must match one of the unit identifiers offered by the specific device. If you're unsure what identifier should be used,
-  you can see [OpenNettyDevices.xml](src/OpenNetty/OpenNettyDevices.xml) for a list of all the supported devices and the units they expose.
+  you can see [`OpenNettyDevices.xml`](src/OpenNetty/OpenNettyDevices.xml) for a list of all the supported devices and the units they expose.
   - For MyHome Up devices, the area/point attributes must match the values assigned via [MyHome Suite](https://www.homesystems-legrandgroup.com/home?p_p_id=it_smc_bticino_homesystems_search_AutocompletesearchPortlet&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_it_smc_bticino_homesystems_search_AutocompletesearchPortlet_journalArticleId=2493426&_it_smc_bticino_homesystems_search_AutocompletesearchPortlet_mvcPath=%2Fview_journal_article_content.jsp).
   - The endpoint name must be chosen carefully as it will be used to infer the MQTT topic used for the endpoint (e.g state changes dispatched
   by an endpoint named `Bedroom/Wall light` will be posted under the `opennetty/bedroom/wall light` MQTT topic).
@@ -303,6 +303,12 @@ sudo service opennetty start
 > `opennetty/bedroom/wall light/switch_state` topic.
 >
 > You can also send an empty `opennetty/bedroom/wall light/switch_state/get` message to get the current switch state of the endpoint.
+
+> [!TIP]
+> The complete list of supported MQTT attributes can be found in the [`OpenNettyMqttAttributes.cs` file](src/OpenNetty.Mqtt/OpenNettyMqttAttributes.cs).
+>
+> Ready-to-use templates for Jeedom's [jMQTT plugin](https://market.jeedom.com/index.php?v=d&p=market_display&id=3166)
+> can be found in the [opennetty-resources](https://github.com/opennetty/opennetty-resources) repository.
 
 ## Using OpenNetty as a library
 
@@ -405,9 +411,6 @@ and extract the corresponding response returned by the gateway, if applicable:
 ```csharp
 var builder = Host.CreateApplicationBuilder();
 
-builder.Services.AddSystemd()
-    .AddWindowsService();
-
 builder.Services.AddOpenNetty(options =>
 {
     // Register the SCS gateway used to communicate with MyHome devices.
@@ -448,9 +451,6 @@ await app.StopAsync();
 
 ```csharp
 var builder = Host.CreateApplicationBuilder();
-
-builder.Services.AddSystemd()
-    .AddWindowsService();
 
 builder.Services.AddOpenNetty(options =>
 {
@@ -510,9 +510,6 @@ By implementing the `IOpenNettyHandler` interface, it is possible to subscribe t
 
 ```csharp
 var builder = Host.CreateApplicationBuilder();
-
-builder.Services.AddSystemd()
-    .AddWindowsService();
 
 builder.Services.AddOpenNetty(options =>
 {
