@@ -410,9 +410,9 @@ public static class OpenNettyModels
             public required ushort FunctionCode { get; init; }
 
             /// <summary>
-            /// Gets or sets the media.
+            /// Gets or sets the medium.
             /// </summary>
-            public required OpenNettyMedia Media { get; init; }
+            public required OpenNettyMedium Medium { get; init; }
 
             /// <summary>
             /// Creates a new instance of the <see cref="MemoryData"/> class using the specified unit description.
@@ -423,11 +423,11 @@ public static class OpenNettyModels
             {
                 Address      = new OpenNettyAddress(OpenNettyAddressType.NitooDevice, values[1]),
                 FunctionCode = ushort.Parse(values[2], CultureInfo.InvariantCulture),
-                Media        = values[0] switch
+                Medium       = values[0] switch
                 {
-                    "64"  => OpenNettyMedia.Radio,
-                    "96"  => OpenNettyMedia.Powerline,
-                    "128" => OpenNettyMedia.Infrared,
+                    "64"  => OpenNettyMedium.Radio,
+                    "96"  => OpenNettyMedium.Powerline,
+                    "128" => OpenNettyMedium.Infrared,
 
                     _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
                 }

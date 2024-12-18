@@ -203,14 +203,14 @@ public sealed record OpenNettyGatewayOptions
                         OpenNettyException { ErrorCode: OpenNettyErrorCode.NoActionReceived    or
                                                         OpenNettyErrorCode.NoDimensionReceived or
                                                         OpenNettyErrorCode.NoStatusReceived }
-                            when message.Media is OpenNettyMedia.Powerline or OpenNettyMedia.Radio
+                            when message.Medium is OpenNettyMedium.Powerline or OpenNettyMedium.Radio
                             => arguments.AttemptNumber is < 2 && !options.HasFlag(OpenNettyTransmissionOptions.DisallowRetransmissions),
 
                         // For messages sent via a dedicated bus, retry only once if the error was caused
                         // by a missing reply from the end device, unless the sender explicitly specified
                         // that unsafe retransmissions are not allowed for this message.
                         OpenNettyException { ErrorCode: OpenNettyErrorCode.InvalidFrame or OpenNettyErrorCode.GatewayBusy }
-                            when message.Media is OpenNettyMedia.Bus
+                            when message.Medium is OpenNettyMedium.Bus
                             => arguments.AttemptNumber is < 1 && !options.HasFlag(OpenNettyTransmissionOptions.DisallowRetransmissions),
 
                         _ => false

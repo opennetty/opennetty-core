@@ -154,7 +154,7 @@ public static class OpenNettyDevices
         {
             Capabilities = [.. capabilities],
             Identities = [.. identities],
-            Media = Enum.Parse<OpenNettyMedia>((string) node.Attribute("Media")!),
+            Medium = Enum.Parse<OpenNettyMedium>((string) node.Attribute("Medium")!),
             Protocol = Enum.Parse<OpenNettyProtocol>((string) node.Attribute("Protocol")!),
             Series = (string) node.Attribute("Series")!,
             Settings = settings.ToImmutableDictionary(),

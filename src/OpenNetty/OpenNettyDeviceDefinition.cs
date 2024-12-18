@@ -24,9 +24,9 @@ public sealed class OpenNettyDeviceDefinition : IEquatable<OpenNettyDeviceDefini
     public required ImmutableArray<OpenNettyIdentity> Identities { get; init; }
 
     /// <summary>
-    /// Gets or sets the media associated with the device definition.
+    /// Gets or sets the medium associated with the device definition.
     /// </summary>
-    public required OpenNettyMedia Media { get; init; }
+    public required OpenNettyMedium Medium { get; init; }
 
     /// <summary>
     /// Gets or sets the protocol associated with the device definition.
@@ -60,7 +60,7 @@ public sealed class OpenNettyDeviceDefinition : IEquatable<OpenNettyDeviceDefini
         return other is not null &&
             Capabilities.Count == other.Capabilities.Count && Capabilities.Except(other.Capabilities).IsEmpty &&
             Identities.Length == other.Identities.Length && !Identities.Except(other.Identities).Any() &&
-            Media == other.Media &&
+            Medium == other.Medium &&
             Protocol == other.Protocol &&
             string.Equals(Series, other.Series, StringComparison.OrdinalIgnoreCase) &&
             Settings.Count == other.Settings.Count && !Settings.Except(other.Settings).Any() &&
@@ -87,7 +87,7 @@ public sealed class OpenNettyDeviceDefinition : IEquatable<OpenNettyDeviceDefini
             hash.Add(identity);
         }
 
-        hash.Add(Media);
+        hash.Add(Medium);
         hash.Add(Protocol);
         hash.Add(Series);
 

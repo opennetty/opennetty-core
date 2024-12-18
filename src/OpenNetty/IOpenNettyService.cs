@@ -20,7 +20,7 @@ public interface IOpenNettyService
     /// <param name="protocol">The protocol.</param>
     /// <param name="dimension">The dimension.</param>
     /// <param name="address">The address, if applicable.</param>
-    /// <param name="media">The media to use or <see langword="null"/> to use the default media.</param>
+    /// <param name="medium">The medium to use or <see langword="null"/> to use the default medium.</param>
     /// <param name="mode">The mode to use or <see langword="null"/> to use the default mode.</param>
     /// <param name="filter">
     /// The delegate called by the service to filter the returned dimensions.
@@ -37,7 +37,7 @@ public interface IOpenNettyService
         OpenNettyProtocol protocol,
         OpenNettyDimension dimension,
         OpenNettyAddress? address = null,
-        OpenNettyMedia? media = null,
+        OpenNettyMedium? medium = null,
         OpenNettyMode? mode = null,
         Func<OpenNettyDimension, ValueTask<bool>>? filter = null,
         OpenNettyGateway? gateway = null,
@@ -51,7 +51,7 @@ public interface IOpenNettyService
     /// <param name="protocol">The protocol.</param>
     /// <param name="category">The category.</param>
     /// <param name="address">The address, if applicable.</param>
-    /// <param name="media">The media to use or <see langword="null"/> to use the default media.</param>
+    /// <param name="medium">The medium to use or <see langword="null"/> to use the default medium.</param>
     /// <param name="mode">The mode to use or <see langword="null"/> to use the default mode.</param>
     /// <param name="filter">
     /// The delegate called by the service to filter the returned status replies. If set to
@@ -68,7 +68,7 @@ public interface IOpenNettyService
         OpenNettyProtocol protocol,
         OpenNettyCategory category,
         OpenNettyAddress? address = null,
-        OpenNettyMedia? media = null,
+        OpenNettyMedium? medium = null,
         OpenNettyMode? mode = null,
         Func<OpenNettyCommand, ValueTask<bool>>? filter = null,
         OpenNettyGateway? gateway = null,
@@ -81,7 +81,7 @@ public interface IOpenNettyService
     /// <param name="protocol">The protocol.</param>
     /// <param name="command">The command.</param>
     /// <param name="address">The address, if applicable.</param>
-    /// <param name="media">The media to use or <see langword="null"/> to use the default media.</param>
+    /// <param name="medium">The medium to use or <see langword="null"/> to use the default medium.</param>
     /// <param name="mode">The mode to use or <see langword="null"/> to use the default mode.</param>
     /// <param name="gateway">The gateway used to send the message.</param>
     /// <param name="options">The transmission options to use.</param>
@@ -91,7 +91,7 @@ public interface IOpenNettyService
         OpenNettyProtocol protocol,
         OpenNettyCommand command,
         OpenNettyAddress? address = null,
-        OpenNettyMedia? media = null,
+        OpenNettyMedium? medium = null,
         OpenNettyMode? mode = null,
         OpenNettyGateway? gateway = null,
         OpenNettyTransmissionOptions options = OpenNettyTransmissionOptions.None,
@@ -104,7 +104,7 @@ public interface IOpenNettyService
     /// <param name="protocol">The protocol.</param>
     /// <param name="dimension">The dimension.</param>
     /// <param name="address">The address, if applicable.</param>
-    /// <param name="media">The media to use or <see langword="null"/> to use the default media.</param>
+    /// <param name="medium">The medium to use or <see langword="null"/> to use the default medium.</param>
     /// <param name="mode">The mode to use or <see langword="null"/> to use the default mode.</param>
     /// <param name="filter">
     /// The delegate called by the service to filter the returned dimensions.
@@ -120,7 +120,7 @@ public interface IOpenNettyService
     ValueTask<ImmutableArray<string>> GetDimensionAsync(OpenNettyProtocol protocol,
         OpenNettyDimension dimension,
         OpenNettyAddress? address = null,
-        OpenNettyMedia? media = null,
+        OpenNettyMedium? medium = null,
         OpenNettyMode? mode = null,
         Func<OpenNettyDimension, ValueTask<bool>>? filter = null,
         OpenNettyGateway? gateway = null,
@@ -134,7 +134,7 @@ public interface IOpenNettyService
     /// <param name="protocol">The protocol.</param>
     /// <param name="category">The category.</param>
     /// <param name="address">The address, if applicable.</param>
-    /// <param name="media">The media to use or <see langword="null"/> to use the default media.</param>
+    /// <param name="medium">The medium to use or <see langword="null"/> to use the default medium.</param>
     /// <param name="mode">The mode to use or <see langword="null"/> to use the default mode.</param>
     /// <param name="filter">
     /// The delegate called by the service to filter the returned dimensions.
@@ -151,7 +151,7 @@ public interface IOpenNettyService
         OpenNettyProtocol protocol,
         OpenNettyCategory category,
         OpenNettyAddress? address = null,
-        OpenNettyMedia? media = null,
+        OpenNettyMedium? medium = null,
         OpenNettyMode? mode = null,
         Func<OpenNettyCommand, ValueTask<bool>>? filter = null,
         OpenNettyGateway? gateway = null,
@@ -222,7 +222,7 @@ public interface IOpenNettyService
     /// <param name="dimension">The dimension.</param>
     /// <param name="values">The dimension values.</param>
     /// <param name="address">The address, if applicable.</param>
-    /// <param name="media">The media to use or <see langword="null"/> to use the default media.</param>
+    /// <param name="medium">The medium to use or <see langword="null"/> to use the default medium.</param>
     /// <param name="mode">The mode to use or <see langword="null"/> to use the default mode.</param>
     /// <param name="gateway">The gateway used to send the message.</param>
     /// <param name="options">The transmission options to use.</param>
@@ -233,7 +233,7 @@ public interface IOpenNettyService
         OpenNettyDimension dimension,
         ImmutableArray<string> values,
         OpenNettyAddress? address = null,
-        OpenNettyMedia? media = null,
+        OpenNettyMedium? medium = null,
         OpenNettyMode? mode = null,
         OpenNettyGateway? gateway = null,
         OpenNettyTransmissionOptions options = OpenNettyTransmissionOptions.None,
