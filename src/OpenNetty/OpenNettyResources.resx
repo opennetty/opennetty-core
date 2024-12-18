@@ -322,7 +322,7 @@
     <value>At least one value must be specified for dimension set messages.</value>
   </data>
   <data name="ID0069" xml:space="preserve">
-    <value>The specified media is not supported.</value>
+    <value>The specified medium is not supported.</value>
   </data>
   <data name="ID0070" xml:space="preserve">
     <value>A serial port must be attached for gateways using serial connections.</value>

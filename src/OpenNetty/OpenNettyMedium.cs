@@ -9,7 +9,7 @@ namespace OpenNetty;
 /// <summary>
 /// Exposes common OpenNetty transmission media, as defined by the Nitoo and MyHome specifications.
 /// </summary>
-public enum OpenNettyMedia
+public enum OpenNettyMedium
 {
     /// <summary>
     /// Bus (used in the MyHome Up products).

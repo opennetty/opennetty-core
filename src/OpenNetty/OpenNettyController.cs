@@ -49,11 +49,11 @@ public class OpenNettyController
             dimension        : OpenNettyDimensions.Diagnostics.MemoryWrite,
             values           :
             [
-                data.Media switch
+                data.Medium switch
                 {
-                    OpenNettyMedia.Radio     => "64",
-                    OpenNettyMedia.Powerline => "96",
-                    OpenNettyMedia.Infrared  => "128",
+                    OpenNettyMedium.Radio     => "64",
+                    OpenNettyMedium.Powerline => "96",
+                    OpenNettyMedium.Infrared  => "128",
 
                     _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
                 },
@@ -61,7 +61,7 @@ public class OpenNettyController
                 data.FunctionCode.ToString(CultureInfo.InvariantCulture)
             ],
             address          : endpoint.Address,
-            media            : endpoint.Media,
+            medium           : endpoint.Medium,
             mode             : OpenNettyMode.Unicast,
             gateway          : endpoint.Gateway,
             options          : endpoint.GetBooleanSetting(OpenNettySettings.ActionValidation) is not false ?
@@ -91,7 +91,7 @@ public class OpenNettyController
             protocol         : endpoint.Protocol,
             command          : OpenNettyCommands.Scenario.BindingRequest,
             address          : endpoint.Address,
-            media            : endpoint.Media,
+            medium           : endpoint.Medium,
             mode             : null,
             gateway          : endpoint.Gateway,
             options          : OpenNettyTransmissionOptions.None,
@@ -119,7 +119,7 @@ public class OpenNettyController
             protocol         : endpoint.Protocol,
             command          : OpenNettyCommands.Management.SupervisorRemove,
             address          : endpoint.Address,
-            media            : endpoint.Media,
+            medium           : endpoint.Medium,
             mode             : null,
             gateway          : endpoint.Gateway,
             options          : OpenNettyTransmissionOptions.None,
@@ -147,7 +147,7 @@ public class OpenNettyController
             protocol         : endpoint.Protocol,
             command          : OpenNettyCommands.Management.Supervisor,
             address          : endpoint.Address,
-            media            : endpoint.Media,
+            medium           : endpoint.Medium,
             mode             : null,
             gateway          : endpoint.Gateway,
             options          : OpenNettyTransmissionOptions.None,
@@ -175,7 +175,7 @@ public class OpenNettyController
             protocol         : endpoint.Protocol,
             command          : OpenNettyCommands.TemperatureControl.CancelWirePilotDerogationMode,
             address          : endpoint.Address,
-            media            : endpoint.Media,
+            medium           : endpoint.Medium,
             mode             : OpenNettyMode.Multicast,
             gateway          : endpoint.Gateway,
             options          : OpenNettyTransmissionOptions.None,
@@ -203,7 +203,7 @@ public class OpenNettyController
             protocol         : endpoint.Protocol,
             command          : OpenNettyCommands.Scenario.Action,
             address          : endpoint.Address,
-            media            : endpoint.Media,
+            medium           : endpoint.Medium,
             mode             : OpenNettyMode.Broadcast,
             gateway          : endpoint.Gateway,
             options          : OpenNettyTransmissionOptions.None,
@@ -215,7 +215,7 @@ public class OpenNettyController
             protocol         : endpoint.Protocol,
             command          : OpenNettyCommands.Scenario.StopAction,
             address          : endpoint.Address,
-            media            : endpoint.Media,
+            medium           : endpoint.Medium,
             mode             : OpenNettyMode.Broadcast,
             gateway          : endpoint.Gateway,
             options          : OpenNettyTransmissionOptions.None,
@@ -246,7 +246,7 @@ public class OpenNettyController
             command          : state == OpenNettyModels.Lighting.SwitchState.On ?
                 OpenNettyCommands.Lighting.On : OpenNettyCommands.Lighting.Off,
             address          : endpoint.Address,
-            media            : endpoint.Media,
+            medium           : endpoint.Medium,
             mode             : OpenNettyMode.Broadcast,
             gateway          : endpoint.Gateway,
             options          : OpenNettyTransmissionOptions.None,
@@ -277,7 +277,7 @@ public class OpenNettyController
             command          : OpenNettyCommands.Scenario.ActionInTime.WithParameters(
                 /* TIME: */ ((long) (duration.TotalSeconds * 5 + .5)).ToString(CultureInfo.InvariantCulture)),
             address          : endpoint.Address,
-            media            : endpoint.Media,
+            medium           : endpoint.Medium,
             mode             : OpenNettyMode.Broadcast,
             gateway          : endpoint.Gateway,
             options          : OpenNettyTransmissionOptions.None,
@@ -289,7 +289,7 @@ public class OpenNettyController
             protocol         : endpoint.Protocol,
             command          : OpenNettyCommands.Scenario.StopAction,
             address          : endpoint.Address,
-            media            : endpoint.Media,
+            medium           : endpoint.Medium,
             mode             : OpenNettyMode.Broadcast,
             gateway          : endpoint.Gateway,
             options          : OpenNettyTransmissionOptions.None,
@@ -320,7 +320,7 @@ public class OpenNettyController
             command          : OpenNettyCommands.Scenario.ActionForTime.WithParameters(
                 /* TIME: */ ((long) (duration.TotalSeconds * 5 + .5)).ToString(CultureInfo.InvariantCulture)),
             address          : endpoint.Address,
-            media            : endpoint.Media,
+            medium           : endpoint.Medium,
             mode             : OpenNettyMode.Broadcast,
             gateway          : endpoint.Gateway,
             options          : OpenNettyTransmissionOptions.None,
@@ -332,7 +332,7 @@ public class OpenNettyController
             protocol         : endpoint.Protocol,
             command          : OpenNettyCommands.Scenario.StopAction,
             address          : endpoint.Address,
-            media            : endpoint.Media,
+            medium           : endpoint.Medium,
             mode             : OpenNettyMode.Broadcast,
             gateway          : endpoint.Gateway,
             options          : OpenNettyTransmissionOptions.None,
@@ -360,7 +360,7 @@ public class OpenNettyController
             protocol         : endpoint.Protocol,
             command          : OpenNettyCommands.Diagnostics.AddressErase,
             address          : endpoint.Address,
-            media            : endpoint.Media,
+            medium           : endpoint.Medium,
             mode             : OpenNettyMode.Broadcast,
             gateway          : endpoint.Gateway,
             options          : OpenNettyTransmissionOptions.None,
@@ -401,7 +401,7 @@ public class OpenNettyController
                     protocol         : endpoint.Protocol,
                     dimension        : OpenNettyDimensions.Lighting.DimmerLevelSpeed,
                     address          : endpoint.Address,
-                    media            : endpoint.Media,
+                    medium           : endpoint.Medium,
                     mode             : null,
                     filter           : static dimension => ValueTask.FromResult(
                         dimension == OpenNettyDimensions.Lighting.DimmerLevelSpeed ||
@@ -421,7 +421,7 @@ public class OpenNettyController
                     protocol         : endpoint.Protocol,
                     category         : OpenNettyCategories.Lighting,
                     address          : endpoint.Address,
-                    media            : endpoint.Media,
+                    medium           : endpoint.Medium,
                     mode             : null,
                     filter           : static command => ValueTask.FromResult(
                         command == OpenNettyCommands.Lighting.Off  ||
@@ -482,7 +482,7 @@ public class OpenNettyController
             protocol         : endpoint.Protocol,
             dimension        : OpenNettyDimensions.Management.DateTime,
             address          : endpoint.Address,
-            media            : endpoint.Media,
+            medium           : endpoint.Medium,
             mode             : null,
             filter           : null,
             gateway          : endpoint.Gateway,
@@ -529,7 +529,7 @@ public class OpenNettyController
             protocol         : endpoint.Protocol,
             dimension        : OpenNettyDimensions.Diagnostics.DeviceDescription,
             address          : endpoint.Address,
-            media            : endpoint.Media,
+            medium           : endpoint.Medium,
             mode             : OpenNettyMode.Unicast,
             filter           : null,
             gateway          : endpoint.Gateway,
@@ -576,7 +576,7 @@ public class OpenNettyController
             protocol         : endpoint.Protocol,
             command          : OpenNettyCommands.Diagnostics.MemoryRead,
             address          : endpoint.Address,
-            media            : endpoint.Media,
+            medium           : endpoint.Medium,
             mode             : OpenNettyMode.Unicast,
             gateway          : endpoint.Gateway,
             options          : OpenNettyTransmissionOptions.None,
@@ -639,7 +639,7 @@ public class OpenNettyController
             protocol         : endpoint.Protocol,
             command          : OpenNettyCommands.Diagnostics.MemoryRead,
             address          : endpoint.Address,
-            media            : endpoint.Media,
+            medium           : endpoint.Medium,
             mode             : OpenNettyMode.Unicast,
             gateway          : endpoint.Gateway,
             options          : OpenNettyTransmissionOptions.None,
@@ -705,7 +705,7 @@ public class OpenNettyController
             protocol         : endpoint.Protocol,
             dimension        : OpenNettyDimensions.Diagnostics.UnitDescription,
             address          : endpoint.Address,
-            media            : endpoint.Media,
+            medium           : endpoint.Medium,
             mode             : OpenNettyMode.Unicast,
             filter           : null,
             gateway          : endpoint.Gateway,
@@ -739,7 +739,7 @@ public class OpenNettyController
             protocol         : endpoint.Protocol,
             dimension        : OpenNettyDimensions.Management.Uptime,
             address          : endpoint.Address,
-            media            : endpoint.Media,
+            medium           : endpoint.Medium,
             mode             : null,
             filter           : null,
             gateway          : endpoint.Gateway,
@@ -777,7 +777,7 @@ public class OpenNettyController
             protocol         : endpoint.Protocol,
             dimension        : OpenNettyDimensions.TemperatureControl.SmartMeterIndexes,
             address          : endpoint.Address,
-            media            : endpoint.Media,
+            medium           : endpoint.Medium,
             mode             : OpenNettyMode.Unicast,
             filter           : null,
             gateway          : endpoint.Gateway,
@@ -855,7 +855,7 @@ public class OpenNettyController
                 protocol         : endpoint.Protocol,
                 category         : OpenNettyCategories.Lighting,
                 address          : endpoint.Address,
-                media            : endpoint.Media,
+                medium           : endpoint.Medium,
                 mode             : null,
                 filter           : static command => ValueTask.FromResult(
                     command == OpenNettyCommands.Lighting.Off  ||
@@ -933,7 +933,7 @@ public class OpenNettyController
             protocol         : endpoint.Protocol,
             command          : OpenNettyCommands.Diagnostics.MemoryReset,
             address          : endpoint.Address,
-            media            : endpoint.Media,
+            medium           : endpoint.Medium,
             mode             : OpenNettyMode.Unicast,
             gateway          : endpoint.Gateway,
             options          : endpoint.GetBooleanSetting(OpenNettySettings.ActionValidation) is not false ?
@@ -964,7 +964,7 @@ public class OpenNettyController
         }
 
         // Note: for unknown reasons, specifying a SPEED parameter that is less than 10 (2 seconds * 5)
-        // results in an immediate - rather than progressive - brightness change on Nitoo devices when
+        // results in an immediumte - rather than progressive - brightness change on Nitoo devices when
         // the requested level is higher than 50%. To discourage users of this API to set values that
         // may exhibit this issue, a sanity check is performed here to require an adequate duration.
         if (endpoint.Protocol is OpenNettyProtocol.Nitoo && level is > 50 &&
@@ -998,7 +998,7 @@ public class OpenNettyController
                     protocol         : endpoint.Protocol,
                     command          : OpenNettyCommands.Lighting.Off,
                     address          : endpoint.Address,
-                    media            : endpoint.Media,
+                    medium           : endpoint.Medium,
                     mode             : null,
                     gateway          : endpoint.Gateway,
                     options          : OpenNettyTransmissionOptions.None,
@@ -1018,7 +1018,7 @@ public class OpenNettyController
                             "0"
                     ],
                     address          : endpoint.Address,
-                    media            : endpoint.Media,
+                    medium           : endpoint.Medium,
                     mode             : OpenNettyMode.Unicast,
                     gateway          : endpoint.Gateway,
                     options          : endpoint.GetBooleanSetting(OpenNettySettings.ActionValidation) is not false ?
@@ -1037,7 +1037,7 @@ public class OpenNettyController
                         "0"
                 ],
                 address          : endpoint.Address,
-                media            : endpoint.Media,
+                medium           : endpoint.Medium,
                 mode             : null,
                 gateway          : endpoint.Gateway,
                 options          : OpenNettyTransmissionOptions.None,
@@ -1062,7 +1062,7 @@ public class OpenNettyController
                            _        => OpenNettyCommands.Lighting.On100
                 },
                 address          : endpoint.Address,
-                media            : endpoint.Media,
+                medium           : endpoint.Medium,
                 mode             : endpoint.Protocol is OpenNettyProtocol.Nitoo ? OpenNettyMode.Unicast : null,
                 gateway          : endpoint.Gateway,
                 options          : endpoint.Protocol is OpenNettyProtocol.Nitoo &&
@@ -1116,7 +1116,7 @@ public class OpenNettyController
                 date.Year.ToString("0000", CultureInfo.InvariantCulture),
             ],
             address          : endpoint.Address,
-            media            : endpoint.Media,
+            medium           : endpoint.Medium,
             mode             : null,
             gateway          : endpoint.Gateway,
             options          : OpenNettyTransmissionOptions.None,
@@ -1180,7 +1180,7 @@ public class OpenNettyController
             command          : OpenNettyCommands.TemperatureControl.WirePilotDerogationMode.WithParameters(
                 /* MODE: */ value.ToString(CultureInfo.InvariantCulture)),
             address          : endpoint.Address,
-            media            : endpoint.Media,
+            medium           : endpoint.Medium,
             mode             : OpenNettyMode.Multicast,
             gateway          : endpoint.Gateway,
             options          : OpenNettyTransmissionOptions.None,
@@ -1227,7 +1227,7 @@ public class OpenNettyController
             command          : OpenNettyCommands.TemperatureControl.WirePilotSetpointMode.WithParameters(
                 /* MODE: */ value.ToString(CultureInfo.InvariantCulture)),
             address          : endpoint.Address,
-            media            : endpoint.Media,
+            medium           : endpoint.Medium,
             mode             : OpenNettyMode.Multicast,
             gateway          : endpoint.Gateway,
             options          : OpenNettyTransmissionOptions.None,
@@ -1270,7 +1270,7 @@ public class OpenNettyController
                 _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
             }],
             address          : endpoint.Address,
-            media            : endpoint.Media,
+            medium           : endpoint.Medium,
             mode             : OpenNettyMode.Unicast,
             gateway          : endpoint.Gateway,
             options          : endpoint.GetBooleanSetting(OpenNettySettings.ActionValidation) is not false ?
@@ -1306,7 +1306,7 @@ public class OpenNettyController
             protocol         : endpoint.Protocol,
             command          : OpenNettyCommands.Lighting.Off,
             address          : endpoint.Address,
-            media            : endpoint.Media,
+            medium           : endpoint.Medium,
             mode             : null,
             gateway          : endpoint.Gateway,
             options          : endpoint.Protocol is OpenNettyProtocol.Nitoo &&
@@ -1353,7 +1353,7 @@ public class OpenNettyController
             protocol         : endpoint.Protocol,
             command          : OpenNettyCommands.Lighting.On,
             address          : endpoint.Address,
-            media            : endpoint.Media,
+            medium           : endpoint.Medium,
             mode             : null,
             gateway          : endpoint.Gateway,
             options          : options,
@@ -1401,7 +1401,7 @@ public class OpenNettyController
                     OpenNettyCommands.Lighting.Off :
                     OpenNettyCommands.Lighting.On,
                 address          : endpoint.Address,
-                media            : endpoint.Media,
+                medium           : endpoint.Medium,
                 mode             : endpoint.Protocol is OpenNettyProtocol.Nitoo ? OpenNettyMode.Unicast : null,
                 gateway          : endpoint.Gateway,
                 options          : endpoint.Protocol is OpenNettyProtocol.Nitoo &&
@@ -1417,7 +1417,7 @@ public class OpenNettyController
                 protocol         : endpoint.Protocol,
                 command          : OpenNettyCommands.Lighting.Toggle,
                 address          : endpoint.Address,
-                media            : endpoint.Media,
+                medium           : endpoint.Medium,
                 mode             : null,
                 gateway          : endpoint.Gateway,
                 options          : OpenNettyTransmissionOptions.None,
@@ -1446,7 +1446,7 @@ public class OpenNettyController
             protocol         : endpoint.Protocol,
             command          : OpenNettyCommands.Scenario.UnbindingRequest,
             address          : endpoint.Address,
-            media            : endpoint.Media,
+            medium           : endpoint.Medium,
             mode             : null,
             gateway          : endpoint.Gateway,
             options          : OpenNettyTransmissionOptions.None,

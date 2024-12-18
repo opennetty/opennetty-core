@@ -39,9 +39,9 @@ public sealed class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
     public OpenNettyGateway? Gateway { get; init; }
 
     /// <summary>
-    /// Gets or sets the media associated with the endpoint.
+    /// Gets or sets the medium associated with the endpoint.
     /// </summary>
-    public OpenNettyMedia? Media { get; init; }
+    public OpenNettyMedium? Medium { get; init; }
 
     /// <summary>
     /// Gets or sets the optional name associated with the endpoint.
@@ -161,7 +161,7 @@ public sealed class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
             return false;
         }
 
-        if (Media != other.Media)
+        if (Medium != other.Medium)
         {
             return false;
         }
@@ -205,7 +205,7 @@ public sealed class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
         }
 
         hash.Add(Device);
-        hash.Add(Media);
+        hash.Add(Medium);
         hash.Add(Name);
         hash.Add(Protocol);
 

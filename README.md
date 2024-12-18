@@ -327,7 +327,7 @@ var message = OpenNettyMessage.CreateCommand(
     protocol: OpenNettyProtocol.Nitoo,
     command : OpenNettyCommands.Lighting.On,
     address : OpenNettyAddress.FromNitooAddress(identifier: 487932, unit: 2),
-    media   : OpenNettyMedia.Powerline,
+    medium  : OpenNettyMedium.Powerline,
     mode    : OpenNettyMode.Unicast);
 ```
 
@@ -385,7 +385,7 @@ await Task.Delay(-1);
 >     protocol: OpenNettyProtocol.Zigbee,
 >     command : OpenNettyCommands.Lighting.On,
 >     address : OpenNettyAddress.FromHexadecimalZigbeeAddress(identifier: "0065ACAC", unit: 1),
->     media   : OpenNettyMedia.Radio,
+>     medium  : OpenNettyMedium.Radio,
 >     mode    : OpenNettyMode.Unicast);
 > 
 > await connection.SendAsync(message.Frame, source.Token);

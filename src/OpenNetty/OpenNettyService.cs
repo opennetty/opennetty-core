@@ -42,7 +42,7 @@ public class OpenNettyService : IOpenNettyService
         OpenNettyProtocol protocol,
         OpenNettyDimension dimension,
         OpenNettyAddress? address = null,
-        OpenNettyMedia? media = null,
+        OpenNettyMedium? medium = null,
         OpenNettyMode? mode = null,
         Func<OpenNettyDimension, ValueTask<bool>>? filter = null,
         OpenNettyGateway? gateway = null,
@@ -68,7 +68,7 @@ public class OpenNettyService : IOpenNettyService
         gateway ??= _options.CurrentValue.Gateways.Find(gateway => gateway.Protocol == protocol) ??
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0032));
 
-        var message = OpenNettyMessage.CreateDimensionRequest(protocol, dimension, address, media, mode);
+        var message = OpenNettyMessage.CreateDimensionRequest(protocol, dimension, address, medium, mode);
 
         // Note: acknowledgement validation is deliberately disabled while sending the DIMENSION REQUEST frame
         // as it's used by the OWN gateway to indicate when it's done pushing additional DIMENSION READ frames.
@@ -165,7 +165,7 @@ public class OpenNettyService : IOpenNettyService
         OpenNettyProtocol protocol,
         OpenNettyCategory category,
         OpenNettyAddress? address = null,
-        OpenNettyMedia? media = null,
+        OpenNettyMedium? medium = null,
         OpenNettyMode? mode = null,
         Func<OpenNettyCommand, ValueTask<bool>>? filter = null,
         OpenNettyGateway? gateway = null,
@@ -191,7 +191,7 @@ public class OpenNettyService : IOpenNettyService
         gateway ??= _options.CurrentValue.Gateways.Find(gateway => gateway.Protocol == protocol) ??
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0032));
 
-        var message = OpenNettyMessage.CreateStatusRequest(protocol, category, address, media, mode);
+        var message = OpenNettyMessage.CreateStatusRequest(protocol, category, address, medium, mode);
 
         // Note: acknowledgement validation is deliberately disabled while sending the STATUS REQUEST frame
         // as it's used by the gateway to indicate when it's done pushing additional BUS COMMAND frames.
@@ -290,7 +290,7 @@ public class OpenNettyService : IOpenNettyService
         OpenNettyProtocol protocol,
         OpenNettyCommand command,
         OpenNettyAddress? address = null,
-        OpenNettyMedia? media = null,
+        OpenNettyMedium? medium = null,
         OpenNettyMode? mode = null,
         OpenNettyGateway? gateway = null,
         OpenNettyTransmissionOptions options = OpenNettyTransmissionOptions.None,
@@ -310,7 +310,7 @@ public class OpenNettyService : IOpenNettyService
         gateway ??= _options.CurrentValue.Gateways.Find(gateway => gateway.Protocol == protocol) ??
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0032));
 
-        var message = OpenNettyMessage.CreateCommand(protocol, command, address, media, mode);
+        var message = OpenNettyMessage.CreateCommand(protocol, command, address, medium, mode);
 
         var context = ResilienceContextPool.Shared.Get(cancellationToken);
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)), gateway);
@@ -335,7 +335,7 @@ public class OpenNettyService : IOpenNettyService
         OpenNettyProtocol protocol,
         OpenNettyDimension dimension,
         OpenNettyAddress? address = null,
-        OpenNettyMedia? media = null,
+        OpenNettyMedium? medium = null,
         OpenNettyMode? mode = null,
         Func<OpenNettyDimension, ValueTask<bool>>? filter = null,
         OpenNettyGateway? gateway = null,
@@ -356,7 +356,7 @@ public class OpenNettyService : IOpenNettyService
         gateway ??= _options.CurrentValue.Gateways.Find(gateway => gateway.Protocol == protocol) ??
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0032));
 
-        var message = OpenNettyMessage.CreateDimensionRequest(protocol, dimension, address, media, mode);
+        var message = OpenNettyMessage.CreateDimensionRequest(protocol, dimension, address, medium, mode);
 
         var context = ResilienceContextPool.Shared.Get(cancellationToken);
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)), gateway);
@@ -421,7 +421,7 @@ public class OpenNettyService : IOpenNettyService
         OpenNettyProtocol protocol,
         OpenNettyCategory category,
         OpenNettyAddress? address = null,
-        OpenNettyMedia? media = null,
+        OpenNettyMedium? medium = null,
         OpenNettyMode? mode = null,
         Func<OpenNettyCommand, ValueTask<bool>>? filter = null,
         OpenNettyGateway? gateway = null,
@@ -442,7 +442,7 @@ public class OpenNettyService : IOpenNettyService
         gateway ??= _options.CurrentValue.Gateways.Find(gateway => gateway.Protocol == protocol) ??
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0032));
 
-        var message = OpenNettyMessage.CreateStatusRequest(protocol, category, address, media, mode);
+        var message = OpenNettyMessage.CreateStatusRequest(protocol, category, address, medium, mode);
 
         var context = ResilienceContextPool.Shared.Get(cancellationToken);
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)), gateway);
@@ -663,7 +663,7 @@ public class OpenNettyService : IOpenNettyService
         OpenNettyDimension dimension,
         ImmutableArray<string> values,
         OpenNettyAddress? address = null,
-        OpenNettyMedia? media = null,
+        OpenNettyMedium? medium = null,
         OpenNettyMode? mode = null,
         OpenNettyGateway? gateway = null,
         OpenNettyTransmissionOptions options = OpenNettyTransmissionOptions.None,
@@ -683,7 +683,7 @@ public class OpenNettyService : IOpenNettyService
         gateway ??= _options.CurrentValue.Gateways.Find(gateway => gateway.Protocol == protocol) ??
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0032));
 
-        var message = OpenNettyMessage.CreateDimensionSet(protocol, dimension, values, address, media, mode);
+        var message = OpenNettyMessage.CreateDimensionSet(protocol, dimension, values, address, medium, mode);
 
         var context = ResilienceContextPool.Shared.Get(cancellationToken);
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)), gateway);

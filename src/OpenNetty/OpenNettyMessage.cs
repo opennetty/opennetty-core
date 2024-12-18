@@ -42,9 +42,9 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
     public OpenNettyFrame Frame { get; private set; }
 
     /// <summary>
-    /// Gets the transmission media used to receive or send the message, if applicable.
+    /// Gets the transmission medium used to receive or send the message, if applicable.
     /// </summary>
-    public OpenNettyMedia? Media { get; private set; }
+    public OpenNettyMedium? Medium { get; private set; }
 
     /// <summary>
     /// Gets the transmission mode used to receive or send the message, if applicable.
@@ -251,7 +251,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
             {
                 if (field.Parameters is not [{ IsEmpty: true }])
                 {
-                    message.Media = OpenNettyMedia.Bus;
+                    message.Medium = OpenNettyMedium.Bus;
 
                     var type = field.Parameters[0] switch
                     {
@@ -302,13 +302,13 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
                 // - ADDRESS: the address of the Zigbee device and/or the targeted unit.
                 // - FAMILY TYPE: the family type of the target device (always 9 for Zigbee devices).
 
-                (message.Mode, message.Address, message.Media) = field.Parameters switch
+                (message.Mode, message.Address, message.Medium) = field.Parameters switch
                 {
-                    [{ IsEmpty: true }] => (null as OpenNettyMode?, null as OpenNettyAddress?, null as OpenNettyMedia?),
+                    [{ IsEmpty: true }] => (null as OpenNettyMode?, null as OpenNettyAddress?, null as OpenNettyMedium?),
 
-                    [{   Value: "0"  }, { Value: var address }, { Value: "9" }] => (OpenNettyMode.Broadcast, CreateAddress(address), OpenNettyMedia.Radio),
-                    [{ IsEmpty: true }, { Value: var address }, { Value: "9" }] => (OpenNettyMode.Multicast, CreateAddress(address), OpenNettyMedia.Radio),
-                    [{    Value: var address    }, {        Value: "9"       }] => (OpenNettyMode.Unicast,   CreateAddress(address), OpenNettyMedia.Radio),
+                    [{   Value: "0"  }, { Value: var address }, { Value: "9" }] => (OpenNettyMode.Broadcast, CreateAddress(address), OpenNettyMedium.Radio),
+                    [{ IsEmpty: true }, { Value: var address }, { Value: "9" }] => (OpenNettyMode.Multicast, CreateAddress(address), OpenNettyMedium.Radio),
+                    [{    Value: var address    }, {        Value: "9"       }] => (OpenNettyMode.Unicast,   CreateAddress(address), OpenNettyMedium.Radio),
 
                     _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0066))
                 };
@@ -336,24 +336,24 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
                 //
                 // Note: powerline is always the default value when no family type is explicitly set.
 
-                (message.Mode, message.Address, message.Media) = field.Parameters switch
+                (message.Mode, message.Address, message.Medium) = field.Parameters switch
                 {
-                    [{ IsEmpty: true }] => (null as OpenNettyMode?, null as OpenNettyAddress?, null as OpenNettyMedia?),
+                    [{ IsEmpty: true }] => (null as OpenNettyMode?, null as OpenNettyAddress?, null as OpenNettyMedium?),
 
-                    [{        Value: "0"        }, {  Value: var address     }] => (OpenNettyMode.Broadcast, CreateAddress(address), OpenNettyMedia.Powerline),
-                    [{   Value: "0"  }, { Value: var address }, { Value: "0" }] => (OpenNettyMode.Broadcast, CreateAddress(address), OpenNettyMedia.Powerline),
-                    [{   Value: "0"  }, { Value: var address }, { Value: "1" }] => (OpenNettyMode.Broadcast, CreateAddress(address), OpenNettyMedia.Radio),
-                    [{   Value: "0"  }, { Value: var address }, { Value: "2" }] => (OpenNettyMode.Broadcast, CreateAddress(address), OpenNettyMedia.Infrared),
+                    [{        Value: "0"        }, {  Value: var address     }] => (OpenNettyMode.Broadcast, CreateAddress(address), OpenNettyMedium.Powerline),
+                    [{   Value: "0"  }, { Value: var address }, { Value: "0" }] => (OpenNettyMode.Broadcast, CreateAddress(address), OpenNettyMedium.Powerline),
+                    [{   Value: "0"  }, { Value: var address }, { Value: "1" }] => (OpenNettyMode.Broadcast, CreateAddress(address), OpenNettyMedium.Radio),
+                    [{   Value: "0"  }, { Value: var address }, { Value: "2" }] => (OpenNettyMode.Broadcast, CreateAddress(address), OpenNettyMedium.Infrared),
 
-                    [{       IsEmpty: true      }, {    Value: var address   }] => (OpenNettyMode.Multicast, CreateAddress(address), OpenNettyMedia.Powerline),
-                    [{ IsEmpty: true }, { Value: var address }, { Value: "0" }] => (OpenNettyMode.Multicast, CreateAddress(address), OpenNettyMedia.Powerline),
-                    [{ IsEmpty: true }, { Value: var address }, { Value: "1" }] => (OpenNettyMode.Multicast, CreateAddress(address), OpenNettyMedia.Radio),
-                    [{ IsEmpty: true }, { Value: var address }, { Value: "2" }] => (OpenNettyMode.Multicast, CreateAddress(address), OpenNettyMedia.Infrared),
+                    [{       IsEmpty: true      }, {    Value: var address   }] => (OpenNettyMode.Multicast, CreateAddress(address), OpenNettyMedium.Powerline),
+                    [{ IsEmpty: true }, { Value: var address }, { Value: "0" }] => (OpenNettyMode.Multicast, CreateAddress(address), OpenNettyMedium.Powerline),
+                    [{ IsEmpty: true }, { Value: var address }, { Value: "1" }] => (OpenNettyMode.Multicast, CreateAddress(address), OpenNettyMedium.Radio),
+                    [{ IsEmpty: true }, { Value: var address }, { Value: "2" }] => (OpenNettyMode.Multicast, CreateAddress(address), OpenNettyMedium.Infrared),
 
-                    [{                    Value: var address                 }] => (OpenNettyMode.Unicast, CreateAddress(address), OpenNettyMedia.Powerline),
-                    [{    Value: var address    }, {        Value: "0"       }] => (OpenNettyMode.Unicast, CreateAddress(address), OpenNettyMedia.Powerline),
-                    [{    Value: var address    }, {        Value: "1"       }] => (OpenNettyMode.Unicast, CreateAddress(address), OpenNettyMedia.Radio),
-                    [{    Value: var address    }, {        Value: "2"       }] => (OpenNettyMode.Unicast, CreateAddress(address), OpenNettyMedia.Infrared),
+                    [{                    Value: var address                 }] => (OpenNettyMode.Unicast, CreateAddress(address), OpenNettyMedium.Powerline),
+                    [{    Value: var address    }, {        Value: "0"       }] => (OpenNettyMode.Unicast, CreateAddress(address), OpenNettyMedium.Powerline),
+                    [{    Value: var address    }, {        Value: "1"       }] => (OpenNettyMode.Unicast, CreateAddress(address), OpenNettyMedium.Radio),
+                    [{    Value: var address    }, {        Value: "2"       }] => (OpenNettyMode.Unicast, CreateAddress(address), OpenNettyMedium.Infrared),
 
                     _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0066))
                 };
@@ -448,12 +448,12 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
     /// <param name="protocol">The protocol.</param>
     /// <param name="command">The command.</param>
     /// <param name="address">The address.</param>
-    /// <param name="media">The media.</param>
+    /// <param name="medium">The medium.</param>
     /// <param name="mode">The transmission mode.</param>
     /// <returns>A new BUS COMMAND message reflecting the specified parameters.</returns>
     public static OpenNettyMessage CreateCommand(
         OpenNettyProtocol protocol, OpenNettyCommand command,
-        OpenNettyAddress? address = null, OpenNettyMedia? media = null, OpenNettyMode? mode = null)
+        OpenNettyAddress? address = null, OpenNettyMedium? medium = null, OpenNettyMode? mode = null)
     {
         if (!Enum.IsDefined(protocol))
         {
@@ -463,7 +463,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
         return CreateFromFrame(protocol, new OpenNettyFrame(
             /* WHO:   */ CreateWhoField(OpenNettyMessageType.BusCommand, command.Category),
             /* WHAT   */ new OpenNettyField(command.ToParameters()),
-            /* WHERE: */ CreateWhereField(protocol, command.Category, address, media, mode)));
+            /* WHERE: */ CreateWhereField(protocol, command.Category, address, medium, mode)));
     }
 
     /// <summary>
@@ -472,12 +472,12 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
     /// <param name="protocol">The protocol.</param>
     /// <param name="category">The category.</param>
     /// <param name="address">The address.</param>
-    /// <param name="media">The media.</param>
+    /// <param name="medium">The medium.</param>
     /// <param name="mode">The transmission mode.</param>
     /// <returns>A new STATUS REQUEST message reflecting the specified parameters.</returns>
     public static OpenNettyMessage CreateStatusRequest(
         OpenNettyProtocol protocol, OpenNettyCategory category, OpenNettyAddress? address = null,
-        OpenNettyMedia? media = null, OpenNettyMode? mode = null)
+        OpenNettyMedium? medium = null, OpenNettyMode? mode = null)
     {
         if (!Enum.IsDefined(protocol))
         {
@@ -486,7 +486,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
 
         return CreateFromFrame(protocol, new OpenNettyFrame(
             /* #WHO:  */ CreateWhoField(OpenNettyMessageType.StatusRequest, category),
-            /* WHERE: */ CreateWhereField(protocol, category, address, media, mode)));
+            /* WHERE: */ CreateWhereField(protocol, category, address, medium, mode)));
     }
 
     /// <summary>
@@ -495,12 +495,12 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
     /// <param name="protocol">The protocol.</param>
     /// <param name="dimension">The dimension.</param>
     /// <param name="address">The address.</param>
-    /// <param name="media">The media.</param>
+    /// <param name="medium">The medium.</param>
     /// <param name="mode">The transmission mode.</param>
     /// <returns>A new DIMENSION REQUEST message reflecting the specified parameters.</returns>
     public static OpenNettyMessage CreateDimensionRequest(
         OpenNettyProtocol protocol, OpenNettyDimension dimension, OpenNettyAddress? address = null,
-        OpenNettyMedia? media = null, OpenNettyMode? mode = null)
+        OpenNettyMedium? medium = null, OpenNettyMode? mode = null)
     {
         if (!Enum.IsDefined(protocol))
         {
@@ -509,7 +509,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
 
         return CreateFromFrame(protocol, new OpenNettyFrame(
             /* #WHO:      */ CreateWhoField(OpenNettyMessageType.DimensionRequest, dimension.Category),
-            /* WHERE:     */ CreateWhereField(protocol, dimension.Category, address, media, mode),
+            /* WHERE:     */ CreateWhereField(protocol, dimension.Category, address, medium, mode),
             /* DIMENSION: */ CreateDimensionField(OpenNettyMessageType.DimensionRequest, dimension)));
     }
 
@@ -520,13 +520,13 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
     /// <param name="dimension">The dimension.</param>
     /// <param name="values">The dimension values.</param>
     /// <param name="address">The address.</param>
-    /// <param name="media">The media.</param>
+    /// <param name="medium">The medium.</param>
     /// <param name="mode">The transmission mode.</param>
     /// <returns>A new DIMENSION READ message reflecting the specified parameters.</returns>
     public static OpenNettyMessage CreateDimensionRead(
         OpenNettyProtocol protocol, OpenNettyDimension dimension,
         ImmutableArray<string> values, OpenNettyAddress? address = null,
-        OpenNettyMedia? media = null, OpenNettyMode? mode = null)
+        OpenNettyMedium? medium = null, OpenNettyMode? mode = null)
     {
         if (!Enum.IsDefined(protocol))
         {
@@ -541,7 +541,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
         var fields = new List<OpenNettyField>(capacity: 3 + values.Length)
         {
             /* #WHO:      */ CreateWhoField(OpenNettyMessageType.DimensionRead, dimension.Category),
-            /* WHERE:     */ CreateWhereField(protocol, dimension.Category, address, media, mode),
+            /* WHERE:     */ CreateWhereField(protocol, dimension.Category, address, medium, mode),
             /* DIMENSION: */ CreateDimensionField(OpenNettyMessageType.DimensionRead, dimension)
         };
 
@@ -560,13 +560,13 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
     /// <param name="dimension">The dimension.</param>
     /// <param name="values">The dimension values.</param>
     /// <param name="address">The address.</param>
-    /// <param name="media">The media.</param>
+    /// <param name="medium">The medium.</param>
     /// <param name="mode">The transmission mode.</param>
     /// <returns>A new DIMENSION SET message reflecting the specified parameters.</returns>
     public static OpenNettyMessage CreateDimensionSet(
         OpenNettyProtocol protocol, OpenNettyDimension dimension,
         ImmutableArray<string> values, OpenNettyAddress? address = null,
-        OpenNettyMedia? media = null, OpenNettyMode? mode = null)
+        OpenNettyMedium? medium = null, OpenNettyMode? mode = null)
     {
         if (!Enum.IsDefined(protocol))
         {
@@ -581,7 +581,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
         var fields = new List<OpenNettyField>(capacity: 3 + values.Length)
         {
             /* #WHO:       */ CreateWhoField(OpenNettyMessageType.DimensionSet, dimension.Category),
-            /* WHERE:      */ CreateWhereField(protocol, dimension.Category, address, media, mode),
+            /* WHERE:      */ CreateWhereField(protocol, dimension.Category, address, medium, mode),
             /* #DIMENSION: */ CreateDimensionField(OpenNettyMessageType.DimensionSet, dimension)
         };
 
@@ -638,7 +638,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
 
     private static OpenNettyField CreateWhereField(
         OpenNettyProtocol protocol, OpenNettyCategory category,
-        OpenNettyAddress? address, OpenNettyMedia? media, OpenNettyMode? mode)
+        OpenNettyAddress? address, OpenNettyMedium? medium, OpenNettyMode? mode)
     {
         if (address is null)
         {
@@ -669,13 +669,13 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
 
             parameters.AddRange(address.Value.ToParameters());
 
-            // Note: when using the default powerline transmission media, adding an explicit parameter is not required.
-            if (media is not null and not OpenNettyMedia.Powerline)
+            // Note: when using the default powerline transmission medium, adding an explicit parameter is not required.
+            if (medium is not null and not OpenNettyMedium.Powerline)
             {
-                parameters.Add(new OpenNettyParameter(media switch
+                parameters.Add(new OpenNettyParameter(medium switch
                 {
-                    OpenNettyMedia.Radio    => "1",
-                    OpenNettyMedia.Infrared => "2",
+                    OpenNettyMedium.Radio    => "1",
+                    OpenNettyMedium.Infrared => "2",
 
                     _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0069))
                 }));
@@ -705,9 +705,9 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
 
             parameters.AddRange(address.Value.ToParameters());
 
-            parameters.Add(new OpenNettyParameter(media switch
+            parameters.Add(new OpenNettyParameter(medium switch
             {
-                OpenNettyMedia.Radio or null => "9",
+                OpenNettyMedium.Radio or null => "9",
 
                 _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0069))
             }));
