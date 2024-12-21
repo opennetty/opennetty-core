@@ -196,14 +196,14 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
 
             await _events.SmartMeterPowerCutModeReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportStringAsync(arguments.Endpoint, OpenNettyMqttAttributes.IsPowerCutActive,
+                .Do(arguments => ReportStringAsync(arguments.Endpoint, OpenNettyMqttAttributes.SmartMeterPowerCutMode,
                     arguments.Active ? "1" : "0"))
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.SmartMeterRateTypeReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportStringAsync(arguments.Endpoint, OpenNettyMqttAttributes.RateType, arguments.Type switch
+                .Do(arguments => ReportStringAsync(arguments.Endpoint, OpenNettyMqttAttributes.SmartMeterRateType, arguments.Type switch
                 {
                     OpenNettyModels.TemperatureControl.SmartMeterRateType.Peak    => "peak",
                     OpenNettyModels.TemperatureControl.SmartMeterRateType.OffPeak => "off_peak",
