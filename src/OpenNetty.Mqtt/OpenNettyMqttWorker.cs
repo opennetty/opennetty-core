@@ -251,7 +251,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 }
                                 break;
 
-                            case OpenNettyMqttAttributes.RateType or OpenNettyMqttAttributes.IsPowerCutActive
+                            case OpenNettyMqttAttributes.SmartMeterPowerCutMode or OpenNettyMqttAttributes.SmartMeterRateType
                                 when operation is OpenNettyMqttOperation.Get:
                                 _ = await _controller.GetSmartMeterInformationAsync(endpoint);
                                 break;

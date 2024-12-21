@@ -27,11 +27,6 @@ public static class OpenNettyMqttAttributes
     public const string DimmingStep = "dimming_step";
 
     /// <summary>
-    /// Power cut active indicator.
-    /// </summary>
-    public const string IsPowerCutActive = "is_power_cut_active";
-
-    /// <summary>
     /// Pilot wire derogation mode.
     /// </summary>
     public const string PilotWireDerogationMode = "pilot_wire_derogation_mode";
@@ -42,11 +37,6 @@ public static class OpenNettyMqttAttributes
     public const string PilotWireSetpointMode = "pilot_wire_setpoint_mode";
 
     /// <summary>
-    /// Rate type.
-    /// </summary>
-    public const string RateType = "rate_type";
-
-    /// <summary>
     /// Scenario.
     /// </summary>
     public const string Scenario = "scenario";
@@ -55,6 +45,16 @@ public static class OpenNettyMqttAttributes
     /// Smart meter indexes.
     /// </summary>
     public const string SmartMeterIndexes = "smart_meter_indexes";
+
+    /// <summary>
+    /// Smart meter power cut mode.
+    /// </summary>
+    public const string SmartMeterPowerCutMode = "smart_meter_power_cut_mode";
+
+    /// <summary>
+    /// Smart meter rate type.
+    /// </summary>
+    public const string SmartMeterRateType = "smart_meter_rate_type";
 
     /// <summary>
     /// Switch state.
