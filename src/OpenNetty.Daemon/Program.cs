@@ -8,7 +8,13 @@ using System.Reactive.Linq;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 
-var builder = Host.CreateApplicationBuilder();
+Directory.SetCurrentDirectory(AppContext.BaseDirectory);
+
+var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
+{
+    Args = args,
+    ContentRootPath = AppContext.BaseDirectory
+});
 
 builder.Services.AddSystemd()
     .AddWindowsService();
