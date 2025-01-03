@@ -242,4 +242,16 @@ public partial class OpenNettyLogger<TService>
         Level = LogLevel.Error,
         Message = "An error occurred while trying to connect to the MQTT broker.")]
     public partial void MqttBrokerConnectionError(Exception exception);
+
+    /// <summary>
+    /// Logs a message indicating that an error occcured while opening a session.
+    /// </summary>
+    /// <param name="exception">The exception.</param>
+    /// <param name="gateway">The gateway.</param>
+    /// <param name="type">The session type.</param>
+    [LoggerMessage(
+        EventId = 6020,
+        Level = LogLevel.Error,
+        Message = "An error occurred while trying to open a session of type {Type} to gateway {Gateway}.")]
+    public partial void SessionErrored(Exception exception, OpenNettyGateway gateway, OpenNettySessionType type);
 }

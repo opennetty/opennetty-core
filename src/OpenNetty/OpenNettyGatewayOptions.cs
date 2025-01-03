@@ -263,9 +263,39 @@ public sealed record OpenNettyGatewayOptions
                                _         => TimeSpan.FromSeconds(60)
                     }),
                     MaxRetryAttempts = int.MaxValue,
-                    ShouldHandle = static arguments => ValueTask.FromResult(
-                        !arguments.Context.CancellationToken.IsCancellationRequested &&
-                        arguments.Outcome.Exception is not null)
+                    ShouldHandle = static arguments =>
+                    {
+                        if (!arguments.Context.Properties.TryGetValue(
+                            key  : new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)),
+                            value: out OpenNettyGateway? gateway))
+                        {
+                            throw new InvalidOperationException(SR.GetResourceString(SR.ID0074));
+                        }
+
+                        if (!arguments.Context.Properties.TryGetValue(
+                            key  : new ResiliencePropertyKey<OpenNettyLogger<OpenNettyWorker>>(nameof(OpenNettyLogger<OpenNettyWorker>)),
+                            value: out OpenNettyLogger<OpenNettyWorker>? logger))
+                        {
+                            throw new InvalidOperationException(SR.GetResourceString(SR.ID0074));
+                        }
+
+                        if (!arguments.Context.Properties.TryGetValue(
+                            key  : new ResiliencePropertyKey<OpenNettySessionType>(nameof(OpenNettySessionType)),
+                            value: out OpenNettySessionType type))
+                        {
+                            throw new InvalidOperationException(SR.GetResourceString(SR.ID0074));
+                        }
+
+                        if (arguments.Outcome.Exception is not Exception exception)
+                        {
+                            return ValueTask.FromResult(false);
+                        }
+
+                        logger.SessionErrored(exception, gateway, type);
+
+                        // Always recreate new sessions on failed attempts, unless the operation was canceled by the worker.
+                        return ValueTask.FromResult(!arguments.Context.CancellationToken.IsCancellationRequested);
+                    }
                 })
                 .Build()
         };
