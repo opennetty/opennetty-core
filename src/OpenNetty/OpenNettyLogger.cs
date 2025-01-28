@@ -254,4 +254,38 @@ public partial class OpenNettyLogger<TService>
         Level = LogLevel.Error,
         Message = "An error occurred while trying to open a session of type {Type} to gateway {Gateway}.")]
     public partial void SessionErrored(Exception exception, OpenNettyGateway gateway, OpenNettySessionType type);
+
+    /// <summary>
+    /// Logs a message indicating that a message was received from the MQTT broker.
+    /// </summary>
+    /// <param name="topic">The message topic.</param>
+    /// <param name="payload">The message payload, if available.</param>
+    [LoggerMessage(
+        EventId = 6021,
+        Level = LogLevel.Debug,
+        Message = "An incoming MQTT message for topic {Topic} was received (payload: {Payload}).")]
+    public partial void MqttMessageReceived(string topic, string? payload);
+
+    /// <summary>
+    /// Logs a message indicating that a message was successfully sent to the MQTT broker.
+    /// </summary>
+    /// <param name="topic">The message topic.</param>
+    /// <param name="payload">The message payload, if available.</param>
+    [LoggerMessage(
+        EventId = 6022,
+        Level = LogLevel.Debug,
+        Message = "An outgoing MQTT message for topic {Topic} was successfully sent (payload: {Payload}).")]
+    public partial void MqttMessageSent(string topic, string? payload);
+
+    /// <summary>
+    /// Logs a message indicating that an error occurred while trying to process an outgoing MQTT message.
+    /// </summary>
+    /// <param name="exception">The exception.</param>
+    /// <param name="topic">The message topic.</param>
+    /// <param name="payload">The message payload, if available.</param>
+    [LoggerMessage(
+        EventId = 6023,
+        Level = LogLevel.Error,
+        Message = "An error occurred while processing an outgoing MQTT message for topic {Topic} (payload: {Payload}).")]
+    public partial void MqttMessageError(Exception exception, string topic, string? payload);
 }

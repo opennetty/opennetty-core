@@ -327,6 +327,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         {
                             await client.EnqueueAsync(new MqttApplicationMessageBuilder()
                                 .WithCorrelationData(message.CorrelationData)
+                                .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
                                 .WithTopic(message.ResponseTopic)
                                 .Build());
                         }
@@ -339,6 +340,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             .WithCorrelationData(message.CorrelationData)
                             .WithPayload(new JsonObject { ["error"] = exception.Message }.ToJsonString())
                             .WithPayloadFormatIndicator(MqttPayloadFormatIndicator.CharacterData)
+                            .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
                             .WithTopic(message.ResponseTopic)
                             .Build());
 

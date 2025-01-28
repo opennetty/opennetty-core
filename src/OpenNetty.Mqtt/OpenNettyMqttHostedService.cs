@@ -289,6 +289,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
             await _client.EnqueueAsync(new MqttApplicationMessageBuilder()
                 .WithPayload(value)
                 .WithPayloadFormatIndicator(MqttPayloadFormatIndicator.CharacterData)
+                .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
                 .WithTopic(topic)
                 .Build());
         }
@@ -305,6 +306,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .WithContentType(MediaTypeNames.Application.Json)
                 .WithPayload(value.ToJsonString())
                 .WithPayloadFormatIndicator(MqttPayloadFormatIndicator.CharacterData)
+                .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
                 .WithTopic(topic)
                 .Build());
         }
@@ -345,12 +347,22 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
             SingleWriter = true
         });
 
+        // Use the ApplicationMessageReceivedAsync event to log incoming messages.
+        //
         // Note: MQTTnet's ApplicationMessageReceivedAsync event is never called concurrently
         // even when multiple messages are received at the same time (which guarantees that
         // messages can be processed in the same order as they are received). As such, it is
         // safe to set SingleWriter to true in the channel options.
         _client.ApplicationMessageReceivedAsync += async (MqttApplicationMessageReceivedEventArgs arguments) =>
         {
+            var message = arguments.ApplicationMessage;
+            var topic = message.Topic;
+            var payload = message.PayloadFormatIndicator is MqttPayloadFormatIndicator.CharacterData ?
+                message.ConvertPayloadToString() :
+                null;
+
+            _logger.MqttMessageReceived(topic, payload);
+
             await channel.Writer.WriteAsync(arguments.ApplicationMessage);
         };
 
@@ -358,6 +370,28 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
         _client.ConnectingFailedAsync += (ConnectingFailedEventArgs arguments) =>
         {
             _logger.MqttBrokerConnectionError(arguments.Exception);
+
+            return Task.CompletedTask;
+        };
+
+        // Use the ApplicationMessageProcessedAsync event to log successful and failed outgoing messages.
+        _client.ApplicationMessageProcessedAsync += (ApplicationMessageProcessedEventArgs arguments) =>
+        {
+            var message = arguments.ApplicationMessage.ApplicationMessage;
+            var topic = message.Topic;
+            var payload = message.PayloadFormatIndicator is MqttPayloadFormatIndicator.CharacterData ?
+                message.ConvertPayloadToString() :
+                null;
+
+            if (arguments.Exception is Exception exception)
+            {
+                _logger.MqttMessageError(exception, topic, payload);
+            }
+
+            else
+            {
+                _logger.MqttMessageSent(topic, payload);
+            }
 
             return Task.CompletedTask;
         };
