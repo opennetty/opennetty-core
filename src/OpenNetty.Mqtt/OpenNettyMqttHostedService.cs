@@ -357,9 +357,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
         {
             var message = arguments.ApplicationMessage;
             var topic = message.Topic;
-            var payload = message.PayloadFormatIndicator is MqttPayloadFormatIndicator.CharacterData ?
-                message.ConvertPayloadToString() :
-                null;
+            var payload = message.ConvertPayloadToString();
 
             _logger.MqttMessageReceived(topic, payload);
 
@@ -379,9 +377,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
         {
             var message = arguments.ApplicationMessage.ApplicationMessage;
             var topic = message.Topic;
-            var payload = message.PayloadFormatIndicator is MqttPayloadFormatIndicator.CharacterData ?
-                message.ConvertPayloadToString() :
-                null;
+            var payload = message.ConvertPayloadToString();
 
             if (arguments.Exception is Exception exception)
             {
