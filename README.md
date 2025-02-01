@@ -175,8 +175,26 @@ server/port/username/password attributes to match the values used by your MQTT b
 </Configuration>
 ```
 
-> [!TIP]
+> [!IMPORTANT]
 > Using a code editor like [Visual Studio Code](https://code.visualstudio.com/) greatly simplifies writing the configuration file.
+
+> [!TIP]
+> For increased security, OpenNetty supports MQTTS and TLS client authentication: to use TLS, add the necessary `.crt` and `.key` files to the OpenNetty
+> folder and set the `TlsServerCertificateAuthorityFile`, `TlsClientCertificateFile` and `TlsClientCertificatePrivateKeyFile` attributes.
+>
+> If necessary, a custom `TlsServerTargetHost` value – required when using Jeedom's `MQTT Manager` plugin and the default configuration – can be set:
+>
+> ```xml
+> <Configuration>
+> 
+>   <Mqtt Server="192.168.5.1" Port="8883" Username="jeedom" Password="koIiuhTFGtrdRkjLKhYGvgfFSDr"
+>         TlsServerCertificateAuthorityFile="ca.crt"
+>         TlsClientCertificateFile="client.crt"
+>         TlsClientCertificatePrivateKeyFile="client.key"
+>         TlsServerTargetHost="jeedom-mosquitto" />
+> 
+> </Configuration>
+> ```
 
 ### Configure the gateways
 
@@ -216,7 +234,7 @@ socket to initiate OpenWebNet sessions:
 
 To be able to communicate with "In One by Legrand", "MyHome Play" and "MyHome Up" devices, OpenNetty requires listing them in the configuration file.
 
-For that, you need to a `Device` node with the correct brand/model attributes for each device present in the installation:
+For that, you need to add a `Device` node with the correct brand/model attributes for each device present in the installation:
   - The serial number is required for In One by Legrand and MyHome Play devices and optional for MyHome Up devices.
   - The unit node is not used for MyHome Up devices but is generally required for In One by Legrand and MyHome Play devices.
   - The unit must match one of the unit identifiers offered by the specific device. If you're unsure what identifier should be used,
@@ -305,6 +323,12 @@ For that, you need to a `Device` node with the correct brand/model attributes fo
     <Capability Name="On/off switching" />
   </Endpoint>
 
+  <!-- MyHome Up light point general endpoint -->
+
+  <Endpoint Name="General/All lights" Type="SCS light point general">
+    <Capability Name="On/off switching" />
+  </Endpoint>
+
 </Configuration>
 ```
 
@@ -328,11 +352,35 @@ sudo service opennetty start
 >
 > You can also send an empty `opennetty/bedroom/wall light/switch_state/get` message to get the current switch state of the endpoint.
 
-> [!TIP]
+> [!IMPORTANT]
 > The complete list of supported MQTT attributes can be found in the [`OpenNettyMqttAttributes.cs` file](src/OpenNetty.Mqtt/OpenNettyMqttAttributes.cs).
 >
 > Ready-to-use templates for Jeedom's [jMQTT plugin](https://market.jeedom.com/index.php?v=d&p=market_display&id=3166)
 > can be found in the [opennetty-resources](https://github.com/opennetty/opennetty-resources) repository.
+
+### If necessary, change the default log level
+
+By default, OpenNetty always uses `Information` as the default log level. The log level
+can be easily changed by editing the `appsettings.json` file and restarting the daemon:
+
+```bash
+sudo nano /usr/local/bin/opennetty/appsettings.json
+```
+
+```json
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "OpenNetty": "Debug"
+    }
+  }
+}
+```
+
+```bash
+sudo service opennetty restart
+```
 
 ## Using OpenNetty as a library
 
