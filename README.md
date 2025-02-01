@@ -230,6 +230,14 @@ socket to initiate OpenWebNet sessions:
 </Configuration>
 ```
 
+> [!IMPORTANT]
+> OpenNetty natively supports both the legacy "OPEN authentication" method and the newer – and safer –
+> ["HMAC authentication" mechanism](https://developer.legrand.com/uploads/2019/12/Hmac.pdf) implemented in recent Ethernet-based OpenWebNet gateways (e.g F454).
+>
+> While the IPv4 address of the machine running OpenNetty can also be whitelisted via
+> [MyHome Suite](https://www.homesystems-legrandgroup.com/home?p_p_id=it_smc_bticino_homesystems_search_AutocompletesearchPortlet&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_it_smc_bticino_homesystems_search_AutocompletesearchPortlet_journalArticleId=2493426&_it_smc_bticino_homesystems_search_AutocompletesearchPortlet_mvcPath=%2Fview_journal_article_content.jsp)
+> to avoid requiring authentication, it is not recommended when using OpenNetty.
+
 ### Configure the endpoints
 
 To be able to communicate with "In One by Legrand", "MyHome Play" and "MyHome Up" devices, OpenNetty requires listing them in the configuration file.
