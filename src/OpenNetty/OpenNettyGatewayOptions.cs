@@ -145,14 +145,14 @@ public sealed record OpenNettyGatewayOptions
                 ShouldHandle = static arguments =>
                 {
                     if (!arguments.Context.Properties.TryGetValue(
-                        key: new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)),
+                        key  : new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)),
                         value: out OpenNettyGateway? gateway))
                     {
                         throw new InvalidOperationException(SR.GetResourceString(SR.ID0074));
                     }
 
                     if (!arguments.Context.Properties.TryGetValue(
-                        key: new ResiliencePropertyKey<OpenNettyLogger<OpenNettyService>>(nameof(OpenNettyLogger<OpenNettyService>)),
+                        key  : new ResiliencePropertyKey<OpenNettyLogger<OpenNettyService>>(nameof(OpenNettyLogger<OpenNettyService>)),
                         value: out OpenNettyLogger<OpenNettyService>? logger))
                     {
                         throw new InvalidOperationException(SR.GetResourceString(SR.ID0074));

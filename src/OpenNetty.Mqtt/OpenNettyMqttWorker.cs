@@ -105,7 +105,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         switch (attribute.ToLowerInvariant())
                         {
                             case OpenNettyMqttAttributes.Brightness when operation is OpenNettyMqttOperation.Get:
-                                _ = await _controller.GetBrightnessAsync(endpoint);
+                                _ = await _controller.EnumerateBrightnessAsync(endpoint).ToListAsync();
                                 break;
 
                             case OpenNettyMqttAttributes.Brightness when operation is OpenNettyMqttOperation.Set:
@@ -251,11 +251,6 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 }
                                 break;
 
-                            case OpenNettyMqttAttributes.SmartMeterPowerCutMode or OpenNettyMqttAttributes.SmartMeterRateType
-                                when operation is OpenNettyMqttOperation.Get:
-                                _ = await _controller.GetSmartMeterInformationAsync(endpoint);
-                                break;
-
                             case OpenNettyMqttAttributes.Scenario when operation is OpenNettyMqttOperation.Set:
                                 switch (message.ConvertPayloadToString()?.ToLowerInvariant())
                                 {
@@ -277,8 +272,13 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 _ = await _controller.GetSmartMeterIndexesAsync(endpoint);
                                 break;
 
+                            case OpenNettyMqttAttributes.SmartMeterPowerCutMode or OpenNettyMqttAttributes.SmartMeterRateType
+                                when operation is OpenNettyMqttOperation.Get:
+                                _ = await _controller.GetSmartMeterInformationAsync(endpoint);
+                                break;
+
                             case OpenNettyMqttAttributes.SwitchState when operation is OpenNettyMqttOperation.Get:
-                                _ = await _controller.GetSwitchStateAsync(endpoint);
+                                _ = await _controller.EnumerateSwitchStatesAsync(endpoint).ToListAsync();
                                 break;
 
                             case OpenNettyMqttAttributes.SwitchState when operation is OpenNettyMqttOperation.Set:
