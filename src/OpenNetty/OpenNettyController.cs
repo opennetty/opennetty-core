@@ -15,14 +15,21 @@ namespace OpenNetty;
 /// </summary>
 public class OpenNettyController
 {
+    private readonly OpenNettyManager _manager;
     private readonly IOpenNettyService _service;
 
     /// <summary>
     /// Creates a new instance of the <see cref="OpenNettyController"/> class.
     /// </summary>
+    /// <param name="manager">The OpenNetty manager.</param>
     /// <param name="service">The OpenNetty service.</param>
-    public OpenNettyController(IOpenNettyService service)
-        => _service = service ?? throw new ArgumentNullException(nameof(service));
+    public OpenNettyController(
+        OpenNettyManager manager,
+        IOpenNettyService service)
+    {
+        _manager = manager ?? throw new ArgumentNullException(nameof(manager));
+        _service = service ?? throw new ArgumentNullException(nameof(service));
+    }
 
     /// <summary>
     /// Adds a new entry to the memory of the specified endpoint.
@@ -340,6 +347,181 @@ public class OpenNettyController
     }
 
     /// <summary>
+    /// Enumerates the current brightness of all the endpoints matching the specified endpoint.
+    /// </summary>
+    /// <param name="endpoint">The endpoint.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>
+    /// A <see cref="IAsyncEnumerable{T}"/> that can be used to iterate the
+    /// brightness returned by all the endpoints matching the specified endpoint.
+    /// </returns>
+    public virtual IAsyncEnumerable<(OpenNettyEndpoint Endpoint, OpenNettyModels.Lighting.SwitchState State)> EnumerateSwitchStatesAsync(
+        OpenNettyEndpoint endpoint,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
+
+        if (!endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+        }
+
+        if (endpoint.Protocol is OpenNettyProtocol.Nitoo)
+        {
+            return GetSwitchStateAsync(endpoint, cancellationToken)
+                .AsTask()
+                .ToAsyncEnumerable()
+                .Select(state => (endpoint, state));
+        }
+
+        else
+        {
+            var results = _service.EnumerateStatusesAsync(
+                protocol         : endpoint.Protocol,
+                category         : OpenNettyCategories.Lighting,
+                address          : endpoint.Address,
+                medium           : endpoint.Medium,
+                mode             : null,
+                filter           : static command => ValueTask.FromResult(
+                    command == OpenNettyCommands.Lighting.Off ||
+                    command == OpenNettyCommands.Lighting.On ||
+                    command == OpenNettyCommands.Lighting.On20 ||
+                    command == OpenNettyCommands.Lighting.On30 ||
+                    command == OpenNettyCommands.Lighting.On40 ||
+                    command == OpenNettyCommands.Lighting.On50 ||
+                    command == OpenNettyCommands.Lighting.On60 ||
+                    command == OpenNettyCommands.Lighting.On70 ||
+                    command == OpenNettyCommands.Lighting.On80 ||
+                    command == OpenNettyCommands.Lighting.On90 ||
+                    command == OpenNettyCommands.Lighting.On100),
+                gateway          : endpoint.Gateway,
+                options          : OpenNettyTransmissionOptions.None,
+                cancellationToken: cancellationToken);
+
+            return results
+                .SelectAwaitWithCancellation(async (arguments, cancellationToken) => (
+                    Command : arguments.Command,
+                    Endpoint: await _manager.FindEndpointByAddressAsync(arguments.Address, cancellationToken)))
+                .Where(static arguments => arguments.Endpoint is not null)
+                .Select(static arguments => (arguments.Endpoint!, arguments.Command != OpenNettyCommands.Lighting.Off ?
+                    OpenNettyModels.Lighting.SwitchState.On :
+                    OpenNettyModels.Lighting.SwitchState.Off));
+        }
+    }
+
+    /// <summary>
+    /// Enumerates the current switch state of all the endpoints matching the specified endpoint.
+    /// </summary>
+    /// <param name="endpoint">The endpoint.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>
+    /// A <see cref="IAsyncEnumerable{T}"/> that can be used to iterate the switch
+    /// states returned by all the endpoints matching the specified endpoint.
+    /// </returns>
+    public virtual IAsyncEnumerable<(OpenNettyEndpoint Endpoint, ushort Level)> EnumerateBrightnessAsync(
+        OpenNettyEndpoint endpoint,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
+
+        if (endpoint.Protocol is OpenNettyProtocol.Nitoo)
+        {
+            if (!endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) &&
+                !endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
+            {
+                throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            }
+
+            return GetBrightnessAsync(endpoint, cancellationToken)
+                .AsTask()
+                .ToAsyncEnumerable()
+                .Select(brightness => (endpoint, brightness));
+        }
+
+        else
+        {
+            if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
+            {
+                // Note: while the brightness level is requested using the "DIMMER SPEED/LEVEL" DIMENSION, the result
+                // might be returned using a different DIMENSION, "DIMMER STATUS". To ensure the brightness is
+                // correctly resolved, both dimensions are observed before sending the DIMENSION REQUEST.
+                var messages = _service.ObserveMessagesAsync(
+                    message          : OpenNettyMessage.CreateDimensionRequest(
+                        protocol : endpoint.Protocol,
+                        dimension: OpenNettyDimensions.Lighting.DimmerLevelSpeed,
+                        address  : endpoint.Address,
+                        medium   : endpoint.Medium,
+                        mode     : null),
+                    gateway          : endpoint.Gateway,
+                    options          : OpenNettyTransmissionOptions.None,
+                    cancellationToken: cancellationToken);
+
+                return messages
+                    .TakeWhile(static message => message.Type is not (OpenNettyMessageType.Acknowledgement             or
+                                                                      OpenNettyMessageType.BusyNegativeAcknowledgement or
+                                                                      OpenNettyMessageType.NegativeAcknowledgement))
+                    .Where(static message => message.Dimension == OpenNettyDimensions.Lighting.DimmerLevelSpeed ||
+                                             message.Dimension == OpenNettyDimensions.Lighting.DimmerStatus)
+                    .Timeout(TimeSpan.FromSeconds(10))
+                    .ToAsyncEnumerable()
+                    .SelectAwaitWithCancellation(async (message, cancellationToken) => (
+                        Values  : message.Values,
+                        Endpoint: await _manager.FindEndpointByAddressAsync(message.Address!.Value, cancellationToken)))
+                    .Where(static arguments => arguments.Endpoint is not null)
+                    .Select(static arguments => (arguments.Endpoint!,
+                        (ushort) (ushort.Parse(arguments.Values[0], CultureInfo.InvariantCulture) - 100)));
+            }
+
+            else if (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState))
+            {
+                var results = _service.EnumerateStatusesAsync(
+                    protocol         : endpoint.Protocol,
+                    category         : OpenNettyCategories.Lighting,
+                    address          : endpoint.Address,
+                    medium           : endpoint.Medium,
+                    mode             : null,
+                    filter           : static command => ValueTask.FromResult(
+                        command == OpenNettyCommands.Lighting.Off  ||
+                        command == OpenNettyCommands.Lighting.On   ||
+                        command == OpenNettyCommands.Lighting.On20 ||
+                        command == OpenNettyCommands.Lighting.On30 ||
+                        command == OpenNettyCommands.Lighting.On40 ||
+                        command == OpenNettyCommands.Lighting.On50 ||
+                        command == OpenNettyCommands.Lighting.On60 ||
+                        command == OpenNettyCommands.Lighting.On70 ||
+                        command == OpenNettyCommands.Lighting.On80 ||
+                        command == OpenNettyCommands.Lighting.On90 ||
+                        command == OpenNettyCommands.Lighting.On100),
+                    gateway          : endpoint.Gateway,
+                    options          : OpenNettyTransmissionOptions.None,
+                    cancellationToken: cancellationToken);
+
+                return results
+                    .SelectAwaitWithCancellation(async (arguments, cancellationToken) => (
+                        Command : arguments.Command,
+                        Endpoint: await _manager.FindEndpointByAddressAsync(arguments.Address, cancellationToken)))
+                    .Where(static arguments => arguments.Endpoint is not null)
+                    .Select(static arguments => (arguments.Endpoint!,
+                        arguments.Command == OpenNettyCommands.Lighting.Off   ? (ushort) 0 :
+                        arguments.Command == OpenNettyCommands.Lighting.On    ? (ushort) 100 :
+                        arguments.Command == OpenNettyCommands.Lighting.On20  ? (ushort) 20  :
+                        arguments.Command == OpenNettyCommands.Lighting.On30  ? (ushort) 30  :
+                        arguments.Command == OpenNettyCommands.Lighting.On40  ? (ushort) 40  :
+                        arguments.Command == OpenNettyCommands.Lighting.On50  ? (ushort) 50  :
+                        arguments.Command == OpenNettyCommands.Lighting.On60  ? (ushort) 60  :
+                        arguments.Command == OpenNettyCommands.Lighting.On70  ? (ushort) 70  :
+                        arguments.Command == OpenNettyCommands.Lighting.On80  ? (ushort) 80  :
+                        arguments.Command == OpenNettyCommands.Lighting.On90  ? (ushort) 90  : (ushort) 100));
+            }
+
+            else
+            {
+                throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            }
+        }
+    }
+
+    /// <summary>
     /// Inform all the Nitoo devices that memory entries pointing to the specified endpoint should be deleted.
     /// </summary>
     /// <param name="endpoint">The endpoint.</param>
@@ -382,42 +564,54 @@ public class OpenNettyController
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 
-        return endpoint.Protocol switch
+        if (endpoint.Protocol is OpenNettyProtocol.Nitoo)
         {
-            OpenNettyProtocol.Nitoo
-                when endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) ||
-                     endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState)
-                => await GetUnitDescriptionAsync(endpoint, cancellationToken) switch
-                {
-                    { FunctionCode: 143, Values: [{ Length: > 0 } value, ..] }
-                        => (ushort) Math.Round(decimal.Parse(value, CultureInfo.InvariantCulture)),
+            if (!endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) &&
+                !endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
+            {
+                throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            }
 
-                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
-                },
+            return await GetUnitDescriptionAsync(endpoint, cancellationToken) switch
+            {
+                { FunctionCode: 143, Values: [{ Length: > 0 } value, ..] }
+                    => (ushort) Math.Round(decimal.Parse(value, CultureInfo.InvariantCulture)),
 
-            OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee
-                when endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState)
-                => await _service.GetDimensionAsync(
-                    protocol         : endpoint.Protocol,
-                    dimension        : OpenNettyDimensions.Lighting.DimmerLevelSpeed,
-                    address          : endpoint.Address,
-                    medium           : endpoint.Medium,
-                    mode             : null,
-                    filter           : static dimension => ValueTask.FromResult(
-                        dimension == OpenNettyDimensions.Lighting.DimmerLevelSpeed ||
-                        dimension == OpenNettyDimensions.Lighting.DimmerStatus),
+                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+            };
+        }
+
+        else
+        {
+            if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
+            {
+                // Note: while the brightness level is requested using the "DIMMER SPEED/LEVEL" DIMENSION, the result
+                // might be returned using a different DIMENSION, "DIMMER STATUS". To ensure the brightness is
+                // correctly resolved, both dimensions are observed before sending the DIMENSION REQUEST.
+                var messages = _service.ObserveMessagesAsync(
+                    message          : OpenNettyMessage.CreateDimensionRequest(
+                        protocol : endpoint.Protocol,
+                        dimension: OpenNettyDimensions.Lighting.DimmerLevelSpeed,
+                        address  : endpoint.Address,
+                        medium   : endpoint.Medium,
+                        mode     : null),
                     gateway          : endpoint.Gateway,
                     options          : OpenNettyTransmissionOptions.None,
-                    cancellationToken: cancellationToken) switch
-                    {
-                        [{ Length: > 0 } value, ..] => (ushort) (ushort.Parse(value, CultureInfo.InvariantCulture) - 100),
+                    cancellationToken: cancellationToken);
 
-                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
-                    },
+                return await messages
+                    .Where(static message => message.Dimension == OpenNettyDimensions.Lighting.DimmerLevelSpeed ||
+                                             message.Dimension == OpenNettyDimensions.Lighting.DimmerStatus)
+                    .Where(message => message.Address == endpoint.Address)
+                    .Select(static arguments => (ushort) (ushort.Parse(arguments.Values[0], CultureInfo.InvariantCulture) - 100))
+                    .FirstOrDefault()
+                    .Timeout(TimeSpan.FromSeconds(10))
+                    .RunAsync(cancellationToken);
+            }
 
-            OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee
-                when endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState)
-                => await _service.GetStatusAsync(
+            else if (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState))
+            {
+                return await _service.GetStatusAsync(
                     protocol         : endpoint.Protocol,
                     category         : OpenNettyCategories.Lighting,
                     address          : endpoint.Address,
@@ -452,10 +646,11 @@ public class OpenNettyController
                         var command when command == OpenNettyCommands.Lighting.On100 => 100,
 
                         _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
-                    },
+                    };
+            }
+        }
 
-            _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0076))
-        };
+        throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
     }
 
     /// <summary>
@@ -484,7 +679,6 @@ public class OpenNettyController
             address          : endpoint.Address,
             medium           : endpoint.Medium,
             mode             : null,
-            filter           : null,
             gateway          : endpoint.Gateway,
             options          : OpenNettyTransmissionOptions.None,
             cancellationToken: cancellationToken);
@@ -531,7 +725,6 @@ public class OpenNettyController
             address          : endpoint.Address,
             medium           : endpoint.Medium,
             mode             : OpenNettyMode.Unicast,
-            filter           : null,
             gateway          : endpoint.Gateway,
             options          : OpenNettyTransmissionOptions.None,
             cancellationToken: cancellationToken);
@@ -559,33 +752,31 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
         }
 
-        // Note: while the memory content is requested using a BUS COMMAND, it is returned asynchronously by
-        // Nitoo devices using DIMENSION READ frames after the initial BUS COMMAND has been acknowledged.
-        var dimensions = _service.ObserveDimensionsAsync(OpenNettyProtocol.Nitoo, OpenNettyCategories.Diagnostics, endpoint.Gateway)
-            .Where(static arguments => arguments.Dimension == OpenNettyDimensions.Diagnostics.MemoryDepth ||
-                                       arguments.Dimension == OpenNettyDimensions.Diagnostics.MemoryData  ||
-                                       arguments.Dimension == OpenNettyDimensions.Diagnostics.ExtendedMemoryData)
-            .Where(arguments => arguments.Address == endpoint.Address)
-            .Replay();
-
-        // Connect the observable just before sending the command to ensure
-        // the dimensions are not missed due to a race condition.
-        await using var connection = await dimensions.ConnectAsync();
-
-        await _service.ExecuteCommandAsync(
-            protocol         : endpoint.Protocol,
-            command          : OpenNettyCommands.Diagnostics.MemoryRead,
-            address          : endpoint.Address,
-            medium           : endpoint.Medium,
-            mode             : OpenNettyMode.Unicast,
+        var messages = _service.ObserveMessagesAsync(
+            message          : OpenNettyMessage.CreateCommand(
+                protocol: endpoint.Protocol,
+                command : OpenNettyCommands.Diagnostics.MemoryRead,
+                address : endpoint.Address,
+                medium  : endpoint.Medium,
+                mode    : OpenNettyMode.Unicast),
             gateway          : endpoint.Gateway,
             options          : OpenNettyTransmissionOptions.None,
-            cancellationToken: cancellationToken);
+            cancellationToken: cancellationToken).Replay();
+
+        await using var connection = await messages.ConnectAsync();
+
+        // Note: while the memory content is requested using a BUS COMMAND, it is returned asynchronously by
+        // Nitoo devices using DIMENSION READ frames after the initial BUS COMMAND has been acknowledged.
+        var dimensions = messages
+            .Where(static message => message.Dimension == OpenNettyDimensions.Diagnostics.MemoryDepth ||
+                                     message.Dimension == OpenNettyDimensions.Diagnostics.MemoryData  ||
+                                     message.Dimension == OpenNettyDimensions.Diagnostics.ExtendedMemoryData)
+            .Where(message => message.Address == endpoint.Address);
 
         var count = await dimensions
-            .FirstOrDefault(static arguments => arguments.Dimension == OpenNettyDimensions.Diagnostics.MemoryDepth)
-            .Select(static arguments => int.Parse(arguments.Values[0], CultureInfo.InvariantCulture))
-            .Timeout(TimeSpan.FromSeconds(3))
+            .FirstOrDefault(static message => message.Dimension == OpenNettyDimensions.Diagnostics.MemoryDepth)
+            .Select(static message => int.Parse(message.Values[0], CultureInfo.InvariantCulture))
+            .Timeout(TimeSpan.FromSeconds(10))
             .RunAsync(cancellationToken);
 
         if (count is 0)
@@ -594,13 +785,13 @@ public class OpenNettyController
         }
 
         return [.. await dimensions
-            .Where(static arguments => arguments.Dimension == OpenNettyDimensions.Diagnostics.MemoryData ||
-                                       arguments.Dimension == OpenNettyDimensions.Diagnostics.ExtendedMemoryData)
+            .Where(static message => message.Dimension == OpenNettyDimensions.Diagnostics.MemoryData ||
+                                     message.Dimension == OpenNettyDimensions.Diagnostics.ExtendedMemoryData)
             .Take(count)
             .Timeout(TimeSpan.FromSeconds(10))
             .ToAsyncEnumerable()
-            .OrderBy(static arguments => ushort.Parse(arguments.Values[3], CultureInfo.InvariantCulture))
-            .Select(static arguments => OpenNettyModels.Diagnostics.MemoryData.CreateFromUnitDescription(arguments.Values))
+            .OrderBy(static message => ushort.Parse(message.Values[3], CultureInfo.InvariantCulture))
+            .Select(static message => OpenNettyModels.Diagnostics.MemoryData.CreateFromUnitDescription(message.Values))
             .ToListAsync(cancellationToken)];
     }
 
@@ -626,29 +817,23 @@ public class OpenNettyController
 
         // Note: while the memory depth is requested using a BUS COMMAND, it is returned asynchronously by
         // Nitoo devices using DIMENSION READ frames after the initial BUS COMMAND has been acknowledged.
-        var dimensions = _service.ObserveDimensionsAsync(OpenNettyProtocol.Nitoo, OpenNettyCategories.Diagnostics, endpoint.Gateway)
-            .Where(static arguments => arguments.Dimension == OpenNettyDimensions.Diagnostics.MemoryDepth)
-            .Where(arguments => arguments.Address == endpoint.Address)
-            .Replay();
-
-        // Connect the observable just before sending the command to ensure
-        // the dimensions are not missed due to a race condition.
-        await using var connection = await dimensions.ConnectAsync();
-
-        await _service.ExecuteCommandAsync(
-            protocol         : endpoint.Protocol,
-            command          : OpenNettyCommands.Diagnostics.MemoryRead,
-            address          : endpoint.Address,
-            medium           : endpoint.Medium,
-            mode             : OpenNettyMode.Unicast,
+        var messages = _service.ObserveMessagesAsync(
+            message          : OpenNettyMessage.CreateCommand(
+                protocol: endpoint.Protocol,
+                command : OpenNettyCommands.Diagnostics.MemoryRead,
+                address : endpoint.Address,
+                medium  : endpoint.Medium,
+                mode    : OpenNettyMode.Unicast),
             gateway          : endpoint.Gateway,
             options          : OpenNettyTransmissionOptions.None,
             cancellationToken: cancellationToken);
 
-        return await dimensions
-            .Select(static arguments => ushort.Parse(arguments.Values[0], CultureInfo.InvariantCulture))
+        return await messages
+            .Where(static message => message.Dimension == OpenNettyDimensions.Diagnostics.MemoryDepth)
+            .Where(message => message.Address == endpoint.Address)
+            .Select(static message => ushort.Parse(message.Values[0], CultureInfo.InvariantCulture))
             .FirstOrDefault()
-            .Timeout(TimeSpan.FromSeconds(3))
+            .Timeout(TimeSpan.FromSeconds(10))
             .RunAsync(cancellationToken);
     }
 
@@ -682,78 +867,6 @@ public class OpenNettyController
     }
 
     /// <summary>
-    /// Gets the unit description of the specified endpoint.
-    /// </summary>
-    /// <param name="endpoint">The endpoint.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
-    /// <returns>
-    /// A <see cref="ValueTask{TResult}"/> that can be used to monitor the asynchronous operation
-    /// and whose result returns the unit description of the specified endpoint.
-    /// </returns>
-    public virtual async ValueTask<OpenNettyModels.Diagnostics.UnitDescription> GetUnitDescriptionAsync(
-        OpenNettyEndpoint endpoint,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(endpoint);
-
-        if (!endpoint.HasCapability(OpenNettyCapabilities.UnitDescription))
-        {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
-        }
-
-        var values = await _service.GetDimensionAsync(
-            protocol         : endpoint.Protocol,
-            dimension        : OpenNettyDimensions.Diagnostics.UnitDescription,
-            address          : endpoint.Address,
-            medium           : endpoint.Medium,
-            mode             : OpenNettyMode.Unicast,
-            filter           : null,
-            gateway          : endpoint.Gateway,
-            options          : OpenNettyTransmissionOptions.None,
-            cancellationToken: cancellationToken);
-
-        return OpenNettyModels.Diagnostics.UnitDescription.CreateFromUnitDescription(values);
-    }
-
-    /// <summary>
-    /// Gets the current uptime of the specified SCS gateway endpoint.
-    /// </summary>
-    /// <param name="endpoint">The endpoint.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
-    /// <returns>
-    /// A <see cref="ValueTask{TResult}"/> that can be used to monitor the asynchronous operation
-    /// and whose result returns the current uptime of the specified SCS gateway endpoint.
-    /// </returns>
-    public virtual async ValueTask<TimeSpan> GetUptimeAsync(
-        OpenNettyEndpoint endpoint,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(endpoint);
-
-        if (!endpoint.HasCapability(OpenNettyCapabilities.Uptime))
-        {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
-        }
-
-        var values = await _service.GetDimensionAsync(
-            protocol         : endpoint.Protocol,
-            dimension        : OpenNettyDimensions.Management.Uptime,
-            address          : endpoint.Address,
-            medium           : endpoint.Medium,
-            mode             : null,
-            filter           : null,
-            gateway          : endpoint.Gateway,
-            options          : OpenNettyTransmissionOptions.None,
-            cancellationToken: cancellationToken);
-
-        return new TimeSpan(
-            days   : int.Parse(values[0], CultureInfo.InvariantCulture),
-            hours  : int.Parse(values[1], CultureInfo.InvariantCulture),
-            minutes: int.Parse(values[2], CultureInfo.InvariantCulture),
-            seconds: int.Parse(values[3], CultureInfo.InvariantCulture));
-    }
-
-    /// <summary>
     /// Gets the smart meter indexes contained in the memory of the specified endpoint.
     /// </summary>
     /// <param name="endpoint">The endpoint.</param>
@@ -779,7 +892,6 @@ public class OpenNettyController
             address          : endpoint.Address,
             medium           : endpoint.Medium,
             mode             : OpenNettyMode.Unicast,
-            filter           : null,
             gateway          : endpoint.Gateway,
             options          : OpenNettyTransmissionOptions.None,
             cancellationToken: cancellationToken);
@@ -875,6 +987,76 @@ public class OpenNettyController
                     OpenNettyModels.Lighting.SwitchState.On :
                     OpenNettyModels.Lighting.SwitchState.Off
         };
+    }
+
+    /// <summary>
+    /// Gets the unit description of the specified endpoint.
+    /// </summary>
+    /// <param name="endpoint">The endpoint.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>
+    /// A <see cref="ValueTask{TResult}"/> that can be used to monitor the asynchronous operation
+    /// and whose result returns the unit description of the specified endpoint.
+    /// </returns>
+    public virtual async ValueTask<OpenNettyModels.Diagnostics.UnitDescription> GetUnitDescriptionAsync(
+        OpenNettyEndpoint endpoint,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
+
+        if (!endpoint.HasCapability(OpenNettyCapabilities.UnitDescription))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+        }
+
+        var values = await _service.GetDimensionAsync(
+            protocol         : endpoint.Protocol,
+            dimension        : OpenNettyDimensions.Diagnostics.UnitDescription,
+            address          : endpoint.Address,
+            medium           : endpoint.Medium,
+            mode             : OpenNettyMode.Unicast,
+            gateway          : endpoint.Gateway,
+            options          : OpenNettyTransmissionOptions.None,
+            cancellationToken: cancellationToken);
+
+        return OpenNettyModels.Diagnostics.UnitDescription.CreateFromUnitDescription(values);
+    }
+
+    /// <summary>
+    /// Gets the current uptime of the specified SCS gateway endpoint.
+    /// </summary>
+    /// <param name="endpoint">The endpoint.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>
+    /// A <see cref="ValueTask{TResult}"/> that can be used to monitor the asynchronous operation
+    /// and whose result returns the current uptime of the specified SCS gateway endpoint.
+    /// </returns>
+    public virtual async ValueTask<TimeSpan> GetUptimeAsync(
+        OpenNettyEndpoint endpoint,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
+
+        if (!endpoint.HasCapability(OpenNettyCapabilities.Uptime))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+        }
+
+        var values = await _service.GetDimensionAsync(
+            protocol         : endpoint.Protocol,
+            dimension        : OpenNettyDimensions.Management.Uptime,
+            address          : endpoint.Address,
+            medium           : endpoint.Medium,
+            mode             : null,
+            gateway          : endpoint.Gateway,
+            options          : OpenNettyTransmissionOptions.None,
+            cancellationToken: cancellationToken);
+
+        return new TimeSpan(
+            days   : int.Parse(values[0], CultureInfo.InvariantCulture),
+            hours  : int.Parse(values[1], CultureInfo.InvariantCulture),
+            minutes: int.Parse(values[2], CultureInfo.InvariantCulture),
+            seconds: int.Parse(values[3], CultureInfo.InvariantCulture));
     }
 
     /// <summary>

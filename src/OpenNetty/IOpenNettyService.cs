@@ -5,6 +5,7 @@
  */
 
 using System.Collections.Immutable;
+using System.ComponentModel;
 
 namespace OpenNetty;
 
@@ -22,10 +23,6 @@ public interface IOpenNettyService
     /// <param name="address">The address, if applicable.</param>
     /// <param name="medium">The medium to use or <see langword="null"/> to use the default medium.</param>
     /// <param name="mode">The mode to use or <see langword="null"/> to use the default mode.</param>
-    /// <param name="filter">
-    /// The delegate called by the service to filter the returned dimensions.
-    /// If set to <see langword="null"/>, only the requested dimension is returned.
-    /// </param>
     /// <param name="gateway">The gateway used to send the message.</param>
     /// <param name="options">The transmission options to use.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
@@ -39,7 +36,6 @@ public interface IOpenNettyService
         OpenNettyAddress? address = null,
         OpenNettyMedium? medium = null,
         OpenNettyMode? mode = null,
-        Func<OpenNettyDimension, ValueTask<bool>>? filter = null,
         OpenNettyGateway? gateway = null,
         OpenNettyTransmissionOptions options = OpenNettyTransmissionOptions.None,
         CancellationToken cancellationToken = default);
@@ -106,10 +102,6 @@ public interface IOpenNettyService
     /// <param name="address">The address, if applicable.</param>
     /// <param name="medium">The medium to use or <see langword="null"/> to use the default medium.</param>
     /// <param name="mode">The mode to use or <see langword="null"/> to use the default mode.</param>
-    /// <param name="filter">
-    /// The delegate called by the service to filter the returned dimensions.
-    /// If set to <see langword="null"/>, only the requested dimension is returned.
-    /// </param>
     /// <param name="gateway">The gateway used to send the message.</param>
     /// <param name="options">The transmission options to use.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
@@ -122,7 +114,6 @@ public interface IOpenNettyService
         OpenNettyAddress? address = null,
         OpenNettyMedium? medium = null,
         OpenNettyMode? mode = null,
-        Func<OpenNettyDimension, ValueTask<bool>>? filter = null,
         OpenNettyGateway? gateway = null,
         OpenNettyTransmissionOptions options = OpenNettyTransmissionOptions.None,
         CancellationToken cancellationToken = default);
@@ -159,47 +150,22 @@ public interface IOpenNettyService
         CancellationToken cancellationToken = default);
 
     /// <summary>
-    /// Observes all the status replies matching the specified protocol and category.
+    /// Sends a raw message and observes all the messages received by the session used to send the message.
     /// </summary>
-    /// <param name="protocol">The protocol.</param>
-    /// <param name="category">The category.</param>
-    /// <param name="gateway">The gateway from which status replies should be observed.</param>
+    /// <param name="message">The message.</param>
+    /// <param name="gateway">The gateway used to send the message.</param>
+    /// <param name="options">The transmission options to use.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>
-    /// An <see cref="IAsyncObservable{T}"/> that can be used to iterate the status
-    /// replies returned by all the devices matching the specified protocol and category.
+    /// An <see cref="IAsyncObservable{T}"/> that can be used to observe
+    /// the messages received by the session used to send the message.
     /// </returns>
-    IAsyncObservable<(OpenNettyAddress? Address, OpenNettyCommand Command)> ObserveStatusesAsync(
-        OpenNettyProtocol protocol,
-        OpenNettyCategory category,
-        OpenNettyGateway? gateway = null);
-
-    /// <summary>
-    /// Observes all the dimensions matching the specified protocol and category.
-    /// </summary>
-    /// <param name="protocol">The protocol.</param>
-    /// <param name="category">The category.</param>
-    /// <param name="gateway">The gateway from which dimensions should be observed.</param>
-    /// <returns>
-    /// An <see cref="IAsyncObservable{T}"/> that can be used to iterate the dimensions
-    /// returned by all the devices matching the specified protocol and category.
-    /// </returns>
-    IAsyncObservable<(OpenNettyAddress? Address, OpenNettyDimension Dimension, ImmutableArray<string> Values)> ObserveDimensionsAsync(
-        OpenNettyProtocol protocol,
-        OpenNettyCategory category,
-        OpenNettyGateway? gateway = null);
-
-    /// <summary>
-    /// Observes all the event messages matching the specified protocol.
-    /// </summary>
-    /// <param name="protocol">The protocol.</param>
-    /// <param name="gateway">The gateway from which events should be observed.</param>
-    /// <returns>
-    /// An <see cref="IAsyncObservable{T}"/> that can be used to iterate the event
-    /// messages returned by all the devices matching the specified protocol.
-    /// </returns>
-    IAsyncObservable<OpenNettyMessage> ObserveEventsAsync(
-        OpenNettyProtocol protocol,
-        OpenNettyGateway? gateway = null);
+    [EditorBrowsable(EditorBrowsableState.Advanced)]
+    IAsyncObservable<OpenNettyMessage> ObserveMessagesAsync(
+        OpenNettyMessage message,
+        OpenNettyGateway? gateway = null,
+        OpenNettyTransmissionOptions options = OpenNettyTransmissionOptions.None,
+        CancellationToken cancellationToken = default);
 
     /// <summary>
     /// Sends a raw message.
@@ -209,6 +175,7 @@ public interface IOpenNettyService
     /// <param name="options">The transmission options to use.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
+    [EditorBrowsable(EditorBrowsableState.Advanced)]
     ValueTask SendMessageAsync(
         OpenNettyMessage message,
         OpenNettyGateway? gateway = null,
