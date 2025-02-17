@@ -4,13 +4,18 @@
  * the license and the contributors participating to this project.
  */
 
+using System.Buffers.Text;
 using System.Globalization;
 using System.Net.Mime;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
+using System.Reflection;
 using System.Runtime.CompilerServices;
+using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading.Channels;
+using Microsoft.Extensions.Options;
 using MQTTnet;
 using MQTTnet.Extensions.ManagedClient;
 using MQTTnet.Protocol;
@@ -25,6 +30,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
     private readonly OpenNettyController _controller;
     private readonly OpenNettyLogger<OpenNettyMqttWorker> _logger;
     private readonly OpenNettyManager _manager;
+    private readonly IOptionsMonitor<OpenNettyMqttOptions> _options;
 
     /// <summary>
     /// Creates a new instance of the <see cref="OpenNettyMqttWorker"/> class.
@@ -32,14 +38,17 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
     /// <param name="controller">The OpenNetty controller.</param>
     /// <param name="logger">The OpenNetty logger.</param>
     /// <param name="manager">The OpenNetty manager.</param>
+    /// <param name="options">The OpenNetty MQTT options.</param>
     public OpenNettyMqttWorker(
         OpenNettyController controller,
         OpenNettyLogger<OpenNettyMqttWorker> logger,
-        OpenNettyManager manager)
+        OpenNettyManager manager,
+        IOptionsMonitor<OpenNettyMqttOptions> options)
     {
         _controller = controller ?? throw new ArgumentNullException(nameof(controller));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _manager = manager ?? throw new ArgumentNullException(nameof(manager));
+        _options = options ?? throw new ArgumentNullException(nameof(options));
     }
 
     /// <inheritdoc/>
@@ -354,6 +363,148 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
             .SubscribeAsync(static arguments => ValueTask.CompletedTask);
 
         await WaitCancellationAsync(cancellationToken);
+    }
+
+    /// <inheritdoc/>
+    public async Task AnnounceEndpointsAsync(IManagedMqttClient client, CancellationToken cancellationToken)
+    {
+        if (_options.CurrentValue is not { DisableDiscovery: false } options)
+        {
+            return;
+        }
+
+        await foreach (var endpoints in from endpoint in _manager.EnumerateEndpointsAsync(cancellationToken)
+                                        where endpoint.Device is { SerialNumber.Length: > 0 }
+                                        where endpoint.Device!.GetBooleanSetting(OpenNettySettings.MqttDiscovery) is not false
+                                        group endpoint by endpoint.Device!)
+        {
+            var components = new JsonObject();
+
+            var device = new JsonObject
+            {
+                ["identifiers"] = new JsonArray([endpoints.Key.SerialNumber]),
+                ["manufacturer"] = Enum.GetName(endpoints.Key.Identity.Brand),
+                ["model"] = endpoints.Key.Identity.Model,
+                ["serial_number"] = endpoints.Key.SerialNumber,
+                ["name"] = $"{Enum.GetName(endpoints.Key.Identity.Brand)} {endpoints.Key.Identity.Model} ({endpoints.Key.SerialNumber})"
+            };
+
+            if (endpoints.Key.GetStringSetting(OpenNettySettings.HomeAssistantSuggestedArea) is { Length: > 0 } area)
+            {
+                device["suggested_area"] = area;
+            }
+
+            var configuration = new JsonObject
+            {
+                ["origin"] = new JsonObject
+                {
+                    ["name"] = "OpenNetty",
+                    ["sw_version"] = typeof(OpenNettyMqttWorker).Assembly
+                        .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+                       ?.InformationalVersion,
+                    ["support_url"] = "https://github.com/opennetty/opennetty-core"
+                },
+                ["device"] = device,
+                ["components"] = components,
+                ["qos"] = 2
+            };
+
+            await foreach (var (endpoint, name) in from endpoint in endpoints
+                                                   where endpoint.GetBooleanSetting(OpenNettySettings.MqttDiscovery) is not false
+                                                   let name = options.EndpointNameProvider(endpoint)
+                                                   where !string.IsNullOrEmpty(name)
+                                                   orderby name
+                                                   select (Endpoint: endpoint, Name: name))
+            {
+                switch (endpoint.GetStringSetting(OpenNettySettings.HomeAssistantEntityType))
+                {
+                    case "Light":
+                    case null when endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitching) &&
+                                   endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState):
+                    {
+                        var component = new JsonObject
+                        {
+                            ["platform"] = "light",
+                            ["unique_id"] = Base64Url.EncodeToString(SHA256.HashData(
+                            [
+                                ..Encoding.UTF8.GetBytes(name),
+                                ..Encoding.UTF8.GetBytes(endpoint.Address?.Value ?? string.Empty)
+                            ])),
+                            ["name"] = endpoint.Name
+                        };
+
+                        if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitching))
+                        {
+                            component["command_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.SwitchState}/set";
+                        }
+
+                        if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
+                        {
+                            component["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.SwitchState}";
+                        }
+
+                        if (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingControl) ||
+                            endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingControl))
+                        {
+                            component["brightness_command_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.Brightness}/set";
+                            component["brightness_scale"] = 100;
+                        }
+
+                        if (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) ||
+                            endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
+                        {
+                            component["brightness_state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.Brightness}";
+                        }
+
+                        components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", component);
+                        break;
+                    }
+
+                    case "Switch":
+                    {
+                        var component = new JsonObject
+                        {
+                            ["platform"] = "switch",
+                            ["unique_id"] = Base64Url.EncodeToString(SHA256.HashData(
+                            [
+                                ..Encoding.UTF8.GetBytes(name),
+                                ..Encoding.UTF8.GetBytes(endpoint.Address?.Value ?? string.Empty)
+                            ])),
+                            ["name"] = endpoint.Name,
+                            ["device_class"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantDeviceClass) ?? "switch"
+                        };
+
+                        if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitching))
+                        {
+                            component["command_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.SwitchState}/set";
+                        }
+
+                        if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
+                        {
+                            component["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.SwitchState}";
+                        }
+
+                        components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", component);
+                        break;
+                    }
+                }
+            }
+
+            if (components.Count is not 0)
+            {
+                var node = $"opennetty-{Enum.GetName(endpoints.Key.Definition.Protocol)!.ToLowerInvariant()}";
+                var topic = $"{options.DiscoveryRootTopic}/device/{node}/{endpoints.Key.SerialNumber}/config";
+
+                await client.EnqueueAsync(new MqttApplicationMessageBuilder()
+                    .WithContentType(MediaTypeNames.Application.Json)
+                    .WithPayload(configuration.ToJsonString())
+                    .WithPayloadFormatIndicator(MqttPayloadFormatIndicator.CharacterData)
+                    .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
+                    .WithRetainFlag()
+                    .WithTopic(topic)
+                    .Build());
+            }
+        }
     }
 
     static (string? FriendlyName, string? attribute, OpenNettyMqttOperation? Operation) ExtractParameters(MqttApplicationMessage message)

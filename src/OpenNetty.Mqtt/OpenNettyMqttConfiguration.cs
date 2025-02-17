@@ -23,6 +23,11 @@ public sealed class OpenNettyMqttConfiguration : IPostConfigureOptions<OpenNetty
 
         options.EndpointNameProvider ??= static endpoint => endpoint.Name?.ToLowerInvariant();
 
+        if (string.IsNullOrEmpty(options.DiscoveryRootTopic))
+        {
+            options.DiscoveryRootTopic = "homeassistant";
+        }
+
         if (string.IsNullOrEmpty(options.RootTopic))
         {
             options.RootTopic = "opennetty";

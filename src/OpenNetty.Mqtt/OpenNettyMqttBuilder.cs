@@ -181,10 +181,20 @@ public sealed class OpenNettyMqttBuilder
 
         return Configure(options =>
         {
-            var topic = (string?) element.Attribute("RootTopic");
-            if (!string.IsNullOrEmpty(topic))
+            options.DisableDiscovery = (bool?) element.Attribute("DisableDiscovery") ?? false;
+
+            var topics = (
+                RootTopic: (string?) element.Attribute("RootTopic"),
+                DiscoveryRootTopic: (string?) element.Attribute("DiscoveryRootTopic"));
+
+            if (!string.IsNullOrEmpty(topics.RootTopic))
             {
-                options.RootTopic = topic;
+                options.RootTopic = topics.RootTopic;
+            }
+
+            if (!string.IsNullOrEmpty(topics.DiscoveryRootTopic))
+            {
+                options.DiscoveryRootTopic = topics.DiscoveryRootTopic;
             }
 
             options.ClientOptions = builder.Build();

@@ -196,10 +196,13 @@ public sealed class OpenNettyGateway
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentException.ThrowIfNullOrEmpty(model);
 
+        var definition = OpenNettyDevices.GetDeviceByModel(brand, model)
+            ?? throw new InvalidOperationException(SR.FormatID0098(brand, model));
+
         var device = new OpenNettyDevice
         {
-            Definition = OpenNettyDevices.GetDeviceByModel(brand, model) ??
-                throw new InvalidOperationException(SR.FormatID0098(brand, model))
+            Definition = definition,
+            Identity = definition.Identities.Single(identity => identity.Brand == brand && identity.Model == model)
         };
 
         return Create(name, device, endpoint, password, options);
@@ -225,10 +228,13 @@ public sealed class OpenNettyGateway
         ArgumentException.ThrowIfNullOrEmpty(name);
         ArgumentException.ThrowIfNullOrEmpty(model);
 
+        var definition = OpenNettyDevices.GetDeviceByModel(brand, model)
+            ?? throw new InvalidOperationException(SR.FormatID0098(brand, model));
+
         var device = new OpenNettyDevice
         {
-            Definition = OpenNettyDevices.GetDeviceByModel(brand, model) ??
-                throw new InvalidOperationException(SR.FormatID0098(brand, model))
+            Definition = definition,
+            Identity = definition.Identities.Single(identity => identity.Brand == brand && identity.Model == model)
         };
 
         return Create(name, device, port, options);

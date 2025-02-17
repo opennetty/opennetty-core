@@ -402,11 +402,14 @@ public sealed class OpenNettyBuilder
                 throw new InvalidOperationException(SR.FormatID0097("Model"));
             }
 
+            var definition = OpenNettyDevices.GetDeviceByModel(Enum.Parse<OpenNettyBrand>(brand), model)
+                ?? throw new InvalidOperationException(SR.FormatID0098(brand, model));
+
             return new OpenNettyDevice
             {
-                Definition = OpenNettyDevices.GetDeviceByModel(Enum.Parse<OpenNettyBrand>(brand), model) ??
-                    throw new InvalidOperationException(SR.FormatID0098(brand, model)),
-
+                Definition = definition,
+                Identity = definition.Identities.Single(identity =>
+                    identity.Brand == Enum.Parse<OpenNettyBrand>(brand) && identity.Model == model),
                 SerialNumber = (string?) element.Attribute("SerialNumber"),
                 Settings = GetSettings(element)
             };
@@ -426,11 +429,12 @@ public sealed class OpenNettyBuilder
                 throw new InvalidOperationException(SR.FormatID0097("Model"));
             }
 
+            var definition = OpenNettyDevices.GetUnitByModel(Enum.Parse<OpenNettyBrand>(brand), model, unit)
+                ?? throw new InvalidOperationException(SR.FormatID0100(brand, model, unit));
+
             return new()
             {
-                Definition = OpenNettyDevices.GetUnitByModel(Enum.Parse<OpenNettyBrand>(brand), model, unit) ??
-                    throw new InvalidOperationException(SR.FormatID0100(brand, model, unit)),
-
+                Definition = definition,
                 Scenarios = [.. element.Elements("Scenario").Select(GetScenario)],
                 Settings = GetSettings(element)
             };
