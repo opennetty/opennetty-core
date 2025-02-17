@@ -3,7 +3,7 @@
 ## What is OpenNetty?
 
 OpenNetty aims at providing an **advanced solution** for implementing [OpenWebNet](https://en.wikipedia.org/wiki/OpenWebNet)
-support in .NET 8.0+ applications.
+support in .NET 9.0+ applications.
 
 OpenWebNet is a protocol developed by [BTicino](https://www.bticino.it/) and [Legrand](https://www.legrand.fr/) around 2000 to manage
 electrical networks. While it uses a very basic wire format initially designed to be usable over PSTN phone lines, the OpenWebNet
@@ -90,7 +90,7 @@ The following Legrand and BTicino products are partially or fully supported by O
 ## Using OpenNetty as an OpenWebNet/MQTT gateway
 
 OpenNetty ships with an `OpenNetty.Daemon` executable that can be directly used as an OpenWebNet/MQTT
-gateway on any x64, ARM32 or ARM64 Linux distribution that supports .NET 8.0 and uses systemd.
+gateway on any x64, ARM32 or ARM64 Linux distribution that supports .NET 9.0 and uses systemd.
 
 ### Deploy the daemon
 

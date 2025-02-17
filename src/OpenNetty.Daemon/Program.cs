@@ -16,8 +16,7 @@ var builder = Host.CreateApplicationBuilder(new HostApplicationBuilderSettings
     ContentRootPath = AppContext.BaseDirectory
 });
 
-builder.Services.AddSystemd()
-    .AddWindowsService();
+builder.Services.AddSystemd();
 
 builder.Services.AddOpenNetty(options =>
 {
