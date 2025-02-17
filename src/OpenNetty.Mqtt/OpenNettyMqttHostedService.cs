@@ -403,7 +403,9 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
             await _client.SubscribeAsync($"{_options.CurrentValue.RootTopic}/#", MqttQualityOfServiceLevel.ExactlyOnce);
 
             // Ask the worker to process incoming messages for this MQTT client.
-            await _worker.ProcessMessagesAsync(_client, channel.Reader, stoppingToken);
+            await Task.WhenAll(
+                _worker.ProcessMessagesAsync(_client, channel.Reader, stoppingToken),
+                _worker.AnnounceEndpointsAsync(_client, stoppingToken));
         }
 
         finally

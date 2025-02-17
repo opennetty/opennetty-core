@@ -17,6 +17,26 @@ public static class OpenNettySettings
     public static readonly OpenNettySetting ActionValidation = new("Action validation");
 
     /// <summary>
+    /// Home Assistant device class.
+    /// </summary>
+    public static readonly OpenNettySetting HomeAssistantDeviceClass = new("Home Assistant device class");
+
+    /// <summary>
+    /// Home Assistant entity type.
+    /// </summary>
+    public static readonly OpenNettySetting HomeAssistantEntityType = new("Home Assistant entity type");
+
+    /// <summary>
+    /// Home Assistant suggested area.
+    /// </summary>
+    public static readonly OpenNettySetting HomeAssistantSuggestedArea = new("Home Assistant suggested area");
+
+    /// <summary>
+    /// MQTT discovery.
+    /// </summary>
+    public static readonly OpenNettySetting MqttDiscovery = new("MQTT discovery");
+
+    /// <summary>
     /// Serial port baud rate.
     /// </summary>
     public static readonly OpenNettySetting SerialPortBaudRate = new("Serial port baud rate");

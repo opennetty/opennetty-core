@@ -5,6 +5,7 @@
  */
 
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 
 namespace OpenNetty;
 
@@ -28,6 +29,30 @@ public sealed class OpenNettyUnit : IEquatable<OpenNettyUnit>
     /// </summary>
     public ImmutableDictionary<OpenNettySetting, string> Settings { get; init; } =
         ImmutableDictionary<OpenNettySetting, string>.Empty;
+
+    /// <summary>
+    /// Resolves the specified boolean setting from the settings.
+    /// </summary>
+    /// <param name="setting">The setting name.</param>
+    /// <returns>The boolean setting if it could be found, <see langword="null"/> otherwise.</returns>
+    public bool? GetBooleanSetting(OpenNettySetting setting)
+        => TryGetSetting(setting, out string? value) && bool.TryParse(value, out bool result) ? result : null;
+
+    /// <summary>
+    /// Resolves the specified string setting from the settings.
+    /// </summary>
+    /// <param name="setting">The setting name.</param>
+    /// <returns>The string setting if it could be found, <see langword="null"/> otherwise.</returns>
+    public string? GetStringSetting(OpenNettySetting setting) => TryGetSetting(setting, out string? value) ? value : null;
+
+    /// <summary>
+    /// Tries to resolve the specified setting from the settings.
+    /// </summary>
+    /// <param name="setting">The setting name.</param>
+    /// <param name="value">The setting value, or <see langword="null"/> if it was not found.</param>
+    /// <returns><see langword="true"/> if the setting was found, <see langword="false"/> otherwise.</returns>
+    public bool TryGetSetting(OpenNettySetting setting, [NotNullWhen(true)] out string? value)
+        => Settings.TryGetValue(setting, out value);
 
     /// <inheritdoc/>
     public bool Equals(OpenNettyUnit? other)
