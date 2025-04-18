@@ -21,20 +21,20 @@ public enum OpenNettyTransmissionOptions
     /// <summary>
     /// Do no wait for the gateway to return an ACK, BUSYACK or NACK frame.
     /// </summary>
-    IgnoreAcknowledgementValidation = 0x01,
+    IgnoreAcknowledgementValidation = 1,
 
     /// <summary>
     /// Wait for the end device to reply with a VALID ACTION or INVALID ACTION frame (Nitoo only).
     /// </summary>
-    RequireActionValidation = 0x02,
+    RequireActionValidation = 2,
 
     /// <summary>
     /// Do no add an additional delay after sending the message.
     /// </summary>
-    DisablePostSendingDelay = 0x03,
+    DisablePostSendingDelay = 4,
 
     /// <summary>
     /// Prevent the message from being replayed if an error occurs while sending it.
     /// </summary>
-    DisallowRetransmissions = 0x04
+    DisallowRetransmissions = 8
 }
