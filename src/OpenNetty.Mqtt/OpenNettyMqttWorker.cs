@@ -448,6 +448,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         {
                             component["brightness_command_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.Brightness}/set";
                             component["brightness_scale"] = 100;
+                            component["on_command_type"] = "brightness";
                         }
 
                         if (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) ||
