@@ -416,6 +416,14 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
         {
             var message = arguments.ApplicationMessage;
             var topic = message.Topic;
+
+            // Note: ignore all the incoming MQTT messages that don't end with /get or /set.
+            if (string.IsNullOrEmpty(topic) || (!topic.EndsWith("/get", StringComparison.OrdinalIgnoreCase) &&
+                                                !topic.EndsWith("/set", StringComparison.OrdinalIgnoreCase)))
+            {
+                return;
+            }
+
             var payload = message.ConvertPayloadToString();
 
             _logger.MqttMessageReceived(topic, payload);
