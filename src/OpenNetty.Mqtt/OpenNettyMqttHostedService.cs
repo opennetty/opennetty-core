@@ -62,223 +62,297 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
         [
             await _events.BasicScenarioReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportStringAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, "action"))
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
+                {
+                    builder.WithPayload("action");
+                }))
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.BatteryLevelReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportStringAsync(arguments.Endpoint, OpenNettyMqttAttributes.Battery,
-                    arguments.Level.ToString(CultureInfo.InvariantCulture)))
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Battery, builder =>
+                {
+                    builder.WithPayload(arguments.Level.ToString(CultureInfo.InvariantCulture));
+                    builder.WithRetainFlag();
+                }))
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.BrightnessReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportStringAsync(arguments.Endpoint, OpenNettyMqttAttributes.Brightness,
-                    arguments.Level.ToString(CultureInfo.InvariantCulture)))
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Brightness, builder =>
+                {
+                    builder.WithPayload(arguments.Level.ToString(CultureInfo.InvariantCulture));
+                    builder.WithRetainFlag();
+                }))
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.DimmingStepReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportStringAsync(arguments.Endpoint, OpenNettyMqttAttributes.DimmingStep,
-                    arguments.Delta.ToString(CultureInfo.InvariantCulture)))
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.DimmingStep, builder =>
+                {
+                    builder.WithPayload(arguments.Delta.ToString(CultureInfo.InvariantCulture));
+                }))
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.OnOffScenarioReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportStringAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario,
-                    arguments.State is OpenNettyModels.Lighting.SwitchState.Off ? "OFF" : "ON"))
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
+                {
+                    builder.WithPayload(arguments.State is OpenNettyModels.Lighting.SwitchState.Off ? "OFF" : "ON");
+                }))
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.PilotWireDerogationModeReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportStringAsync(arguments.Endpoint, OpenNettyMqttAttributes.PilotWireDerogationMode, arguments.Mode switch
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.PilotWireDerogationMode, builder =>
                 {
-                    OpenNettyModels.TemperatureControl.PilotWireMode.Comfort => arguments.Duration switch
+                    builder.WithPayload(arguments.Mode switch
                     {
-                        OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None       => "comfort",
-                        OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours  => "comfort:4h",
-                        OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours => "comfort:8h",
+                        OpenNettyModels.TemperatureControl.PilotWireMode.Comfort => arguments.Duration switch
+                        {
+                            OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None       => "comfort",
+                            OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours  => "comfort:4h",
+                            OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours => "comfort:8h",
 
-                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
-                    },
+                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                        },
 
-                    OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusOne => arguments.Duration switch
-                    {
-                        OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None       => "comfort-1",
-                        OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours  => "comfort-1:4h",
-                        OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours => "comfort-1:8h",
+                        OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusOne => arguments.Duration switch
+                        {
+                            OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None       => "comfort-1",
+                            OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours  => "comfort-1:4h",
+                            OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours => "comfort-1:8h",
 
-                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
-                    },
+                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                        },
 
-                    OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusTwo => arguments.Duration switch
-                    {
-                        OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None       => "comfort-2",
-                        OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours  => "comfort-2:4h",
-                        OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours => "comfort-2:8h",
+                        OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusTwo => arguments.Duration switch
+                        {
+                            OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None       => "comfort-2",
+                            OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours  => "comfort-2:4h",
+                            OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours => "comfort-2:8h",
 
-                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
-                    },
+                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                        },
 
-                    OpenNettyModels.TemperatureControl.PilotWireMode.Eco => arguments.Duration switch
-                    {
-                        OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None       => "eco",
-                        OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours  => "eco:4h",
-                        OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours => "eco:8h",
+                        OpenNettyModels.TemperatureControl.PilotWireMode.Eco => arguments.Duration switch
+                        {
+                            OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None       => "eco",
+                            OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours  => "eco:4h",
+                            OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours => "eco:8h",
 
-                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
-                    },
+                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                        },
 
-                    OpenNettyModels.TemperatureControl.PilotWireMode.FrostProtection => arguments.Duration switch
-                    {
-                        OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None       => "frost_protection",
-                        OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours  => "frost_protection:4h",
-                        OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours => "frost_protection:8h",
+                        OpenNettyModels.TemperatureControl.PilotWireMode.FrostProtection => arguments.Duration switch
+                        {
+                            OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None       => "frost_protection",
+                            OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours  => "frost_protection:4h",
+                            OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours => "frost_protection:8h",
 
-                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
-                    },
+                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                        },
 
-                    _ => "none"
+                        _ => "none"
+                    });
+
+                    builder.WithRetainFlag();
                 }))
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.PilotWireSetpointModeReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportStringAsync(arguments.Endpoint, OpenNettyMqttAttributes.PilotWireSetpointMode, arguments.Mode switch
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.PilotWireSetpointMode, builder =>
                 {
-                    OpenNettyModels.TemperatureControl.PilotWireMode.Comfort         => "comfort",
-                    OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusOne => "comfort-1",
-                    OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusTwo => "comfort-2",
-                    OpenNettyModels.TemperatureControl.PilotWireMode.Eco             => "eco",
-                    OpenNettyModels.TemperatureControl.PilotWireMode.FrostProtection => "frost_protection",
+                    builder.WithPayload(arguments.Mode switch
+                    {
+                        OpenNettyModels.TemperatureControl.PilotWireMode.Comfort         => "comfort",
+                        OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusOne => "comfort-1",
+                        OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusTwo => "comfort-2",
+                        OpenNettyModels.TemperatureControl.PilotWireMode.Eco             => "eco",
+                        OpenNettyModels.TemperatureControl.PilotWireMode.FrostProtection => "frost_protection",
 
-                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                    });
+
+                    builder.WithRetainFlag();
                 }))
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.ProgressiveScenarioReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportJsonAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, new JsonObject()
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
                 {
-                    ["scenario_type"] = "progressive",
-                    ["duration"] = arguments.Duration.TotalSeconds
+                    var node = new JsonObject()
+                    {
+                        ["scenario_type"] = "progressive",
+                        ["duration"] = arguments.Duration.TotalSeconds
+                    };
+
+                    builder.WithContentType(MediaTypeNames.Application.Json);
+                    builder.WithPayload(node.ToJsonString());
                 }))
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.SmartMeterIndexesReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportJsonAsync(arguments.Endpoint, OpenNettyMqttAttributes.SmartMeterIndexes, new JsonObject()
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.SmartMeterIndexes, builder =>
                 {
-                    ["base_index"]        = arguments.Indexes.BaseIndex,
-                    ["blue_index"]        = arguments.Indexes.BlueIndex,
-                    ["off_peak_index"]    = arguments.Indexes.OffPeakIndex,
-                    ["red_index"]         = arguments.Indexes.RedIndex,
-                    ["white_index"]       = arguments.Indexes.WhiteIndex,
-                    ["subscription_type"] = arguments.Indexes.SubscriptionType switch
+                    var node = new JsonObject()
                     {
-                        OpenNettyModels.TemperatureControl.SmartMeterSubscriptionType.Base    => "base",
-                        OpenNettyModels.TemperatureControl.SmartMeterSubscriptionType.OffPeak => "off_peak",
-                        OpenNettyModels.TemperatureControl.SmartMeterSubscriptionType.Tempo   => "tempo",
+                        ["base_index"]        = arguments.Indexes.BaseIndex,
+                        ["blue_index"]        = arguments.Indexes.BlueIndex,
+                        ["off_peak_index"]    = arguments.Indexes.OffPeakIndex,
+                        ["red_index"]         = arguments.Indexes.RedIndex,
+                        ["white_index"]       = arguments.Indexes.WhiteIndex,
+                        ["subscription_type"] = arguments.Indexes.SubscriptionType switch
+                        {
+                            OpenNettyModels.TemperatureControl.SmartMeterSubscriptionType.Base    => "base",
+                            OpenNettyModels.TemperatureControl.SmartMeterSubscriptionType.OffPeak => "off_peak",
+                            OpenNettyModels.TemperatureControl.SmartMeterSubscriptionType.Tempo   => "tempo",
 
-                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
-                    }
+                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                        }
+                    };
+
+                    builder.WithContentType(MediaTypeNames.Application.Json);
+                    builder.WithPayload(node.ToJsonString());
+                    builder.WithRetainFlag();
                 }))
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.SmartMeterPowerCutModeReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportStringAsync(arguments.Endpoint, OpenNettyMqttAttributes.SmartMeterPowerCutMode,
-                    arguments.Active ? "1" : "0"))
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.SmartMeterPowerCutMode, builder =>
+                {
+                    builder.WithPayload(arguments.Active ? "1" : "0");
+                    builder.WithRetainFlag();
+                }))
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.SmartMeterRateTypeReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportStringAsync(arguments.Endpoint, OpenNettyMqttAttributes.SmartMeterRateType, arguments.Type switch
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.SmartMeterRateType, builder =>
                 {
-                    OpenNettyModels.TemperatureControl.SmartMeterRateType.Peak    => "peak",
-                    OpenNettyModels.TemperatureControl.SmartMeterRateType.OffPeak => "off_peak",
+                    builder.WithPayload(arguments.Type switch
+                    {
+                        OpenNettyModels.TemperatureControl.SmartMeterRateType.Peak    => "peak",
+                        OpenNettyModels.TemperatureControl.SmartMeterRateType.OffPeak => "off_peak",
 
-                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                    });
+
+                    builder.WithRetainFlag();
                 }))
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.SwitchStateReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportStringAsync(arguments.Endpoint, OpenNettyMqttAttributes.SwitchState,
-                    arguments.State is OpenNettyModels.Lighting.SwitchState.Off ? "OFF": "ON"))
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.SwitchState, builder =>
+                {
+                    builder.WithPayload(arguments.State is OpenNettyModels.Lighting.SwitchState.Off ? "OFF": "ON");
+
+                    // Note: the retain flag is only added when the special push mode is not used.
+                    builder.WithRetainFlag(!string.Equals(arguments.Endpoint.GetStringSetting(OpenNettySettings.SwitchMode),
+                        "Push button", StringComparison.OrdinalIgnoreCase));
+                }))
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.TimedScenarioReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportJsonAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, new JsonObject()
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
                 {
-                    ["scenario_type"] = "timed",
-                    ["duration"] = arguments.Duration.TotalSeconds
+                    var node = new JsonObject()
+                    {
+                        ["scenario_type"] = "timed",
+                        ["duration"] = arguments.Duration.TotalSeconds
+                    };
+
+                    builder.WithContentType(MediaTypeNames.Application.Json);
+                    builder.WithPayload(node.ToJsonString());
                 }))
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.ToggleScenarioReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportStringAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, "toggle"))
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
+                {
+                    builder.WithPayload("toggle");
+                }))
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.WaterHeaterSetpointModeReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportStringAsync(arguments.Endpoint, OpenNettyMqttAttributes.WaterHeaterSetpointMode, arguments.Mode switch
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.WaterHeaterSetpointMode, builder =>
                 {
-                    OpenNettyModels.TemperatureControl.WaterHeaterMode.Automatic => "automatic",
-                    OpenNettyModels.TemperatureControl.WaterHeaterMode.ForcedOff => "forced_off",
-                    OpenNettyModels.TemperatureControl.WaterHeaterMode.ForcedOn  => "forced_on",
+                    builder.WithPayload(arguments.Mode switch
+                    {
+                        OpenNettyModels.TemperatureControl.WaterHeaterMode.Automatic => "automatic",
+                        OpenNettyModels.TemperatureControl.WaterHeaterMode.ForcedOff => "forced_off",
+                        OpenNettyModels.TemperatureControl.WaterHeaterMode.ForcedOn  => "forced_on",
 
-                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                    });
+
+                    builder.WithRetainFlag();
                 }))
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.WaterHeaterStateReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportStringAsync(arguments.Endpoint, OpenNettyMqttAttributes.WaterHeaterState, arguments.State switch
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.WaterHeaterState, builder =>
                 {
-                    OpenNettyModels.TemperatureControl.WaterHeaterState.Idle    => "idle",
-                    OpenNettyModels.TemperatureControl.WaterHeaterState.Heating => "heating",
+                    builder.WithPayload(arguments.State switch
+                    {
+                        OpenNettyModels.TemperatureControl.WaterHeaterState.Idle    => "idle",
+                        OpenNettyModels.TemperatureControl.WaterHeaterState.Heating => "heating",
 
-                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                    });
+
+                    builder.WithRetainFlag();
                 }))
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.WirelessBurglarAlarmStateReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportStringAsync(arguments.Endpoint, OpenNettyMqttAttributes.WirelessBurglarAlarmState, arguments.State switch
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.WirelessBurglarAlarmState, builder =>
                 {
-                    OpenNettyModels.Alarm.WirelessBurglarAlarmState.Disarmed         => "disarmed",
-                    OpenNettyModels.Alarm.WirelessBurglarAlarmState.Armed            => "armed",
-                    OpenNettyModels.Alarm.WirelessBurglarAlarmState.PartiallyArmed   => "partially_armed",
-                    OpenNettyModels.Alarm.WirelessBurglarAlarmState.ExitDelayElapsed => "exit_delay_elapsed",
-                    OpenNettyModels.Alarm.WirelessBurglarAlarmState.Triggered        => "triggered",
-                    OpenNettyModels.Alarm.WirelessBurglarAlarmState.EventDetected    => "event_detected",
+                    builder.WithPayload(arguments.State switch
+                    {
+                        OpenNettyModels.Alarm.WirelessBurglarAlarmState.Disarmed         => "disarmed",
+                        OpenNettyModels.Alarm.WirelessBurglarAlarmState.Armed            => "armed",
+                        OpenNettyModels.Alarm.WirelessBurglarAlarmState.PartiallyArmed   => "partially_armed",
+                        OpenNettyModels.Alarm.WirelessBurglarAlarmState.ExitDelayElapsed => "exit_delay_elapsed",
+                        OpenNettyModels.Alarm.WirelessBurglarAlarmState.Triggered        => "triggered",
+                        OpenNettyModels.Alarm.WirelessBurglarAlarmState.EventDetected    => "event_detected",
 
-                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                    });
+
+                    builder.WithRetainFlag();
                 }))
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask)
         ]);
 
-        async ValueTask ReportStringAsync(OpenNettyEndpoint endpoint, string attribute, string value)
+        async ValueTask ReportAsync(OpenNettyEndpoint endpoint, string attribute, Action<MqttApplicationMessageBuilder> configuration)
         {
             var topic = GetMessageTopic(endpoint, attribute);
             if (string.IsNullOrEmpty(topic))
@@ -286,29 +360,14 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 return;
             }
 
-            await _client.EnqueueAsync(new MqttApplicationMessageBuilder()
-                .WithPayload(value)
+            var builder = new MqttApplicationMessageBuilder()
                 .WithPayloadFormatIndicator(MqttPayloadFormatIndicator.CharacterData)
                 .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
-                .WithTopic(topic)
-                .Build());
-        }
+                .WithTopic(topic);
 
-        async ValueTask ReportJsonAsync(OpenNettyEndpoint endpoint, string attribute, JsonNode value)
-        {
-            var topic = GetMessageTopic(endpoint, attribute);
-            if (string.IsNullOrEmpty(topic))
-            {
-                return;
-            }
+            configuration(builder);
 
-            await _client.EnqueueAsync(new MqttApplicationMessageBuilder()
-                .WithContentType(MediaTypeNames.Application.Json)
-                .WithPayload(value.ToJsonString())
-                .WithPayloadFormatIndicator(MqttPayloadFormatIndicator.CharacterData)
-                .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
-                .WithTopic(topic)
-                .Build());
+            await _client.EnqueueAsync(builder.Build());
         }
 
         string? GetMessageTopic(OpenNettyEndpoint endpoint, string attribute)
