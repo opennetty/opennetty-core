@@ -113,10 +113,16 @@ public sealed class OpenNettyEvents : IDisposable
         => _observable.OfType<EventArgs, DimmingStepReportedEventArgs>();
 
     /// <summary>
-    /// Gets an event triggered when an ON/OFF scenario is reported.
+    /// Gets an event triggered when an OFF scenario is reported.
     /// </summary>
-    public IAsyncObservable<OnOffScenarioReportedEventArgs> OnOffScenarioReported
-        => _observable.OfType<EventArgs, OnOffScenarioReportedEventArgs>();
+    public IAsyncObservable<OffScenarioReportedEventArgs> OffScenarioReported
+        => _observable.OfType<EventArgs, OffScenarioReportedEventArgs>();
+
+    /// <summary>
+    /// Gets an event triggered when an ON scenario is reported.
+    /// </summary>
+    public IAsyncObservable<OnScenarioReportedEventArgs> OnScenarioReported
+        => _observable.OfType<EventArgs, OnScenarioReportedEventArgs>();
 
     /// <summary>
     /// Gets an event triggered when a pilot wire derogation mode is reported.
@@ -269,12 +275,16 @@ public sealed class OpenNettyEvents : IDisposable
     public sealed record DimmingStepReportedEventArgs(OpenNettyEndpoint Endpoint, int Delta) : EventArgs(Endpoint);
 
     /// <summary>
-    /// Represents event arguments used when an ON/OFF scenario is reported.
+    /// Represents event arguments used when an OFF scenario is reported.
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
-    /// <param name="State">The ON/OFF state.</param>
-    public sealed record OnOffScenarioReportedEventArgs(OpenNettyEndpoint Endpoint,
-        OpenNettyModels.Lighting.SwitchState State) : EventArgs(Endpoint);
+    public sealed record OffScenarioReportedEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
+
+    /// <summary>
+    /// Represents event arguments used when an ON scenario is reported.
+    /// </summary>
+    /// <param name="Endpoint">The endpoint.</param>
+    public sealed record OnScenarioReportedEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when a pilot wire derogation mode is reported.
