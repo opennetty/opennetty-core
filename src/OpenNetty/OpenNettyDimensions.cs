@@ -33,6 +33,22 @@ public static class OpenNettyDimensions
     }
 
     /// <summary>
+    /// Automation dimensions (WHO = 2).
+    /// </summary>
+    public static class Automation
+    {
+        /// <summary>
+        /// Shutter status (DIMENSION = 10).
+        /// </summary>
+        public static readonly OpenNettyDimension ShutterStatus = new(OpenNettyCategories.Automation, "10");
+
+        /// <summary>
+        /// Shutter go-to level (DIMENSION = 11).
+        /// </summary>
+        public static readonly OpenNettyDimension ShutterGoToLevel = new(OpenNettyCategories.Automation, "11");
+    }
+
+    /// <summary>
     /// Temperature control dimensions (WHO = 4).
     /// </summary>
     public static class TemperatureControl

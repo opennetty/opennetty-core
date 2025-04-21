@@ -500,6 +500,212 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     break;
                 }
 
+                // The shutter state and the position of an endpoint can be inferred from 4 types of messages:
+                //
+                //   - For Nitoo devices, from an incoming or outgoing "STOP", "UP" or "DOWN" BUS COMMAND message.
+                //   - For SCS/Zigbee devices, from an incoming "STOP", "UP" or "DOWN" BUS COMMAND message.
+                //   - For SCS/Zigbee devices, from an incoming "SHUTTER STATUS" DIMENSION READ message.
+                //   - For Nitoo devices, from an incoming "UNIT DESCRIPTION" DIMENSION READ message.
+
+                case (OpenNettyNotification notification,
+                      OpenNettyMessage { Protocol: OpenNettyProtocol.Nitoo,
+                                         Type    : OpenNettyMessageType.BusCommand,
+                                         Command : OpenNettyCommand command,
+                                         Address : OpenNettyAddress address,
+                                         Mode    : OpenNettyMode mode })
+                    when command == OpenNettyCommands.Automation.Stop ||
+                         command == OpenNettyCommands.Automation.Up   ||
+                         command == OpenNettyCommands.Automation.Down:
+                {
+                    // Ignore the message if the corresponding endpoint couldn't be resolved or if it
+                    // was received by a different gateway than the one associated with the endpoint.
+                    var endpoint = await _manager.FindEndpointByAddressAsync(address);
+                    if (endpoint is null || (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway))
+                    {
+                        return;
+                    }
+
+                    // If the message was received and was emitted by the source using a
+                    // broadcast transmission, it is considered as an STOP/UP/DOWN scenario.
+                    if (notification is OpenNettyNotifications.MessageReceived && mode is OpenNettyMode.Broadcast &&
+                        endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenario))
+                    {
+                        if (command == OpenNettyCommands.Automation.Stop)
+                        {
+                            await _events.PublishAsync(new ShutterStopScenarioReportedEventArgs(endpoint));
+                        }
+
+                        else if (command == OpenNettyCommands.Automation.Up)
+                        {
+                            await _events.PublishAsync(new ShutterUpScenarioReportedEventArgs(endpoint));
+                        }
+
+                        else
+                        {
+                            await _events.PublishAsync(new ShutterDownScenarioReportedEventArgs(endpoint));
+                        }
+                    }
+
+                    List<Task> tasks = [];
+
+                    // Note: outgoing STOP/UP/DOWN commands sent using broadcast or multicast transmission
+                    // generally don't affect the local output of a Nitoo automation device. As such,
+                    // the shutter state/position of the endpoint is only reported if the message was
+                    // received (e.g by a different unit on the same device) or was sent in unicast.
+                    if (mode is OpenNettyMode.Unicast || notification is OpenNettyNotifications.MessageReceived)
+                    {
+                        if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState) ||
+                            endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
+                        {
+                            tasks.Add(ReportStateAsync(endpoint, CancellationToken.None).AsTask());
+                        }
+
+                        if (endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit.Definition.AssociatedUnitId: byte unit })
+                        {
+                            tasks.Add(Task.Run(async () =>
+                            {
+                                var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(
+                                    OpenNettyAddress.ToNitooAddress(address).Identifier, unit));
+
+                                if (endpoint is null)
+                                {
+                                    return;
+                                }
+
+                                if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState) ||
+                                    endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
+                                {
+                                    await ReportStateAsync(endpoint, CancellationToken.None);
+                                }
+                            }));
+                        }
+                    }
+
+                    if (mode is OpenNettyMode.Broadcast or OpenNettyMode.Multicast && endpoint is { Unit.Scenarios: [_, ..] scenarios })
+                    {
+                        var endpoints = scenarios.ToAsyncEnumerable()
+                            .Where(static scenario => scenario.FunctionCode is < 110 or 111 or 112)
+                            .SelectAwait(scenario => _manager.FindEndpointByNameAsync(scenario.EndpointName))
+                            .Where(static endpoint => endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit: OpenNettyUnit })
+                            .OfType<OpenNettyEndpoint>()
+                            .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState));
+
+                        tasks.Add(Parallel.ForEachAsync(endpoints, ReportStateAsync));
+                    }
+
+                    await Task.WhenAll(tasks);
+
+                    async ValueTask ReportStateAsync(OpenNettyEndpoint endpoint, CancellationToken cancellationToken)
+                    {
+                        if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState))
+                        {
+                            await _events.PublishAsync(new ShutterStateReportedEventArgs(endpoint,
+                                command == OpenNettyCommands.Automation.Stop ? OpenNettyModels.Automation.ShutterState.Stopped :
+                                command == OpenNettyCommands.Automation.Up   ? OpenNettyModels.Automation.ShutterState.Opening :
+                                command == OpenNettyCommands.Automation.Down ? OpenNettyModels.Automation.ShutterState.Closing :
+                                throw new InvalidDataException(SR.GetResourceString(SR.ID0075))), cancellationToken);
+                        }
+                    }
+                    break;
+                }
+
+                case (OpenNettyNotifications.MessageReceived,
+                      OpenNettyMessage { Protocol: OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee,
+                                         Type    : OpenNettyMessageType.BusCommand,
+                                         Command : OpenNettyCommand command,
+                                         Address : OpenNettyAddress address })
+                    when command == OpenNettyCommands.Automation.Stop ||
+                         command == OpenNettyCommands.Automation.Up   ||
+                         command == OpenNettyCommands.Automation.Down:
+                {
+                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(address), async (endpoint, cancellationToken) =>
+                    {
+                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
+                        if (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway)
+                        {
+                            return;
+                        }
+
+                        // Note: the STOP command is only reported if the endpoint isn't an advanced shutter.
+                        if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState) &&
+                           (command != OpenNettyCommands.Automation.Stop || !endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState)))
+                        {
+                            await _events.PublishAsync(new ShutterStateReportedEventArgs(endpoint,
+                                command == OpenNettyCommands.Automation.Stop ? OpenNettyModels.Automation.ShutterState.Stopped :
+                                command == OpenNettyCommands.Automation.Up   ? OpenNettyModels.Automation.ShutterState.Opening :
+                                command == OpenNettyCommands.Automation.Down ? OpenNettyModels.Automation.ShutterState.Closing :
+                                throw new InvalidDataException(SR.GetResourceString(SR.ID0075))), cancellationToken);
+                        }
+                    });
+                    break;
+                }
+
+                case (OpenNettyNotifications.MessageReceived,
+                      OpenNettyMessage { Protocol : OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee,
+                                         Type     : OpenNettyMessageType.DimensionRead,
+                                         Address  : OpenNettyAddress address,
+                                         Dimension: OpenNettyDimension dimension,
+                                         Values   : [{ Length: > 0 } status, { Length: > 0 } position, ..] })
+                    when dimension == OpenNettyDimensions.Automation.ShutterStatus:
+                {
+                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(address), async (endpoint, cancellationToken) =>
+                    {
+                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
+                        if (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway)
+                        {
+                            return;
+                        }
+
+                        if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
+                        {
+                            await _events.PublishAsync(new ShutterStateReportedEventArgs(endpoint,
+                                (status, byte.Parse(position, CultureInfo.InvariantCulture)) switch
+                                {
+                                    ("10",       0        ) => OpenNettyModels.Automation.ShutterState.Closed,
+                                    ("10", >= 1 and <= 100) => OpenNettyModels.Automation.ShutterState.Open,
+                                    ("10",       _        ) => OpenNettyModels.Automation.ShutterState.Stopped,
+
+                                    ("11" or "13", _) => OpenNettyModels.Automation.ShutterState.Opening,
+                                    ("12" or "14", _) => OpenNettyModels.Automation.ShutterState.Closing,
+
+                                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                                }), cancellationToken);
+
+                            await _events.PublishAsync(new ShutterPositionReportedEventArgs(endpoint,
+                                byte.Parse(position, CultureInfo.InvariantCulture)), cancellationToken);
+                        }
+                    });
+                    break;
+                }
+
+                case (OpenNettyNotifications.MessageReceived,
+                      OpenNettyMessage { Protocol : OpenNettyProtocol.Nitoo,
+                                         Type     : OpenNettyMessageType.DimensionRead,
+                                         Address  : OpenNettyAddress address,
+                                         Dimension: OpenNettyDimension dimension,
+                                         Values   : ["139", { Length: > 0 } value, ..] })
+                    when dimension == OpenNettyDimensions.Diagnostics.UnitDescription:
+                {
+                    // Ignore the message if the corresponding endpoint couldn't be resolved or if it
+                    // was received by a different gateway than the one associated with the endpoint.
+                    var endpoint = await _manager.FindEndpointByAddressAsync(address);
+                    if (endpoint is null || (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway))
+                    {
+                        return;
+                    }
+
+                    if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState))
+                    {
+                        await _events.PublishAsync(new ShutterStateReportedEventArgs(endpoint, value switch
+                        {
+                            "100" or "102" => OpenNettyModels.Automation.ShutterState.Opening,
+                            "0"   or "103" => OpenNettyModels.Automation.ShutterState.Closing,
+                                  _        => OpenNettyModels.Automation.ShutterState.Stopped
+                        }));
+                    }
+                    break;
+                }
+
                 case (OpenNettyNotifications.MessageReceived,
                       OpenNettyMessage { Protocol : OpenNettyProtocol.Nitoo,
                                          Type     : OpenNettyMessageType.DimensionRead,

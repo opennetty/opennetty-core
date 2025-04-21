@@ -76,7 +76,9 @@ The following Legrand and BTicino products are partially or fully supported by O
 | MyHome Up         |                    | 03598             | F454              |                                   |
 | MyHome Up         |                    | 03651             | F418U2            |                                   |
 | MyHome Up         |                    | 03847             | F411U1            |                                   |
-| MyHome Up         |                    | 03848             | F411U2            | Shutter mode is not yet supported |
+| MyHome Up         |                    | 03848             | F411U2            |                                   |
+| MyHome Up         | Céliane            | 67557             |                   |                                   |
+| MyHome Up         | Céliane            | 67561             |                   |                                   |
 |                   |                    |                   |                   |                                   |
 | MyHome Play       | Céliane            | 67223             |                   |                                   |
 | MyHome Play       |                    | 88328             | 3578              |                                   |
