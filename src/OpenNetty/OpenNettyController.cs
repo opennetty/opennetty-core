@@ -7,6 +7,7 @@
 using System.Collections.Immutable;
 using System.Globalization;
 using System.Reactive.Linq;
+using System.Runtime.CompilerServices;
 
 namespace OpenNetty;
 
@@ -347,6 +348,138 @@ public class OpenNettyController
     }
 
     /// <summary>
+    /// Enumerates the current switch state of all the endpoints matching the specified endpoint.
+    /// </summary>
+    /// <param name="endpoint">The endpoint.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>
+    /// A <see cref="IAsyncEnumerable{T}"/> that can be used to iterate the switch
+    /// states returned by all the endpoints matching the specified endpoint.
+    /// </returns>
+    public virtual IAsyncEnumerable<(OpenNettyEndpoint Endpoint, ushort Level)> EnumerateBrightnessAsync(
+        OpenNettyEndpoint endpoint,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
+
+        if (!endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) &&
+            !endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+        }
+
+        switch (endpoint.Protocol)
+        {
+            case OpenNettyProtocol.Nitoo:
+            case OpenNettyProtocol.Scs    when endpoint.Address is { Type: OpenNettyAddressType.ScsLightPointPointToPoint }:
+            case OpenNettyProtocol.Zigbee when endpoint.Address is { Type: OpenNettyAddressType.ZigbeeSpecificDeviceSpecificUnit }:
+                return GetBrightnessAsync(endpoint, cancellationToken)
+                    .AsTask()
+                    .ToAsyncEnumerable()
+                    .Select(brightness => (endpoint, brightness));
+
+            default:
+                return ExecuteAsync(cancellationToken);
+        }
+
+        async IAsyncEnumerable<(OpenNettyEndpoint Endpoint, ushort Level)> ExecuteAsync(
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            // Note: this method supports resolving the brightless level of endpoints that support advanced
+            // or basic dimming (depending on whether the virtual endpoint has the associated capabilities).
+            //
+            // For that, a first pass is made to collect the state of endpoints supporting advanced dimming and a second
+            // pass is used to collect the state of the endpoints for which no state was extracted during the first pass.
+
+            HashSet<OpenNettyEndpoint> set = [];
+
+            if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
+            {
+                // Note: while the brightness level is requested using the "DIMMER SPEED/LEVEL" DIMENSION, the result
+                // might be returned using a different DIMENSION, "DIMMER STATUS". To ensure the brightness is
+                // correctly resolved, both dimensions are observed before sending the DIMENSION REQUEST.
+                var messages = _service.ObserveMessagesAsync(
+                    message          : OpenNettyMessage.CreateDimensionRequest(
+                        protocol : endpoint.Protocol,
+                        dimension: OpenNettyDimensions.Lighting.DimmerLevelSpeed,
+                        address  : endpoint.Address,
+                        medium   : endpoint.Medium,
+                        mode     : null),
+                    gateway          : endpoint.Gateway,
+                    options          : OpenNettyTransmissionOptions.None,
+                    cancellationToken: cancellationToken);
+
+                await foreach (var result in messages
+                    .TakeWhile(static message => message.Type is not (OpenNettyMessageType.Acknowledgement             or
+                                                                      OpenNettyMessageType.BusyNegativeAcknowledgement or
+                                                                      OpenNettyMessageType.NegativeAcknowledgement))
+                    .Where(static message => message.Dimension == OpenNettyDimensions.Lighting.DimmerLevelSpeed ||
+                                             message.Dimension == OpenNettyDimensions.Lighting.DimmerStatus)
+                    .Timeout(TimeSpan.FromSeconds(10))
+                    .ToAsyncEnumerable()
+                    .SelectAwaitWithCancellation(async (message, cancellationToken) => (
+                        Values  : message.Values,
+                        Endpoint: await _manager.FindEndpointByAddressAsync(message.Address!.Value, cancellationToken)))
+                    .Where(static arguments => arguments.Endpoint is not null)
+                    .Where(static arguments => arguments.Endpoint!.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
+                    .Where(arguments => set.Add(arguments.Endpoint!))
+                    .Select(static arguments => (arguments.Endpoint!,
+                        (ushort) (ushort.Parse(arguments.Values[0], CultureInfo.InvariantCulture) - 100))))
+                {
+                    yield return result;
+                }
+            }
+
+            if (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState))
+            {
+                var results = _service.EnumerateStatusesAsync(
+                    protocol         : endpoint.Protocol,
+                    category         : OpenNettyCategories.Lighting,
+                    address          : endpoint.Address,
+                    medium           : endpoint.Medium,
+                    mode             : null,
+                    filter           : static command => ValueTask.FromResult(
+                        command == OpenNettyCommands.Lighting.Off  ||
+                        command == OpenNettyCommands.Lighting.On   ||
+                        command == OpenNettyCommands.Lighting.On20 ||
+                        command == OpenNettyCommands.Lighting.On30 ||
+                        command == OpenNettyCommands.Lighting.On40 ||
+                        command == OpenNettyCommands.Lighting.On50 ||
+                        command == OpenNettyCommands.Lighting.On60 ||
+                        command == OpenNettyCommands.Lighting.On70 ||
+                        command == OpenNettyCommands.Lighting.On80 ||
+                        command == OpenNettyCommands.Lighting.On90 ||
+                        command == OpenNettyCommands.Lighting.On100),
+                    gateway          : endpoint.Gateway,
+                    options          : OpenNettyTransmissionOptions.None,
+                    cancellationToken: cancellationToken);
+
+                await foreach (var result in results
+                    .SelectAwaitWithCancellation(async (arguments, cancellationToken) => (
+                        Command : arguments.Command,
+                        Endpoint: await _manager.FindEndpointByAddressAsync(arguments.Address, cancellationToken)))
+                    .Where(static arguments => arguments.Endpoint is not null)
+                    .Where(static arguments => arguments.Endpoint!.HasCapability(OpenNettyCapabilities.BasicDimmingState))
+                    .Where(arguments => set.Add(arguments.Endpoint!))
+                    .Select(static arguments => (arguments.Endpoint!,
+                        arguments.Command == OpenNettyCommands.Lighting.Off   ? (ushort) 0   :
+                        arguments.Command == OpenNettyCommands.Lighting.On    ? (ushort) 100 :
+                        arguments.Command == OpenNettyCommands.Lighting.On20  ? (ushort) 20  :
+                        arguments.Command == OpenNettyCommands.Lighting.On30  ? (ushort) 30  :
+                        arguments.Command == OpenNettyCommands.Lighting.On40  ? (ushort) 40  :
+                        arguments.Command == OpenNettyCommands.Lighting.On50  ? (ushort) 50  :
+                        arguments.Command == OpenNettyCommands.Lighting.On60  ? (ushort) 60  :
+                        arguments.Command == OpenNettyCommands.Lighting.On70  ? (ushort) 70  :
+                        arguments.Command == OpenNettyCommands.Lighting.On80  ? (ushort) 80  :
+                        arguments.Command == OpenNettyCommands.Lighting.On90  ? (ushort) 90  : (ushort) 100)))
+                {
+                    yield return result;
+                }
+            }
+        }
+    }
+
+    /// <summary>
     /// Enumerates the current brightness of all the endpoints matching the specified endpoint.
     /// </summary>
     /// <param name="endpoint">The endpoint.</param>
@@ -366,114 +499,17 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
         }
 
-        if (endpoint.Protocol is OpenNettyProtocol.Nitoo)
+        switch (endpoint.Protocol)
         {
-            return GetSwitchStateAsync(endpoint, cancellationToken)
-                .AsTask()
-                .ToAsyncEnumerable()
-                .Select(state => (endpoint, state));
-        }
-
-        else
-        {
-            var results = _service.EnumerateStatusesAsync(
-                protocol         : endpoint.Protocol,
-                category         : OpenNettyCategories.Lighting,
-                address          : endpoint.Address,
-                medium           : endpoint.Medium,
-                mode             : null,
-                filter           : static command => ValueTask.FromResult(
-                    command == OpenNettyCommands.Lighting.Off ||
-                    command == OpenNettyCommands.Lighting.On ||
-                    command == OpenNettyCommands.Lighting.On20 ||
-                    command == OpenNettyCommands.Lighting.On30 ||
-                    command == OpenNettyCommands.Lighting.On40 ||
-                    command == OpenNettyCommands.Lighting.On50 ||
-                    command == OpenNettyCommands.Lighting.On60 ||
-                    command == OpenNettyCommands.Lighting.On70 ||
-                    command == OpenNettyCommands.Lighting.On80 ||
-                    command == OpenNettyCommands.Lighting.On90 ||
-                    command == OpenNettyCommands.Lighting.On100),
-                gateway          : endpoint.Gateway,
-                options          : OpenNettyTransmissionOptions.None,
-                cancellationToken: cancellationToken);
-
-            return results
-                .SelectAwaitWithCancellation(async (arguments, cancellationToken) => (
-                    Command : arguments.Command,
-                    Endpoint: await _manager.FindEndpointByAddressAsync(arguments.Address, cancellationToken)))
-                .Where(static arguments => arguments.Endpoint is not null)
-                .Select(static arguments => (arguments.Endpoint!, arguments.Command != OpenNettyCommands.Lighting.Off ?
-                    OpenNettyModels.Lighting.SwitchState.On :
-                    OpenNettyModels.Lighting.SwitchState.Off));
-        }
-    }
-
-    /// <summary>
-    /// Enumerates the current switch state of all the endpoints matching the specified endpoint.
-    /// </summary>
-    /// <param name="endpoint">The endpoint.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
-    /// <returns>
-    /// A <see cref="IAsyncEnumerable{T}"/> that can be used to iterate the switch
-    /// states returned by all the endpoints matching the specified endpoint.
-    /// </returns>
-    public virtual IAsyncEnumerable<(OpenNettyEndpoint Endpoint, ushort Level)> EnumerateBrightnessAsync(
-        OpenNettyEndpoint endpoint,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(endpoint);
-
-        if (endpoint.Protocol is OpenNettyProtocol.Nitoo)
-        {
-            if (!endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) &&
-                !endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
-            {
-                throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
-            }
-
-            return GetBrightnessAsync(endpoint, cancellationToken)
-                .AsTask()
-                .ToAsyncEnumerable()
-                .Select(brightness => (endpoint, brightness));
-        }
-
-        else
-        {
-            if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
-            {
-                // Note: while the brightness level is requested using the "DIMMER SPEED/LEVEL" DIMENSION, the result
-                // might be returned using a different DIMENSION, "DIMMER STATUS". To ensure the brightness is
-                // correctly resolved, both dimensions are observed before sending the DIMENSION REQUEST.
-                var messages = _service.ObserveMessagesAsync(
-                    message          : OpenNettyMessage.CreateDimensionRequest(
-                        protocol : endpoint.Protocol,
-                        dimension: OpenNettyDimensions.Lighting.DimmerLevelSpeed,
-                        address  : endpoint.Address,
-                        medium   : endpoint.Medium,
-                        mode     : null),
-                    gateway          : endpoint.Gateway,
-                    options          : OpenNettyTransmissionOptions.None,
-                    cancellationToken: cancellationToken);
-
-                return messages
-                    .TakeWhile(static message => message.Type is not (OpenNettyMessageType.Acknowledgement             or
-                                                                      OpenNettyMessageType.BusyNegativeAcknowledgement or
-                                                                      OpenNettyMessageType.NegativeAcknowledgement))
-                    .Where(static message => message.Dimension == OpenNettyDimensions.Lighting.DimmerLevelSpeed ||
-                                             message.Dimension == OpenNettyDimensions.Lighting.DimmerStatus)
-                    .Timeout(TimeSpan.FromSeconds(10))
+            case OpenNettyProtocol.Nitoo:
+            case OpenNettyProtocol.Scs    when endpoint.Address is { Type: OpenNettyAddressType.ScsLightPointPointToPoint }:
+            case OpenNettyProtocol.Zigbee when endpoint.Address is { Type: OpenNettyAddressType.ZigbeeSpecificDeviceSpecificUnit }:
+                return GetSwitchStateAsync(endpoint, cancellationToken)
+                    .AsTask()
                     .ToAsyncEnumerable()
-                    .SelectAwaitWithCancellation(async (message, cancellationToken) => (
-                        Values  : message.Values,
-                        Endpoint: await _manager.FindEndpointByAddressAsync(message.Address!.Value, cancellationToken)))
-                    .Where(static arguments => arguments.Endpoint is not null)
-                    .Select(static arguments => (arguments.Endpoint!,
-                        (ushort) (ushort.Parse(arguments.Values[0], CultureInfo.InvariantCulture) - 100)));
-            }
+                    .Select(state => (endpoint, state));
 
-            else if (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState))
-            {
+            default:
                 var results = _service.EnumerateStatusesAsync(
                     protocol         : endpoint.Protocol,
                     category         : OpenNettyCategories.Lighting,
@@ -501,23 +537,10 @@ public class OpenNettyController
                         Command : arguments.Command,
                         Endpoint: await _manager.FindEndpointByAddressAsync(arguments.Address, cancellationToken)))
                     .Where(static arguments => arguments.Endpoint is not null)
-                    .Select(static arguments => (arguments.Endpoint!,
-                        arguments.Command == OpenNettyCommands.Lighting.Off   ? (ushort) 0 :
-                        arguments.Command == OpenNettyCommands.Lighting.On    ? (ushort) 100 :
-                        arguments.Command == OpenNettyCommands.Lighting.On20  ? (ushort) 20  :
-                        arguments.Command == OpenNettyCommands.Lighting.On30  ? (ushort) 30  :
-                        arguments.Command == OpenNettyCommands.Lighting.On40  ? (ushort) 40  :
-                        arguments.Command == OpenNettyCommands.Lighting.On50  ? (ushort) 50  :
-                        arguments.Command == OpenNettyCommands.Lighting.On60  ? (ushort) 60  :
-                        arguments.Command == OpenNettyCommands.Lighting.On70  ? (ushort) 70  :
-                        arguments.Command == OpenNettyCommands.Lighting.On80  ? (ushort) 80  :
-                        arguments.Command == OpenNettyCommands.Lighting.On90  ? (ushort) 90  : (ushort) 100));
-            }
-
-            else
-            {
-                throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
-            }
+                    .Where(static arguments => arguments.Endpoint!.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
+                    .Select(static arguments => (arguments.Endpoint!, arguments.Command != OpenNettyCommands.Lighting.Off ?
+                        OpenNettyModels.Lighting.SwitchState.On :
+                        OpenNettyModels.Lighting.SwitchState.Off));
         }
     }
 
