@@ -73,7 +73,7 @@ public static class OpenNettyDevices
     /// </returns>
     /// <exception cref="ArgumentException">The model is null or empty or the brand is not valid.</exception>
     /// <exception cref="ArgumentOutOfRangeException">The unit identifier is out of range.</exception>
-    public static OpenNettyUnitDefinition? GetUnitByModel(OpenNettyBrand brand, string model, ushort id)
+    public static OpenNettyUnitDefinition? GetUnitByModel(OpenNettyBrand brand, string model, byte id)
     {
         ArgumentException.ThrowIfNullOrEmpty(model);
         ArgumentOutOfRangeException.ThrowIfLessThan(id, 1u);
@@ -179,9 +179,9 @@ public static class OpenNettyDevices
 
         return new OpenNettyUnitDefinition
         {
-            AssociatedUnitId = (ushort?) (uint?) node.Attribute("AssociatedUnitId"),
+            AssociatedUnitId = (byte?) (uint?) node.Attribute("AssociatedUnitId"),
             Capabilities = [.. capabilities],
-            Id = (ushort) (uint) node.Attribute("Id")!,
+            Id = (byte) (uint) node.Attribute("Id")!,
             Settings = settings.ToImmutableDictionary()
         };
     }

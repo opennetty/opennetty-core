@@ -381,7 +381,7 @@ public class OpenNettyController
     /// A <see cref="IAsyncEnumerable{T}"/> that can be used to iterate the switch
     /// states returned by all the endpoints matching the specified endpoint.
     /// </returns>
-    public virtual IAsyncEnumerable<(OpenNettyEndpoint Endpoint, ushort Level)> EnumerateBrightnessAsync(
+    public virtual IAsyncEnumerable<(OpenNettyEndpoint Endpoint, byte Level)> EnumerateBrightnessAsync(
         OpenNettyEndpoint endpoint,
         CancellationToken cancellationToken = default)
     {
@@ -407,7 +407,7 @@ public class OpenNettyController
                 return ExecuteAsync(cancellationToken);
         }
 
-        async IAsyncEnumerable<(OpenNettyEndpoint Endpoint, ushort Level)> ExecuteAsync(
+        async IAsyncEnumerable<(OpenNettyEndpoint Endpoint, byte Level)> ExecuteAsync(
             [EnumeratorCancellation] CancellationToken cancellationToken)
         {
             // Note: this method supports resolving the brightless level of endpoints that support advanced
@@ -449,7 +449,7 @@ public class OpenNettyController
                     .Where(static arguments => arguments.Endpoint!.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
                     .Where(arguments => set.Add(arguments.Endpoint!))
                     .Select(static arguments => (arguments.Endpoint!,
-                        (ushort) (ushort.Parse(arguments.Values[0], CultureInfo.InvariantCulture) - 100))))
+                        (byte) (byte.Parse(arguments.Values[0], CultureInfo.InvariantCulture) - 100))))
                 {
                     yield return result;
                 }
@@ -487,16 +487,16 @@ public class OpenNettyController
                     .Where(static arguments => arguments.Endpoint!.HasCapability(OpenNettyCapabilities.BasicDimmingState))
                     .Where(arguments => set.Add(arguments.Endpoint!))
                     .Select(static arguments => (arguments.Endpoint!,
-                        arguments.Command == OpenNettyCommands.Lighting.Off   ? (ushort) 0   :
-                        arguments.Command == OpenNettyCommands.Lighting.On    ? (ushort) 100 :
-                        arguments.Command == OpenNettyCommands.Lighting.On20  ? (ushort) 20  :
-                        arguments.Command == OpenNettyCommands.Lighting.On30  ? (ushort) 30  :
-                        arguments.Command == OpenNettyCommands.Lighting.On40  ? (ushort) 40  :
-                        arguments.Command == OpenNettyCommands.Lighting.On50  ? (ushort) 50  :
-                        arguments.Command == OpenNettyCommands.Lighting.On60  ? (ushort) 60  :
-                        arguments.Command == OpenNettyCommands.Lighting.On70  ? (ushort) 70  :
-                        arguments.Command == OpenNettyCommands.Lighting.On80  ? (ushort) 80  :
-                        arguments.Command == OpenNettyCommands.Lighting.On90  ? (ushort) 90  : (ushort) 100)))
+                        arguments.Command == OpenNettyCommands.Lighting.Off   ? (byte) 0   :
+                        arguments.Command == OpenNettyCommands.Lighting.On    ? (byte) 100 :
+                        arguments.Command == OpenNettyCommands.Lighting.On20  ? (byte) 20  :
+                        arguments.Command == OpenNettyCommands.Lighting.On30  ? (byte) 30  :
+                        arguments.Command == OpenNettyCommands.Lighting.On40  ? (byte) 40  :
+                        arguments.Command == OpenNettyCommands.Lighting.On50  ? (byte) 50  :
+                        arguments.Command == OpenNettyCommands.Lighting.On60  ? (byte) 60  :
+                        arguments.Command == OpenNettyCommands.Lighting.On70  ? (byte) 70  :
+                        arguments.Command == OpenNettyCommands.Lighting.On80  ? (byte) 80  :
+                        arguments.Command == OpenNettyCommands.Lighting.On90  ? (byte) 90  : (byte) 100)))
                 {
                     yield return result;
                 }
@@ -606,7 +606,7 @@ public class OpenNettyController
     /// A <see cref="ValueTask{TResult}"/> that can be used to monitor the asynchronous
     /// operation and whose result returns the current brightness of the specified endpoint.
     /// </returns>
-    public virtual async ValueTask<ushort> GetBrightnessAsync(
+    public virtual async ValueTask<byte> GetBrightnessAsync(
         OpenNettyEndpoint endpoint,
         CancellationToken cancellationToken = default)
     {
@@ -623,7 +623,7 @@ public class OpenNettyController
             return await GetUnitDescriptionAsync(endpoint, cancellationToken) switch
             {
                 { FunctionCode: 143, Values: [{ Length: > 0 } value, ..] }
-                    => (ushort) Math.Round(decimal.Parse(value, CultureInfo.InvariantCulture)),
+                    => (byte) Math.Round(decimal.Parse(value, CultureInfo.InvariantCulture)),
 
                 _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
             };
@@ -651,7 +651,7 @@ public class OpenNettyController
                     .Where(static message => message.Dimension == OpenNettyDimensions.Lighting.DimmerLevelSpeed ||
                                              message.Dimension == OpenNettyDimensions.Lighting.DimmerStatus)
                     .Where(message => message.Address == endpoint.Address)
-                    .Select(static arguments => (ushort) (ushort.Parse(arguments.Values[0], CultureInfo.InvariantCulture) - 100))
+                    .Select(static arguments => (byte) (byte.Parse(arguments.Values[0], CultureInfo.InvariantCulture) - 100))
                     .FirstOrDefault()
                     .Timeout(TimeSpan.FromSeconds(10))
                     .RunAsync(cancellationToken);
@@ -838,7 +838,7 @@ public class OpenNettyController
             .Take(count)
             .Timeout(TimeSpan.FromSeconds(10))
             .ToAsyncEnumerable()
-            .OrderBy(static message => ushort.Parse(message.Values[3], CultureInfo.InvariantCulture))
+            .OrderBy(static message => byte.Parse(message.Values[3], CultureInfo.InvariantCulture))
             .Select(static message => OpenNettyModels.Diagnostics.MemoryData.CreateFromUnitDescription(message.Values))
             .ToListAsync(cancellationToken)];
     }
@@ -852,7 +852,7 @@ public class OpenNettyController
     /// A <see cref="ValueTask{TResult}"/> that can be used to monitor the asynchronous operation and whose
     /// result returns the number of memory entries associated with the specified endpoint.
     /// </returns>
-    public virtual async ValueTask<ushort> GetMemoryDepthAsync(
+    public virtual async ValueTask<byte> GetMemoryDepthAsync(
         OpenNettyEndpoint endpoint,
         CancellationToken cancellationToken = default)
     {
@@ -879,7 +879,7 @@ public class OpenNettyController
         return await messages
             .Where(static message => message.Dimension == OpenNettyDimensions.Diagnostics.MemoryDepth)
             .Where(message => message.Address == endpoint.Address)
-            .Select(static message => ushort.Parse(message.Values[0], CultureInfo.InvariantCulture))
+            .Select(static message => byte.Parse(message.Values[0], CultureInfo.InvariantCulture))
             .FirstOrDefault()
             .Timeout(TimeSpan.FromSeconds(10))
             .RunAsync(cancellationToken);
@@ -1182,7 +1182,7 @@ public class OpenNettyController
     /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
     public virtual ValueTask SetBrightnessAsync(
         OpenNettyEndpoint endpoint,
-        ushort level,
+        byte level,
         TimeSpan? duration = null,
         CancellationToken cancellationToken = default)
     {

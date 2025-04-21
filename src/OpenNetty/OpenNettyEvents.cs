@@ -232,7 +232,7 @@ public sealed class OpenNettyEvents : IDisposable
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
     /// <param name="Level">The battery level.</param>
-    public sealed record BatteryLevelReportedEventArgs(OpenNettyEndpoint Endpoint, ushort Level) : EventArgs(Endpoint);
+    public sealed record BatteryLevelReportedEventArgs(OpenNettyEndpoint Endpoint, byte Level) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when a binding is closed.
@@ -251,7 +251,7 @@ public sealed class OpenNettyEvents : IDisposable
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
     /// <param name="Level">The brightness level, from 0 to 100.</param>
-    public sealed record BrightnessReportedEventArgs(OpenNettyEndpoint Endpoint, ushort Level) : EventArgs(Endpoint);
+    public sealed record BrightnessReportedEventArgs(OpenNettyEndpoint Endpoint, byte Level) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when a device description is reported.

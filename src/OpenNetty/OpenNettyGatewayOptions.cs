@@ -42,7 +42,7 @@ public sealed record OpenNettyGatewayOptions
     /// <summary>
     /// Gets or sets the maximum number of concurrent command sessions allowed.
     /// </summary>
-    public required ushort MaximumConcurrentCommandSessions { get; init; }
+    public required byte MaximumConcurrentCommandSessions { get; init; }
 
     /// <summary>
     /// Gets or sets the reply timeout used when multiple dimensions should be returned.
@@ -101,7 +101,7 @@ public sealed record OpenNettyGatewayOptions
             ConnectionNegotiationTimeout     = TimeSpan.FromSeconds(10),
             EnableSupervisionMode            = device.Definition.HasCapability(OpenNettyCapabilities.ZigbeeSupervision),
             FrameAcknowledgementTimeout      = TimeSpan.FromSeconds(5),
-            MaximumConcurrentCommandSessions = device.Definition.Protocol is OpenNettyProtocol.Scs ? (ushort) 3 : (ushort) 0,
+            MaximumConcurrentCommandSessions = device.Definition.Protocol is OpenNettyProtocol.Scs ? (byte) 3 : (byte) 0,
             MultipleDimensionReplyTimeout    = device.Definition.Protocol is OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee ? TimeSpan.FromSeconds(10) : TimeSpan.Zero,
             MultipleStatusReplyTimeout       = device.Definition.Protocol is OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee ? TimeSpan.FromSeconds(10) : TimeSpan.Zero,
             OutgoingMessageProcessingTimeout = TimeSpan.FromSeconds(10),

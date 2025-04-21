@@ -265,7 +265,7 @@ public sealed class OpenNettyBuilder
                          endpoint.Parent?.Name == "Unit" && endpoint.Parent.Parent?.Name == "Device" ? GetEndpointDevice(endpoint.Parent.Parent) : null;
 
             var unit = device is not null && endpoint.Parent?.Name == "Unit" ? GetEndpointDeviceUnit(device, endpoint.Parent,
-                (ushort?) (uint?) endpoint.Parent.Attribute("Id") ?? throw new InvalidOperationException(SR.FormatID0086("Id"))) : null;
+                (byte?) (uint?) endpoint.Parent.Attribute("Id") ?? throw new InvalidOperationException(SR.FormatID0086("Id"))) : null;
 
             var type = (string?) endpoint.Attribute("Type") switch
             {
@@ -321,36 +321,36 @@ public sealed class OpenNettyBuilder
 
                 OpenNettyAddressType.NitooUnit => OpenNettyAddress.FromNitooAddress(
                     identifier: uint.Parse(device?.SerialNumber ?? throw new InvalidOperationException(SR.FormatID0089("SerialNumber")), CultureInfo.InvariantCulture),
-                    unit      : (ushort?) (uint?) endpoint.Parent?.Attribute("Id") ?? throw new InvalidOperationException(SR.FormatID0090("Id"))),
+                    unit      : (byte?) (uint?) endpoint.Parent?.Attribute("Id") ?? throw new InvalidOperationException(SR.FormatID0090("Id"))),
 
                 OpenNettyAddressType.ScsLightPointArea => OpenNettyAddress.FromScsLightPointAreaAddress(
-                    area     : (ushort?) (uint?) endpoint.Attribute("Area") ?? throw new InvalidOperationException(SR.FormatID0091("Area")),
-                    extension: (ushort?) (uint?) endpoint.Attribute("Extension") ?? 0),
+                    area     : (byte?) (uint?) endpoint.Attribute("Area") ?? throw new InvalidOperationException(SR.FormatID0091("Area")),
+                    extension: (byte?) (uint?) endpoint.Attribute("Extension") ?? 0),
 
                 OpenNettyAddressType.ScsLightPointGeneral => OpenNettyAddress.FromScsLightPointGeneralAddress(
-                    extension: (ushort?) (uint?) endpoint.Attribute("Extension") ?? 0),
+                    extension: (byte?) (uint?) endpoint.Attribute("Extension") ?? 0),
 
                 OpenNettyAddressType.ScsLightPointGroup => OpenNettyAddress.FromScsLightPointGroupAddress(
-                    group    : (ushort?) (uint?) endpoint.Attribute("Group") ?? throw new InvalidOperationException(SR.FormatID0092("Group")),
-                    extension: (ushort?) (uint?) endpoint.Attribute("Extension") ?? 0),
+                    group    : (byte?) (uint?) endpoint.Attribute("Group") ?? throw new InvalidOperationException(SR.FormatID0092("Group")),
+                    extension: (byte?) (uint?) endpoint.Attribute("Extension") ?? 0),
 
                 OpenNettyAddressType.ScsLightPointPointToPoint => OpenNettyAddress.FromScsLightPointPointToPointAddress(
-                    area     : (ushort?) (uint?) endpoint.Attribute("Area") ?? throw new InvalidOperationException(SR.FormatID0093("Area")),
-                    point    : (ushort?) (uint?) endpoint.Attribute("Point") ?? throw new InvalidOperationException(SR.FormatID0093("Point")),
-                    extension: (ushort?) (uint?) endpoint.Attribute("Extension") ?? 0),
+                    area     : (byte?) (uint?) endpoint.Attribute("Area") ?? throw new InvalidOperationException(SR.FormatID0093("Area")),
+                    point    : (byte?) (uint?) endpoint.Attribute("Point") ?? throw new InvalidOperationException(SR.FormatID0093("Point")),
+                    extension: (byte?) (uint?) endpoint.Attribute("Extension") ?? 0),
 
                 OpenNettyAddressType.ZigbeeAllDevicesAllUnits => OpenNettyAddress.FromHexadecimalZigbeeAddress(null),
 
                 OpenNettyAddressType.ZigbeeAllDevicesSpecificUnit => OpenNettyAddress.FromHexadecimalZigbeeAddress(
                     identifier: null,
-                    unit      : (ushort?) (uint?) endpoint.Parent?.Attribute("Id") ?? throw new InvalidOperationException(SR.FormatID0095("Id"))),
+                    unit      : (byte?) (uint?) endpoint.Parent?.Attribute("Id") ?? throw new InvalidOperationException(SR.FormatID0095("Id"))),
 
                 OpenNettyAddressType.ZigbeeSpecificDeviceAllUnits => OpenNettyAddress.FromHexadecimalZigbeeAddress(
                     device?.SerialNumber ?? throw new InvalidOperationException(SR.FormatID0094("SerialNumber"))),
 
                 OpenNettyAddressType.ZigbeeSpecificDeviceSpecificUnit => OpenNettyAddress.FromHexadecimalZigbeeAddress(
                     identifier: device?.SerialNumber ?? throw new InvalidOperationException(SR.FormatID0094("SerialNumber")),
-                    unit      : (ushort?) (uint?) endpoint.Parent?.Attribute("Id") ?? throw new InvalidOperationException(SR.FormatID0095("Id"))),
+                    unit      : (byte?) (uint?) endpoint.Parent?.Attribute("Id") ?? throw new InvalidOperationException(SR.FormatID0095("Id"))),
 
                 _ => throw new InvalidOperationException(SR.FormatID0088(name, "Type"))
             };
@@ -415,7 +415,7 @@ public sealed class OpenNettyBuilder
             };
         }
 
-        static OpenNettyUnit GetEndpointDeviceUnit(OpenNettyDevice device, XElement element, ushort unit)
+        static OpenNettyUnit GetEndpointDeviceUnit(OpenNettyDevice device, XElement element, byte unit)
         {
             var brand = (string?) element.Parent?.Attribute("Brand");
             if (string.IsNullOrEmpty(brand))
@@ -448,7 +448,7 @@ public sealed class OpenNettyBuilder
         static OpenNettyScenario GetScenario(XElement element) => new()
         {
             EndpointName = (string?) element.Attribute("Endpoint") ?? throw new InvalidOperationException(SR.FormatID0101("Endpoint")),
-            FunctionCode = (ushort?) (uint?) element.Attribute("Function") ?? throw new InvalidOperationException(SR.FormatID0101("Function"))
+            FunctionCode = (byte?) (uint?) element.Attribute("Function") ?? throw new InvalidOperationException(SR.FormatID0101("Function"))
         };
 
         static OpenNettyGateway FindGatewayByName(IReadOnlyList<OpenNettyGateway> gateways, string name)

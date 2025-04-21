@@ -118,7 +118,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 break;
 
                             case OpenNettyMqttAttributes.Brightness when operation is OpenNettyMqttOperation.Set:
-                                if (!ushort.TryParse(message.PayloadSegment, CultureInfo.InvariantCulture, out var level))
+                                if (!byte.TryParse(message.PayloadSegment, CultureInfo.InvariantCulture, out var level))
                                 {
                                     throw new InvalidDataException(SR.GetResourceString(SR.ID0075));
                                 }
