@@ -83,6 +83,27 @@ public static class OpenNettyCommands
     }
 
     /// <summary>
+    /// Automation commands (WHO = 2).
+    /// </summary>
+    public static class Automation
+    {
+        /// <summary>
+        /// Stop (WHAT = 0).
+        /// </summary>
+        public static readonly OpenNettyCommand Stop = new(OpenNettyCategories.Automation, "0");
+
+        /// <summary>
+        /// Up (WHAT = 1).
+        /// </summary>
+        public static readonly OpenNettyCommand Up = new(OpenNettyCategories.Automation, "1");
+
+        /// <summary>
+        /// Down (WHAT = 2).
+        /// </summary>
+        public static readonly OpenNettyCommand Down = new(OpenNettyCategories.Automation, "2");
+    }
+
+    /// <summary>
     /// Temperature control commands (WHO = 4).
     /// </summary>
     public static class TemperatureControl

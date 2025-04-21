@@ -22,6 +22,16 @@ public static class OpenNettyCapabilities
     public static readonly OpenNettyCapability AdvancedDimmingState = new("Advanced dimming state");
 
     /// <summary>
+    /// Advanced shutter control.
+    /// </summary>
+    public static readonly OpenNettyCapability AdvancedShutterControl = new("Advanced shutter control");
+
+    /// <summary>
+    /// Advanced shutter state.
+    /// </summary>
+    public static readonly OpenNettyCapability AdvancedShutterState = new("Advanced shutter state");
+
+    /// <summary>
     /// Basic dimming control.
     /// </summary>
     public static readonly OpenNettyCapability BasicDimmingControl = new("Basic dimming control");
@@ -35,6 +45,16 @@ public static class OpenNettyCapabilities
     /// Basic scenario.
     /// </summary>
     public static readonly OpenNettyCapability BasicScenario = new("Basic scenario");
+
+    /// <summary>
+    /// Basic shutter control.
+    /// </summary>
+    public static readonly OpenNettyCapability BasicShutterControl = new("Basic shutter control");
+
+    /// <summary>
+    /// Basic shutter state.
+    /// </summary>
+    public static readonly OpenNettyCapability BasicShutterState = new("Basic shutter state");
 
     /// <summary>
     /// Battery.
@@ -125,6 +145,11 @@ public static class OpenNettyCapabilities
     /// Smart meter information.
     /// </summary>
     public static readonly OpenNettyCapability SmartMeterInformation = new("Smart meter information");
+
+    /// <summary>
+    /// Stop/up/down scenario.
+    /// </summary>
+    public static readonly OpenNettyCapability StopUpDownScenario = new("Stop/up/down scenario");
 
     /// <summary>
     /// Timed scenario.

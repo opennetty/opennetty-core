@@ -525,6 +525,8 @@
     <Identity Brand="BTicino" Model="F411U2" />
     <Identity Brand="Legrand" Model="03848" />
 
+    <Capability Name="Basic shutter control" />
+    <Capability Name="Basic shutter state" />
     <Capability Name="On/off switch state" />
     <Capability Name="On/off switching" />
   </Device>
@@ -561,6 +563,24 @@
     <Capability Name="OpenWebNet event session" />
     <Capability Name="OpenWebNet gateway" />
     <Capability Name="Uptime" />
+  </Device>
+
+  <Device Series="MyHome" Protocol="Scs" Medium="Bus">
+    <Identity Brand="Legrand" Collection="Céliane" Model="67557" />
+
+    <Capability Name="Advanced shutter control" />
+    <Capability Name="Advanced shutter state" />
+    <Capability Name="Basic shutter control" />
+    <Capability Name="Basic shutter state" />
+  </Device>
+
+  <Device Series="MyHome" Protocol="Scs" Medium="Bus">
+    <Identity Brand="Legrand" Collection="Céliane" Model="67561" />
+
+    <Capability Name="Basic shutter control" />
+    <Capability Name="Basic shutter state" />
+    <Capability Name="On/off switch state" />
+    <Capability Name="On/off switching" />
   </Device>
 
   <!--

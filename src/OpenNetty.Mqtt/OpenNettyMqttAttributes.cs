@@ -42,6 +42,16 @@ public static class OpenNettyMqttAttributes
     public const string Scenario = "scenario";
 
     /// <summary>
+    /// Shutter position.
+    /// </summary>
+    public const string ShutterPosition = "shutter_position";
+
+    /// <summary>
+    /// Shutter state.
+    /// </summary>
+    public const string ShutterState = "shutter_state";
+
+    /// <summary>
     /// Smart meter indexes.
     /// </summary>
     public const string SmartMeterIndexes = "smart_meter_indexes";

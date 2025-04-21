@@ -267,12 +267,58 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                         await _controller.DispatchBasicScenarioAsync(endpoint);
                                         break;
 
+                                    case "down" when endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenario):
+                                        await _controller.DispatchShutterDownScenarioAsync(endpoint);
+                                        break;
+
                                     case "on" when endpoint.HasCapability(OpenNettyCapabilities.OnOffScenario):
                                         await _controller.DispatchOnScenarioAsync(endpoint);
                                         break;
 
                                     case "off" when endpoint.HasCapability(OpenNettyCapabilities.OnOffScenario):
                                         await _controller.DispatchOffScenarioAsync(endpoint);
+                                        break;
+
+                                    case "stop" when endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenario):
+                                        await _controller.DispatchShutterStopScenarioAsync(endpoint);
+                                        break;
+
+                                    case "up" when endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenario):
+                                        await _controller.DispatchShutterUpScenarioAsync(endpoint);
+                                        break;
+                                }
+                                break;
+
+                            case OpenNettyMqttAttributes.ShutterPosition when operation is OpenNettyMqttOperation.Get:
+                                _ = await _controller.EnumerateShutterPositionsAsync(endpoint).ToListAsync();
+                                break;
+
+                            case OpenNettyMqttAttributes.ShutterPosition when operation is OpenNettyMqttOperation.Set:
+                                if (!byte.TryParse(message.PayloadSegment, CultureInfo.InvariantCulture, out var position))
+                                {
+                                    throw new InvalidDataException(SR.GetResourceString(SR.ID0075));
+                                }
+
+                                await _controller.SetShutterPositionAsync(endpoint, position);
+                                break;
+
+                            case OpenNettyMqttAttributes.ShutterState when operation is OpenNettyMqttOperation.Get:
+                                _ = await _controller.EnumerateShutterStatesAsync(endpoint).ToListAsync();
+                                break;
+
+                            case OpenNettyMqttAttributes.ShutterState when operation is OpenNettyMqttOperation.Set:
+                                switch (message.ConvertPayloadToString()?.ToLowerInvariant())
+                                {
+                                    case "close":
+                                        await _controller.MoveShutterUpAsync(endpoint);
+                                        break;
+
+                                    case "open":
+                                        await _controller.MoveShutterDownAsync(endpoint);
+                                        break;
+
+                                    case "stop":
+                                        await _controller.StopShutterAsync(endpoint);
                                         break;
                                 }
                                 break;
@@ -483,6 +529,46 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
                         {
                             component["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.SwitchState}";
+                        }
+
+                        components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", component);
+                        break;
+                    }
+
+                    case "Cover":
+                    case null when endpoint.HasCapability(OpenNettyCapabilities.BasicShutterControl) &&
+                                   endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState):
+                    {
+                        var component = new JsonObject
+                        {
+                            ["platform"] = "cover",
+                            ["unique_id"] = Base64Url.EncodeToString(SHA256.HashData(
+                            [
+                                ..Encoding.UTF8.GetBytes(name),
+                                ..Encoding.UTF8.GetBytes(endpoint.Address?.Value ?? string.Empty)
+                            ])),
+                            ["name"] = endpoint.Name,
+                            ["device_class"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantDeviceClass) ?? "shutter"
+                        };
+
+                        if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterControl))
+                        {
+                            component["command_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.ShutterState}/set";
+                        }
+
+                        if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState))
+                        {
+                            component["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.ShutterState}";
+                        }
+
+                        if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterControl))
+                        {
+                            component["set_position_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.ShutterPosition}/set";
+                        }
+
+                        if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
+                        {
+                            component["position_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.ShutterPosition}";
                         }
 
                         components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", component);
