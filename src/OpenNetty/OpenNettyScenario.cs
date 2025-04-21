@@ -19,7 +19,7 @@ public sealed class OpenNettyScenario : IEquatable<OpenNettyScenario>
     /// <summary>
     /// Gets or sets the function code associated with the scenario.
     /// </summary>
-    public required ushort FunctionCode { get; init; }
+    public required byte FunctionCode { get; init; }
 
     /// <inheritdoc/>
     public bool Equals(OpenNettyScenario? other)

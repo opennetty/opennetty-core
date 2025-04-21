@@ -99,7 +99,7 @@ public static class OpenNettyModels
             /// <returns>A new instance of the <see cref="PilotWireConfiguration"/> class.</returns>
             public static PilotWireConfiguration CreateFromUnitDescription(ImmutableArray<string> values) => new()
             {
-                DerogationDuration = ushort.Parse(values[0], CultureInfo.InvariantCulture) switch
+                DerogationDuration = byte.Parse(values[0], CultureInfo.InvariantCulture) switch
                 {
                     >=  8 and <  72 => PilotWireDerogationDuration.None,
                     >= 72 and < 136 => PilotWireDerogationDuration.FourHours,
@@ -107,7 +107,7 @@ public static class OpenNettyModels
 
                     _ => null
                 },
-                IsDerogationActive = ushort.Parse(values[0], CultureInfo.InvariantCulture) is >= 8,
+                IsDerogationActive = byte.Parse(values[0], CultureInfo.InvariantCulture) is >= 8,
                 Mode               = values[0] switch
                 {
                     "0" or "8"  or "72" or "136" => PilotWireMode.Comfort,
@@ -363,7 +363,7 @@ public static class OpenNettyModels
             /// <summary>
             /// Gets or sets the function code.
             /// </summary>
-            public required ushort FunctionCode { get; init; }
+            public required byte FunctionCode { get; init; }
 
             /// <summary>
             /// Gets or sets the device model.
@@ -373,7 +373,7 @@ public static class OpenNettyModels
             /// <summary>
             /// Gets or sets the number of units available.
             /// </summary>
-            public required ushort Units { get; init; }
+            public required byte Units { get; init; }
 
             /// <summary>
             /// Gets or sets the device version.
@@ -387,9 +387,9 @@ public static class OpenNettyModels
             /// <returns>A new instance of the <see cref="DeviceDescription"/> class.</returns>
             public static DeviceDescription CreateFromDeviceDescription(ImmutableArray<string> values) => new()
             {
-                FunctionCode = ushort.Parse(values[2], CultureInfo.InvariantCulture),
+                FunctionCode = byte.Parse(values[2], CultureInfo.InvariantCulture),
                 Model        = uint.Parse(values[0], CultureInfo.InvariantCulture).ToString("X"),
-                Units        = ushort.Parse(values[3], CultureInfo.InvariantCulture),
+                Units        = byte.Parse(values[3], CultureInfo.InvariantCulture),
                 Version      = new Version(int.Parse(uint.Parse(values[1], CultureInfo.InvariantCulture).ToString("X")), 0)
             };
         }
@@ -407,7 +407,7 @@ public static class OpenNettyModels
             /// <summary>
             /// Gets or sets the function code.
             /// </summary>
-            public required ushort FunctionCode { get; init; }
+            public required byte FunctionCode { get; init; }
 
             /// <summary>
             /// Gets or sets the medium.
@@ -422,7 +422,7 @@ public static class OpenNettyModels
             public static MemoryData CreateFromUnitDescription(ImmutableArray<string> values) => new()
             {
                 Address      = new OpenNettyAddress(OpenNettyAddressType.NitooDevice, values[1]),
-                FunctionCode = ushort.Parse(values[2], CultureInfo.InvariantCulture),
+                FunctionCode = byte.Parse(values[2], CultureInfo.InvariantCulture),
                 Medium       = values[0] switch
                 {
                     "64"  => OpenNettyMedium.Radio,
@@ -442,7 +442,7 @@ public static class OpenNettyModels
             /// <summary>
             /// Gets or sets the function code.
             /// </summary>
-            public required ushort FunctionCode { get; init; }
+            public required byte FunctionCode { get; init; }
 
             /// <summary>
             /// Gets or sets the values.
@@ -456,7 +456,7 @@ public static class OpenNettyModels
             /// <returns>A new instance of the <see cref="UnitDescription"/> class.</returns>
             public static UnitDescription CreateFromUnitDescription(ImmutableArray<string> values) => new()
             {
-                FunctionCode = ushort.Parse(values[0], CultureInfo.InvariantCulture),
+                FunctionCode = byte.Parse(values[0], CultureInfo.InvariantCulture),
                 Values       = values[1..]
             };
         }

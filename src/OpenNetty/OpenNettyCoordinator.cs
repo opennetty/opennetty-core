@@ -155,7 +155,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                             tasks.Add(ReportStateAsync(endpoint, CancellationToken.None).AsTask());
                         }
 
-                        if (endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit.Definition.AssociatedUnitId: ushort unit })
+                        if (endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit.Definition.AssociatedUnitId: byte unit })
                         {
                             tasks.Add(Task.Run(async () =>
                             {
@@ -312,7 +312,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         if (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) &&
                            !endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
                         {
-                            await _events.PublishAsync(new BrightnessReportedEventArgs(endpoint, (ushort)
+                            await _events.PublishAsync(new BrightnessReportedEventArgs(endpoint, (byte)
                                 (command == OpenNettyCommands.Lighting.On20 ? 20 :
                                  command == OpenNettyCommands.Lighting.On30 ? 30 :
                                  command == OpenNettyCommands.Lighting.On40 ? 40 :
@@ -350,7 +350,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                             return;
                         }
 
-                        var level = (ushort) (ushort.Parse(value, CultureInfo.InvariantCulture) - 100);
+                        var level = (byte) (byte.Parse(value, CultureInfo.InvariantCulture) - 100);
 
                         if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
                         {
@@ -412,7 +412,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         return;
                     }
 
-                    var level = ushort.Parse(value, CultureInfo.InvariantCulture);
+                    var level = byte.Parse(value, CultureInfo.InvariantCulture);
 
                     if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
                     {
@@ -452,7 +452,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         return;
                     }
 
-                    var level = (ushort) Math.Round(decimal.Parse(value, CultureInfo.InvariantCulture), MidpointRounding.AwayFromZero);
+                    var level = (byte) Math.Round(decimal.Parse(value, CultureInfo.InvariantCulture), MidpointRounding.AwayFromZero);
 
                     if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
                     {
@@ -665,7 +665,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         tasks.Add(ReportSetpointModeAsync(endpoint, CancellationToken.None).AsTask());
                     }
 
-                    if (endpoint is { Unit.Definition.AssociatedUnitId: ushort unit })
+                    if (endpoint is { Unit.Definition.AssociatedUnitId: byte unit })
                     {
                         tasks.Add(Task.Run(async () =>
                         {
@@ -770,7 +770,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         tasks.Add(ReportDerogationAndSetpointModesAsync(endpoint, CancellationToken.None).AsTask());
                     }
 
-                    if (endpoint is { Unit.Definition.AssociatedUnitId: ushort unit })
+                    if (endpoint is { Unit.Definition.AssociatedUnitId: byte unit })
                     {
                         tasks.Add(Task.Run(async () =>
                         {
@@ -847,7 +847,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         tasks.Add(ReportDerogationModeAsync(endpoint, CancellationToken.None).AsTask());
                     }
 
-                    if (endpoint is { Unit.Definition.AssociatedUnitId: ushort unit })
+                    if (endpoint is { Unit.Definition.AssociatedUnitId: byte unit })
                     {
                         tasks.Add(Task.Run(async () =>
                         {
@@ -887,7 +887,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
 
                                 _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
                             },
-                            ushort.Parse(value, CultureInfo.InvariantCulture) switch
+                            byte.Parse(value, CultureInfo.InvariantCulture) switch
                             {
                                           <  32 => OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None,
                                 >= 32 and < 128 => OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours,
@@ -919,7 +919,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         tasks.Add(_events.PublishAsync(new PilotWireDerogationModeReportedEventArgs(endpoint, null, null)).AsTask());
                     }
 
-                    if (endpoint is { Unit.Definition.AssociatedUnitId: ushort unit })
+                    if (endpoint is { Unit.Definition.AssociatedUnitId: byte unit })
                     {
                         tasks.Add(Task.Run(async () =>
                         {
@@ -1023,7 +1023,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
 
                     if (endpoint.HasCapability(OpenNettyCapabilities.Battery))
                     {
-                        await _events.PublishAsync(new BatteryLevelReportedEventArgs(endpoint, (ushort) 5));
+                        await _events.PublishAsync(new BatteryLevelReportedEventArgs(endpoint, (byte) 5));
                     }
                     break;
                 }
@@ -1223,7 +1223,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         tasks.Add(ReportOnStateAsync(endpoint, CancellationToken.None).AsTask());
                     }
 
-                    if (endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit.Definition.AssociatedUnitId: ushort unit })
+                    if (endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit.Definition.AssociatedUnitId: byte unit })
                     {
                         tasks.Add(Task.Run(async () =>
                         {
@@ -1475,7 +1475,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     tasks.Add(_controller.GetBrightnessAsync(endpoint, cancellationToken).AsTask());
                 }
 
-                if (endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit.Definition.AssociatedUnitId: ushort unit })
+                if (endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit.Definition.AssociatedUnitId: byte unit })
                 {
                     tasks.Add(Task.Run(async () =>
                     {
@@ -1572,7 +1572,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 tasks.Add(ReportOffStateAsync(endpoint, CancellationToken.None).AsTask());
             }
 
-            if (endpoint is { Unit.Definition.AssociatedUnitId: ushort unit })
+            if (endpoint is { Unit.Definition.AssociatedUnitId: byte unit })
             {
                 tasks.Add(Task.Run(async () =>
                 {

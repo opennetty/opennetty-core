@@ -16,7 +16,7 @@ public sealed class OpenNettyUnitDefinition : IEquatable<OpenNettyUnitDefinition
     /// <summary>
     /// Gets or sets the identifier of the associated unit, if applicable (Nitoo-only).
     /// </summary>
-    public ushort? AssociatedUnitId { get; init; }
+    public byte? AssociatedUnitId { get; init; }
 
     /// <summary>
     /// Gets or sets the capabilities associated with the unit definition.
@@ -26,7 +26,7 @@ public sealed class OpenNettyUnitDefinition : IEquatable<OpenNettyUnitDefinition
     /// <summary>
     /// Gets or sets the identifier of the unit.
     /// </summary>
-    public required ushort Id { get; init; }
+    public required byte Id { get; init; }
 
     /// <summary>
     /// Gets or sets the OpenNetty-defined settings associated with the unit definition.

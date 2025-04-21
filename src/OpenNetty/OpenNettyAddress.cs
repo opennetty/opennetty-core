@@ -238,7 +238,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
     /// <param name="unit">The unit, or 0 to represent a device address that doesn't point to a specific unit.</param>
     /// <returns>A Zigbee address based on the specified device identifier and unit.</returns>
     /// <exception cref="ArgumentOutOfRangeException">The identifier or unit is not valid.</exception>
-    public static OpenNettyAddress FromDecimalZigbeeAddress(uint? identifier, ushort unit = 0)
+    public static OpenNettyAddress FromDecimalZigbeeAddress(uint? identifier, byte unit = 0)
     {
         // Note: Zigbee identifiers are 4-byte long and fit exactly in an
         // unsigned 32-bit integer, so a range check is not required.
@@ -269,7 +269,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
     /// <param name="unit">The unit, or 0 to represent a device address that doesn't point to a specific unit.</param>
     /// <returns>A Zigbee address based on the specified device identifier and unit.</returns>
     /// <exception cref="ArgumentException">The identifier is not a valid hexadecimal string.</exception>
-    public static OpenNettyAddress FromHexadecimalZigbeeAddress(string? identifier, ushort unit = 0)
+    public static OpenNettyAddress FromHexadecimalZigbeeAddress(string? identifier, byte unit = 0)
     {
         if (string.IsNullOrEmpty(identifier))
         {
@@ -291,7 +291,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
     /// <param name="unit">The unit, or 0 to represent a device address that doesn't point to a specific unit.</param>
     /// <returns>A Nitoo address based on the specified device identifier and unit.</returns>
     /// <exception cref="ArgumentOutOfRangeException">The identifier or unit is not valid.</exception>
-    public static OpenNettyAddress FromNitooAddress(uint identifier, ushort unit = 0)
+    public static OpenNettyAddress FromNitooAddress(uint identifier, byte unit = 0)
     {
         if (identifier > Math.Pow(2, 24))
         {
@@ -315,7 +315,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
     /// <param name="extension">The bus extension (also known as interface), or 0 to represent the private riser.</param>
     /// <returns>A SCS light point area address based on the specified area and bus extension.</returns>
     /// <exception cref="ArgumentOutOfRangeException">The area or bus extension is not valid.</exception>
-    public static OpenNettyAddress FromScsLightPointAreaAddress(ushort area, ushort extension = 0)
+    public static OpenNettyAddress FromScsLightPointAreaAddress(byte area, byte extension = 0)
     {
         if (area is > 10)
         {
@@ -350,7 +350,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
     /// <param name="extension">The bus extension (also known as interface), or 0 to represent the private riser.</param>
     /// <returns>A SCS light point general address based on the specified bus extension.</returns>
     /// <exception cref="ArgumentOutOfRangeException">The bus extension is not valid.</exception>
-    public static OpenNettyAddress FromScsLightPointGeneralAddress(ushort extension = 0)
+    public static OpenNettyAddress FromScsLightPointGeneralAddress(byte extension = 0)
     {
         if (extension is > 15)
         {
@@ -369,7 +369,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
     /// <param name="extension">The bus extension (also known as interface), or 0 to represent the private riser.</param>
     /// <returns>A SCS light point general address based on the specified group and bus extension.</returns>
     /// <exception cref="ArgumentOutOfRangeException">The group or bus extension is not valid.</exception>
-    public static OpenNettyAddress FromScsLightPointGroupAddress(ushort group, ushort extension = 0)
+    public static OpenNettyAddress FromScsLightPointGroupAddress(byte group, byte extension = 0)
     {
         if (group is < 1 or > 255)
         {
@@ -394,7 +394,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
     /// <param name="extension">The bus extension (also known as interface), or 0 to represent the private riser.</param>
     /// <returns>A SCS light point point-to-point address based on the specified area, light point and bus extension.</returns>
     /// <exception cref="ArgumentOutOfRangeException">The area, light point or bus extension is not valid.</exception>
-    public static OpenNettyAddress FromScsLightPointPointToPointAddress(ushort area, ushort point, ushort extension = 0)
+    public static OpenNettyAddress FromScsLightPointPointToPointAddress(byte area, byte point, byte extension = 0)
     {
         if (area is > 10)
         {
@@ -475,7 +475,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
     /// <param name="address">The address.</param>
     /// <returns>A Nitoo address based on the specified address.</returns>
     /// <exception cref="InvalidOperationException">The address doesn't represent a valid Nitoo address.</exception>
-    public static (uint Identifier, ushort Unit) ToNitooAddress(OpenNettyAddress address)
+    public static (uint Identifier, byte Unit) ToNitooAddress(OpenNettyAddress address)
     {
         if (!IsNitooAddress(address))
         {
@@ -487,7 +487,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
             throw new ArgumentException(SR.GetResourceString(SR.ID0053), nameof(address));
         }
 
-        return (Identifier: value / 16, Unit: (ushort) (value % 16));
+        return (Identifier: value / 16, Unit: (byte) (value % 16));
     }
 
     /// <summary>
@@ -496,7 +496,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
     /// <param name="address">The address.</param>
     /// <returns>A SCS light point area address based on the specified address.</returns>
     /// <exception cref="ArgumentException">The address doesn't represent a valid SCS light point area address.</exception>
-    public static (ushort? Extension, ushort? Area) ToScsLightPointAreaAddress(OpenNettyAddress address)
+    public static (byte? Extension, byte? Area) ToScsLightPointAreaAddress(OpenNettyAddress address)
     {
         if (address.Type is not OpenNettyAddressType.ScsLightPointArea)
         {
@@ -510,12 +510,12 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
 
         return address.Parameters switch
         {
-            { IsDefaultOrEmpty: true } when ushort.TryParse(address.Value, CultureInfo.InvariantCulture, out ushort area) && area is >= 0 and <= 10
+            { IsDefaultOrEmpty: true } when byte.TryParse(address.Value, CultureInfo.InvariantCulture, out byte area) && area is >= 0 and <= 10
                 => (Extension: null, Area: area),
 
             ["4", string value] when
-                ushort.TryParse(address.Value, CultureInfo.InvariantCulture, out ushort area) &&
-                ushort.TryParse(value, CultureInfo.InvariantCulture, out ushort extension)    && extension is >= 0 and <= 15
+                byte.TryParse(address.Value, CultureInfo.InvariantCulture, out byte area) &&
+                byte.TryParse(value, CultureInfo.InvariantCulture, out byte extension)    && extension is >= 0 and <= 15
                 => (Extension: extension, Area: area),
 
             _ => throw new ArgumentException(SR.GetResourceString(SR.ID0055), nameof(address)),
@@ -528,7 +528,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
     /// <param name="address">The address.</param>
     /// <returns>The bus extension, if applicable.</returns>
     /// <exception cref="ArgumentException">The address doesn't represent a valid SCS light point general address.</exception>
-    public static ushort? ToScsLightPointGeneralAddress(OpenNettyAddress address)
+    public static byte? ToScsLightPointGeneralAddress(OpenNettyAddress address)
     {
         if (address.Type is not OpenNettyAddressType.ScsLightPointGeneral)
         {
@@ -544,7 +544,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
         {
             { IsDefaultOrEmpty: true } => null,
 
-            ["4", string value] when ushort.TryParse(value, CultureInfo.InvariantCulture, out ushort extension) && extension is >= 0 and <= 15
+            ["4", string value] when byte.TryParse(value, CultureInfo.InvariantCulture, out byte extension) && extension is >= 0 and <= 15
                 => extension,
 
             _ => throw new ArgumentException(SR.GetResourceString(SR.ID0057), nameof(address))
@@ -557,7 +557,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
     /// <param name="address">The address.</param>
     /// <returns>A SCS light point group address based on the specified address.</returns>
     /// <exception cref="ArgumentException">The address doesn't represent a valid SCS light point group address.</exception>
-    public static (ushort? Extension, ushort? Group) ToScsLightPointGroupAddress(OpenNettyAddress address)
+    public static (byte? Extension, byte? Group) ToScsLightPointGroupAddress(OpenNettyAddress address)
     {
         if (address.Type is not OpenNettyAddressType.ScsLightPointGroup)
         {
@@ -571,12 +571,12 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
 
         return address.Parameters switch
         {
-            [string value] when ushort.TryParse(value, CultureInfo.InvariantCulture, out ushort group) && group is >= 1 and <= 255
+            [string value] when byte.TryParse(value, CultureInfo.InvariantCulture, out byte group) && group is >= 1 and <= 255
                 => (Extension: null, Group: group),
 
             [string first, "4", string third] when
-                ushort.TryParse(first, CultureInfo.InvariantCulture, out ushort group)     && group     is >= 1 and <= 255 &&
-                ushort.TryParse(third, CultureInfo.InvariantCulture, out ushort extension) && extension is >= 0 and <= 15
+                byte.TryParse(first, CultureInfo.InvariantCulture, out byte group)     && group     is >= 1 and <= 255 &&
+                byte.TryParse(third, CultureInfo.InvariantCulture, out byte extension) && extension is >= 0 and <= 15
                 => (Extension: extension, Group: group),
 
             _ => throw new ArgumentException(SR.GetResourceString(SR.ID0059), nameof(address))
@@ -589,7 +589,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
     /// <param name="address">The address.</param>
     /// <returns>A SCS light point point-to-point address based on the specified address.</returns>
     /// <exception cref="ArgumentException">The address doesn't represent a valid SCS light point point-to-point address.</exception>
-    public static (ushort? Extension, ushort? Area, ushort? Point) ToScsLightPointPointToPointAddress(OpenNettyAddress address)
+    public static (byte? Extension, byte? Area, byte? Point) ToScsLightPointPointToPointAddress(OpenNettyAddress address)
     {
         if (address.Type is not OpenNettyAddressType.ScsLightPointPointToPoint)
         {
@@ -598,39 +598,39 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
 
         return address.Parameters switch
         {
-            { IsDefaultOrEmpty: true } when GetAreaAndLightPoint(address.Value) is { Area: ushort area, Point: ushort point }
+            { IsDefaultOrEmpty: true } when GetAreaAndLightPoint(address.Value) is { Area: byte area, Point: byte point }
                 => (Extension: null, Area: area, Point: point),
 
             ["4", string value] when
-                GetAreaAndLightPoint(address.Value) is { Area: ushort area, Point: ushort point } &&
-                ushort.TryParse(value, CultureInfo.InvariantCulture, out ushort extension) && extension is >= 0 and <= 15
+                GetAreaAndLightPoint(address.Value) is { Area: byte area, Point: byte point } &&
+                byte.TryParse(value, CultureInfo.InvariantCulture, out byte extension) && extension is >= 0 and <= 15
                 => (Extension: extension, Area: area, Point: point),
 
             _ => throw new ArgumentException(SR.GetResourceString(SR.ID0061), nameof(address))
         };
 
-        static (ushort Area, ushort Point) GetAreaAndLightPoint(ReadOnlySpan<char> address) => address switch
+        static (byte Area, byte Point) GetAreaAndLightPoint(ReadOnlySpan<char> address) => address switch
         {
             // A = 00; PL [01 − 15]:
             ['0', '0', '0' or '1', >= '0' and <= '9'] when
-                ushort.TryParse(address[2..4], CultureInfo.InvariantCulture, out ushort point) && point is >= 1 and <= 15
+                byte.TryParse(address[2..4], CultureInfo.InvariantCulture, out byte point) && point is >= 1 and <= 15
                 => (0, point),
 
             // A [1 − 9]; PL [1 − 9]:
             [>= '1' and <= '9', >= '1' and <= '9'] when
-                ushort.TryParse(address[0..1], CultureInfo.InvariantCulture, out ushort area) &&
-                ushort.TryParse(address[1..2], CultureInfo.InvariantCulture, out ushort point)
+                byte.TryParse(address[0..1], CultureInfo.InvariantCulture, out byte area) &&
+                byte.TryParse(address[1..2], CultureInfo.InvariantCulture, out byte point)
                 => (area, point),
 
             // A = 10; PL [01 − 15]:
             ['1', '0', '0' or '1', >= '0' and <= '9'] when
-                ushort.TryParse(address[2..4], CultureInfo.InvariantCulture, out ushort point) && point is >= 1 and <= 15
+                byte.TryParse(address[2..4], CultureInfo.InvariantCulture, out byte point) && point is >= 1 and <= 15
                 => (10, point),
 
             // A [01 − 09]; PL [10 − 15]:
             ['0', >= '1' and <= '9', '1', >= '0' and <= '5'] when
-                ushort.TryParse(address[0..2], CultureInfo.InvariantCulture, out ushort area)  &&
-                ushort.TryParse(address[2..4], CultureInfo.InvariantCulture, out ushort point) && point is >= 1 and <= 15
+                byte.TryParse(address[0..2], CultureInfo.InvariantCulture, out byte area)  &&
+                byte.TryParse(address[2..4], CultureInfo.InvariantCulture, out byte point) && point is >= 1 and <= 15
                 => (area, point),
 
             _ => throw new ArgumentException(SR.GetResourceString(SR.ID0061), nameof(address))
@@ -643,7 +643,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
     /// <param name="address">The address.</param>
     /// <returns>A Zigbee address based on the specified address.</returns>
     /// <exception cref="ArgumentException">The address doesn't represent a valid Zigbee address.</exception>
-    public static (uint? Identifier, ushort Unit) ToZigbeeAddress(OpenNettyAddress address)
+    public static (uint? Identifier, byte Unit) ToZigbeeAddress(OpenNettyAddress address)
     {
         if (!IsZigbeeAddress(address))
         {
@@ -652,7 +652,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
 
         if (address.Value is { Length: 2 })
         {
-            if (!ushort.TryParse(address.Value, CultureInfo.InvariantCulture, out ushort unit))
+            if (!byte.TryParse(address.Value, CultureInfo.InvariantCulture, out byte unit))
             {
                 throw new ArgumentException(SR.GetResourceString(SR.ID0063), nameof(address));
             }
@@ -666,7 +666,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
             // unsigned 32-bit integer, so a range check is not required.
 
             if (!uint.TryParse(address.Value.AsSpan()[0..^2], CultureInfo.InvariantCulture, out uint identifier) ||
-                !ushort.TryParse(address.Value.AsSpan()[^2..], CultureInfo.InvariantCulture, out ushort unit) || unit is > 99)
+                !byte.TryParse(address.Value.AsSpan()[^2..],  CultureInfo.InvariantCulture, out byte unit) || unit is > 99)
             {
                 throw new ArgumentException(SR.GetResourceString(SR.ID0063), nameof(address));
             }
