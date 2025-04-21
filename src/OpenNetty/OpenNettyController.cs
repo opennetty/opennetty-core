@@ -231,15 +231,13 @@ public class OpenNettyController
     }
 
     /// <summary>
-    /// Dispatches a virtual ON/OFF scenario for the specified endpoint.
+    /// Dispatches a virtual OFF scenario for the specified endpoint.
     /// </summary>
     /// <param name="endpoint">The endpoint.</param>
-    /// <param name="state">The state.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
-    public virtual ValueTask DispatchOnOffScenarioAsync(
+    public virtual ValueTask DispatchOffScenarioAsync(
         OpenNettyEndpoint endpoint,
-        OpenNettyModels.Lighting.SwitchState state,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(endpoint);
@@ -251,8 +249,35 @@ public class OpenNettyController
 
         return _service.ExecuteCommandAsync(
             protocol         : endpoint.Protocol,
-            command          : state == OpenNettyModels.Lighting.SwitchState.On ?
-                OpenNettyCommands.Lighting.On : OpenNettyCommands.Lighting.Off,
+            command          : OpenNettyCommands.Lighting.Off,
+            address          : endpoint.Address,
+            medium           : endpoint.Medium,
+            mode             : OpenNettyMode.Broadcast,
+            gateway          : endpoint.Gateway,
+            options          : OpenNettyTransmissionOptions.None,
+            cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
+    /// Dispatches a virtual ON scenario for the specified endpoint.
+    /// </summary>
+    /// <param name="endpoint">The endpoint.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
+    public virtual ValueTask DispatchOnScenarioAsync(
+        OpenNettyEndpoint endpoint,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
+
+        if (!endpoint.HasCapability(OpenNettyCapabilities.OnOffScenario))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+        }
+
+        return _service.ExecuteCommandAsync(
+            protocol         : endpoint.Protocol,
+            command          : OpenNettyCommands.Lighting.On,
             address          : endpoint.Address,
             medium           : endpoint.Medium,
             mode             : OpenNettyMode.Broadcast,

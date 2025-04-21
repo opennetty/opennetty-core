@@ -268,11 +268,11 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                         break;
 
                                     case "on" when endpoint.HasCapability(OpenNettyCapabilities.OnOffScenario):
-                                        await _controller.DispatchOnOffScenarioAsync(endpoint, OpenNettyModels.Lighting.SwitchState.On);
+                                        await _controller.DispatchOnScenarioAsync(endpoint);
                                         break;
 
                                     case "off" when endpoint.HasCapability(OpenNettyCapabilities.OnOffScenario):
-                                        await _controller.DispatchOnOffScenarioAsync(endpoint, OpenNettyModels.Lighting.SwitchState.Off);
+                                        await _controller.DispatchOffScenarioAsync(endpoint);
                                         break;
                                 }
                                 break;
