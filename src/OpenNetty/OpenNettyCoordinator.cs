@@ -135,9 +135,15 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     if (notification is OpenNettyNotifications.MessageReceived && mode is OpenNettyMode.Broadcast &&
                         endpoint.HasCapability(OpenNettyCapabilities.OnOffScenario))
                     {
-                        await _events.PublishAsync(new OnOffScenarioReportedEventArgs(endpoint, command == OpenNettyCommands.Lighting.On ?
-                            OpenNettyModels.Lighting.SwitchState.On :
-                            OpenNettyModels.Lighting.SwitchState.Off));
+                        if (command == OpenNettyCommands.Lighting.On)
+                        {
+                            await _events.PublishAsync(new OnScenarioReportedEventArgs(endpoint));
+                        }
+
+                        else
+                        {
+                            await _events.PublishAsync(new OffScenarioReportedEventArgs(endpoint));
+                        }
                     }
 
                     List<Task> tasks = [];
