@@ -14,7 +14,7 @@ namespace OpenNetty;
 /// <summary>
 /// Represents a worker responsible for processing incoming and outgoing notifications.
 /// </summary>
-public class OpenNettyWorker : IOpenNettyWorker
+public sealed class OpenNettyWorker : IOpenNettyWorker
 {
     private readonly OpenNettyLogger<OpenNettyWorker> _logger;
 

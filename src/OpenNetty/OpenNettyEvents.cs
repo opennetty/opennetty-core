@@ -225,46 +225,46 @@ public sealed class OpenNettyEvents : IDisposable
     /// Represents abstract event arguments used by OpenNetty.
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
-    public abstract record EventArgs(OpenNettyEndpoint Endpoint);
+    public abstract record class EventArgs(OpenNettyEndpoint Endpoint);
 
     /// <summary>
     /// Represents event arguments used when a basic scenario is reported.
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
-    public sealed record BasicScenarioReportedEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
+    public sealed record class BasicScenarioReportedEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when a battery level is reported.
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
     /// <param name="Level">The battery level.</param>
-    public sealed record BatteryLevelReportedEventArgs(OpenNettyEndpoint Endpoint, byte Level) : EventArgs(Endpoint);
+    public sealed record class BatteryLevelReportedEventArgs(OpenNettyEndpoint Endpoint, byte Level) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when a binding is closed.
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
-    public sealed record BindingClosedEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
+    public sealed record class BindingClosedEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when a binding is open.
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
-    public sealed record BindingOpenEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
+    public sealed record class BindingOpenEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when a brightness level is reported.
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
     /// <param name="Level">The brightness level, from 0 to 100.</param>
-    public sealed record BrightnessReportedEventArgs(OpenNettyEndpoint Endpoint, byte Level) : EventArgs(Endpoint);
+    public sealed record class BrightnessReportedEventArgs(OpenNettyEndpoint Endpoint, byte Level) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when a device description is reported.
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
     /// <param name="Description">The device description.</param>
-    public sealed record DeviceDescriptionReportedEventArgs(OpenNettyEndpoint Endpoint,
+    public sealed record class DeviceDescriptionReportedEventArgs(OpenNettyEndpoint Endpoint,
         OpenNettyModels.Diagnostics.DeviceDescription Description) : EventArgs(Endpoint);
 
     /// <summary>
@@ -272,19 +272,19 @@ public sealed class OpenNettyEvents : IDisposable
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
     /// <param name="Delta">The delta (positive or negative).</param>
-    public sealed record DimmingStepReportedEventArgs(OpenNettyEndpoint Endpoint, int Delta) : EventArgs(Endpoint);
+    public sealed record class DimmingStepReportedEventArgs(OpenNettyEndpoint Endpoint, int Delta) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when an OFF scenario is reported.
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
-    public sealed record OffScenarioReportedEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
+    public sealed record class OffScenarioReportedEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when an ON scenario is reported.
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
-    public sealed record OnScenarioReportedEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
+    public sealed record class OnScenarioReportedEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when a pilot wire derogation mode is reported.
@@ -292,7 +292,7 @@ public sealed class OpenNettyEvents : IDisposable
     /// <param name="Endpoint">The endpoint.</param>
     /// <param name="Mode">The derogation mode.</param>
     /// <param name="Duration">The derogation duration.</param>
-    public sealed record PilotWireDerogationModeReportedEventArgs(
+    public sealed record class PilotWireDerogationModeReportedEventArgs(
         OpenNettyEndpoint Endpoint,
         OpenNettyModels.TemperatureControl.PilotWireMode? Mode,
         OpenNettyModels.TemperatureControl.PilotWireDerogationDuration? Duration) : EventArgs(Endpoint);
@@ -302,7 +302,7 @@ public sealed class OpenNettyEvents : IDisposable
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
     /// <param name="Mode">The setpoint mode.</param>
-    public sealed record PilotWireSetpointModeReportedEventArgs(
+    public sealed record class PilotWireSetpointModeReportedEventArgs(
         OpenNettyEndpoint Endpoint, OpenNettyModels.TemperatureControl.PilotWireMode Mode) : EventArgs(Endpoint);
 
     /// <summary>
@@ -310,14 +310,14 @@ public sealed class OpenNettyEvents : IDisposable
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
     /// <param name="Duration">The scenario duration.</param>
-    public sealed record ProgressiveScenarioReportedEventArgs(OpenNettyEndpoint Endpoint, TimeSpan Duration) : EventArgs(Endpoint);
+    public sealed record class ProgressiveScenarioReportedEventArgs(OpenNettyEndpoint Endpoint, TimeSpan Duration) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when smart meter indexes are reported.
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
     /// <param name="Indexes">The indexes.</param>
-    public sealed record SmartMeterIndexesReportedEventArgs(OpenNettyEndpoint Endpoint,
+    public sealed record class SmartMeterIndexesReportedEventArgs(OpenNettyEndpoint Endpoint,
         OpenNettyModels.TemperatureControl.SmartMeterIndexes Indexes) : EventArgs(Endpoint);
 
     /// <summary>
@@ -325,14 +325,14 @@ public sealed class OpenNettyEvents : IDisposable
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
     /// <param name="Active">A boolean indicating whether the power cut mode is active or not.</param>
-    public sealed record SmartMeterPowerCutModeReportedEventArgs(OpenNettyEndpoint Endpoint, bool Active) : EventArgs(Endpoint);
+    public sealed record class SmartMeterPowerCutModeReportedEventArgs(OpenNettyEndpoint Endpoint, bool Active) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when a smart meter rate type is reported.
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
     /// <param name="Type">The rate type.</param>
-    public sealed record SmartMeterRateTypeReportedEventArgs(OpenNettyEndpoint Endpoint,
+    public sealed record class SmartMeterRateTypeReportedEventArgs(OpenNettyEndpoint Endpoint,
         OpenNettyModels.TemperatureControl.SmartMeterRateType Type) : EventArgs(Endpoint);
 
     /// <summary>
@@ -340,7 +340,7 @@ public sealed class OpenNettyEvents : IDisposable
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
     /// <param name="State">The switch state.</param>
-    public sealed record SwitchStateReportedEventArgs(OpenNettyEndpoint Endpoint,
+    public sealed record class SwitchStateReportedEventArgs(OpenNettyEndpoint Endpoint,
         OpenNettyModels.Lighting.SwitchState State) : EventArgs(Endpoint);
 
     /// <summary>
@@ -348,20 +348,20 @@ public sealed class OpenNettyEvents : IDisposable
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
     /// <param name="Duration">The duration after which associated devices change their state.</param>
-    public sealed record TimedScenarioReportedEventArgs(OpenNettyEndpoint Endpoint, TimeSpan Duration) : EventArgs(Endpoint);
+    public sealed record class TimedScenarioReportedEventArgs(OpenNettyEndpoint Endpoint, TimeSpan Duration) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when a toggle scenario is reported.
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
-    public sealed record ToggleScenarioReportedEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
+    public sealed record class ToggleScenarioReportedEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when a water heater setpoint mode is reported.
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
     /// <param name="Mode">The setpoint mode.</param>
-    public sealed record WaterHeaterSetpointModeReportedEventArgs(OpenNettyEndpoint Endpoint,
+    public sealed record class WaterHeaterSetpointModeReportedEventArgs(OpenNettyEndpoint Endpoint,
         OpenNettyModels.TemperatureControl.WaterHeaterMode Mode) : EventArgs(Endpoint);
 
     /// <summary>
@@ -369,7 +369,7 @@ public sealed class OpenNettyEvents : IDisposable
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
     /// <param name="State">The state.</param>
-    public sealed record WaterHeaterStateReportedEventArgs(OpenNettyEndpoint Endpoint,
+    public sealed record class WaterHeaterStateReportedEventArgs(OpenNettyEndpoint Endpoint,
         OpenNettyModels.TemperatureControl.WaterHeaterState State) : EventArgs(Endpoint);
 
     /// <summary>
@@ -377,6 +377,6 @@ public sealed class OpenNettyEvents : IDisposable
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
     /// <param name="State">The state.</param>
-    public sealed record WirelessBurglarAlarmStateReportedEventArgs(OpenNettyEndpoint Endpoint,
+    public sealed record class WirelessBurglarAlarmStateReportedEventArgs(OpenNettyEndpoint Endpoint,
         OpenNettyModels.Alarm.WirelessBurglarAlarmState State) : EventArgs(Endpoint);
 }
