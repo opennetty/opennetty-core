@@ -12,7 +12,7 @@ namespace OpenNetty;
 /// <summary>
 /// Provides various settings used to communicate with an OpenNetty gateway.
 /// </summary>
-public sealed record OpenNettyGatewayOptions
+public sealed record class OpenNettyGatewayOptions
 {
     /// <summary>
     /// Gets or sets the action validation timeout (Nitoo only).

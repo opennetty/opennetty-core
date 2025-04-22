@@ -17,7 +17,7 @@ namespace OpenNetty;
 /// Contains the logic necessary to connect the event pipeline when the application is starting up.
 /// </summary>
 [EditorBrowsable(EditorBrowsableState.Never)]
-public class OpenNettyHostedService : BackgroundService
+public sealed class OpenNettyHostedService : BackgroundService
 {
     private readonly OpenNettyEvents _events;
     private readonly IEnumerable<IOpenNettyHandler> _handlers;

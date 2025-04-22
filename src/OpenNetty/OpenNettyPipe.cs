@@ -16,7 +16,7 @@ namespace OpenNetty;
 /// <summary>
 /// Represents a duplex pipe from which OpenWebNet frames can be read from and written to.
 /// </summary>
-public class OpenNettyPipe : IDisposable
+public sealed class OpenNettyPipe : IDisposable
 {
     private readonly PipeReader _reader;
     private SemaphoreSlim? _readLock = new(initialCount: 1, maxCount: 1);
