@@ -17,6 +17,11 @@ public static class OpenNettySettings
     public static readonly OpenNettySetting ActionValidation = new("Action validation");
 
     /// <summary>
+    /// Actuator type (SCS only).
+    /// </summary>
+    public static readonly OpenNettySetting ActuatorType = new("Actuator type");
+
+    /// <summary>
     /// Home Assistant device class.
     /// </summary>
     public static readonly OpenNettySetting HomeAssistantDeviceClass = new("Home Assistant device class");
@@ -60,4 +65,68 @@ public static class OpenNettySettings
     /// Switch mode.
     /// </summary>
     public static readonly OpenNettySetting SwitchMode = new("Switch mode");
+
+    /// <summary>
+    /// Exposes common actuator types.
+    /// </summary>
+    public static class ActuatorTypes
+    {
+        /// <summary>
+        /// Automation actuator.
+        /// </summary>
+        public const string Automation = "Automation";
+
+        /// <summary>
+        /// Lighting actuator.
+        /// </summary>
+        public const string Lighting = "Lighting";
+    }
+
+    /// <summary>
+    /// Exposes common Home Assistant device classes.
+    /// </summary>
+    public static class HomeAssistantDeviceClasses
+    {
+        /// <summary>
+        /// Shutter.
+        /// </summary>
+        public const string Shutter = "shutter";
+
+        /// <summary>
+        /// Switch.
+        /// </summary>
+        public const string Switch = "switch";
+    }
+
+    /// <summary>
+    /// Exposes common Home Assistant entity types.
+    /// </summary>
+    public static class HomeAssistantEntityTypes
+    {
+        /// <summary>
+        /// Light.
+        /// </summary>
+        public const string Light = "light";
+
+        /// <summary>
+        /// Switch.
+        /// </summary>
+        public const string Switch = "switch";
+    }
+
+    /// <summary>
+    /// Exposes common switch modes.
+    /// </summary>
+    public static class SwitchModes
+    {
+        /// <summary>
+        /// Default.
+        /// </summary>
+        public const string Default = "Default";
+
+        /// <summary>
+        /// Push button.
+        /// </summary>
+        public const string PushButton = "Push button";
+    }
 }

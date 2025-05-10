@@ -16,6 +16,7 @@
     <PackageVersion Include="MQTTnet.Extensions.ManagedClient"          Version="4.3.7.1207"     />
     <PackageVersion Include="Polly.Core"                                Version="8.5.2"          />
     <PackageVersion Include="System.Interactive.Async"                  Version="6.0.1"          />
+    <PackageVersion Include="System.IO.Hashing"                         Version="9.0.3"          />
     <PackageVersion Include="System.IO.Pipelines"                       Version="9.0.3"          />
     <PackageVersion Include="System.IO.Ports"                           Version="9.0.3"          />
     <PackageVersion Include="System.Reactive.Async"                     Version="6.0.0-alpha.18" />

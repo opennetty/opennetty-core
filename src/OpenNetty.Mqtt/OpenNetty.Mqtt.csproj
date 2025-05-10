@@ -11,6 +11,7 @@
 
   <ItemGroup>
     <PackageReference Include="MQTTnet.Extensions.ManagedClient" />
+    <PackageReference Include="System.IO.Hashing" />
   </ItemGroup>
 
   <ItemGroup>

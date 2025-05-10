@@ -152,7 +152,7 @@ public sealed record class OpenNettyGatewayOptions
                     }
 
                     if (!arguments.Context.Properties.TryGetValue(
-                        key  : new ResiliencePropertyKey<OpenNettyLogger<OpenNettyService>>(nameof(OpenNettyLogger<OpenNettyService>)),
+                        key  : new ResiliencePropertyKey<OpenNettyLogger<OpenNettyService>>(nameof(OpenNettyLogger<>)),
                         value: out OpenNettyLogger<OpenNettyService>? logger))
                     {
                         throw new InvalidOperationException(SR.GetResourceString(SR.ID0074));
@@ -226,7 +226,7 @@ public sealed record class OpenNettyGatewayOptions
                     }
 
                     if (!arguments.Context.Properties.TryGetValue(
-                        key  : new ResiliencePropertyKey<OpenNettyLogger<OpenNettyService>>(nameof(OpenNettyLogger<OpenNettyService>)),
+                        key  : new ResiliencePropertyKey<OpenNettyLogger<OpenNettyService>>(nameof(OpenNettyLogger<>)),
                         value: out OpenNettyLogger<OpenNettyService>? logger))
                     {
                         throw new InvalidOperationException(SR.GetResourceString(SR.ID0074));
@@ -273,7 +273,7 @@ public sealed record class OpenNettyGatewayOptions
                         }
 
                         if (!arguments.Context.Properties.TryGetValue(
-                            key  : new ResiliencePropertyKey<OpenNettyLogger<OpenNettyWorker>>(nameof(OpenNettyLogger<OpenNettyWorker>)),
+                            key  : new ResiliencePropertyKey<OpenNettyLogger<OpenNettyWorker>>(nameof(OpenNettyLogger<>)),
                             value: out OpenNettyLogger<OpenNettyWorker>? logger))
                         {
                             throw new InvalidOperationException(SR.GetResourceString(SR.ID0074));

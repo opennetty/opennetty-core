@@ -365,7 +365,7 @@ public sealed class OpenNettyBuilder
             endpoints.Add(new OpenNettyEndpoint
             {
                 Address = address,
-                Capabilities = GetEndpointCapabilities(endpoint),
+                Capabilities = device is null && unit is null ? GetEndpointCapabilities(endpoint) : [],
                 Device = device,
                 Gateway = (string?) endpoint.Attribute("Gateway") is string gateway ? FindGatewayByName(gateways, gateway) : null,
                 Medium = device?.Definition.Medium,

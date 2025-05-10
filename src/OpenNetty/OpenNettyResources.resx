@@ -450,10 +450,22 @@
   <data name="ID0111" xml:space="preserve">
     <value>A private key file must be specified when using a TLS client certificate.</value>
   </data>
+  <data name="ID0112" xml:space="preserve">
+    <value>The actuator type associated with the endpoint isn't valid for the requested operation.</value>
+  </data>
   <data name="ID2000" xml:space="preserve">
-    <value>Endpoint names cannot contain the '+' or '*' characters.</value>
+    <value>The endpoint name '{0}' is not valid. Endpoint names cannot contain the '+' or '*' characters.</value>
   </data>
   <data name="ID2001" xml:space="preserve">
     <value>The MQTT root topic cannot contain the '+' or '*' characters.</value>
+  </data>
+  <data name="ID2002" xml:space="preserve">
+    <value>The endpoint '{0}' doesn't have an actuator type setting attached. Endpoints that support both light and shutter operations must be attached an actuator type setting reflecting the type configured on the actual actuator.</value>
+  </data>
+  <data name="ID2003" xml:space="preserve">
+    <value>The endpoint '{0}' doesn't have a valid actuator type setting attached ({1}). Only 'Lighting' and 'Automation' are currently supported.</value>
+  </data>
+  <data name="ID2004" xml:space="preserve">
+    <value>The endpoint '{0}' doesn't have a valid switch mode setting attached ({1}). Only 'Default' and 'Push button' are currently supported.</value>
   </data>
 </root>

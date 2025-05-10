@@ -313,6 +313,26 @@ For that, you need to add a `Device` node with the correct brand/model attribute
     </Unit>
   </Device>
 
+  <!-- MyHome Up two-way light actuator -->
+
+  <Device Brand="BTicino" Model="F411U2" SerialNumber="00B582A5">
+    <Endpoint Name="Garage/Recessed light 1" Area="4" Point="1">
+      <Setting Name="Actuator type" Value="Lighting" />
+    </Endpoint>
+
+    <Endpoint Name="Garage/Recessed light 2" Area="4" Point="2">
+      <Setting Name="Actuator type" Value="Lighting" />
+    </Endpoint>
+  </Device>
+
+  <!-- MyHome Up shutter actuator -->
+
+  <Device Brand="BTicino" Model="F418U2" SerialNumber="00A472A9">
+    <Endpoint Name="Living room/Shutter" Area="1" Point="3">
+      <Setting Name="Actuator type" Value="Automation" />
+    </Endpoint>
+  </Device>
+
   <!-- MyHome Up two-way dimmer -->
 
   <Device Brand="BTicino" Model="F418U2" SerialNumber="00B582A5">
@@ -323,20 +343,20 @@ For that, you need to add a `Device` node with the correct brand/model attribute
   <!-- MyHome Up light point group endpoint -->
 
   <Endpoint Name="Garden shed/Downlight LEDs" Type="SCS light point group" Group="1">
-    <Capability Name="On/off switching" />
+    <Capability Name="On/off switch control" />
   </Endpoint>
 
   <!-- MyHome Up light point area endpoint -->
 
   <Endpoint Name="Living room/All lights" Type="SCS light point area" Area="8">
     <Capability Name="Advanced dimming control" />
-    <Capability Name="On/off switching" />
+    <Capability Name="On/off switch control" />
   </Endpoint>
 
   <!-- MyHome Up light point general endpoint -->
 
   <Endpoint Name="General/All lights" Type="SCS light point general">
-    <Capability Name="On/off switching" />
+    <Capability Name="On/off switch control" />
   </Endpoint>
 
 </Configuration>

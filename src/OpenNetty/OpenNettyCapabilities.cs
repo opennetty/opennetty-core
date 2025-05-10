@@ -92,9 +92,9 @@ public static class OpenNettyCapabilities
     public static readonly OpenNettyCapability OnOffScenario = new("On/off scenario");
 
     /// <summary>
-    /// On/off switching.
+    /// On/off switch control.
     /// </summary>
-    public static readonly OpenNettyCapability OnOffSwitching = new("On/off switching");
+    public static readonly OpenNettyCapability OnOffSwitchControl = new("On/off switch control");
 
     /// <summary>
     /// On/off switch state.

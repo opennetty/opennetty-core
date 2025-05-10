@@ -154,9 +154,8 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     // received (e.g by a different unit on the same device) or was sent in unicast.
                     if (mode is OpenNettyMode.Unicast || notification is OpenNettyNotifications.MessageReceived)
                     {
-                        if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState) ||
-                            endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) ||
-                            endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
+                        if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState) &&
+                            endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is null or OpenNettySettings.ActuatorTypes.Lighting)
                         {
                             tasks.Add(ReportStateAsync(endpoint, CancellationToken.None).AsTask());
                         }
@@ -168,14 +167,9 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                 var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(
                                     OpenNettyAddress.ToNitooAddress(address).Identifier, unit));
 
-                                if (endpoint is null)
-                                {
-                                    return;
-                                }
-
-                                if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState) ||
-                                    endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) ||
-                                    endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
+                                if (endpoint is not null &&
+                                    endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState) &&
+                                    endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is null or OpenNettySettings.ActuatorTypes.Lighting)
                                 {
                                     await ReportStateAsync(endpoint, CancellationToken.None);
                                 }
@@ -190,9 +184,9 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                             .SelectAwait(scenario => _manager.FindEndpointByNameAsync(scenario.EndpointName))
                             .Where(static endpoint => endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit: OpenNettyUnit })
                             .OfType<OpenNettyEndpoint>()
-                            .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState) ||
-                                                      endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) ||
-                                                      endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState));
+                            .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
+                            .Where(static endpoint => endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is
+                                null or OpenNettySettings.ActuatorTypes.Lighting);
 
                         tasks.Add(Parallel.ForEachAsync(endpoints, ReportStateAsync));
                     }
@@ -201,28 +195,25 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
 
                     async ValueTask ReportStateAsync(OpenNettyEndpoint endpoint, CancellationToken cancellationToken)
                     {
-                        if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
+                        if (command == OpenNettyCommands.Lighting.On)
                         {
-                            if (command == OpenNettyCommands.Lighting.On)
-                            {
-                                await _events.PublishAsync(new SwitchStateReportedEventArgs(endpoint,
-                                    OpenNettyModels.Lighting.SwitchState.On), cancellationToken);
+                            await _events.PublishAsync(new SwitchStateReportedEventArgs(endpoint,
+                                OpenNettyModels.Lighting.SwitchState.On), cancellationToken);
 
-                                // Note: if the endpoint was configured to use the push-button mode, dispatch an OFF state
-                                // event immediately after switching it on (or receiving a notification indicating it was
-                                // switched on), as Nitoo devices using this mode don't automatically report the OFF state.
-                                if (string.Equals(endpoint.GetStringSetting(OpenNettySettings.SwitchMode), "Push button", StringComparison.OrdinalIgnoreCase))
-                                {
-                                    await _events.PublishAsync(new SwitchStateReportedEventArgs(endpoint,
-                                        OpenNettyModels.Lighting.SwitchState.Off), cancellationToken);
-                                }
-                            }
-
-                            else
+                            // Note: if the endpoint was configured to use the push-button mode, dispatch an OFF state
+                            // event immediately after switching it on (or receiving a notification indicating it was
+                            // switched on), as Nitoo devices using this mode don't automatically report the OFF state.
+                            if (endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
                             {
                                 await _events.PublishAsync(new SwitchStateReportedEventArgs(endpoint,
                                     OpenNettyModels.Lighting.SwitchState.Off), cancellationToken);
                             }
+                        }
+
+                        else
+                        {
+                            await _events.PublishAsync(new SwitchStateReportedEventArgs(endpoint,
+                                OpenNettyModels.Lighting.SwitchState.Off), cancellationToken);
                         }
                         
                         // Note: for Nitoo devices supporting dimming, an ON command always changes the brightness to 100%.
@@ -255,12 +246,13 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
 
                         // SCS devices configured to use the PUL mode never react to area and general commands.
                         if (address.Type is OpenNettyAddressType.ScsLightPointArea or OpenNettyAddressType.ScsLightPointGeneral &&
-                            string.Equals(endpoint.GetStringSetting(OpenNettySettings.SwitchMode), "Push button", StringComparison.OrdinalIgnoreCase))
+                            endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
                         {
                             return;
                         }
 
-                        if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
+                        if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState) &&
+                            endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is null or OpenNettySettings.ActuatorTypes.Lighting)
                         {
                             await _events.PublishAsync(new SwitchStateReportedEventArgs(endpoint,
                                 command.Value == OpenNettyCommands.Lighting.On.Value ?
@@ -296,7 +288,12 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
 
                         // SCS devices configured to use the PUL mode never react to area and general commands.
                         if (address.Type is OpenNettyAddressType.ScsLightPointArea or OpenNettyAddressType.ScsLightPointGeneral &&
-                            string.Equals(endpoint.GetStringSetting(OpenNettySettings.SwitchMode), "Push button", StringComparison.OrdinalIgnoreCase))
+                            endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
+                        {
+                            return;
+                        }
+
+                        if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Lighting))
                         {
                             return;
                         }
@@ -351,7 +348,12 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
 
                         // SCS devices configured to use the PUL mode never react to area and general commands.
                         if (address.Type is OpenNettyAddressType.ScsLightPointArea or OpenNettyAddressType.ScsLightPointGeneral &&
-                            string.Equals(endpoint.GetStringSetting(OpenNettySettings.SwitchMode), "Push button", StringComparison.OrdinalIgnoreCase))
+                            endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
+                        {
+                            return;
+                        }
+
+                        if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Lighting))
                         {
                             return;
                         }
@@ -393,7 +395,8 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         return;
                     }
 
-                    if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
+                    if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState) &&
+                        endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is null or OpenNettySettings.ActuatorTypes.Lighting)
                     {
                         await _events.PublishAsync(new SwitchStateReportedEventArgs(endpoint, value is "128" or "129" or "130" ?
                             OpenNettyModels.Lighting.SwitchState.On :
@@ -419,6 +422,11 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     }
 
                     var level = byte.Parse(value, CultureInfo.InvariantCulture);
+
+                    if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Lighting))
+                    {
+                        return;
+                    }
 
                     if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
                     {
@@ -454,6 +462,11 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     // was received by a different gateway than the one associated with the endpoint.
                     var endpoint = await _manager.FindEndpointByAddressAsync(address);
                     if (endpoint is null || (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway))
+                    {
+                        return;
+                    }
+
+                    if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Lighting))
                     {
                         return;
                     }
@@ -554,8 +567,8 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     // received (e.g by a different unit on the same device) or was sent in unicast.
                     if (mode is OpenNettyMode.Unicast || notification is OpenNettyNotifications.MessageReceived)
                     {
-                        if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState) ||
-                            endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
+                        if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState) &&
+                            endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is null or OpenNettySettings.ActuatorTypes.Automation)
                         {
                             tasks.Add(ReportStateAsync(endpoint, CancellationToken.None).AsTask());
                         }
@@ -567,13 +580,9 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                 var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(
                                     OpenNettyAddress.ToNitooAddress(address).Identifier, unit));
 
-                                if (endpoint is null)
-                                {
-                                    return;
-                                }
-
-                                if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState) ||
-                                    endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
+                                if (endpoint is not null &&
+                                    endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState) &&
+                                    endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is null or OpenNettySettings.ActuatorTypes.Automation)
                                 {
                                     await ReportStateAsync(endpoint, CancellationToken.None);
                                 }
@@ -596,16 +605,11 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     await Task.WhenAll(tasks);
 
                     async ValueTask ReportStateAsync(OpenNettyEndpoint endpoint, CancellationToken cancellationToken)
-                    {
-                        if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState))
-                        {
-                            await _events.PublishAsync(new ShutterStateReportedEventArgs(endpoint,
-                                command == OpenNettyCommands.Automation.Stop ? OpenNettyModels.Automation.ShutterState.Stopped :
-                                command == OpenNettyCommands.Automation.Up   ? OpenNettyModels.Automation.ShutterState.Opening :
-                                command == OpenNettyCommands.Automation.Down ? OpenNettyModels.Automation.ShutterState.Closing :
-                                throw new InvalidDataException(SR.GetResourceString(SR.ID0075))), cancellationToken);
-                        }
-                    }
+                        => await _events.PublishAsync(new ShutterStateReportedEventArgs(endpoint,
+                            command == OpenNettyCommands.Automation.Stop ? OpenNettyModels.Automation.ShutterState.Stopped :
+                            command == OpenNettyCommands.Automation.Up   ? OpenNettyModels.Automation.ShutterState.Opening :
+                            command == OpenNettyCommands.Automation.Down ? OpenNettyModels.Automation.ShutterState.Closing :
+                            throw new InvalidDataException(SR.GetResourceString(SR.ID0075))), cancellationToken);
                     break;
                 }
 
@@ -626,9 +630,14 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                             return;
                         }
 
+                        if (endpoint is null || !endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState) ||
+                            endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Automation))
+                        {
+                            return;
+                        }
+
                         // Note: the STOP command is only reported if the endpoint isn't an advanced shutter.
-                        if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState) &&
-                           (command != OpenNettyCommands.Automation.Stop || !endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState)))
+                        if (command != OpenNettyCommands.Automation.Stop || !endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
                         {
                             await _events.PublishAsync(new ShutterStateReportedEventArgs(endpoint,
                                 command == OpenNettyCommands.Automation.Stop ? OpenNettyModels.Automation.ShutterState.Stopped :
@@ -656,7 +665,8 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                             return;
                         }
 
-                        if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
+                        if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState) &&
+                            endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Automation))
                         {
                             await _events.PublishAsync(new ShutterStateReportedEventArgs(endpoint,
                                 (status, byte.Parse(position, CultureInfo.InvariantCulture)) switch
@@ -694,7 +704,8 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         return;
                     }
 
-                    if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState))
+                    if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState) &&
+                        endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Automation))
                     {
                         await _events.PublishAsync(new ShutterStateReportedEventArgs(endpoint, value switch
                         {
@@ -1235,7 +1246,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
 
                     if (endpoint.HasCapability(OpenNettyCapabilities.Battery))
                     {
-                        await _events.PublishAsync(new BatteryLevelReportedEventArgs(endpoint, (byte) 5));
+                        await _events.PublishAsync(new BatteryLevelReportedEventArgs(endpoint, 5));
                     }
                     break;
                 }
@@ -1465,7 +1476,8 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         tasks.Add(Parallel.ForEachAsync(scenarios, async (scenario, cancellationToken) =>
                         {
                             var endpoint = await _manager.FindEndpointByNameAsync(scenario.EndpointName, cancellationToken);
-                            if (endpoint is null)
+                            if (endpoint is null ||
+                                endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Lighting))
                             {
                                 return;
                             }
@@ -1513,7 +1525,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
 
                         // Note: if the endpoint was configured to use the push-button mode,
                         // dispatch an "OFF state" event immediately after switching it on.
-                        if (string.Equals(endpoint.GetStringSetting(OpenNettySettings.SwitchMode), "Push button", StringComparison.OrdinalIgnoreCase))
+                        if (endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
                         {
                             await _events.PublishAsync(new SwitchStateReportedEventArgs(endpoint,
                                 OpenNettyModels.Lighting.SwitchState.Off), cancellationToken);
@@ -1779,7 +1791,8 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
 
             List<Task> tasks = [];
 
-            if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
+            if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState) &&
+                endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is null or OpenNettySettings.ActuatorTypes.Lighting)
             {
                 tasks.Add(ReportOffStateAsync(endpoint, CancellationToken.None).AsTask());
             }
@@ -1791,12 +1804,9 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(
                         OpenNettyAddress.ToNitooAddress(arguments.Message.Address!.Value).Identifier, unit));
 
-                    if (endpoint is null)
-                    {
-                        return;
-                    }
-
-                    if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
+                    if (endpoint is not null &&
+                        endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState) &&
+                        endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is null or OpenNettySettings.ActuatorTypes.Lighting)
                     {
                         await ReportOffStateAsync(endpoint, CancellationToken.None);
                     }
@@ -1810,7 +1820,9 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     .SelectAwait(scenario => _manager.FindEndpointByNameAsync(scenario.EndpointName))
                     .Where(static endpoint => endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit: OpenNettyUnit })
                     .OfType<OpenNettyEndpoint>()
-                    .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState));
+                    .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
+                    .Where(static endpoint => endpoint.GetStringSetting(OpenNettySettings.ActuatorType)
+                        is null or OpenNettySettings.ActuatorTypes.Lighting);
 
                 tasks.Add(Parallel.ForEachAsync(endpoints, ReportOffStateAsync));
             }

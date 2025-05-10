@@ -477,6 +477,12 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
         }
 
+        // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
+        if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Lighting))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
+        }
+
         switch (endpoint.Protocol)
         {
             case OpenNettyProtocol.Nitoo:
@@ -608,6 +614,12 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
         }
 
+        // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
+        if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Automation))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
+        }
+
         switch (endpoint.Protocol)
         {
             case OpenNettyProtocol.Nitoo:
@@ -661,6 +673,12 @@ public class OpenNettyController
             !endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+        }
+
+        // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
+        if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Automation))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
         }
 
         switch (endpoint.Protocol)
@@ -780,6 +798,12 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
         }
 
+        // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
+        if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Lighting))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
+        }
+
         switch (endpoint.Protocol)
         {
             case OpenNettyProtocol.Nitoo:
@@ -868,14 +892,20 @@ public class OpenNettyController
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 
+        if (!endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) &&
+            !endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+        }
+
+        // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
+        if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Lighting))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
+        }
+
         if (endpoint.Protocol is OpenNettyProtocol.Nitoo)
         {
-            if (!endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) &&
-                !endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
-            {
-                throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
-            }
-
             return await GetUnitDescriptionAsync(endpoint, cancellationToken) switch
             {
                 { FunctionCode: 143, Values: [{ Length: > 0 } value, ..] }
@@ -885,76 +915,71 @@ public class OpenNettyController
             };
         }
 
-        else
+        else if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
         {
-            if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
-            {
-                // Note: while the brightness level is requested using the "DIMMER SPEED/LEVEL" DIMENSION, the result
-                // might be returned using a different DIMENSION, "DIMMER STATUS". To ensure the brightness is
-                // correctly resolved, both dimensions are observed before sending the DIMENSION REQUEST.
-                var messages = _service.ObserveMessagesAsync(
-                    message          : OpenNettyMessage.CreateDimensionRequest(
-                        protocol : endpoint.Protocol,
-                        dimension: OpenNettyDimensions.Lighting.DimmerLevelSpeed,
-                        address  : endpoint.Address,
-                        medium   : endpoint.Medium,
-                        mode     : null),
-                    gateway          : endpoint.Gateway,
-                    options          : OpenNettyTransmissionOptions.None,
-                    cancellationToken: cancellationToken);
+            // Note: while the brightness level is requested using the "DIMMER SPEED/LEVEL" DIMENSION, the result
+            // might be returned using a different DIMENSION, "DIMMER STATUS". To ensure the brightness is
+            // correctly resolved, both dimensions are observed before sending the DIMENSION REQUEST.
+            var messages = _service.ObserveMessagesAsync(
+                message          : OpenNettyMessage.CreateDimensionRequest(
+                    protocol : endpoint.Protocol,
+                    dimension: OpenNettyDimensions.Lighting.DimmerLevelSpeed,
+                    address  : endpoint.Address,
+                    medium   : endpoint.Medium,
+                    mode     : null),
+                gateway          : endpoint.Gateway,
+                options          : OpenNettyTransmissionOptions.None,
+                cancellationToken: cancellationToken);
 
-                return await messages
-                    .Where(static message => message.Dimension == OpenNettyDimensions.Lighting.DimmerLevelSpeed ||
-                                             message.Dimension == OpenNettyDimensions.Lighting.DimmerStatus)
-                    .Where(message => message.Address == endpoint.Address)
-                    .Select(static arguments => (byte) (byte.Parse(arguments.Values[0], CultureInfo.InvariantCulture) - 100))
-                    .FirstOrDefault()
-                    .Timeout(TimeSpan.FromSeconds(10))
-                    .RunAsync(cancellationToken);
-            }
-
-            else if (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState))
-            {
-                return await _service.GetStatusAsync(
-                    protocol         : endpoint.Protocol,
-                    category         : OpenNettyCategories.Lighting,
-                    address          : endpoint.Address,
-                    medium           : endpoint.Medium,
-                    mode             : null,
-                    filter           : static command => ValueTask.FromResult(
-                        command == OpenNettyCommands.Lighting.Off  ||
-                        command == OpenNettyCommands.Lighting.On   ||
-                        command == OpenNettyCommands.Lighting.On20 ||
-                        command == OpenNettyCommands.Lighting.On30 ||
-                        command == OpenNettyCommands.Lighting.On40 ||
-                        command == OpenNettyCommands.Lighting.On50 ||
-                        command == OpenNettyCommands.Lighting.On60 ||
-                        command == OpenNettyCommands.Lighting.On70 ||
-                        command == OpenNettyCommands.Lighting.On80 ||
-                        command == OpenNettyCommands.Lighting.On90 ||
-                        command == OpenNettyCommands.Lighting.On100),
-                    gateway          : endpoint.Gateway,
-                    options          : OpenNettyTransmissionOptions.None,
-                    cancellationToken: cancellationToken) switch
-                    {
-                        var command when command == OpenNettyCommands.Lighting.Off   => 0,
-                        var command when command == OpenNettyCommands.Lighting.On    => 100,
-                        var command when command == OpenNettyCommands.Lighting.On20  => 20,
-                        var command when command == OpenNettyCommands.Lighting.On30  => 30,
-                        var command when command == OpenNettyCommands.Lighting.On40  => 40,
-                        var command when command == OpenNettyCommands.Lighting.On50  => 50,
-                        var command when command == OpenNettyCommands.Lighting.On60  => 60,
-                        var command when command == OpenNettyCommands.Lighting.On70  => 70,
-                        var command when command == OpenNettyCommands.Lighting.On80  => 80,
-                        var command when command == OpenNettyCommands.Lighting.On90  => 90,
-                        var command when command == OpenNettyCommands.Lighting.On100 => 100,
-
-                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
-                    };
-            }
+            return await messages
+                .Where(static message => message.Dimension == OpenNettyDimensions.Lighting.DimmerLevelSpeed ||
+                                            message.Dimension == OpenNettyDimensions.Lighting.DimmerStatus)
+                .Where(message => message.Address == endpoint.Address)
+                .Select(static arguments => (byte) (byte.Parse(arguments.Values[0], CultureInfo.InvariantCulture) - 100))
+                .FirstOrDefault()
+                .Timeout(TimeSpan.FromSeconds(10))
+                .RunAsync(cancellationToken);
         }
 
-        throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+        else
+        {
+            return await _service.GetStatusAsync(
+                protocol         : endpoint.Protocol,
+                category         : OpenNettyCategories.Lighting,
+                address          : endpoint.Address,
+                medium           : endpoint.Medium,
+                mode             : null,
+                filter           : static command => ValueTask.FromResult(
+                    command == OpenNettyCommands.Lighting.Off  ||
+                    command == OpenNettyCommands.Lighting.On   ||
+                    command == OpenNettyCommands.Lighting.On20 ||
+                    command == OpenNettyCommands.Lighting.On30 ||
+                    command == OpenNettyCommands.Lighting.On40 ||
+                    command == OpenNettyCommands.Lighting.On50 ||
+                    command == OpenNettyCommands.Lighting.On60 ||
+                    command == OpenNettyCommands.Lighting.On70 ||
+                    command == OpenNettyCommands.Lighting.On80 ||
+                    command == OpenNettyCommands.Lighting.On90 ||
+                    command == OpenNettyCommands.Lighting.On100),
+                gateway          : endpoint.Gateway,
+                options          : OpenNettyTransmissionOptions.None,
+                cancellationToken: cancellationToken) switch
+                {
+                    var command when command == OpenNettyCommands.Lighting.Off   => 0,
+                    var command when command == OpenNettyCommands.Lighting.On    => 100,
+                    var command when command == OpenNettyCommands.Lighting.On20  => 20,
+                    var command when command == OpenNettyCommands.Lighting.On30  => 30,
+                    var command when command == OpenNettyCommands.Lighting.On40  => 40,
+                    var command when command == OpenNettyCommands.Lighting.On50  => 50,
+                    var command when command == OpenNettyCommands.Lighting.On60  => 60,
+                    var command when command == OpenNettyCommands.Lighting.On70  => 70,
+                    var command when command == OpenNettyCommands.Lighting.On80  => 80,
+                    var command when command == OpenNettyCommands.Lighting.On90  => 90,
+                    var command when command == OpenNettyCommands.Lighting.On100 => 100,
+
+                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                };
+        }
     }
 
     /// <summary>
@@ -1190,6 +1215,12 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
         }
 
+        // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
+        if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Automation))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
+        }
+
         return await _service.GetDimensionAsync(
             protocol         : endpoint.Protocol,
             dimension        : OpenNettyDimensions.Automation.ShutterStatus,
@@ -1231,6 +1262,12 @@ public class OpenNettyController
             !endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+        }
+
+        // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
+        if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Automation))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
         }
 
         if (endpoint.Protocol is OpenNettyProtocol.Nitoo)
@@ -1386,6 +1423,12 @@ public class OpenNettyController
         if (!endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+        }
+
+        // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
+        if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Lighting))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
         }
 
         return endpoint.Protocol switch
@@ -1551,6 +1594,12 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
         }
 
+        // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
+        if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Automation))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
+        }
+
         return _service.ExecuteCommandAsync(
             protocol         : endpoint.Protocol,
             command          : OpenNettyCommands.Automation.Down,
@@ -1580,6 +1629,12 @@ public class OpenNettyController
         if (!endpoint.HasCapability(OpenNettyCapabilities.BasicShutterControl))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+        }
+
+        // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
+        if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Automation))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
         }
 
         return _service.ExecuteCommandAsync(
@@ -2020,6 +2075,12 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
         }
 
+        // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
+        if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Automation))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
+        }
+
         return _service.ExecuteCommandAsync(
             protocol         : endpoint.Protocol,
             command          : OpenNettyCommands.Automation.Stop,
@@ -2046,13 +2107,19 @@ public class OpenNettyController
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 
-        if (!endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitching))
+        if (!endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchControl))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
         }
 
-        if (string.Equals(endpoint.GetStringSetting(OpenNettySettings.SwitchMode),
-            "Push button", StringComparison.OrdinalIgnoreCase))
+        // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
+        if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Lighting))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
+        }
+
+        // If the endpoint was configured to use the special switch mode, OFF commands are not valid.
+        if (endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
         }
@@ -2083,9 +2150,15 @@ public class OpenNettyController
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 
-        if (!endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitching))
+        if (!endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchControl))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+        }
+
+        // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
+        if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Lighting))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
         }
 
         var options = OpenNettyTransmissionOptions.None;
@@ -2098,8 +2171,7 @@ public class OpenNettyController
 
         // If the endpoint was configured to use the push-button mode, always disable retransmissions
         // as ON commands are not idempotent when using this mode, which may result in unwanted results.
-        if (string.Equals(endpoint.GetStringSetting(OpenNettySettings.SwitchMode),
-            "Push button", StringComparison.OrdinalIgnoreCase))
+        if (endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
         {
             options |= OpenNettyTransmissionOptions.DisallowRetransmissions;
         }
@@ -2127,9 +2199,15 @@ public class OpenNettyController
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 
-        if (!endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitching))
+        if (!endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchControl))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+        }
+
+        // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
+        if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Lighting))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
         }
 
         // Nitoo and SCS gateways don't natively support toggle BUS COMMANDS (unlike Zigbee
@@ -2142,8 +2220,7 @@ public class OpenNettyController
                 throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
             }
 
-            if (string.Equals(endpoint.GetStringSetting(OpenNettySettings.SwitchMode),
-                "Push button", StringComparison.OrdinalIgnoreCase))
+            if (endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
             {
                 throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
             }
