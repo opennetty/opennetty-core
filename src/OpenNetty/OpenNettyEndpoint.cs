@@ -22,6 +22,9 @@ public sealed class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
     /// <summary>
     /// Gets or sets the capabilities associated with the endpoint.
     /// </summary>
+    /// <remarks>
+    /// Note: this property is only used for endpoints that don't have a device or unit attached.
+    /// </remarks>
     public ImmutableHashSet<OpenNettyCapability> Capabilities { get; init; } = [];
 
     /// <summary>
@@ -83,17 +86,15 @@ public sealed class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
     public string? GetStringSetting(OpenNettySetting setting) => TryGetSetting(setting, out string? value) ? value : null;
 
     /// <summary>
-    /// Determines whether the endpoint or the attached unit/device have the specified capability.
+    /// Determines whether the endpoint has the specified capability.
     /// </summary>
     /// <param name="capability">The capability name.</param>
     /// <returns>
-    /// <see langword="true"/> if the endpoint or the attached unit/device
-    /// have the specified capability, <see langword="false"/> otherwise.
+    /// <see langword="true"/> if the endpoint has the specified capability, <see langword="false"/> otherwise.
     /// </returns>
     public bool HasCapability(OpenNettyCapability capability)
     {
-        if (Protocol is OpenNettyProtocol.Nitoo or OpenNettyProtocol.Zigbee &&
-            Unit is OpenNettyUnit unit)
+        if (Protocol is OpenNettyProtocol.Nitoo or OpenNettyProtocol.Zigbee && Unit is OpenNettyUnit unit)
         {
             return unit.Definition.HasCapability(capability);
         }
@@ -115,8 +116,7 @@ public sealed class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
     /// <returns><see langword="true"/> if the setting was found, <see langword="false"/> otherwise.</returns>
     public bool TryGetSetting(OpenNettySetting setting, [NotNullWhen(true)] out string? value)
     {
-        if (Protocol is OpenNettyProtocol.Nitoo or OpenNettyProtocol.Zigbee &&
-            Unit is OpenNettyUnit unit)
+        if (Protocol is OpenNettyProtocol.Nitoo or OpenNettyProtocol.Zigbee && Unit is OpenNettyUnit unit)
         {
             return unit.Settings.TryGetValue(setting, out value) ||
                 unit.Definition.Settings.TryGetValue(setting, out value) ||

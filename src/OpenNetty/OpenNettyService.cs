@@ -77,7 +77,7 @@ public class OpenNettyService : IOpenNettyService
 
         var context = ResilienceContextPool.Shared.Get(cancellationToken);
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)), gateway);
-        context.Properties.Set(new ResiliencePropertyKey<OpenNettyLogger<OpenNettyService>>(nameof(OpenNettyLogger<OpenNettyService>)), _logger);
+        context.Properties.Set(new ResiliencePropertyKey<OpenNettyLogger<OpenNettyService>>(nameof(OpenNettyLogger<>)), _logger);
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyMessage>(nameof(OpenNettyMessage)), message);
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyTransmissionOptions>(nameof(OpenNettyTransmissionOptions)), options);
 
@@ -198,7 +198,7 @@ public class OpenNettyService : IOpenNettyService
 
         var context = ResilienceContextPool.Shared.Get(cancellationToken);
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)), gateway);
-        context.Properties.Set(new ResiliencePropertyKey<OpenNettyLogger<OpenNettyService>>(nameof(OpenNettyLogger<OpenNettyService>)), _logger);
+        context.Properties.Set(new ResiliencePropertyKey<OpenNettyLogger<OpenNettyService>>(nameof(OpenNettyLogger<>)), _logger);
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyMessage>(nameof(OpenNettyMessage)), message);
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyTransmissionOptions>(nameof(OpenNettyTransmissionOptions)), options);
 
@@ -313,7 +313,7 @@ public class OpenNettyService : IOpenNettyService
 
         var context = ResilienceContextPool.Shared.Get(cancellationToken);
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)), gateway);
-        context.Properties.Set(new ResiliencePropertyKey<OpenNettyLogger<OpenNettyService>>(nameof(OpenNettyLogger<OpenNettyService>)), _logger);
+        context.Properties.Set(new ResiliencePropertyKey<OpenNettyLogger<OpenNettyService>>(nameof(OpenNettyLogger<>)), _logger);
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyMessage>(nameof(OpenNettyMessage)), message);
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyTransmissionOptions>(nameof(OpenNettyTransmissionOptions)), options);
 
@@ -358,7 +358,7 @@ public class OpenNettyService : IOpenNettyService
 
         var context = ResilienceContextPool.Shared.Get(cancellationToken);
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)), gateway);
-        context.Properties.Set(new ResiliencePropertyKey<OpenNettyLogger<OpenNettyService>>(nameof(OpenNettyLogger<OpenNettyService>)), _logger);
+        context.Properties.Set(new ResiliencePropertyKey<OpenNettyLogger<OpenNettyService>>(nameof(OpenNettyLogger<>)), _logger);
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyMessage>(nameof(OpenNettyMessage)), message);
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyTransmissionOptions>(nameof(OpenNettyTransmissionOptions)), options);
 
@@ -440,7 +440,7 @@ public class OpenNettyService : IOpenNettyService
 
         var context = ResilienceContextPool.Shared.Get(cancellationToken);
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)), gateway);
-        context.Properties.Set(new ResiliencePropertyKey<OpenNettyLogger<OpenNettyService>>(nameof(OpenNettyLogger<OpenNettyService>)), _logger);
+        context.Properties.Set(new ResiliencePropertyKey<OpenNettyLogger<OpenNettyService>>(nameof(OpenNettyLogger<>)), _logger);
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyMessage>(nameof(OpenNettyMessage)), message);
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyTransmissionOptions>(nameof(OpenNettyTransmissionOptions)), options);
 
@@ -519,7 +519,7 @@ public class OpenNettyService : IOpenNettyService
         {
             var context = ResilienceContextPool.Shared.Get(cancellationToken);
             context.Properties.Set(new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)), gateway);
-            context.Properties.Set(new ResiliencePropertyKey<OpenNettyLogger<OpenNettyService>>(nameof(OpenNettyLogger<OpenNettyService>)), _logger);
+            context.Properties.Set(new ResiliencePropertyKey<OpenNettyLogger<OpenNettyService>>(nameof(OpenNettyLogger<>)), _logger);
             context.Properties.Set(new ResiliencePropertyKey<OpenNettyMessage>(nameof(OpenNettyMessage)), message);
             context.Properties.Set(new ResiliencePropertyKey<OpenNettyTransmissionOptions>(nameof(OpenNettyTransmissionOptions)), options);
 
@@ -580,7 +580,7 @@ public class OpenNettyService : IOpenNettyService
 
         var context = ResilienceContextPool.Shared.Get(cancellationToken);
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)), gateway);
-        context.Properties.Set(new ResiliencePropertyKey<OpenNettyLogger<OpenNettyService>>(nameof(OpenNettyLogger<OpenNettyService>)), _logger);
+        context.Properties.Set(new ResiliencePropertyKey<OpenNettyLogger<OpenNettyService>>(nameof(OpenNettyLogger<>)), _logger);
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyMessage>(nameof(OpenNettyMessage)), message);
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyTransmissionOptions>(nameof(OpenNettyTransmissionOptions)), options);
 
@@ -626,7 +626,7 @@ public class OpenNettyService : IOpenNettyService
 
         var context = ResilienceContextPool.Shared.Get(cancellationToken);
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)), gateway);
-        context.Properties.Set(new ResiliencePropertyKey<OpenNettyLogger<OpenNettyService>>(nameof(OpenNettyLogger<OpenNettyService>)), _logger);
+        context.Properties.Set(new ResiliencePropertyKey<OpenNettyLogger<OpenNettyService>>(nameof(OpenNettyLogger<>)), _logger);
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyMessage>(nameof(OpenNettyMessage)), message);
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyTransmissionOptions>(nameof(OpenNettyTransmissionOptions)), options);
 

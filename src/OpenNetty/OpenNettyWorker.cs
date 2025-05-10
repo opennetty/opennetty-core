@@ -67,7 +67,7 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
         {
             var context = ResilienceContextPool.Shared.Get(cancellationToken);
             context.Properties.Set(new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)), gateway);
-            context.Properties.Set(new ResiliencePropertyKey<OpenNettyLogger<OpenNettyWorker>>(nameof(OpenNettyLogger<OpenNettyWorker>)), _logger);
+            context.Properties.Set(new ResiliencePropertyKey<OpenNettyLogger<OpenNettyWorker>>(nameof(OpenNettyLogger<>)), _logger);
             context.Properties.Set(new ResiliencePropertyKey<OpenNettySessionType>(nameof(OpenNettySessionType)), type);
 
             _logger.TaskRunnerScheduled(gateway, type);
@@ -135,7 +135,7 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
         {
             var context = ResilienceContextPool.Shared.Get(cancellationToken);
             context.Properties.Set(new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)), gateway);
-            context.Properties.Set(new ResiliencePropertyKey<OpenNettyLogger<OpenNettyWorker>>(nameof(OpenNettyLogger<OpenNettyWorker>)), _logger);
+            context.Properties.Set(new ResiliencePropertyKey<OpenNettyLogger<OpenNettyWorker>>(nameof(OpenNettyLogger<>)), _logger);
             context.Properties.Set(new ResiliencePropertyKey<OpenNettySessionType>(nameof(OpenNettySessionType)), type);
 
             _logger.TaskRunnerScheduled(gateway, type);

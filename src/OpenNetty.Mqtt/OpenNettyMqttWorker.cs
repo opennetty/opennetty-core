@@ -6,12 +6,12 @@
 
 using System.Buffers.Text;
 using System.Globalization;
+using System.IO.Hashing;
 using System.Net.Mime;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Security.Cryptography;
 using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading.Channels;
@@ -420,8 +420,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
         }
 
         await foreach (var endpoints in from endpoint in _manager.EnumerateEndpointsAsync(cancellationToken)
+                                        where endpoint.GetBooleanSetting(OpenNettySettings.MqttDiscovery) is not false
                                         where endpoint.Device is { SerialNumber.Length: > 0 }
-                                        where endpoint.Device!.GetBooleanSetting(OpenNettySettings.MqttDiscovery) is not false
                                         group endpoint by endpoint.Device!)
         {
             var components = new JsonObject();
@@ -462,33 +462,41 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                                    orderby name
                                                    select (Endpoint: endpoint, Name: name))
             {
-                switch (endpoint.GetStringSetting(OpenNettySettings.HomeAssistantEntityType))
+                if (SupportsLightOrSwitchEntity(endpoint))
                 {
-                    case "Light":
-                    case null when endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitching) &&
-                                   endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState):
+                    // Note: by default, endpoints that support ON/OFF switching are always treated as light entities.
+                    var platform = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantEntityType)
+                        ?? OpenNettySettings.HomeAssistantEntityTypes.Light;
+
+                    var component = new JsonObject
                     {
-                        var component = new JsonObject
-                        {
-                            ["platform"] = "light",
-                            ["unique_id"] = Base64Url.EncodeToString(SHA256.HashData(
-                            [
-                                ..Encoding.UTF8.GetBytes(name),
-                                ..Encoding.UTF8.GetBytes(endpoint.Address?.Value ?? string.Empty)
-                            ])),
-                            ["name"] = endpoint.Name
-                        };
+                        ["platform"] = platform,
+                        ["unique_id"] = Base64Url.EncodeToString(XxHash128.Hash(
+                        [
+                            ..Encoding.UTF8.GetBytes(platform),
+                            ..Encoding.UTF8.GetBytes(name),
+                            ..Encoding.UTF8.GetBytes(endpoint.Address?.Value ?? string.Empty)
+                        ])),
+                        ["name"] = endpoint.Name,
+                        ["command_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.SwitchState}/set"
+                    };
 
-                        if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitching))
-                        {
-                            component["command_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.SwitchState}/set";
-                        }
+                    // Note: endpoints that can't report their state (e.g radio Nitoo devices) can still be mapped to a light entity:
+                    // in that case, Home Assistant will automatically use the optimistic mode to dynamically update the current state.
+                    if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
+                    {
+                        component["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.SwitchState}";
+                    }
 
-                        if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
-                        {
-                            component["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.SwitchState}";
-                        }
+                    // Unlike light entities, switch entities can specify a device class but cannot support brightness control.
+                    if (platform is OpenNettySettings.HomeAssistantEntityTypes.Switch)
+                    {
+                        component["device_class"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantDeviceClass)
+                            ?? OpenNettySettings.HomeAssistantDeviceClasses.Switch;
+                    }
 
+                    else
+                    {
                         if (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingControl) ||
                             endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingControl))
                         {
@@ -502,78 +510,44 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         {
                             component["brightness_state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.Brightness}";
                         }
-
-                        components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", component);
-                        break;
                     }
 
-                    case "Switch":
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", component);
+                }
+
+                if (SupportsCoverEntity(endpoint))
+                {
+                    var component = new JsonObject
                     {
-                        var component = new JsonObject
-                        {
-                            ["platform"] = "switch",
-                            ["unique_id"] = Base64Url.EncodeToString(SHA256.HashData(
-                            [
-                                ..Encoding.UTF8.GetBytes(name),
-                                ..Encoding.UTF8.GetBytes(endpoint.Address?.Value ?? string.Empty)
-                            ])),
-                            ["name"] = endpoint.Name,
-                            ["device_class"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantDeviceClass) ?? "switch"
-                        };
+                        ["platform"] = "cover",
+                        ["unique_id"] = Base64Url.EncodeToString(XxHash128.Hash(
+                        [
+                            ..Encoding.UTF8.GetBytes("cover"),
+                            ..Encoding.UTF8.GetBytes(name),
+                            ..Encoding.UTF8.GetBytes(endpoint.Address?.Value ?? string.Empty)
+                        ])),
+                        ["name"] = endpoint.Name,
+                        ["command_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.ShutterState}/set",
+                        ["device_class"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantDeviceClass)
+                            ?? OpenNettySettings.HomeAssistantDeviceClasses.Shutter
+                    };
 
-                        if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitching))
-                        {
-                            component["command_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.SwitchState}/set";
-                        }
-
-                        if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
-                        {
-                            component["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.SwitchState}";
-                        }
-
-                        components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", component);
-                        break;
-                    }
-
-                    case "Cover":
-                    case null when endpoint.HasCapability(OpenNettyCapabilities.BasicShutterControl) &&
-                                   endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState):
+                    if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState))
                     {
-                        var component = new JsonObject
-                        {
-                            ["platform"] = "cover",
-                            ["unique_id"] = Base64Url.EncodeToString(SHA256.HashData(
-                            [
-                                ..Encoding.UTF8.GetBytes(name),
-                                ..Encoding.UTF8.GetBytes(endpoint.Address?.Value ?? string.Empty)
-                            ])),
-                            ["name"] = endpoint.Name,
-                            ["device_class"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantDeviceClass) ?? "shutter"
-                        };
-
-                        if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterControl))
-                        {
-                            component["command_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.ShutterState}/set";
-                        }
-
-                        if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState))
-                        {
-                            component["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.ShutterState}";
-                        }
-
-                        if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterControl))
-                        {
-                            component["set_position_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.ShutterPosition}/set";
-                        }
-
-                        if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
-                        {
-                            component["position_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.ShutterPosition}";
-                        }
-
-                        components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", component);
-                        break;
+                        component["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.ShutterState}";
                     }
+
+                    if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterControl))
+                    {
+                        component["set_position_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.ShutterPosition}/set";
+                    }
+
+                    if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
+                    {
+                        component["position_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.ShutterPosition}";
+                    }
+
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", component);
                 }
             }
 
@@ -591,6 +565,64 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     .WithTopic(topic)
                     .Build());
             }
+        }
+
+        static bool SupportsCoverEntity(OpenNettyEndpoint endpoint)
+        {
+            // If the endpoint doesn't support basic or advanced shutter commands, a Home Assistant cover entity cannot be created.
+            //
+            // Note: endpoints that can't report their state (e.g radio Nitoo devices) can still be used with a cover entity:
+            // in that case, Home Assistant will automatically use the optimistic mode to dynamically update the current state.
+            if (!endpoint.HasCapability(OpenNettyCapabilities.BasicShutterControl) &&
+                !endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterControl))
+            {
+                return false;
+            }
+
+            // If the endpoint also supports lighting commands, ensure the actuator type
+            // associated with the endpoint is appropriate for the requested operation.
+            if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchControl) ||
+                endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingControl) ||
+                endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingControl))
+            {
+                var type = endpoint.GetStringSetting(OpenNettySettings.ActuatorType);
+                if (string.IsNullOrEmpty(type))
+                {
+                    throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
+                }
+
+                return string.Equals(type, "Automation", StringComparison.OrdinalIgnoreCase);
+            }
+
+            return false;
+        }
+
+        static bool SupportsLightOrSwitchEntity(OpenNettyEndpoint endpoint)
+        {
+            // If the endpoint doesn't support ON/OFF commands, a Home Assistant light entity cannot be created.
+            //
+            // Note: endpoints that can't report their state (e.g radio Nitoo devices) can still be used with a light entity:
+            // in that case, Home Assistant will automatically use the optimistic mode to dynamically update the current state.
+            if (!endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchControl))
+            {
+                return false;
+            }
+
+            // If the endpoint also supports automation commands, ensure the actuator
+            // type associated with the endpoint is appropriate for a light entity.
+            if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterControl) ||
+                endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterControl))
+            {
+                var type = endpoint.GetStringSetting(OpenNettySettings.ActuatorType);
+                if (string.IsNullOrEmpty(type))
+                {
+                    throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
+                }
+
+                return string.Equals(type, "Lighting", StringComparison.OrdinalIgnoreCase);
+            }
+
+            return false;
         }
     }
 

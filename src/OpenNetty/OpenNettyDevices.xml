@@ -29,7 +29,7 @@
       <Capability Name="Memory reading" />
       <Capability Name="Memory writing" />
       <Capability Name="On/off switch state" />
-      <Capability Name="On/off switching" />
+      <Capability Name="On/off switch control" />
       <Capability Name="Unit description" />
     </Unit>
 
@@ -37,7 +37,7 @@
       <Capability Name="Memory reading" />
       <Capability Name="Memory writing" />
       <Capability Name="On/off switch state" />
-      <Capability Name="On/off switching" />
+      <Capability Name="On/off switch control" />
       <Capability Name="Unit description" />
     </Unit>
   </Device>
@@ -203,7 +203,7 @@
       <Capability Name="Memory reading" />
       <Capability Name="Memory writing" />
       <Capability Name="On/off switch state" />
-      <Capability Name="On/off switching" />
+      <Capability Name="On/off switch control" />
       <Capability Name="Unit description" />
     </Unit>
   </Device>
@@ -231,7 +231,7 @@
       <Capability Name="Memory reading" />
       <Capability Name="Memory writing" />
       <Capability Name="On/off switch state" />
-      <Capability Name="On/off switching" />
+      <Capability Name="On/off switch control" />
       <Capability Name="Unit description" />
     </Unit>
 
@@ -239,7 +239,7 @@
       <Capability Name="Memory reading" />
       <Capability Name="Memory writing" />
       <Capability Name="On/off switch state" />
-      <Capability Name="On/off switching" />
+      <Capability Name="On/off switch control" />
       <Capability Name="Unit description" />
     </Unit>
   </Device>
@@ -299,7 +299,7 @@
       <Capability Name="Memory reading" />
       <Capability Name="Memory writing" />
       <Capability Name="On/off switch state" />
-      <Capability Name="On/off switching" />
+      <Capability Name="On/off switch control" />
       <Capability Name="Unit description" />
     </Unit>
   </Device>
@@ -324,7 +324,7 @@
       <Capability Name="Memory reading" />
       <Capability Name="Memory writing" />
       <Capability Name="On/off switch state" />
-      <Capability Name="On/off switching" />
+      <Capability Name="On/off switch control" />
       <Capability Name="Unit description" />
     </Unit>
   </Device>
@@ -343,7 +343,7 @@
 
     <Unit Id="2">
       <Capability Name="On/off switch state" />
-      <Capability Name="On/off switching" />
+      <Capability Name="On/off switch control" />
       <Capability Name="Unit description" />
     </Unit>
   </Device>
@@ -378,7 +378,7 @@
       <Capability Name="Memory reading" />
       <Capability Name="Memory writing" />
       <Capability Name="On/off switch state" />
-      <Capability Name="On/off switching" />
+      <Capability Name="On/off switch control" />
       <Capability Name="Unit description" />
     </Unit>
   </Device>
@@ -468,7 +468,7 @@
     <Identity Brand="Legrand" Collection="Plexo" Model="69510" />
 
     <Unit Id="1">
-      <Capability Name="On/off switching" />
+      <Capability Name="On/off switch control" />
       <Capability Name="Unit description" />
     </Unit>
   </Device>
@@ -518,7 +518,7 @@
     <Identity Brand="Legrand" Model="03847" />
 
     <Capability Name="On/off switch state" />
-    <Capability Name="On/off switching" />
+    <Capability Name="On/off switch control" />
   </Device>
 
   <Device Series="MyHome" Protocol="Scs" Medium="Bus">
@@ -528,7 +528,7 @@
     <Capability Name="Basic shutter control" />
     <Capability Name="Basic shutter state" />
     <Capability Name="On/off switch state" />
-    <Capability Name="On/off switching" />
+    <Capability Name="On/off switch control" />
   </Device>
 
   <Device Series="MyHome" Protocol="Scs" Medium="Bus">
@@ -540,7 +540,7 @@
     <Capability Name="Basic dimming control" />
     <Capability Name="Basic dimming state" />
     <Capability Name="On/off switch state" />
-    <Capability Name="On/off switching" />
+    <Capability Name="On/off switch control" />
   </Device>
 
   <Device Series="MyHome" Protocol="Scs" Medium="Bus">
@@ -580,7 +580,7 @@
     <Capability Name="Basic shutter control" />
     <Capability Name="Basic shutter state" />
     <Capability Name="On/off switch state" />
-    <Capability Name="On/off switching" />
+    <Capability Name="On/off switch control" />
   </Device>
 
   <!--
@@ -621,7 +621,7 @@
 
     <Unit Id="1">
       <Capability Name="On/off switch state" />
-      <Capability Name="On/off switching" />
+      <Capability Name="On/off switch control" />
     </Unit>
   </Device>
 
