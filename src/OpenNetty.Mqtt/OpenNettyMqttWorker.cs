@@ -471,12 +471,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     var component = new JsonObject
                     {
                         ["platform"] = platform,
-                        ["unique_id"] = Base64Url.EncodeToString(XxHash128.Hash(
-                        [
-                            ..Encoding.UTF8.GetBytes(platform),
-                            ..Encoding.UTF8.GetBytes(name),
-                            ..Encoding.UTF8.GetBytes(endpoint.Address?.Value ?? string.Empty)
-                        ])),
+                        ["unique_id"] = ComputeUniqueId("feb44223-4814-4652-933c-53dbbaabac3f"u8),
                         ["name"] = endpoint.Name,
                         ["command_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.SwitchState}/set"
                     };
@@ -520,16 +515,11 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     var component = new JsonObject
                     {
                         ["platform"] = "cover",
-                        ["unique_id"] = Base64Url.EncodeToString(XxHash128.Hash(
-                        [
-                            ..Encoding.UTF8.GetBytes("cover"),
-                            ..Encoding.UTF8.GetBytes(name),
-                            ..Encoding.UTF8.GetBytes(endpoint.Address?.Value ?? string.Empty)
-                        ])),
-                        ["name"] = endpoint.Name,
-                        ["command_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.ShutterState}/set",
+                        ["unique_id"] = ComputeUniqueId("9b138d62-bb0d-49cb-8624-1d85f9e86a6e"u8),
                         ["device_class"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantDeviceClass)
-                            ?? OpenNettySettings.HomeAssistantDeviceClasses.Shutter
+                            ?? OpenNettySettings.HomeAssistantDeviceClasses.Shutter,
+                        ["name"] = endpoint.Name,
+                        ["command_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.ShutterState}/set"
                     };
 
                     if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState))
@@ -549,6 +539,322 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                     components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", component);
                 }
+
+                if (endpoint.HasCapability(OpenNettyCapabilities.Battery))
+                {
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "sensor",
+                        ["unique_id"] = ComputeUniqueId("6a8c7f1c-426a-47ab-97a1-a476acc603fd"u8),
+                        ["device_class"] = "battery",
+                        ["name"] = "Battery level",
+                        ["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.Battery}"
+                    });
+                }
+
+                if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
+                {
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "select",
+                        ["unique_id"] = ComputeUniqueId("205a01a1-ba4c-4e9b-a19a-c1589c445cbb"u8),
+                        ["icon"] = "mdi:radiator",
+                        ["name"] = "Setpoint mode",
+                        ["command_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.PilotWireSetpointMode}/set",
+                        ["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.PilotWireSetpointMode}",
+                        ["options"] = new JsonArray(["Comfort", "Comfort -1°C", "Comfort -2°C", "Eco", "Frost protection"]),
+                        ["value_template"] = """
+                            {% set map = {
+                              'comfort': 'Comfort',
+                              'comfort-1': 'Comfort -1°C',
+                              'comfort-2': 'Comfort -2°C',
+                              'eco': 'Eco',
+                              'frost_protection': 'Frost protection'
+                            } %}
+                            {{ map[value] }}
+                            """,
+                        ["command_template"] = """
+                            {% set map = {
+                              'Comfort': 'comfort',
+                              'Comfort -1°C': 'comfort-1',
+                              'Comfort -2°C': 'comfort-2',
+                              'Eco': 'eco',
+                              'Frost protection': 'frost_protection'
+                            } %}
+                            {{ map[value] }}
+                            """
+                    });
+
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "select",
+                        ["unique_id"] = ComputeUniqueId("f5f57920-d758-4ca8-8161-2614d4abeef0"u8),
+                        ["icon"] = "mdi:radiator",
+                        ["name"] = "Derogation mode",
+                        ["command_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.PilotWireDerogationMode}/set",
+                        ["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.PilotWireDerogationMode}",
+                        ["options"] = new JsonArray(
+                        [
+                            "None",
+                            "Comfort, until the next setpoint change",
+                            "Comfort, for at least 4 hours",
+                            "Comfort, for at least 8 hours",
+                            "Comfort -1°C, until the next setpoint change",
+                            "Comfort -1°C, for at least 4 hours",
+                            "Comfort -1°C, for at least 8 hours",
+                            "Comfort -2°C, until the next setpoint change",
+                            "Comfort -2°C, for at least 4 hours",
+                            "Comfort -2°C, for at least 8 hours",
+                            "Eco, until the next setpoint change",
+                            "Eco, for at least 4 hours",
+                            "Eco, for at least 8 hours",
+                            "Frost protection (permanent)",
+                            "Frost protection, for at least 4 hours",
+                            "Frost protection, for at least 8 hours"
+                        ]),
+                        ["value_template"] = """
+                            {% set map = {
+                              'none': 'None',
+                              'comfort': 'Comfort, until the next setpoint change',
+                              'comfort:4h': 'Comfort, for at least 4 hours',
+                              'comfort:8h': 'Comfort, for at least 8 hours',
+                              'comfort-1': 'Comfort -1°C, until the next setpoint change',
+                              'comfort-1:4h': 'Comfort -1°C, for at least 4 hours',
+                              'comfort-1:8h': 'Comfort -1°C, for at least 8 hours',
+                              'comfort-2': 'Comfort -2°C, until the next setpoint change',
+                              'comfort-2:4h': 'Comfort -2°C, for at least 4 hours',
+                              'comfort-2:8h': 'Comfort -2°C, for at least 8 hours',
+                              'eco': 'Eco, until the next setpoint change',
+                              'eco:4h': 'Eco, for at least 4 hours',
+                              'eco:8h': 'Eco, for at least 8 hours',
+                              'frost_protection': 'Frost protection (permanent)',
+                              'frost_protection:4h': 'Frost protection, for at least 4 hours',
+                              'frost_protection:8h': 'Frost protection, for at least 8 hours'
+                            } %}
+                            {{ map[value] }}
+                            """,
+                        ["command_template"] = """
+                            {% set map = {
+                              'None': 'none',
+                              'Comfort, until the next setpoint change': 'comfort',
+                              'Comfort, for at least 4 hours': 'comfort:4h',
+                              'Comfort, for at least 8 hours': 'comfort:8h',
+                              'Comfort -1°C, until the next setpoint change': 'comfort-1',
+                              'Comfort -1°C, for at least 4 hours': 'comfort-1:4h',
+                              'Comfort -1°C, for at least 8 hours': 'comfort-1:8h',
+                              'Comfort -2°C, until the next setpoint change': 'comfort-2',
+                              'Comfort -2°C, for at least 4 hours': 'comfort-2:4h',
+                              'Comfort -2°C, for at least 8 hours': 'comfort-2:8h',
+                              'Eco, until the next setpoint change': 'eco',
+                              'Eco, for at least 4 hours': 'eco:4h',
+                              'Eco, for at least 8 hours': 'eco:8h',
+                              'Frost protection (permanent)': 'frost_protection',
+                              'Frost protection, for at least 4 hours': 'frost_protection:4h',
+                              'Frost protection, for at least 8 hours': 'frost_protection:8h'
+                            } %}
+                            {{ map[value] }}
+                            """
+                    });
+                }
+
+                if (endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
+                {
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "sensor",
+                        ["unique_id"] = ComputeUniqueId("6c83787a-3537-49fa-b409-dc15d5c37b43"u8),
+                        ["device_class"] = "energy",
+                        ["unit_of_measurement"] = "kWh",
+                        ["name"] = "Base index",
+                        ["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.SmartMeterIndexes}",
+                        ["value_template"] = "{{ value_json.base_index }}"
+                    });
+
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "sensor",
+                        ["unique_id"] = ComputeUniqueId("0a9d909b-8449-496e-b38c-4dc3e2653288"u8),
+                        ["device_class"] = "energy",
+                        ["unit_of_measurement"] = "kWh",
+                        ["name"] = "Blue index",
+                        ["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.SmartMeterIndexes}",
+                        ["value_template"] = "{{ value_json.blue_index }}"
+                    });
+
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "sensor",
+                        ["unique_id"] = ComputeUniqueId("2661d8db-085a-41bb-bab6-a1627cbf91d0"u8),
+                        ["device_class"] = "energy",
+                        ["unit_of_measurement"] = "kWh",
+                        ["name"] = "Off-peak index",
+                        ["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.SmartMeterIndexes}",
+                        ["value_template"] = "{{ value_json.off_peak_index }}"
+                    });
+
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "sensor",
+                        ["unique_id"] = ComputeUniqueId("7dcf846c-fbdd-4457-9a17-9cbc0a7c072b"u8),
+                        ["device_class"] = "energy",
+                        ["unit_of_measurement"] = "kWh",
+                        ["name"] = "Red index",
+                        ["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.SmartMeterIndexes}",
+                        ["value_template"] = "{{ value_json.red_index }}"
+                    });
+
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "sensor",
+                        ["unique_id"] = ComputeUniqueId("1de29bc5-70b6-4302-aa27-8ecbcce13ec9"u8),
+                        ["device_class"] = "energy",
+                        ["unit_of_measurement"] = "kWh",
+                        ["name"] = "White index",
+                        ["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.SmartMeterIndexes}",
+                        ["value_template"] = "{{ value_json.white_index }}"
+                    });
+
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "sensor",
+                        ["unique_id"] = ComputeUniqueId("e07f0687-6ca1-47d9-a5b7-b20c0e79775a"u8),
+                        ["device_class"] = "enum",
+                        ["icon"] = "mdi:receipt-text-outline",
+                        ["name"] = "Subscription type",
+                        ["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.SmartMeterIndexes}",
+                        ["options"] = new JsonArray(
+                        [
+                            "Base",
+                            "Off-peak",
+                            "Tempo"
+                        ]),
+                        ["value_template"] = """
+                            {% set map = {
+                              'base': 'Base',
+                              'off_peak': 'Off-peak',
+                              'tempo': 'Tempo'
+                            } %}
+                            {{ map[value_json.subscription_type] }}
+                            """,
+                    });
+                }
+
+                if (endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))
+                {
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "sensor",
+                        ["unique_id"] = ComputeUniqueId("31eda1f3-343f-4cd7-9f56-ea792fcaec7f"u8),
+                        ["device_class"] = "enum",
+                        ["icon"] = "mdi:receipt-text-outline",
+                        ["name"] = "Rate type",
+                        ["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.SmartMeterRateType}",
+                        ["options"] = new JsonArray(
+                        [
+                            "Off-peak",
+                            "Peak"
+                        ]),
+                        ["value_template"] = """
+                            {% set map = {
+                              'off_peak': 'Off-peak',
+                              'peak': 'Peak'
+                            } %}
+                            {{ map[value_json.rate_type] }}
+                            """,
+                    });
+
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "binary_sensor",
+                        ["unique_id"] = ComputeUniqueId("280fd1d1-4220-42ec-bf70-69936b728eb2"u8),
+                        ["icon"] = "mdi:transmission-tower-off",
+                        ["name"] = "Power cut mode active",
+                        ["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.SmartMeterPowerCutMode}",
+                        ["payload_on"] = "1",
+                        ["payload_off"] = "0"
+                    });
+                }
+
+                if (endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
+                {
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "select",
+                        ["unique_id"] = ComputeUniqueId("733d9bf6-fd89-4ce1-bd71-d12a1c6a846e"u8),
+                        ["icon"] = "mdi:water-boiler",
+                        ["name"] = "Setpoint mode",
+                        ["command_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.WaterHeaterSetpointMode}/set",
+                        ["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.WaterHeaterSetpointMode}",
+                        ["options"] = new JsonArray(["Automatic", "Forced on", "Forced off"]),
+                        ["value_template"] = """
+                            {% set map = {
+                              'automatic': 'Automatic',
+                              'forced_on': 'Forced on',
+                              'forced_off': 'Forced off'
+                            } %}
+                            {{ map[value] }}
+                            """,
+                        ["command_template"] = """
+                            {% set map = {
+                              'Automatic': 'automatic',
+                              'Forced on': 'forced_on',
+                              'Forced off': 'forced_off'
+                            } %}
+                            {{ map[value] }}
+                            """
+                    });
+
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "binary_sensor",
+                        ["unique_id"] = ComputeUniqueId("344b6548-196d-42de-b627-22530cc28f07"u8),
+                        ["icon"] = "mdi:fire",
+                        ["name"] = "Heater active",
+                        ["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.WaterHeaterState}",
+                        ["payload_on"] = "heating",
+                        ["payload_off"] = "idle"
+                    });
+                }
+
+                if (endpoint.HasCapability(OpenNettyCapabilities.WirelessBurglarAlarmState))
+                {
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "sensor",
+                        ["unique_id"] = ComputeUniqueId("2dd476d5-a35a-442a-a3f2-4c2621dcf375"u8),
+                        ["device_class"] = "enum",
+                        ["icon"] = "mdi:shield-home-outline",
+                        ["name"] = "Alarm state",
+                        ["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.WirelessBurglarAlarmState}",
+                        ["options"] = new JsonArray(
+                        [
+                            "Disarmed",
+                            "Armed",
+                            "Partially armed",
+                            "Exit delay elapsed",
+                            "Triggered",
+                            "Event detected"
+                        ]),
+                        ["value_template"] = """
+                            {% set map = {
+                              'disarmed': 'Disarmed',
+                              'armed': 'Armed',
+                              'partially_armed': 'Partially armed',
+                              'exit_delay_elapsed': 'Exit delay elapsed',
+                              'triggered': 'Triggered',
+                              'event_detected': 'Event detected'
+                            } %}
+                            {{ map[value] }}
+                            """,
+                    });
+                }
+
+                string ComputeUniqueId(ReadOnlySpan<byte> identifier) => Base64Url.EncodeToString(XxHash128.Hash(
+                [
+                    ..identifier,
+                    ..Encoding.UTF8.GetBytes(name),
+                    ..Encoding.UTF8.GetBytes(endpoint.Address?.Value ?? string.Empty)
+                ]));
             }
 
             if (components.Count is not 0)
@@ -594,7 +900,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 return string.Equals(type, "Automation", StringComparison.OrdinalIgnoreCase);
             }
 
-            return false;
+            return true;
         }
 
         static bool SupportsLightOrSwitchEntity(OpenNettyEndpoint endpoint)
@@ -622,7 +928,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 return string.Equals(type, "Lighting", StringComparison.OrdinalIgnoreCase);
             }
 
-            return false;
+            return true;
         }
     }
 
