@@ -316,7 +316,20 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                         new OpenNettyField(OpenNettyParameter.Empty)), source.Token);
 
                     // Ensure the server acknowledged the supervision mode request.
-                    if (await connection.ReceiveAsync(source.Token) != OpenNettyFrames.Acknowledgement)
+                    try
+                    {
+                        // Note: the acknowledgement frame may not be the next frame in the buffer as generic
+                        // sessions are not synchronized (e.g state changes may be returned after sending the
+                        // supervision mode command). In this case, unrelated frames are automatically discarded.
+                        do
+                        {
+                            source.Token.ThrowIfCancellationRequested();
+                        }
+
+                        while (await connection.ReceiveAsync(source.Token) != OpenNettyFrames.Acknowledgement);
+                    }
+
+                    catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
                     {
                         throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0109));
                     }
@@ -330,16 +343,29 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                         new OpenNettyField(OpenNettyParameter.Empty),
                         new OpenNettyField(new OpenNettyParameter("16"))), source.Token);
 
-                    // Note: Nitoo gateways don't return acknowledgement frames for firmware version requests.
+                    // Note: Nitoo gateways do not return acknowledgement frames for firmware version requests.
                     if (gateway.Protocol is OpenNettyProtocol.Nitoo)
                     {
-                        if (await connection.ReceiveAsync(source.Token) is not
-                            { Fields: [{ Parameters: [{   IsEmpty: true   }, { Value: "13" }] },
-                                       { Parameters: [{   IsEmpty: true   }] },
-                                       { Parameters: [{    Value: "16"    }] },
-                                       { Parameters: [{ Value.Length: > 0 }] },
-                                       { Parameters: [{ Value.Length: > 0 }] },
-                                       { Parameters: [{ Value.Length: > 0 }] }] })
+                        try
+                        {
+                            // Note: the firmware version response may not be the next frame in the buffer as generic
+                            // sessions are not synchronized (e.g state changes may be returned after sending the
+                            // firmware version request). In this case, unrelated frames are automatically discarded.
+                            do
+                            {
+                                source.Token.ThrowIfCancellationRequested();
+                            }
+
+                            while (await connection.ReceiveAsync(source.Token) is not 
+                                { Fields: [{ Parameters: [{   IsEmpty: true   }, { Value: "13" }] },
+                                           { Parameters: [{   IsEmpty: true   }] },
+                                           { Parameters: [{    Value: "16"    }] },
+                                           { Parameters: [{ Value.Length: > 0 }] },
+                                           { Parameters: [{ Value.Length: > 0 }] },
+                                           { Parameters: [{ Value.Length: > 0 }] }] });
+                        }
+
+                        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
                         {
                             throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0022));
                         }
@@ -347,38 +373,66 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
 
                     else
                     {
-                        // Note: the acknowledgement frame may be returned before or after the firmware version.
-                        var frame = await connection.ReceiveAsync(source.Token);
-                        if (frame == OpenNettyFrames.Acknowledgement)
+                        while (true)
                         {
-                            if (await connection.ReceiveAsync(source.Token) is not
-                                { Fields: [{ Parameters: [{   IsEmpty: true   }, { Value: "13" }] },
-                                           { Parameters: [{   IsEmpty: true   }] },
-                                           { Parameters: [{    Value: "16"    }] },
-                                           { Parameters: [{ Value.Length: > 0 }] },
-                                           { Parameters: [{ Value.Length: > 0 }] },
-                                           { Parameters: [{ Value.Length: > 0 }] }] })
+                            var frame = await connection.ReceiveAsync(source.Token);
+                            if (frame == OpenNettyFrames.Acknowledgement)
+                            {
+                                try
+                                {
+                                    // Note: the acknowledgement frame may not be the next frame in the buffer as generic
+                                    // sessions are not synchronized (e.g state changes may be returned after sending the
+                                    // firmware version request). In this case, unrelated frames are automatically discarded.
+                                    do
+                                    {
+                                        source.Token.ThrowIfCancellationRequested();
+                                    }
+
+                                    while (await connection.ReceiveAsync(source.Token) is not 
+                                        { Fields: [{ Parameters: [{   IsEmpty: true   }, { Value: "13" }] },
+                                                   { Parameters: [{   IsEmpty: true   }] },
+                                                   { Parameters: [{    Value: "16"    }] },
+                                                   { Parameters: [{ Value.Length: > 0 }] },
+                                                   { Parameters: [{ Value.Length: > 0 }] },
+                                                   { Parameters: [{ Value.Length: > 0 }] }] });
+                                }
+
+                                catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+                                {
+                                    throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0022));
+                                }
+                            }
+
+                            else if (frame is { Fields: [{ Parameters: [{   IsEmpty: true   }, { Value: "13" }] },
+                                                         { Parameters: [{   IsEmpty: true   }] },
+                                                         { Parameters: [{    Value: "16"    }] },
+                                                         { Parameters: [{ Value.Length: > 0 }] },
+                                                         { Parameters: [{ Value.Length: > 0 }] },
+                                                         { Parameters: [{ Value.Length: > 0 }] }] })
+                            {
+                                try
+                                {
+                                    // Note: the acknowledgement frame may not be the next frame in the buffer as generic
+                                    // sessions are not synchronized (e.g state changes may be returned after sending the
+                                    // firmware version request). In this case, unrelated frames are automatically discarded.
+                                    do
+                                    {
+                                        source.Token.ThrowIfCancellationRequested();
+                                    }
+
+                                    while (await connection.ReceiveAsync(source.Token) != OpenNettyFrames.Acknowledgement);
+                                }
+
+                                catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+                                {
+                                    throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0022));
+                                }
+                            }
+
+                            else
                             {
                                 throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0022));
                             }
-                        }
-
-                        else if (frame is { Fields: [{ Parameters: [{   IsEmpty: true   }, { Value: "13" }] },
-                                                     { Parameters: [{   IsEmpty: true   }] },
-                                                     { Parameters: [{    Value: "16"    }] },
-                                                     { Parameters: [{ Value.Length: > 0 }] },
-                                                     { Parameters: [{ Value.Length: > 0 }] },
-                                                     { Parameters: [{ Value.Length: > 0 }] }] })
-                        {
-                            if (await connection.ReceiveAsync(source.Token) != OpenNettyFrames.Acknowledgement)
-                            {
-                                throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0022));
-                            }
-                        }
-
-                        else
-                        {
-                            throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0022));
                         }
                     }
                 }
