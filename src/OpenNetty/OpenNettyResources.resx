@@ -453,6 +453,12 @@
   <data name="ID0112" xml:space="preserve">
     <value>The actuator type associated with the endpoint isn't valid for the requested operation.</value>
   </data>
+  <data name="ID0113" xml:space="preserve">
+    <value>The connection was unexpectedly closed while trying to open a new session.</value>
+  </data>
+  <data name="ID0114" xml:space="preserve">
+    <value>The gateway didn't acknowledge the firmware version request.</value>
+  </data>
   <data name="ID2000" xml:space="preserve">
     <value>The endpoint name '{0}' is not valid. Endpoint names cannot contain the '+' or '*' characters.</value>
   </data>
