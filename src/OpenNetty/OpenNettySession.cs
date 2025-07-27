@@ -8,6 +8,7 @@ using System.Globalization;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reactive.Subjects;
+using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Security.Cryptography;
 using System.Text;
@@ -315,18 +316,19 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                         new OpenNettyField(new OpenNettyParameter("66")),
                         new OpenNettyField(OpenNettyParameter.Empty)), source.Token);
 
-                    // Ensure the server acknowledged the supervision mode request.
                     try
                     {
-                        // Note: the acknowledgement frame may not be the next frame in the buffer as generic
-                        // sessions are not synchronized (e.g state changes may be returned after sending the
-                        // supervision mode command). In this case, unrelated frames are automatically discarded.
-                        do
-                        {
-                            source.Token.ThrowIfCancellationRequested();
-                        }
+                        // Ensure the server acknowledged the supervision mode request.
+                        var frame = await WaitFrameAsync(connection, static frame =>
+                            frame == OpenNettyFrames.Acknowledgement ||
+                            frame == OpenNettyFrames.NegativeAcknowledgement ||
+                            frame == OpenNettyFrames.BusyNegativeAcknowledgement, source.Token)
+                            ?? throw new OpenNettyException(OpenNettyErrorCode.ConnectionClosed, SR.GetResourceString(SR.ID0113));
 
-                        while (await connection.ReceiveAsync(source.Token) != OpenNettyFrames.Acknowledgement);
+                        if (frame != OpenNettyFrames.Acknowledgement)
+                        {
+                            throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0109));
+                        }
                     }
 
                     catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
@@ -343,97 +345,55 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                         new OpenNettyField(OpenNettyParameter.Empty),
                         new OpenNettyField(new OpenNettyParameter("16"))), source.Token);
 
-                    // Note: Nitoo gateways do not return acknowledgement frames for firmware version requests.
-                    if (gateway.Protocol is OpenNettyProtocol.Nitoo)
+                    try
                     {
-                        try
+                        if (gateway.Protocol is OpenNettyProtocol.Nitoo)
                         {
-                            // Note: the firmware version response may not be the next frame in the buffer as generic
-                            // sessions are not synchronized (e.g state changes may be returned after sending the
-                            // firmware version request). In this case, unrelated frames are automatically discarded.
-                            do
+                            // Note: Nitoo gateways do not return acknowledgement frames for firmware version requests.
+                            if (await WaitFrameAsync(connection, IsFirmwareVersion, source.Token) is null)
                             {
-                                source.Token.ThrowIfCancellationRequested();
+                                throw new OpenNettyException(OpenNettyErrorCode.ConnectionClosed, SR.GetResourceString(SR.ID0113));
                             }
-
-                            while (await connection.ReceiveAsync(source.Token) is not 
-                                { Fields: [{ Parameters: [{   IsEmpty: true   }, { Value: "13" }] },
-                                           { Parameters: [{   IsEmpty: true   }] },
-                                           { Parameters: [{    Value: "16"    }] },
-                                           { Parameters: [{ Value.Length: > 0 }] },
-                                           { Parameters: [{ Value.Length: > 0 }] },
-                                           { Parameters: [{ Value.Length: > 0 }] }] });
                         }
 
-                        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+                        else
                         {
-                            throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0022));
+                            // Note: unlike Nitoo gateways, Zigbee gateways always acknowledge firmware version requests.
+                            switch (await WaitFrameAsync(connection, static frame =>
+                                frame == OpenNettyFrames.Acknowledgement ||
+                                frame == OpenNettyFrames.BusyNegativeAcknowledgement ||
+                                frame == OpenNettyFrames.NegativeAcknowledgement || IsFirmwareVersion(frame), source.Token))
+                            {
+                                case null:
+                                    throw new OpenNettyException(OpenNettyErrorCode.ConnectionClosed, SR.GetResourceString(SR.ID0113));
+
+                                case OpenNettyFrame frame when frame == OpenNettyFrames.BusyNegativeAcknowledgement ||
+                                                               frame == OpenNettyFrames.NegativeAcknowledgement:
+                                    throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0114));
+
+                                case OpenNettyFrame frame when frame == OpenNettyFrames.Acknowledgement:
+                                    if (await WaitFrameAsync(connection, IsFirmwareVersion, source.Token) is null)
+                                    {
+                                        throw new OpenNettyException(OpenNettyErrorCode.ConnectionClosed, SR.GetResourceString(SR.ID0113));
+                                    }
+                                    break;
+
+                                case OpenNettyFrame frame when IsFirmwareVersion(frame):
+                                    if (await WaitFrameAsync(connection, static frame =>
+                                        frame == OpenNettyFrames.Acknowledgement ||
+                                        frame == OpenNettyFrames.BusyNegativeAcknowledgement ||
+                                        frame == OpenNettyFrames.NegativeAcknowledgement, source.Token) != OpenNettyFrames.Acknowledgement)
+                                    {
+                                        throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0114));
+                                    }
+                                    break;
+                            }
                         }
                     }
 
-                    else
+                    catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
                     {
-                        while (true)
-                        {
-                            var frame = await connection.ReceiveAsync(source.Token);
-                            if (frame == OpenNettyFrames.Acknowledgement)
-                            {
-                                try
-                                {
-                                    // Note: the acknowledgement frame may not be the next frame in the buffer as generic
-                                    // sessions are not synchronized (e.g state changes may be returned after sending the
-                                    // firmware version request). In this case, unrelated frames are automatically discarded.
-                                    do
-                                    {
-                                        source.Token.ThrowIfCancellationRequested();
-                                    }
-
-                                    while (await connection.ReceiveAsync(source.Token) is not 
-                                        { Fields: [{ Parameters: [{   IsEmpty: true   }, { Value: "13" }] },
-                                                   { Parameters: [{   IsEmpty: true   }] },
-                                                   { Parameters: [{    Value: "16"    }] },
-                                                   { Parameters: [{ Value.Length: > 0 }] },
-                                                   { Parameters: [{ Value.Length: > 0 }] },
-                                                   { Parameters: [{ Value.Length: > 0 }] }] });
-                                }
-
-                                catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-                                {
-                                    throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0022));
-                                }
-                            }
-
-                            else if (frame is { Fields: [{ Parameters: [{   IsEmpty: true   }, { Value: "13" }] },
-                                                         { Parameters: [{   IsEmpty: true   }] },
-                                                         { Parameters: [{    Value: "16"    }] },
-                                                         { Parameters: [{ Value.Length: > 0 }] },
-                                                         { Parameters: [{ Value.Length: > 0 }] },
-                                                         { Parameters: [{ Value.Length: > 0 }] }] })
-                            {
-                                try
-                                {
-                                    // Note: the acknowledgement frame may not be the next frame in the buffer as generic
-                                    // sessions are not synchronized (e.g state changes may be returned after sending the
-                                    // firmware version request). In this case, unrelated frames are automatically discarded.
-                                    do
-                                    {
-                                        source.Token.ThrowIfCancellationRequested();
-                                    }
-
-                                    while (await connection.ReceiveAsync(source.Token) != OpenNettyFrames.Acknowledgement);
-                                }
-
-                                catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-                                {
-                                    throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0022));
-                                }
-                            }
-
-                            else
-                            {
-                                throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0022));
-                            }
-                        }
+                        throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0114));
                     }
                 }
             }
@@ -441,9 +401,13 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
             else
             {
                 // Ensure the server acknowledged the connection request.
-                if (await connection.ReceiveAsync(source.Token) != OpenNettyFrames.Acknowledgement)
+                switch (await connection.ReceiveAsync(source.Token))
                 {
-                    throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0022));
+                    case null:
+                        throw new OpenNettyException(OpenNettyErrorCode.ConnectionClosed, SR.GetResourceString(SR.ID0113));
+
+                    case OpenNettyFrame frame when frame != OpenNettyFrames.Acknowledgement:
+                        throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0022));
                 }
 
                 // Negotiate the requested session type.
@@ -518,6 +482,9 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                         // and validate it to ensure it matches the expected value.
                         switch (await connection.ReceiveAsync(source.Token))
                         {
+                            case null:
+                                throw new OpenNettyException(OpenNettyErrorCode.ConnectionClosed, SR.GetResourceString(SR.ID0113));
+
                             case { Fields: [{ Parameters: [{ IsEmpty: true }, { Value: { Length: > 0 } digest }] }] }
                                 when CryptographicOperations.FixedTimeEquals(
                                     left : MemoryMarshal.AsBytes<char>(digest),
@@ -530,7 +497,6 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                                 await connection.SendAsync(OpenNettyFrames.Acknowledgement, source.Token);
                                 break;
 
-                            case null:
                             case OpenNettyFrame frame when frame == OpenNettyFrames.NegativeAcknowledgement:
                                 throw new OpenNettyException(OpenNettyErrorCode.AuthenticationInvalid, SR.GetResourceString(SR.ID0026));
 
@@ -579,10 +545,12 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                         // Ensure the server acknowledged the authentication demand.
                         switch (await connection.ReceiveAsync(source.Token))
                         {
+                            case null:
+                                throw new OpenNettyException(OpenNettyErrorCode.ConnectionClosed, SR.GetResourceString(SR.ID0113));
+
                             case OpenNettyFrame frame when frame == OpenNettyFrames.Acknowledgement:
                                 break;
 
-                            case null:
                             case OpenNettyFrame frame when frame == OpenNettyFrames.NegativeAcknowledgement:
                                 throw new OpenNettyException(OpenNettyErrorCode.AuthenticationInvalid, SR.GetResourceString(SR.ID0026));
 
@@ -648,6 +616,34 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
 
             return builder.ToString();
         }
+
+        static async ValueTask<OpenNettyFrame?> WaitFrameAsync(
+            OpenNettyConnection connection, Func<OpenNettyFrame, bool> filter, CancellationToken cancellationToken)
+        {
+            // Note: the expected frame may not be the next frame in the buffer as generic sessions
+            // are not synchronized (e.g state changes may be returned immediately before or after
+            // sending a command). In this case, unrelated frames are automatically discarded.
+
+            while (true)
+            {
+                cancellationToken.ThrowIfCancellationRequested();
+
+                switch (await connection.ReceiveAsync(cancellationToken))
+                {
+                    case null:                                    return null;
+                    case OpenNettyFrame frame when filter(frame): return frame;
+                }
+            }
+        }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        static bool IsFirmwareVersion(OpenNettyFrame frame) => frame is
+            { Fields: [{ Parameters: [{   IsEmpty: true   }, { Value: "13" }] },
+                       { Parameters: [{            IsEmpty: true           }] },
+                       { Parameters: [{             Value: "16"            }] },
+                       { Parameters: [{          Value.Length: > 0         }] },
+                       { Parameters: [{          Value.Length: > 0         }] },
+                       { Parameters: [{          Value.Length: > 0         }] }] };
     }
 
     /// <summary>

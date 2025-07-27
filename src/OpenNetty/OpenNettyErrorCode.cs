@@ -79,5 +79,10 @@ public enum OpenNettyErrorCode
     /// <summary>
     /// The connection negotiation couldn't be completed in the allowed time frame.
     /// </summary>
-    NegotiationTimeout = 13
+    NegotiationTimeout = 13,
+
+    /// <summary>
+    /// The connection was closed.
+    /// </summary>
+    ConnectionClosed = 14
 }
