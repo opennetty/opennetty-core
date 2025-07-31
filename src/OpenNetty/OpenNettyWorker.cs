@@ -7,6 +7,7 @@
 using System.Diagnostics;
 using System.Runtime.CompilerServices;
 using System.Threading.Channels;
+using Microsoft.Extensions.Logging;
 using Polly;
 
 namespace OpenNetty;
@@ -16,13 +17,13 @@ namespace OpenNetty;
 /// </summary>
 public sealed class OpenNettyWorker : IOpenNettyWorker
 {
-    private readonly OpenNettyLogger<OpenNettyWorker> _logger;
+    private readonly ILogger<OpenNettyWorker> _logger;
 
     /// <summary>
     /// Creates a new instance of the <see cref="OpenNettyWorker"/> class.
     /// </summary>
     /// <param name="logger">The OpenNetty logger.</param>
-    public OpenNettyWorker(OpenNettyLogger<OpenNettyWorker> logger)
+    public OpenNettyWorker(ILogger<OpenNettyWorker> logger)
         => _logger = logger ?? throw new ArgumentNullException(nameof(logger));
 
     /// <inheritdoc/>
@@ -36,7 +37,7 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
         ArgumentNullException.ThrowIfNull(reader);
         ArgumentNullException.ThrowIfNull(writer);
 
-        _logger.WorkerStarting(gateway);
+        _logger.LogInformation(6004, SR.GetResourceString(SR.ID6004), gateway);
 
         List<Task> tasks = [];
 
@@ -59,7 +60,7 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
             }
         }
 
-        _logger.WorkerStarted(gateway);
+        _logger.LogInformation(6005, SR.GetResourceString(SR.ID6005), gateway);
 
         return Task.WhenAll(tasks);
 
@@ -67,24 +68,24 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
         {
             var context = ResilienceContextPool.Shared.Get(cancellationToken);
             context.Properties.Set(new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)), gateway);
-            context.Properties.Set(new ResiliencePropertyKey<OpenNettyLogger<OpenNettyWorker>>(nameof(OpenNettyLogger<>)), _logger);
+            context.Properties.Set(new ResiliencePropertyKey<ILogger<OpenNettyWorker>>(nameof(ILogger<>)), _logger);
             context.Properties.Set(new ResiliencePropertyKey<OpenNettySessionType>(nameof(OpenNettySessionType)), type);
 
-            _logger.TaskRunnerScheduled(gateway, type);
+            _logger.LogInformation(6006, SR.GetResourceString(SR.ID6006), gateway, type);
 
             await gateway.Options.SessionResiliencePipeline.ExecuteAsync(async context =>
             {
                 using var source = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
                 await using var session = await OpenNettySession.CreateAsync(gateway, type, source.Token);
 
-                _logger.SessionOpen(gateway, type, session);
+                _logger.LogDebug(6007, SR.GetResourceString(SR.ID6007), gateway, type, session);
 
                 try
                 {
                     await using (await session.SubscribeAsync(
                         async message =>
                         {
-                            _logger.MessageReceived(message, gateway, session);
+                            _logger.LogDebug(6009, SR.GetResourceString(SR.ID6009), message, gateway, session);
 
                             await writer.WriteAsync(new OpenNettyNotifications.MessageReceived
                             {
@@ -120,12 +121,12 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
                         }
                     }
 
-                    _logger.SessionClosed(session);
+                    _logger.LogDebug(6008, SR.GetResourceString(SR.ID6008), session);
                 }
 
                 catch (OperationCanceledException) when (source.Token.IsCancellationRequested)
                 {
-                    _logger.SessionClosed(session);
+                    _logger.LogDebug(6008, SR.GetResourceString(SR.ID6008), session);
                 }
             }, context);
         }
@@ -135,10 +136,10 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
         {
             var context = ResilienceContextPool.Shared.Get(cancellationToken);
             context.Properties.Set(new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)), gateway);
-            context.Properties.Set(new ResiliencePropertyKey<OpenNettyLogger<OpenNettyWorker>>(nameof(OpenNettyLogger<>)), _logger);
+            context.Properties.Set(new ResiliencePropertyKey<ILogger<OpenNettyWorker>>(nameof(ILogger<>)), _logger);
             context.Properties.Set(new ResiliencePropertyKey<OpenNettySessionType>(nameof(OpenNettySessionType)), type);
 
-            _logger.TaskRunnerScheduled(gateway, type);
+            _logger.LogInformation(6006, SR.GetResourceString(SR.ID6006), gateway, type);
 
             await gateway.Options.SessionResiliencePipeline.ExecuteAsync(async context =>
             {
@@ -154,14 +155,14 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
                     using var source = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
                     await using var session = await OpenNettySession.CreateAsync(gateway, type, source.Token);
 
-                    _logger.SessionOpen(gateway, type, session);
+                    _logger.LogDebug(6007, SR.GetResourceString(SR.ID6007), gateway, type, session);
 
                     try
                     {
                         await using var subscription = await session.SubscribeAsync(
                             async message =>
                             {
-                                _logger.MessageReceived(message, gateway, session);
+                                _logger.LogDebug(6009, SR.GetResourceString(SR.ID6009), message, gateway, session);
 
                                 await writer.WriteAsync(new OpenNettyNotifications.MessageReceived
                                 {
@@ -208,12 +209,12 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
                         // to send it. Otherwise, stop iterating so that the session can be closed.
                         while (reader.TryRead(out notification) || stopwatch.Elapsed < timeout);
 
-                        _logger.SessionClosed(session);
+                        _logger.LogDebug(6008, SR.GetResourceString(SR.ID6008), session);
                     }
 
                     catch (OperationCanceledException) when (source.Token.IsCancellationRequested)
                     {
-                        _logger.SessionClosed(session);
+                        _logger.LogDebug(6008, SR.GetResourceString(SR.ID6008), session);
                     }
                 }
             }, context);
@@ -230,7 +231,7 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
 
             catch (OpenNettyException exception) when (exception.ErrorCode is OpenNettyErrorCode.GatewayBusy)
             {
-                _logger.GatewayBusy(message, gateway, session);
+                _logger.LogInformation(6011, SR.GetResourceString(SR.ID6011), message, gateway, session);
 
                 await writer.WriteAsync(cancellationToken: cancellationToken, item: new OpenNettyNotifications.GatewayBusy
                 {
@@ -245,7 +246,7 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
 
             catch (OpenNettyException exception) when (exception.ErrorCode is OpenNettyErrorCode.InvalidAction)
             {
-                _logger.InvalidAction(message, gateway, session);
+                _logger.LogInformation(6012, SR.GetResourceString(SR.ID6012), message, gateway, session);
 
                 await writer.WriteAsync(cancellationToken: cancellationToken, item: new OpenNettyNotifications.InvalidAction
                 {
@@ -260,7 +261,7 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
 
             catch (OpenNettyException exception) when (exception.ErrorCode is OpenNettyErrorCode.NoActionReceived)
             {
-                _logger.NoActionReceived(message, gateway, session);
+                _logger.LogInformation(6013, SR.GetResourceString(SR.ID6013), message, gateway, session);
 
                 await writer.WriteAsync(cancellationToken: cancellationToken, item: new OpenNettyNotifications.NoActionReceived
                 {
@@ -275,7 +276,7 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
 
             catch (OpenNettyException exception) when (exception.ErrorCode is OpenNettyErrorCode.NoAcknowledgementReceived)
             {
-                _logger.NoAcknowledgementReceived(message, gateway, session);
+                _logger.LogInformation(6014, SR.GetResourceString(SR.ID6014), message, gateway, session);
 
                 await writer.WriteAsync(cancellationToken: cancellationToken, item: new OpenNettyNotifications.NoAcknowledgmentReceived
                 {
@@ -291,7 +292,7 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
 
             catch (OpenNettyException exception) when (exception.ErrorCode is OpenNettyErrorCode.InvalidFrame)
             {
-                _logger.InvalidFrame(message, gateway, session);
+                _logger.LogInformation(6015, SR.GetResourceString(SR.ID6015), message, gateway, session);
 
                 await writer.WriteAsync(cancellationToken: cancellationToken, item: new OpenNettyNotifications.InvalidFrame
                 {
@@ -304,7 +305,7 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
                 return;
             }
 
-            _logger.MessageSent(message, gateway, session);
+            _logger.LogDebug(6010, SR.GetResourceString(SR.ID6010), message, gateway, session);
 
             await writer.WriteAsync(cancellationToken: cancellationToken, item: new OpenNettyNotifications.MessageSent
             {

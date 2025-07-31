@@ -15,6 +15,7 @@ using System.Runtime.CompilerServices;
 using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading.Channels;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MQTTnet;
 using MQTTnet.Extensions.ManagedClient;
@@ -28,7 +29,7 @@ namespace OpenNetty.Mqtt;
 public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 {
     private readonly OpenNettyController _controller;
-    private readonly OpenNettyLogger<OpenNettyMqttWorker> _logger;
+    private readonly ILogger<OpenNettyMqttWorker> _logger;
     private readonly OpenNettyManager _manager;
     private readonly IOptionsMonitor<OpenNettyMqttOptions> _options;
 
@@ -41,7 +42,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
     /// <param name="options">The OpenNetty MQTT options.</param>
     public OpenNettyMqttWorker(
         OpenNettyController controller,
-        OpenNettyLogger<OpenNettyMqttWorker> logger,
+        ILogger<OpenNettyMqttWorker> logger,
         OpenNettyManager manager,
         IOptionsMonitor<OpenNettyMqttOptions> options)
     {
@@ -402,7 +403,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         throw;
                     }
                 })
-                .Do(_logger.UnhandledEventHandlerException)
+                .Do((Exception exception) => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask))
             .Retry()
@@ -897,7 +898,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
                 }
 
-                return string.Equals(type, "Automation", StringComparison.OrdinalIgnoreCase);
+                return type is OpenNettySettings.ActuatorTypes.Automation;
             }
 
             return true;
@@ -925,7 +926,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
                 }
 
-                return string.Equals(type, "Lighting", StringComparison.OrdinalIgnoreCase);
+                return type is OpenNettySettings.ActuatorTypes.Lighting;
             }
 
             return true;
