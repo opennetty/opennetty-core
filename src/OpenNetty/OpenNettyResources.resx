@@ -474,4 +474,76 @@
   <data name="ID2004" xml:space="preserve">
     <value>The endpoint '{0}' doesn't have a valid switch mode setting attached ({1}). Only 'Default' and 'Push button' are currently supported.</value>
   </data>
+  <data name="ID6000" xml:space="preserve">
+    <value>The OpenNetty hosted service is starting.</value>
+  </data>
+  <data name="ID6001" xml:space="preserve">
+    <value>The OpenNetty hosted service has successfully started.</value>
+  </data>
+  <data name="ID6002" xml:space="preserve">
+    <value>The OpenNetty hosted service has successfully stopped.</value>
+  </data>
+  <data name="ID6003" xml:space="preserve">
+    <value>The OpenNetty hosted service has failed due to an unexpected exception.</value>
+  </data>
+  <data name="ID6004" xml:space="preserve">
+    <value>The worker associated to the gateway {Gateway} is starting.</value>
+  </data>
+  <data name="ID6005" xml:space="preserve">
+    <value>The worker associated to the gateway {Gateway} has successfully started.</value>
+  </data>
+  <data name="ID6006" xml:space="preserve">
+    <value>A task runner was successfully scheduled for gateway {Gateway} (session type: {Type}).</value>
+  </data>
+  <data name="ID6007" xml:space="preserve">
+    <value>A new session of type {Type} was open to gateway {Gateway}: {Session}.</value>
+  </data>
+  <data name="ID6008" xml:space="preserve">
+    <value>The session {Session} was closed.</value>
+  </data>
+  <data name="ID6009" xml:space="preserve">
+    <value>An incoming message was received by gateway {Gateway} using session {Session}: {Message}.</value>
+  </data>
+  <data name="ID6010" xml:space="preserve">
+    <value>An outgoing message was successfully sent by gateway {Gateway} using session {Session}: {Message}.</value>
+  </data>
+  <data name="ID6011" xml:space="preserve">
+    <value>An outgoing message couldn't be sent by gateway {Gateway} using session {Session} because the gateway was too busy: {Message}.</value>
+  </data>
+  <data name="ID6012" xml:space="preserve">
+    <value>An outgoing message was sent by gateway {Gateway} using session {Session} but was rejected by the end device: {Message}.</value>
+  </data>
+  <data name="ID6013" xml:space="preserve">
+    <value>An outgoing message was sent by gateway {Gateway} using session {Session} but was not acknowledged by the end device: {Message}.</value>
+  </data>
+  <data name="ID6014" xml:space="preserve">
+    <value>An outgoing message couldn't be sent by gateway {Gateway} using session {Session} as no acknowledgement frame was received: {Message}.</value>
+  </data>
+  <data name="ID6015" xml:space="preserve">
+    <value>An outgoing message was rejected by gateway {Gateway} using session {Session}: {Message}.</value>
+  </data>
+  <data name="ID6016" xml:space="preserve">
+    <value>An error occurred while sending a message to gateway {Gateway}: {Message}.</value>
+  </data>
+  <data name="ID6017" xml:space="preserve">
+    <value>A message will be retransmitted by gateway {Gateway}: {Message} (attempt number n°{Attempt}).</value>
+  </data>
+  <data name="ID6018" xml:space="preserve">
+    <value>An unhandled exception was thrown by a Reactive Extensions event handler.</value>
+  </data>
+  <data name="ID6019" xml:space="preserve">
+    <value>An error occurred while trying to connect to the MQTT broker.</value>
+  </data>
+  <data name="ID6020" xml:space="preserve">
+    <value>An error occurred while trying to open a session of type {Type} to gateway {Gateway}.</value>
+  </data>
+  <data name="ID6021" xml:space="preserve">
+    <value>An incoming MQTT message for topic {Topic} was received (payload: {Payload}).</value>
+  </data>
+  <data name="ID6022" xml:space="preserve">
+    <value>An outgoing MQTT message for topic {Topic} was successfully sent (payload: {Payload}).</value>
+  </data>
+  <data name="ID6023" xml:space="preserve">
+    <value>An error occurred while processing an outgoing MQTT message for topic {Topic} (payload: {Payload}).</value>
+  </data>
 </root>

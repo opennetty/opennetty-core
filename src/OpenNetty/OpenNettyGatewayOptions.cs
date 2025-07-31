@@ -4,6 +4,7 @@
  * the license and the contributors participating to this project.
  */
 
+using Microsoft.Extensions.Logging;
 using Polly;
 using Polly.Retry;
 
@@ -152,8 +153,8 @@ public sealed record class OpenNettyGatewayOptions
                     }
 
                     if (!arguments.Context.Properties.TryGetValue(
-                        key  : new ResiliencePropertyKey<OpenNettyLogger<OpenNettyService>>(nameof(OpenNettyLogger<>)),
-                        value: out OpenNettyLogger<OpenNettyService>? logger))
+                        key  : new ResiliencePropertyKey<ILogger<OpenNettyService>>(nameof(ILogger<>)),
+                        value: out ILogger<OpenNettyService>? logger))
                     {
                         throw new InvalidOperationException(SR.GetResourceString(SR.ID0074));
                     }
@@ -178,7 +179,7 @@ public sealed record class OpenNettyGatewayOptions
                         return ValueTask.FromResult(false);
                     }
 
-                    logger.MessageErrored(arguments.Outcome.Exception, message, gateway);
+                    logger.LogInformation(6016, arguments.Outcome.Exception, SR.GetResourceString(SR.ID6016), message, gateway);
 
                     return ValueTask.FromResult(arguments.Outcome.Exception switch
                     {
@@ -226,8 +227,8 @@ public sealed record class OpenNettyGatewayOptions
                     }
 
                     if (!arguments.Context.Properties.TryGetValue(
-                        key  : new ResiliencePropertyKey<OpenNettyLogger<OpenNettyService>>(nameof(OpenNettyLogger<>)),
-                        value: out OpenNettyLogger<OpenNettyService>? logger))
+                        key  : new ResiliencePropertyKey<ILogger<OpenNettyService>>(nameof(ILogger<>)),
+                        value: out ILogger<OpenNettyService>? logger))
                     {
                         throw new InvalidOperationException(SR.GetResourceString(SR.ID0074));
                     }
@@ -239,7 +240,7 @@ public sealed record class OpenNettyGatewayOptions
                         throw new InvalidOperationException(SR.GetResourceString(SR.ID0074));
                     }
 
-                    logger.MessageRetransmitted(message, gateway, (uint) arguments.AttemptNumber + 1);
+                    logger.LogInformation(6017, SR.GetResourceString(SR.ID6017), message, gateway, (uint) arguments.AttemptNumber + 1);
 
                     return ValueTask.CompletedTask;
                 }
@@ -273,8 +274,8 @@ public sealed record class OpenNettyGatewayOptions
                         }
 
                         if (!arguments.Context.Properties.TryGetValue(
-                            key  : new ResiliencePropertyKey<OpenNettyLogger<OpenNettyWorker>>(nameof(OpenNettyLogger<>)),
-                            value: out OpenNettyLogger<OpenNettyWorker>? logger))
+                            key  : new ResiliencePropertyKey<ILogger<OpenNettyWorker>>(nameof(ILogger<>)),
+                            value: out ILogger<OpenNettyWorker>? logger))
                         {
                             throw new InvalidOperationException(SR.GetResourceString(SR.ID0074));
                         }
@@ -291,7 +292,7 @@ public sealed record class OpenNettyGatewayOptions
                             return ValueTask.FromResult(false);
                         }
 
-                        logger.SessionErrored(exception, gateway, type);
+                        logger.LogInformation(6020, exception, SR.GetResourceString(SR.ID6020), gateway, type);
 
                         // Always recreate new sessions on failed attempts, unless the operation was canceled by the worker.
                         return ValueTask.FromResult(!arguments.Context.CancellationToken.IsCancellationRequested);

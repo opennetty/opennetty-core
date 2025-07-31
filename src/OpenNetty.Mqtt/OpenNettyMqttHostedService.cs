@@ -13,6 +13,7 @@ using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading.Channels;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MQTTnet;
 using MQTTnet.Client;
@@ -29,7 +30,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
 {
     private readonly IManagedMqttClient _client;
     private readonly OpenNettyEvents _events;
-    private readonly OpenNettyLogger<OpenNettyMqttHostedService> _logger;
+    private readonly ILogger<OpenNettyMqttHostedService> _logger;
     private readonly IOptionsMonitor<OpenNettyMqttOptions> _options;
     private readonly IOpenNettyMqttWorker _worker;
 
@@ -44,7 +45,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
     public OpenNettyMqttHostedService(
         IManagedMqttClient client,
         OpenNettyEvents events,
-        OpenNettyLogger<OpenNettyMqttHostedService> logger,
+        ILogger<OpenNettyMqttHostedService> logger,
         IOptionsMonitor<OpenNettyMqttOptions> options,
         IOpenNettyMqttWorker worker)
     {
@@ -330,8 +331,8 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                     builder.WithPayload(arguments.State is OpenNettyModels.Lighting.SwitchState.Off ? "OFF": "ON");
 
                     // Note: the retain flag is only added when the special push mode is not used.
-                    builder.WithRetainFlag(!string.Equals(arguments.Endpoint.GetStringSetting(OpenNettySettings.SwitchMode),
-                        "Push button", StringComparison.OrdinalIgnoreCase));
+                    builder.WithRetainFlag(arguments.Endpoint.GetStringSetting(OpenNettySettings.SwitchMode)
+                        is not OpenNettySettings.SwitchModes.PushButton);
                 }))
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
@@ -492,7 +493,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
 
             var payload = message.ConvertPayloadToString();
 
-            _logger.MqttMessageReceived(topic, payload);
+            _logger.LogDebug(6021, SR.GetResourceString(SR.ID6021), topic, payload);
 
             await channel.Writer.WriteAsync(arguments.ApplicationMessage);
         };
@@ -500,7 +501,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
         // Use the ConnectingFailedAsync event to log connection errors.
         _client.ConnectingFailedAsync += (ConnectingFailedEventArgs arguments) =>
         {
-            _logger.MqttBrokerConnectionError(arguments.Exception);
+            _logger.LogWarning(6019, arguments.Exception, SR.GetResourceString(SR.ID6019));
 
             return Task.CompletedTask;
         };
@@ -514,12 +515,12 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
 
             if (arguments.Exception is Exception exception)
             {
-                _logger.MqttMessageError(exception, topic, payload);
+                _logger.LogError(6023, arguments.Exception, SR.GetResourceString(SR.ID6023), topic, payload);
             }
 
             else
             {
-                _logger.MqttMessageSent(topic, payload);
+                _logger.LogDebug(6022, SR.GetResourceString(SR.ID6022), topic, payload);
             }
 
             return Task.CompletedTask;

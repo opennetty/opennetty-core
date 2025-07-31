@@ -9,6 +9,7 @@ using System.Reactive.Disposables;
 using System.Reactive.Linq;
 using System.Threading.Channels;
 using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 
 namespace OpenNetty;
@@ -21,7 +22,7 @@ public sealed class OpenNettyHostedService : BackgroundService
 {
     private readonly OpenNettyEvents _events;
     private readonly IEnumerable<IOpenNettyHandler> _handlers;
-    private readonly OpenNettyLogger<OpenNettyHostedService> _logger;
+    private readonly ILogger<OpenNettyHostedService> _logger;
     private readonly IOptionsMonitor<OpenNettyOptions> _options;
     private readonly IOpenNettyPipeline _pipeline;
     private readonly IOpenNettyWorker _worker;
@@ -38,7 +39,7 @@ public sealed class OpenNettyHostedService : BackgroundService
     public OpenNettyHostedService(
         OpenNettyEvents events,
         IEnumerable<IOpenNettyHandler> handlers,
-        OpenNettyLogger<OpenNettyHostedService> logger,
+        ILogger<OpenNettyHostedService> logger,
         IOptionsMonitor<OpenNettyOptions> options,
         IOpenNettyPipeline pipeline,
         IOpenNettyWorker worker)
@@ -53,7 +54,7 @@ public sealed class OpenNettyHostedService : BackgroundService
 
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
-        _logger.HostedServiceStarting();
+        _logger.LogInformation(6000, SR.GetResourceString(SR.ID6000));
 
         await using var subscriptions = new CompositeAsyncDisposable();
 
@@ -113,19 +114,19 @@ public sealed class OpenNettyHostedService : BackgroundService
             await subscriptions.AddAsync(await _events.ConnectAsync());
             await subscriptions.AddAsync(await _pipeline.ConnectAsync());
 
-            _logger.HostedServiceStarted();
+            _logger.LogInformation(6001, SR.GetResourceString(SR.ID6001));
 
             await Task.WhenAll(tasks);
         }
 
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
-            _logger.HostedServiceStopped();
+            _logger.LogInformation(6002, SR.GetResourceString(SR.ID6002));
         }
 
         catch (Exception exception)
         {
-            _logger.HostedServiceFailed(exception);
+            _logger.LogCritical(6003, exception, SR.GetResourceString(SR.ID6003));
 
             throw;
         }

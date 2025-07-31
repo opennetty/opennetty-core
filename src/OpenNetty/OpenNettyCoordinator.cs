@@ -7,6 +7,7 @@
 using System.Globalization;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using Microsoft.Extensions.Logging;
 using static OpenNetty.OpenNettyEvents;
 
 namespace OpenNetty;
@@ -19,7 +20,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
 {
     private readonly OpenNettyController _controller;
     private readonly OpenNettyEvents _events;
-    private readonly OpenNettyLogger<OpenNettyCoordinator> _logger;
+    private readonly ILogger<OpenNettyCoordinator> _logger;
     private readonly OpenNettyManager _manager;
     private readonly IOpenNettyPipeline _pipeline;
 
@@ -34,7 +35,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
     public OpenNettyCoordinator(
         OpenNettyController controller,
         OpenNettyEvents events,
-        OpenNettyLogger<OpenNettyCoordinator> logger,
+        ILogger<OpenNettyCoordinator> logger,
         OpenNettyManager manager,
         IOpenNettyPipeline pipeline)
     {
@@ -1535,7 +1536,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 }
             }
         })
-        .Do(_logger.UnhandledEventHandlerException)
+        .Do((Exception exception) => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
         .Retry()
         .SubscribeAsync(static message => ValueTask.CompletedTask),
 
@@ -1744,7 +1745,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 await Task.WhenAll(tasks);
             });
         })
-        .Do(_logger.UnhandledEventHandlerException)
+        .Do((Exception exception) => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
         .Retry()
         .SubscribeAsync(static notification => ValueTask.CompletedTask),
 
@@ -1832,7 +1833,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
             ValueTask ReportOffStateAsync(OpenNettyEndpoint endpoint, CancellationToken cancellationToken)
                 => _events.PublishAsync(new SwitchStateReportedEventArgs(endpoint, OpenNettyModels.Lighting.SwitchState.Off), cancellationToken);
         })
-        .Do(_logger.UnhandledEventHandlerException)
+        .Do((Exception exception) => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
         .Retry()
         .SubscribeAsync(static notification => ValueTask.CompletedTask),
 
@@ -1912,7 +1913,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 _ = await _controller.GetPilotWireConfigurationAsync(endpoint);
             }
         })
-        .Do(_logger.UnhandledEventHandlerException)
+        .Do((Exception exception) => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
         .Retry()
         .SubscribeAsync(static notification => ValueTask.CompletedTask),
 
@@ -1986,7 +1987,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 }
             });
         })
-        .Do(_logger.UnhandledEventHandlerException)
+        .Do((Exception exception) => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
         .Retry()
         .SubscribeAsync(static notification => ValueTask.CompletedTask),
 
@@ -2029,7 +2030,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 _ = await _controller.GetWaterHeaterStateAsync(endpoint);
             }
         })
-        .Do(_logger.UnhandledEventHandlerException)
+        .Do((Exception exception) => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
         .Retry()
         .SubscribeAsync(static notification => ValueTask.CompletedTask)
     ]);

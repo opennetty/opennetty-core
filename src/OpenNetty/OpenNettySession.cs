@@ -422,6 +422,9 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
 
                 switch (await connection.ReceiveAsync(source.Token))
                 {
+                    case null:
+                        throw new OpenNettyException(OpenNettyErrorCode.ConnectionClosed, SR.GetResourceString(SR.ID0113));
+
                     // If the client IP address was whitelisted, authentication is not required and
                     // an ACK frame is directly returned by the OpenWebNet gateway to reflect that.
                     case OpenNettyFrame frame when frame == OpenNettyFrames.Acknowledgement:
@@ -449,10 +452,14 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                         await connection.SendAsync(OpenNettyFrames.Acknowledgement, source.Token);
 
                         // Extract the server authentication nonce returned by the gateway.
-                        if (await connection.ReceiveAsync(source.Token) is not { Fields: [{ Parameters: [{ IsEmpty: true }, { Value: { Length: > 0 } nonce }] }] })
+                        var nonce = await connection.ReceiveAsync(source.Token) switch
                         {
-                            throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0025));
-                        }
+                            null => throw new OpenNettyException(OpenNettyErrorCode.ConnectionClosed, SR.GetResourceString(SR.ID0113)),
+
+                            { Fields: [{ Parameters: [{ IsEmpty: true }, { Value: { Length: > 0 } value }] }] } => value,
+
+                            _ => throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0025)),
+                        };
 
                         // Ensure the returned nonce has a correct size and generate a random client nonce using a CSP.
                         var parameters = (
@@ -622,7 +629,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
         {
             // Note: the expected frame may not be the next frame in the buffer as generic sessions
             // are not synchronized (e.g state changes may be returned immediately before or after
-            // sending a command). In this case, unrelated frames are automatically discarded.
+            // sending a command). In this case, unwanted frames are automatically discarded.
 
             while (true)
             {

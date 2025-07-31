@@ -29,7 +29,6 @@ public static class OpenNettyExtensions
 
         services.TryAddSingleton<OpenNettyController>();
         services.TryAddSingleton<OpenNettyEvents>();
-        services.TryAddSingleton(typeof(OpenNettyLogger<>));
         services.TryAddSingleton<OpenNettyManager>();
         services.TryAddSingleton<IOpenNettyPipeline, OpenNettyPipeline>();
         services.TryAddSingleton<IOpenNettyService, OpenNettyService>();
