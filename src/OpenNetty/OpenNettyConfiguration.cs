@@ -4,7 +4,9 @@
  * the license and the contributors participating to this project.
  */
 
+using System.Collections.Immutable;
 using System.ComponentModel;
+using System.Globalization;
 using Microsoft.Extensions.Options;
 
 namespace OpenNetty;
@@ -13,8 +15,63 @@ namespace OpenNetty;
 /// Contains the methods required to ensure that the OpenNetty configuration is valid.
 /// </summary>
 [EditorBrowsable(EditorBrowsableState.Never)]
-public sealed class OpenNettyConfiguration : IValidateOptions<OpenNettyOptions>
+public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOptions>, IValidateOptions<OpenNettyOptions>
 {
+    public void PostConfigure(string? name, OpenNettyOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        // For Nitoo and Zigbee devices, add implicit endpoints for all the units present
+        // in the device definition but that have not been explicitly added by the user.
+        foreach (var device in options.Devices)
+        {
+            if (device.Definition.Protocol is not (OpenNettyProtocol.Nitoo or OpenNettyProtocol.Zigbee) ||
+                device.Definition.Units.Length is 0 ||
+                string.IsNullOrEmpty(device.SerialNumber))
+            {
+                continue;
+            }
+
+            foreach (var definition in device.Definition.Units)
+            {
+                // If an endpoint targeting the unit was configured by the user, do not override it.
+                if (options.Endpoints.Exists(endpoint => endpoint.Device == device && endpoint.Unit?.Definition == definition))
+                {
+                    continue;
+                }
+
+                options.Endpoints.Add(new OpenNettyEndpoint
+                {
+                    Address = device.Definition.Protocol switch
+                    {
+                        OpenNettyProtocol.Nitoo => OpenNettyAddress.FromNitooAddress(
+                            identifier: uint.Parse(device.SerialNumber ?? throw new InvalidOperationException(SR.FormatID0089("SerialNumber")), CultureInfo.InvariantCulture),
+                            unit      : definition.Id),
+
+                        OpenNettyProtocol.Zigbee => OpenNettyAddress.FromHexadecimalZigbeeAddress(
+                            identifier: device.SerialNumber ?? throw new InvalidOperationException(SR.FormatID0094("SerialNumber")),
+                            unit      : definition.Id),
+
+                        _ => null
+                    },
+                    Capabilities = [],
+                    Device = device,
+                    Gateway = null,
+                    Medium = device.Definition.Medium,
+                    Name = null,
+                    Protocol = device.Definition.Protocol,
+                    Settings = ImmutableDictionary.Create<OpenNettySetting, string>(),
+                    Unit = device.Units.SingleOrDefault(unit => unit.Definition == definition) ?? new OpenNettyUnit
+                    {
+                        Definition = definition,
+                        Scenarios = [],
+                        Settings = ImmutableDictionary.Create<OpenNettySetting, string>()
+                    }
+                });
+            }
+        }
+    }
+
     /// <inheritdoc/>
     public ValidateOptionsResult Validate(string? name, OpenNettyOptions options)
     {

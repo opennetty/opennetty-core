@@ -6,7 +6,6 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
-using System.Reactive;
 
 namespace OpenNetty;
 
@@ -36,6 +35,11 @@ public sealed class OpenNettyDevice : IEquatable<OpenNettyDevice>
     /// </summary>
     public ImmutableDictionary<OpenNettySetting, string> Settings { get; init; } =
         ImmutableDictionary<OpenNettySetting, string>.Empty;
+
+    /// <summary>
+    /// Gets or sets the units associated with the device, if applicable.
+    /// </summary>
+    public ImmutableArray<OpenNettyUnit> Units { get; init; }
 
     /// <summary>
     /// Resolves the specified boolean setting from the settings.
@@ -73,7 +77,8 @@ public sealed class OpenNettyDevice : IEquatable<OpenNettyDevice>
             Definition == other.Definition &&
             Identity == other.Identity &&
             string.Equals(SerialNumber, other.SerialNumber, StringComparison.OrdinalIgnoreCase) &&
-            Settings.Count == other.Settings.Count && !Settings.Except(other.Settings).Any();
+            Settings.Count == other.Settings.Count && !Settings.Except(other.Settings).Any() &&
+            Units.Length == other.Units.Length && !Units.Except(other.Units).Any();
     }
 
     /// <inheritdoc/>
@@ -92,6 +97,12 @@ public sealed class OpenNettyDevice : IEquatable<OpenNettyDevice>
         {
             hash.Add(name);
             hash.Add(value);
+        }
+
+        hash.Add(Units.Length);
+        foreach (var unit in Units)
+        {
+            hash.Add(unit);
         }
 
         return hash.ToHashCode();

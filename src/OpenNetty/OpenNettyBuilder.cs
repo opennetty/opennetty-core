@@ -48,6 +48,30 @@ public sealed class OpenNettyBuilder
     }
 
     /// <summary>
+    /// Adds a device to the list of registered devices.
+    /// </summary>
+    /// <param name="device">The device.</param>
+    /// <returns>The <see cref="OpenNettyBuilder"/> instance.</returns>
+    public OpenNettyBuilder AddDevice(OpenNettyDevice device)
+    {
+        ArgumentNullException.ThrowIfNull(device);
+
+        return Configure(options => options.Devices.Add(device));
+    }
+
+    /// <summary>
+    /// Adds multiple devices to the list of registered devices.
+    /// </summary>
+    /// <param name="devices">The devices.</param>
+    /// <returns>The <see cref="OpenNettyBuilder"/> instance.</returns>
+    public OpenNettyBuilder AddDevices(IEnumerable<OpenNettyDevice> devices)
+    {
+        ArgumentNullException.ThrowIfNull(devices);
+
+        return Configure(options => options.Devices.AddRange(devices));
+    }
+
+    /// <summary>
     /// Adds an endpoint to the list of registered endpoints.
     /// </summary>
     /// <param name="endpoint">The endpoint.</param>
@@ -156,8 +180,21 @@ public sealed class OpenNettyBuilder
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0078));
         }
 
+        List<OpenNettyDevice> devices = [];
         List<OpenNettyEndpoint> endpoints = [];
         List<OpenNettyGateway> gateways = [];
+
+        foreach (var device in document.Root.Descendants("Device"))
+        {
+            // Ensure a device with an identical serial number wasn't already added to the list of devices.
+            var number = (string?) device.Attribute("SerialNumber");
+            if (number is not null && devices.Exists(device => device.SerialNumber == number))
+            {
+                throw new InvalidOperationException(SR.FormatID0115(number));
+            }
+
+            devices.Add(GetDevice(device));
+        }
 
         foreach (var gateway in document.Root.Descendants("Gateway"))
         {
@@ -166,7 +203,7 @@ public sealed class OpenNettyBuilder
                 throw new NotSupportedException(SR.GetResourceString(SR.ID0080));
             }
 
-            var device = GetEndpointDevice(gateway.Parent);
+            var device = GetDevice(gateway.Parent);
 
             gateways.Add((string?) gateway.Attribute("Type") switch
             {
@@ -261,10 +298,10 @@ public sealed class OpenNettyBuilder
                 throw new InvalidOperationException(SR.FormatID0085(name));
             }
 
-            var device = endpoint.Parent?.Name == "Device" ? GetEndpointDevice(endpoint.Parent) :
-                         endpoint.Parent?.Name == "Unit" && endpoint.Parent.Parent?.Name == "Device" ? GetEndpointDevice(endpoint.Parent.Parent) : null;
+            var device = endpoint.Parent?.Name == "Device" ? GetDevice(endpoint.Parent) :
+                         endpoint.Parent?.Name == "Unit" && endpoint.Parent.Parent?.Name == "Device" ? GetDevice(endpoint.Parent.Parent) : null;
 
-            var unit = device is not null && endpoint.Parent?.Name == "Unit" ? GetEndpointDeviceUnit(device, endpoint.Parent,
+            var unit = device is not null && endpoint.Parent?.Name == "Unit" ? GetUnit(endpoint.Parent,
                 (byte?) (uint?) endpoint.Parent.Attribute("Id") ?? throw new InvalidOperationException(SR.FormatID0086("Id"))) : null;
 
             var type = (string?) endpoint.Attribute("Type") switch
@@ -365,7 +402,7 @@ public sealed class OpenNettyBuilder
             endpoints.Add(new OpenNettyEndpoint
             {
                 Address = address,
-                Capabilities = device is null && unit is null ? GetEndpointCapabilities(endpoint) : [],
+                Capabilities = device is null && unit is null ? GetCapabilities(endpoint) : [],
                 Device = device,
                 Gateway = (string?) endpoint.Attribute("Gateway") is string gateway ? FindGatewayByName(gateways, gateway) : null,
                 Medium = device?.Definition.Medium,
@@ -378,17 +415,18 @@ public sealed class OpenNettyBuilder
 
         return Configure(options =>
         {
+            options.Devices.AddRange(devices);
             options.Endpoints.AddRange(endpoints);
             options.Gateways.AddRange(gateways);
         });
 
-        static ImmutableHashSet<OpenNettyCapability> GetEndpointCapabilities(XElement element) =>
+        static ImmutableHashSet<OpenNettyCapability> GetCapabilities(XElement element) =>
             element.Elements("Capability")
                    .Select(static element => (string?) element.Attribute("Name") ?? throw new InvalidOperationException(SR.FormatID0096("Name")))
                    .Select(static name => new OpenNettyCapability(name))
                    .ToImmutableHashSet();
 
-        static OpenNettyDevice GetEndpointDevice(XElement element)
+        static OpenNettyDevice GetDevice(XElement element)
         {
             var brand = (string?) element.Attribute("Brand");
             if (string.IsNullOrEmpty(brand))
@@ -411,11 +449,24 @@ public sealed class OpenNettyBuilder
                 Identity = definition.Identities.Single(identity =>
                     identity.Brand == Enum.Parse<OpenNettyBrand>(brand) && identity.Model == model),
                 SerialNumber = (string?) element.Attribute("SerialNumber"),
-                Settings = GetSettings(element)
+                Settings = GetSettings(element),
+                Units = [.. element.Elements("Unit").Select(static element =>
+                    GetUnit(element, (byte?) (uint?) element.Attribute("Id") ?? throw new InvalidOperationException(SR.FormatID0086("Id"))))]
             };
         }
 
-        static OpenNettyUnit GetEndpointDeviceUnit(OpenNettyDevice device, XElement element, byte unit)
+        static ImmutableDictionary<OpenNettySetting, string> GetSettings(XElement element) =>
+            element.Elements("Setting").ToImmutableDictionary(
+                element => new OpenNettySetting((string?) element.Attribute("Name") ?? throw new InvalidOperationException(SR.FormatID0099("Name"))),
+                element => (string?) element.Attribute("Value") ?? throw new InvalidOperationException(SR.FormatID0099("Name")));
+
+        static OpenNettyScenario GetScenario(XElement element) => new()
+        {
+            EndpointName = (string?) element.Attribute("Endpoint") ?? throw new InvalidOperationException(SR.FormatID0101("Endpoint")),
+            FunctionCode = (byte?) (uint?) element.Attribute("Function") ?? throw new InvalidOperationException(SR.FormatID0101("Function"))
+        };
+
+        static OpenNettyUnit GetUnit(XElement element, byte unit)
         {
             var brand = (string?) element.Parent?.Attribute("Brand");
             if (string.IsNullOrEmpty(brand))
@@ -439,17 +490,6 @@ public sealed class OpenNettyBuilder
                 Settings = GetSettings(element)
             };
         }
-
-        static ImmutableDictionary<OpenNettySetting, string> GetSettings(XElement element) =>
-            element.Elements("Setting").ToImmutableDictionary(
-                element => new OpenNettySetting((string?) element.Attribute("Name") ?? throw new InvalidOperationException(SR.FormatID0099("Name"))),
-                element => (string?) element.Attribute("Value") ?? throw new InvalidOperationException(SR.FormatID0099("Name")));
-
-        static OpenNettyScenario GetScenario(XElement element) => new()
-        {
-            EndpointName = (string?) element.Attribute("Endpoint") ?? throw new InvalidOperationException(SR.FormatID0101("Endpoint")),
-            FunctionCode = (byte?) (uint?) element.Attribute("Function") ?? throw new InvalidOperationException(SR.FormatID0101("Function"))
-        };
 
         static OpenNettyGateway FindGatewayByName(IReadOnlyList<OpenNettyGateway> gateways, string name)
         {
