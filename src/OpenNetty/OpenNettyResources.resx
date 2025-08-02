@@ -459,6 +459,9 @@
   <data name="ID0114" xml:space="preserve">
     <value>The gateway didn't acknowledge the firmware version request.</value>
   </data>
+  <data name="ID0115" xml:space="preserve">
+    <value>A device with the serial number '{0}' has already been added.</value>
+  </data>
   <data name="ID2000" xml:space="preserve">
     <value>The endpoint name '{0}' is not valid. Endpoint names cannot contain the '+' or '*' characters.</value>
   </data>

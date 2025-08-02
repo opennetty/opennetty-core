@@ -37,6 +37,8 @@ public static class OpenNettyExtensions
         services.TryAddEnumerable(ServiceDescriptor.Singleton<IOpenNettyHandler, OpenNettyCoordinator>());
 
         services.TryAddEnumerable(ServiceDescriptor.Singleton<
+            IPostConfigureOptions<OpenNettyOptions>, OpenNettyConfiguration>());
+        services.TryAddEnumerable(ServiceDescriptor.Singleton<
             IValidateOptions<OpenNettyOptions>, OpenNettyConfiguration>());
 
         services.AddHostedService<OpenNettyHostedService>();

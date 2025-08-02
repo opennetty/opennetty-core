@@ -12,6 +12,11 @@ namespace OpenNetty;
 public sealed class OpenNettyOptions
 {
     /// <summary>
+    /// Gets the list of registered devices.
+    /// </summary>
+    public List<OpenNettyDevice> Devices { get; } = [];
+
+    /// <summary>
     /// Gets the list of registered gateways.
     /// </summary>
     public List<OpenNettyGateway> Gateways { get; } = [];
