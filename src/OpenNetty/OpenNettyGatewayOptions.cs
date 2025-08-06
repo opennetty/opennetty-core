@@ -179,7 +179,7 @@ public sealed record class OpenNettyGatewayOptions
                         return ValueTask.FromResult(false);
                     }
 
-                    logger.LogInformation(6016, arguments.Outcome.Exception, SR.GetResourceString(SR.ID6016), message, gateway);
+                    logger.LogInformation(6016, arguments.Outcome.Exception, SR.GetResourceString(SR.ID6016), gateway, message);
 
                     return ValueTask.FromResult(arguments.Outcome.Exception switch
                     {
@@ -240,7 +240,7 @@ public sealed record class OpenNettyGatewayOptions
                         throw new InvalidOperationException(SR.GetResourceString(SR.ID0074));
                     }
 
-                    logger.LogInformation(6017, SR.GetResourceString(SR.ID6017), message, gateway, (uint) arguments.AttemptNumber + 1);
+                    logger.LogInformation(6017, SR.GetResourceString(SR.ID6017), gateway, message, (uint) arguments.AttemptNumber + 1);
 
                     return ValueTask.CompletedTask;
                 }
@@ -292,7 +292,7 @@ public sealed record class OpenNettyGatewayOptions
                             return ValueTask.FromResult(false);
                         }
 
-                        logger.LogInformation(6020, exception, SR.GetResourceString(SR.ID6020), gateway, type);
+                        logger.LogInformation(6020, exception, SR.GetResourceString(SR.ID6020), type, gateway);
 
                         // Always recreate new sessions on failed attempts, unless the operation was canceled by the worker.
                         return ValueTask.FromResult(!arguments.Context.CancellationToken.IsCancellationRequested);

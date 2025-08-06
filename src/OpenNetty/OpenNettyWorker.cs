@@ -78,14 +78,14 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
                 using var source = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
                 await using var session = await OpenNettySession.CreateAsync(gateway, type, source.Token);
 
-                _logger.LogDebug(6007, SR.GetResourceString(SR.ID6007), gateway, type, session);
+                _logger.LogDebug(6007, SR.GetResourceString(SR.ID6007), type, gateway, session);
 
                 try
                 {
                     await using (await session.SubscribeAsync(
                         async message =>
                         {
-                            _logger.LogDebug(6009, SR.GetResourceString(SR.ID6009), message, gateway, session);
+                            _logger.LogDebug(6009, SR.GetResourceString(SR.ID6009), gateway, session, message);
 
                             await writer.WriteAsync(new OpenNettyNotifications.MessageReceived
                             {
@@ -155,14 +155,14 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
                     using var source = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
                     await using var session = await OpenNettySession.CreateAsync(gateway, type, source.Token);
 
-                    _logger.LogDebug(6007, SR.GetResourceString(SR.ID6007), gateway, type, session);
+                    _logger.LogDebug(6007, SR.GetResourceString(SR.ID6007), type, gateway, session);
 
                     try
                     {
                         await using var subscription = await session.SubscribeAsync(
                             async message =>
                             {
-                                _logger.LogDebug(6009, SR.GetResourceString(SR.ID6009), message, gateway, session);
+                                _logger.LogDebug(6009, SR.GetResourceString(SR.ID6009), gateway, session, message);
 
                                 await writer.WriteAsync(new OpenNettyNotifications.MessageReceived
                                 {
@@ -231,7 +231,7 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
 
             catch (OpenNettyException exception) when (exception.ErrorCode is OpenNettyErrorCode.GatewayBusy)
             {
-                _logger.LogInformation(6011, SR.GetResourceString(SR.ID6011), message, gateway, session);
+                _logger.LogInformation(6011, SR.GetResourceString(SR.ID6011), gateway, session, message);
 
                 await writer.WriteAsync(cancellationToken: cancellationToken, item: new OpenNettyNotifications.GatewayBusy
                 {
@@ -246,7 +246,7 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
 
             catch (OpenNettyException exception) when (exception.ErrorCode is OpenNettyErrorCode.InvalidAction)
             {
-                _logger.LogInformation(6012, SR.GetResourceString(SR.ID6012), message, gateway, session);
+                _logger.LogInformation(6012, SR.GetResourceString(SR.ID6012), gateway, session, message);
 
                 await writer.WriteAsync(cancellationToken: cancellationToken, item: new OpenNettyNotifications.InvalidAction
                 {
@@ -261,7 +261,7 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
 
             catch (OpenNettyException exception) when (exception.ErrorCode is OpenNettyErrorCode.NoActionReceived)
             {
-                _logger.LogInformation(6013, SR.GetResourceString(SR.ID6013), message, gateway, session);
+                _logger.LogInformation(6013, SR.GetResourceString(SR.ID6013), gateway, session, message);
 
                 await writer.WriteAsync(cancellationToken: cancellationToken, item: new OpenNettyNotifications.NoActionReceived
                 {
@@ -276,7 +276,7 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
 
             catch (OpenNettyException exception) when (exception.ErrorCode is OpenNettyErrorCode.NoAcknowledgementReceived)
             {
-                _logger.LogInformation(6014, SR.GetResourceString(SR.ID6014), message, gateway, session);
+                _logger.LogInformation(6014, SR.GetResourceString(SR.ID6014), gateway, session, message);
 
                 await writer.WriteAsync(cancellationToken: cancellationToken, item: new OpenNettyNotifications.NoAcknowledgmentReceived
                 {
@@ -292,7 +292,7 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
 
             catch (OpenNettyException exception) when (exception.ErrorCode is OpenNettyErrorCode.InvalidFrame)
             {
-                _logger.LogInformation(6015, SR.GetResourceString(SR.ID6015), message, gateway, session);
+                _logger.LogInformation(6015, SR.GetResourceString(SR.ID6015), gateway, session, message);
 
                 await writer.WriteAsync(cancellationToken: cancellationToken, item: new OpenNettyNotifications.InvalidFrame
                 {
@@ -305,7 +305,7 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
                 return;
             }
 
-            _logger.LogDebug(6010, SR.GetResourceString(SR.ID6010), message, gateway, session);
+            _logger.LogDebug(6010, SR.GetResourceString(SR.ID6010), gateway, session, message);
 
             await writer.WriteAsync(cancellationToken: cancellationToken, item: new OpenNettyNotifications.MessageSent
             {
