@@ -529,7 +529,7 @@
     <value>An error occurred while sending a message to gateway {Gateway}: {Message}.</value>
   </data>
   <data name="ID6017" xml:space="preserve">
-    <value>A message will be retransmitted by gateway {Gateway}: {Message} (attempt number n°{Attempt}).</value>
+    <value>A message will be retransmitted by gateway {Gateway}: {Message} (retransmission number n°{Attempt}).</value>
   </data>
   <data name="ID6018" xml:space="preserve">
     <value>An unhandled exception was thrown by a Reactive Extensions event handler.</value>
