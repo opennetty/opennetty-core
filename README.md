@@ -327,7 +327,7 @@ For that, you need to add a `Device` node with the correct brand/model attribute
 
   <!-- MyHome Up shutter actuator -->
 
-  <Device Brand="BTicino" Model="F418U2" SerialNumber="00A472A9">
+  <Device Brand="BTicino" Model="F411U2" SerialNumber="00A472A9">
     <Endpoint Name="Living room/Shutter" Area="1" Point="3">
       <Setting Name="Actuator type" Value="Automation" />
     </Endpoint>
@@ -638,6 +638,108 @@ class MyEventHandler(OpenNettyEvents events) : IOpenNettyHandler
                 (args.State is OpenNettyModels.Lighting.SwitchState.On ? "on" : "off")))
     ]);
 }
+```
+
+## Advanced settings
+
+OpenNetty allows attaching specific settings to endpoints to control how events are handled or how commands are sent.
+While using the default settings is generally enough, it can be useful to override them for some endpoints.
+
+Settings can be attached programmatically or via the configuration file to devices, units or endpoints. E.g:
+
+```xml
+<Device Brand="Legrand" Model="67222" SerialNumber="487932">
+  <Setting Name="Action validation" Value="false" />
+
+  <Unit Id="4">
+    <Endpoint Name="Kitchen/Dimmable socket" />
+  </Unit>
+</Device>
+```
+
+```csharp
+options.AddEndpoint(new OpenNettyEndpoint
+{
+    Address = OpenNettyAddress.FromNitooAddress(identifier: 487932, unit: 4),
+    Device = new OpenNettyDevice
+    {
+        Definition = OpenNettyDevices.GetDeviceByModel(OpenNettyBrand.Legrand, "67222")!,
+        Identity = new OpenNettyIdentity
+        {
+            Brand = OpenNettyBrand.Legrand,
+            Collection = "Céliane",
+            Model = "67222"
+        },
+        SerialNumber = "487932",
+        Settings = ImmutableDictionary.Create<OpenNettySetting, string>()
+            .Add(OpenNettySettings.ActionValidation, bool.FalseString)
+    },
+    Name = "Kitchen/Dimmable socket",
+    Protocol = OpenNettyProtocol.Nitoo,
+    Unit = new OpenNettyUnit
+    {
+        Definition = OpenNettyDevices.GetUnitByModel(OpenNettyBrand.Legrand, "67222", 4)!
+    }
+});
+```
+
+### Actuator type (SCS-only)
+
+Many MyHome/MyHome Up devices can be configured to either act as lighting or automation (i.e shutter/cover) devices.
+To avoid ambiguities, OpenNetty requires that the actual type be specified for SCS products that support both modes:
+
+```xml
+<Device Brand="BTicino" Model="F411U2" SerialNumber="00B582A5">
+  <Endpoint Name="Garage/Recessed light 1" Area="4" Point="1">
+    <Setting Name="Actuator type" Value="Lighting" />
+  </Endpoint>
+</Device>
+
+<Device Brand="BTicino" Model="F411U2" SerialNumber="00A472A9">
+  <Endpoint Name="Living room/Shutter" Area="1" Point="3">
+    <Setting Name="Actuator type" Value="Automation" />
+  </Endpoint>
+</Device>
+```
+
+### Action validation (Nitoo-only, powerline-only)
+
+As they operate over an unreliable medium (i.e power lines), Nitoo PLC devices may not always receive some of the messages
+sent by the OpenWebNet gateway. To mitigate that, these devices automatically report back whether a bus command or dimension set
+demand was successfully applied or not using special VALID ACTION or INVALID ACTION diagnostic frames: OpenNetty monitors these
+frames to determine whether the requested action was actually performed: when no confirmation is received, the initial message
+is automatically retransmitted by OpenNetty until the maximum number of allowed retransmissions is reached (2 by default) or
+the demand is confirmed by the remote device. If no positive confirmation is received, the command is assumed to be unsuccessful
+and the state of the endpoint is assumed to be unchanged: for instance, when sending an ON command, the `SwitchStateReported`
+event will not be triggered if the end device didn't report the command was succesful after the allowed number of retransmissions.
+
+When necessary (e.g because a specific endpoint is known to have issues reporting frames back), this mechanism can be disabled:
+in this case, every command is assumed to be successful (which is similar to Home Assistant's optimistic mode):
+
+```xml
+<Device Brand="Legrand" Model="67222" SerialNumber="487932">
+  <Setting Name="Action validation" Value="false" />
+
+  <Unit Id="4">
+    <Endpoint Name="Kitchen/Dimmable socket" />
+  </Unit>
+</Device>
+```
+
+### Switch mode (SCS-only)
+
+Using MyHome Suite, SCS devices can be configured to use a special PUL mode. When doing so, these devices basically work as
+push buttons: they no longer react to area or general commands and automatically move back to the OFF state after being activated.
+
+When using the PUL mode, it is strongly recommended to configure affected endpoints to use the `Push button`
+switch mode so that OpenNetty can properly report the OFF state and ignore area and general commands.
+
+```xml
+<Device Brand="BTicino" Model="F411U1" SerialNumber="0019BF87">
+  <Endpoint Name="Patio/Doorbell" Area="9" Point="1">
+    <Setting Name="Switch mode" Value="Push button" />
+  </Endpoint>
+</Device>
 ```
 
 --------------
