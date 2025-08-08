@@ -71,7 +71,7 @@ public readonly struct OpenNettyCategory : IEquatable<OpenNettyCategory>
     /// <summary>
     /// Gets the additional parameters associated with the category, if applicable.
     /// </summary>
-    public ImmutableArray<string> Parameters { get; }
+    public ImmutableArray<string> Parameters { get; } = [];
 
     /// <inheritdoc/>
     public bool Equals(OpenNettyCategory other)

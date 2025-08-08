@@ -75,7 +75,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
     /// <summary>
     /// Gets the additional parameters associated with the address, if applicable.
     /// </summary>
-    public ImmutableArray<string> Parameters { get; }
+    public ImmutableArray<string> Parameters { get; } = [];
 
     /// <summary>
     /// Gets the type associated with the address.

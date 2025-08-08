@@ -79,7 +79,7 @@ public readonly struct OpenNettyCommand : IEquatable<OpenNettyCommand>
     /// <summary>
     /// Gets the additional parameters associated with the command, if applicable.
     /// </summary>
-    public ImmutableArray<string> Parameters { get; }
+    public ImmutableArray<string> Parameters { get; } = [];
 
     /// <inheritdoc/>
     public bool Equals(OpenNettyCommand other)
