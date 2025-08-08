@@ -147,13 +147,16 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0010));
         }
 
-        var address = message.Address;
-
         if (options.HasFlag(OpenNettyTransmissionOptions.RequireActionValidation))
         {
             if (message.Protocol is not OpenNettyProtocol.Nitoo)
             {
                 throw new InvalidOperationException(SR.GetResourceString(SR.ID0011));
+            }
+
+            if (message.Address is null)
+            {
+                throw new InvalidOperationException(SR.GetResourceString(SR.ID0014));
             }
 
             if (message.Type is not (OpenNettyMessageType.BusCommand or OpenNettyMessageType.DimensionSet))
@@ -165,11 +168,6 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
             {
                 throw new InvalidOperationException(SR.GetResourceString(SR.ID0013));
             }
-
-            if (address is null)
-            {
-                throw new InvalidOperationException(SR.GetResourceString(SR.ID0014));
-            }
         }
 
         if (!await _semaphore.WaitAsync(TimeSpan.Zero, cancellationToken))
@@ -179,6 +177,8 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
 
         try
         {
+            var address = message.Address;
+
             var messages = _observable.ObserveOn(TaskPoolAsyncScheduler.Default)
                 .Where(message => message switch
                 {

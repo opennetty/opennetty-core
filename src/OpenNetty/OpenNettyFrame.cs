@@ -38,7 +38,7 @@ public readonly struct OpenNettyFrame : IEquatable<OpenNettyFrame>
     /// <summary>
     /// Gets the raw fields included in the current frame.
     /// </summary>
-    public ImmutableArray<OpenNettyField> Fields { get; }
+    public ImmutableArray<OpenNettyField> Fields { get; } = [];
 
     /// <summary>
     /// Parses an OpenNetty frame from the specified <paramref name="value"/>.

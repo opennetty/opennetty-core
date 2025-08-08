@@ -310,7 +310,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         // imprecise results that are inconsistent with the brightness level retrieved using a
                         // "DIMMER LEVEL SPEED" or "DIMMER STATUS" DIMENSION REQUEST frame (e.g when setting the
                         // brightness to 30%, a F418U2 SCS dimmer correctly reports the "130" value when using
-                        // a DIMENSION REQUEST but returns "5" (50%) when using a STATUS REQUEST. To avoid that,
+                        // a DIMENSION REQUEST but returns "5" (50%) when using a STATUS REQUEST). To avoid that,
                         // a specialized event handler is responsible for monitoring ON% BUS COMMAND frames and
                         // retrieving the exact brightness level using a "DIMMER LEVEL SPEED" DIMENSION REQUEST.
                         if (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) &&
@@ -1550,7 +1550,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
             // results that are inconsistent with the brightness level retrieved using a "DIMMER LEVEL SPEED"
             // or "DIMMER STATUS" DIMENSION REQUEST frame (e.g when setting the brightness to 30%, a F418U2 SCS
             // dimmer correctly reports the "130" value when using a DIMENSION REQUEST but returns "5" (50%)
-            // when using a STATUS REQUEST. To avoid that, this event handler monitors all the ON% BUS COMMAND
+            // when using a STATUS REQUEST). To avoid that, this event handler monitors all the ON% BUS COMMAND
             // frames and retrieves the exact brightness level using a "DIMMER LEVEL SPEED" DIMENSION REQUEST.
             OpenNettyNotifications.MessageReceived {
                 Session.Type: OpenNettySessionType.Event,
@@ -1570,7 +1570,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                      command == OpenNettyCommands.Lighting.On100
                     => AsyncObservable.Return<(OpenNettyNotification Notification, OpenNettyMessage Message)>((notification, message)),
 
-            // Note: some Nitoo devices (like the 067210, 067212 and 067214 dimmers) offer preset buttons that allow
+            // Note: some Nitoo devices (like the 67210, 67212 and 67214 dimmers) offer preset buttons that allow
             // setting the brightness to a fixed value configured by the user directly on the device. When pressed,
             // the dimmer moves to the specified level and emits a SCENARIO ACTION frame but doesn't specify the
             // actual value, that must be retrieved separately using a DIMENSION REQUEST to determine the exact level.

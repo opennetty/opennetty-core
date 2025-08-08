@@ -39,7 +39,7 @@ public sealed class OpenNettyDevice : IEquatable<OpenNettyDevice>
     /// <summary>
     /// Gets or sets the units associated with the device, if applicable.
     /// </summary>
-    public ImmutableArray<OpenNettyUnit> Units { get; init; }
+    public ImmutableArray<OpenNettyUnit> Units { get; init; } = [];
 
     /// <summary>
     /// Resolves the specified boolean setting from the settings.

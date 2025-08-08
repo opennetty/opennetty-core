@@ -38,7 +38,7 @@ public readonly struct OpenNettyField : IEquatable<OpenNettyField>
     /// <summary>
     /// Gets the raw parameters included in the field.
     /// </summary>
-    public ImmutableArray<OpenNettyParameter> Parameters { get; }
+    public ImmutableArray<OpenNettyParameter> Parameters { get; } = [];
 
     /// <summary>
     /// Represents an empty field.

@@ -490,7 +490,7 @@ public static class OpenNettyModels
             /// <summary>
             /// Gets or sets the values.
             /// </summary>
-            public ImmutableArray<string> Values { get; init; }
+            public ImmutableArray<string> Values { get; init; } = [];
 
             /// <summary>
             /// Creates a new instance of the <see cref="UnitDescription"/> class using the specified unit description.

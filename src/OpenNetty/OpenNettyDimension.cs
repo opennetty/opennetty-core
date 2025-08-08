@@ -79,7 +79,7 @@ public readonly struct OpenNettyDimension : IEquatable<OpenNettyDimension>
     /// <summary>
     /// Gets the additional parameters associated with the dimension, if applicable.
     /// </summary>
-    public ImmutableArray<string> Parameters { get; }
+    public ImmutableArray<string> Parameters { get; } = [];
 
     /// <inheritdoc/>
     public bool Equals(OpenNettyDimension other)
