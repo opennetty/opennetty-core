@@ -311,11 +311,11 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 switch (message.ConvertPayloadToString()?.ToLowerInvariant())
                                 {
                                     case "close":
-                                        await _controller.MoveShutterUpAsync(endpoint);
+                                        await _controller.MoveShutterDownAsync(endpoint);
                                         break;
 
                                     case "open":
-                                        await _controller.MoveShutterDownAsync(endpoint);
+                                        await _controller.MoveShutterUpAsync(endpoint);
                                         break;
 
                                     case "stop":
