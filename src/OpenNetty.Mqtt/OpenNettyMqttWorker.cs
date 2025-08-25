@@ -510,6 +510,20 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", component);
                 }
 
+                if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchControl) &&
+                    endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
+                {
+                    // Note: endpoints that use the "push button" mode are always represented as buttons instead of light entities.
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "button",
+                        ["unique_id"] = ComputeUniqueId("5c207503-bbc7-47dc-a4a7-8833c5bf058f"u8),
+                        ["name"] = endpoint.Name,
+                        ["command_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.SwitchState}/set",
+                        ["payload_press"] = "ON"
+                    });
+                }
+
                 if (SupportsCoverEntity(endpoint))
                 {
                     var component = new JsonObject
@@ -926,6 +940,13 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 }
 
                 return type is OpenNettySettings.ActuatorTypes.Lighting;
+            }
+
+            // If the endpoint is configured to use the special "push button" mode, do not consider
+            // it suitable for a light entity. Instead, it will be represented as a dedicated button.
+            if (endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
+            {
+                return false;
             }
 
             return true;
