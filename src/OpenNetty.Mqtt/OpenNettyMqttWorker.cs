@@ -457,7 +457,6 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
             };
 
             await foreach (var (endpoint, name) in from endpoint in endpoints
-                                                   where endpoint.GetBooleanSetting(OpenNettySettings.MqttDiscovery) is not false
                                                    let name = options.EndpointNameProvider(endpoint)
                                                    where !string.IsNullOrEmpty(name)
                                                    orderby name
@@ -596,7 +595,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.PilotWireDerogationMode}",
                         ["options"] = new JsonArray(
                         [
-                            "None",
+                            "No derogation",
                             "Comfort, until the next setpoint change",
                             "Comfort, for at least 4 hours",
                             "Comfort, for at least 8 hours",
@@ -615,7 +614,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ]),
                         ["value_template"] = """
                             {% set map = {
-                              'none': 'None',
+                              'none': 'No derogation',
                               'comfort': 'Comfort, until the next setpoint change',
                               'comfort:4h': 'Comfort, for at least 4 hours',
                               'comfort:8h': 'Comfort, for at least 8 hours',
@@ -636,7 +635,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             """,
                         ["command_template"] = """
                             {% set map = {
-                              'None': 'none',
+                              'No derogation': 'none',
                               'Comfort, until the next setpoint change': 'comfort',
                               'Comfort, for at least 4 hours': 'comfort:4h',
                               'Comfort, for at least 8 hours': 'comfort:8h',

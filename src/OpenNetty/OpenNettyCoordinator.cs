@@ -941,7 +941,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Type     : OpenNettyMessageType.DimensionRead,
                                          Address  : OpenNettyAddress address,
                                          Dimension: OpenNettyDimension dimension,
-                                         Values   : ["6", { Length: > 0 } value] })
+                                         Values   : ["6" or "132", { Length: > 0 } value] })
                     when dimension == OpenNettyDimensions.Diagnostics.UnitDescription:
                 {
                     // Ignore the message if the corresponding endpoint couldn't be resolved or if it
@@ -991,7 +991,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
 
                     if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
                     {
-                        tasks.Add(ReportDerogationAndSetpointModesAsync(endpoint, CancellationToken.None).AsTask());
+                        tasks.Add(ReportSetpointModeAsync(endpoint, CancellationToken.None).AsTask());
                     }
 
                     if (endpoint is { Unit.Definition.AssociatedUnitId: byte unit })
@@ -1003,7 +1003,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
 
                             if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
                             {
-                                await ReportDerogationAndSetpointModesAsync(endpoint, CancellationToken.None);
+                                await ReportSetpointModeAsync(endpoint, CancellationToken.None);
                             }
                         }));
                     }
@@ -1017,13 +1017,16 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                             .OfType<OpenNettyEndpoint>()
                             .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating));
 
-                        tasks.Add(Parallel.ForEachAsync(endpoints, ReportDerogationAndSetpointModesAsync));
+                        tasks.Add(Parallel.ForEachAsync(endpoints, ReportSetpointModeAsync));
                     }
 
                     await Task.WhenAll(tasks);
 
-                    async ValueTask ReportDerogationAndSetpointModesAsync(OpenNettyEndpoint endpoint, CancellationToken cancellationToken)
-                    {
+                    // Note: setting the setpoint mode may not have an immediate effect on the device (e.g if a
+                    // derogation mode was set with a minimal duration during which setpoint commands are ignored).
+                    //
+                    // As such, the derogation mode cannot be reported here, as it may still be active on the device.
+                    async ValueTask ReportSetpointModeAsync(OpenNettyEndpoint endpoint, CancellationToken cancellationToken) =>
                         await _events.PublishAsync(new PilotWireSetpointModeReportedEventArgs(endpoint, value switch
                         {
                             "0" => OpenNettyModels.TemperatureControl.PilotWireMode.Comfort,
@@ -1034,15 +1037,6 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
 
                             _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
                         }), cancellationToken);
-
-                        // Note: setting the setpoint mode may not have an immediate effect on the device (e.g if a
-                        // derogation mode was set with a minimal duration during which setpoint commands are ignored).
-                        // As such, the derogation mode cannot be reported here, as it may still be active on the device.
-                        if (notification is OpenNettyNotifications.MessageSent)
-                        {
-                            await _events.PublishAsync(new PilotWireDerogationModeReportedEventArgs(endpoint, null, null), cancellationToken);
-                        }
-                    }
                     break;
                 }
 
