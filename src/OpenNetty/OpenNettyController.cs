@@ -1187,9 +1187,9 @@ public class OpenNettyController
         }
 
         var description = await GetUnitDescriptionAsync(endpoint, cancellationToken);
-        if (description is not { FunctionCode: 6, Values: [{ Length: > 0 }] values })
+        if (description is not { FunctionCode: 6 or 132, Values: [{ Length: > 0 }] values })
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0075));
         }
 
         return OpenNettyModels.TemperatureControl.PilotWireConfiguration.CreateFromUnitDescription(values);
@@ -1399,7 +1399,7 @@ public class OpenNettyController
         var description = await GetUnitDescriptionAsync(endpoint, cancellationToken);
         if (description is not { FunctionCode: 7, Values: [{ Length: > 0 }] values })
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0075));
         }
 
         return OpenNettyModels.TemperatureControl.SmartMeterInformation.CreateFromUnitDescription(values);
@@ -1565,7 +1565,7 @@ public class OpenNettyController
         var description = await GetUnitDescriptionAsync(endpoint, cancellationToken);
         if (description is not { FunctionCode: 133, Values: [{ Length: > 0 }] values })
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0075));
         }
 
         return values[0] switch

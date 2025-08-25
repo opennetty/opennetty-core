@@ -200,7 +200,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
                 {
-                    var node = new JsonObject()
+                    var node = new JsonObject
                     {
                         ["scenario_type"] = "progressive",
                         ["duration"] = arguments.Duration.TotalSeconds
@@ -273,7 +273,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.SmartMeterIndexes, builder =>
                 {
-                    var node = new JsonObject()
+                    var node = new JsonObject
                     {
                         ["base_index"]        = arguments.Indexes.BaseIndex,
                         ["blue_index"]        = arguments.Indexes.BlueIndex,
@@ -341,7 +341,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
                 {
-                    var node = new JsonObject()
+                    var node = new JsonObject
                     {
                         ["scenario_type"] = "timed",
                         ["duration"] = arguments.Duration.TotalSeconds
