@@ -4,6 +4,7 @@
  * the license and the contributors participating to this project.
  */
 
+using System;
 using System.Buffers.Text;
 using System.Globalization;
 using System.IO.Hashing;
@@ -96,12 +97,16 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 if (string.IsNullOrEmpty(name) ||
                     string.IsNullOrEmpty(attribute) ||
                     operation is not (OpenNettyMqttOperation.Get or OpenNettyMqttOperation.Set) ||
-                    await _manager.FindEndpointByNameAsync(name) is not OpenNettyEndpoint endpoint)
+                    await _manager.FindEndpointAsync(Matches) is not OpenNettyEndpoint endpoint)
                 {
                     return AsyncObservable.Empty<(MqttApplicationMessage Message, OpenNettyEndpoint Endpoint, string Attribute, OpenNettyMqttOperation Operation)>();
                 }
 
                 return AsyncObservable.Return((Message: message, Endpoint: endpoint, Attribute: attribute, Operation: operation.Value));
+
+                bool Matches(OpenNettyEndpoint endpoint) => string.Equals(
+                    endpoint.GetStringSetting(OpenNettySettings.MqttEndpointName) ?? endpoint.Name?.ToLowerInvariant(),
+                    name, StringComparison.Ordinal);
             })
             .GroupBy(static arguments => arguments.Endpoint.Name)
             .Do(async group => await group
@@ -457,7 +462,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
             };
 
             await foreach (var (endpoint, name) in from endpoint in endpoints
-                                                   let name = options.EndpointNameProvider(endpoint)
+                                                   let name = endpoint.GetStringSetting(OpenNettySettings.MqttEndpointName) ?? endpoint.Name?.ToLowerInvariant()
                                                    where !string.IsNullOrEmpty(name)
                                                    orderby name
                                                    select (Endpoint: endpoint, Name: name))
@@ -956,10 +961,10 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
     static (string? FriendlyName, string? attribute, OpenNettyMqttOperation? Operation) ExtractParameters(MqttApplicationMessage message)
         => message.Topic.Split('/', StringSplitOptions.RemoveEmptyEntries) switch
         {
-            [_, .. string[] topics, string attribute, string operation] when string.Equals(operation, "get", StringComparison.OrdinalIgnoreCase)
+            [_, .. string[] topics, string attribute, "get"]
                 => (string.Join('/', topics), attribute, OpenNettyMqttOperation.Get),
 
-            [_, .. string[] topics, string attribute, string operation] when string.Equals(operation, "set", StringComparison.OrdinalIgnoreCase)
+            [_, .. string[] topics, string attribute, "set"]
                 => (string.Join('/', topics), attribute, OpenNettyMqttOperation.Set),
 
             _ => (null, null, null)

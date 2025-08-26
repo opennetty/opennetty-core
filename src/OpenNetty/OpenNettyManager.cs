@@ -58,6 +58,9 @@ public class OpenNettyManager
     /// <summary>
     /// Resolves an endpoint using the specified name.
     /// </summary>
+    /// <remarks>
+    /// Note: the name lookup is case-sensitive.
+    /// </remarks>
     /// <param name="name">The endpoint name.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>
@@ -78,12 +81,50 @@ public class OpenNettyManager
                 return ValueTask.FromCanceled<OpenNettyEndpoint?>(cancellationToken);
             }
 
-            if (string.Equals(_options.CurrentValue.Endpoints[index].Name, name, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(_options.CurrentValue.Endpoints[index].Name, name, StringComparison.Ordinal))
             {
                 if (endpoint is not null)
                 {
                     return ValueTask.FromException<OpenNettyEndpoint?>(new InvalidOperationException(
-                        "Multiple endpoints matching the specified address exist."));
+                        "Multiple endpoints matching the specified endpoint name exist."));
+                }
+
+                endpoint = _options.CurrentValue.Endpoints[index];
+            }
+        }
+
+        return ValueTask.FromResult(endpoint);
+    }
+
+    /// <summary>
+    /// Resolves an endpoint using the specified predicate.
+    /// </summary>
+    /// <param name="predicate">The predicate.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>
+    /// A <see cref="ValueTask{TResult}"/> that can be used to monitor the asynchronous operation and whose result
+    /// contains the resolved endpoint, or <see langword="null"/> if no matching endpoint could be resolved.
+    /// </returns>
+    public virtual ValueTask<OpenNettyEndpoint?> FindEndpointAsync(
+        Func<OpenNettyEndpoint, bool> predicate, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(predicate);
+
+        OpenNettyEndpoint? endpoint = null;
+
+        for (var index = 0; index < _options.CurrentValue.Endpoints.Count; index++)
+        {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return ValueTask.FromCanceled<OpenNettyEndpoint?>(cancellationToken);
+            }
+
+            if (predicate(_options.CurrentValue.Endpoints[index]))
+            {
+                if (endpoint is not null)
+                {
+                    return ValueTask.FromException<OpenNettyEndpoint?>(new InvalidOperationException(
+                        "Multiple endpoints matching the specified predicate exist."));
                 }
 
                 endpoint = _options.CurrentValue.Endpoints[index];
