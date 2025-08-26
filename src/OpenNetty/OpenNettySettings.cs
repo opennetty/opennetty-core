@@ -42,6 +42,11 @@ public static class OpenNettySettings
     public static readonly OpenNettySetting MqttDiscovery = new("MQTT discovery");
 
     /// <summary>
+    /// MQTT endpoint name.
+    /// </summary>
+    public static readonly OpenNettySetting MqttEndpointName = new("MQTT endpoint name");
+
+    /// <summary>
     /// Serial port baud rate.
     /// </summary>
     public static readonly OpenNettySetting SerialPortBaudRate = new("Serial port baud rate");

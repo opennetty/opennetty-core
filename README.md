@@ -578,7 +578,7 @@ builder.Services.AddOpenNetty(options =>
     options.AddEndpoint(new OpenNettyEndpoint
     {
         Address = OpenNettyAddress.FromScsLightPointAreaAddress(area: 1),
-        Capabilities = [OpenNettyCapabilities.OnOffSwitching],
+        Capabilities = [OpenNettyCapabilities.OnOffSwitchControl],
         Name = "Bathroom/All lights",
         Protocol = OpenNettyProtocol.Scs
     });
@@ -726,7 +726,7 @@ in this case, every command is assumed to be successful (which is similar to Hom
 </Device>
 ```
 
-### Switch mode (SCS-only)
+### Switch mode
 
 Using MyHome Suite, SCS devices can be configured to use a special PUL mode. When doing so, these devices basically work as
 push buttons: they no longer react to area or general commands and automatically move back to the OFF state after being activated.
@@ -741,6 +741,9 @@ switch mode so that OpenNetty can properly report the OFF state and ignore area 
   </Endpoint>
 </Device>
 ```
+
+> [!TIP]
+> This setting can also be used for the In One by Legrand 03600 device.
 
 --------------
 

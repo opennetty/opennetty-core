@@ -439,7 +439,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
 
         string? GetMessageTopic(OpenNettyEndpoint endpoint, string attribute)
         {
-            var name = _options.CurrentValue.EndpointNameProvider(endpoint);
+            var name = endpoint.GetStringSetting(OpenNettySettings.MqttEndpointName) ?? endpoint.Name?.ToLowerInvariant();
             if (string.IsNullOrEmpty(name))
             {
                 return null;
@@ -485,8 +485,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
             var topic = message.Topic;
 
             // Note: ignore all the incoming MQTT messages that don't end with /get or /set.
-            if (string.IsNullOrEmpty(topic) || (!topic.EndsWith("/get", StringComparison.OrdinalIgnoreCase) &&
-                                                !topic.EndsWith("/set", StringComparison.OrdinalIgnoreCase)))
+            if (topic is not { Length: > 4 } || topic.AsSpan()[^4..] is not ("/get" or "/set"))
             {
                 return;
             }

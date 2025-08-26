@@ -29,15 +29,6 @@ public sealed class OpenNettyMqttOptions
     public string DiscoveryRootTopic { get; set; } = default!;
 
     /// <summary>
-    /// Gets or sets the delegate responsible for resolving and,
-    /// if applicable, normalizing the name associated with an endpoint.
-    /// </summary>
-    /// <remarks>
-    /// By default, OpenNetty always lowercases the endpoint name.
-    /// </remarks>
-    public Func<OpenNettyEndpoint, string?> EndpointNameProvider { get; set; } = default!;
-
-    /// <summary>
     /// Gets or sets the MQTT root topic (by default, "opennetty").
     /// </summary>
     public string RootTopic { get; set; } = default!;
