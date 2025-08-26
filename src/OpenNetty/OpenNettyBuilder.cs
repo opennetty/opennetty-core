@@ -463,7 +463,7 @@ public sealed class OpenNettyBuilder
         static OpenNettyScenario GetScenario(XElement element) => new()
         {
             EndpointName = (string?) element.Attribute("Endpoint") ?? throw new InvalidOperationException(SR.FormatID0101("Endpoint")),
-            FunctionCode = (byte?) (uint?) element.Attribute("Function") ?? throw new InvalidOperationException(SR.FormatID0101("Function"))
+            FunctionCode = (byte?) (uint?) element.Attribute("FunctionCode") ?? throw new InvalidOperationException(SR.FormatID0101("FunctionCode"))
         };
 
         static OpenNettyUnit GetUnit(XElement element, byte unit)
