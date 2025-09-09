@@ -316,11 +316,11 @@ For that, you need to add a `Device` node with the correct brand/model attribute
   <!-- MyHome Up two-way light actuator -->
 
   <Device Brand="BTicino" Model="F411U2" SerialNumber="00B582A5">
-    <Endpoint Name="Garage/Recessed light 1" Area="4" Point="1">
+    <Endpoint Name="Garage/Recessed light 1" Type="SCS light point" Area="4" Point="1">
       <Setting Name="Actuator type" Value="Lighting" />
     </Endpoint>
 
-    <Endpoint Name="Garage/Recessed light 2" Area="4" Point="2">
+    <Endpoint Name="Garage/Recessed light 2" Type="SCS light point" Area="4" Point="2">
       <Setting Name="Actuator type" Value="Lighting" />
     </Endpoint>
   </Device>
@@ -328,7 +328,7 @@ For that, you need to add a `Device` node with the correct brand/model attribute
   <!-- MyHome Up shutter actuator -->
 
   <Device Brand="BTicino" Model="F411U2" SerialNumber="00A472A9">
-    <Endpoint Name="Living room/Shutter" Area="1" Point="3">
+    <Endpoint Name="Living room/Shutter" Type="SCS light point" Area="1" Point="3">
       <Setting Name="Actuator type" Value="Automation" />
     </Endpoint>
   </Device>
@@ -336,26 +336,26 @@ For that, you need to add a `Device` node with the correct brand/model attribute
   <!-- MyHome Up two-way dimmer -->
 
   <Device Brand="BTicino" Model="F418U2" SerialNumber="00B582A5">
-    <Endpoint Name="Living room/Wall light 1" Area="1" Point="1" />
-    <Endpoint Name="Living room/Wall light 2" Area="1" Point="2" />
+    <Endpoint Name="Living room/Wall light 1" Type="SCS light point" Area="1" Point="1" />
+    <Endpoint Name="Living room/Wall light 2" Type="SCS light point" Area="1" Point="2" />
   </Device>
 
   <!-- MyHome Up light point group endpoint -->
 
-  <Endpoint Name="Garden shed/Downlight LEDs" Type="SCS light point group" Group="1">
+  <Endpoint Name="Garden shed/Downlight LEDs" Type="SCS light point" Group="1">
     <Capability Name="On/off switch control" />
   </Endpoint>
 
   <!-- MyHome Up light point area endpoint -->
 
-  <Endpoint Name="Living room/All lights" Type="SCS light point area" Area="8">
+  <Endpoint Name="Living room/All lights" Type="SCS light point" Area="8">
     <Capability Name="Advanced dimming control" />
     <Capability Name="On/off switch control" />
   </Endpoint>
 
   <!-- MyHome Up light point general endpoint -->
 
-  <Endpoint Name="General/All lights" Type="SCS light point general">
+  <Endpoint Name="General/All lights" Type="SCS light point" General="true">
     <Capability Name="On/off switch control" />
   </Endpoint>
 
@@ -565,7 +565,13 @@ builder.Services.AddOpenNetty(options =>
 
     options.AddEndpoint(new OpenNettyEndpoint
     {
-        Address = OpenNettyAddress.FromScsLightPointPointToPointAddress(area: 1, point: 3),
+        // SCS light point point-to-point address:
+        Address = OpenNettyAddress.FromScsLightPointAddress(
+            extension: 0,
+            general  : false,
+            group    : null,
+            area     : 1,
+            point    : 3),
         Device = new OpenNettyDevice
         {
             Definition = OpenNettyDevices.GetDeviceByModel(OpenNettyBrand.BTicino, "F418U2")
@@ -577,7 +583,13 @@ builder.Services.AddOpenNetty(options =>
 
     options.AddEndpoint(new OpenNettyEndpoint
     {
-        Address = OpenNettyAddress.FromScsLightPointAreaAddress(area: 1),
+        // SCS light point area address:
+        Address = OpenNettyAddress.FromScsLightPointAddress(
+            extension: 0,
+            general  : false,
+            group    : null,
+            area     : 1,
+            point    : null),
         Capabilities = [OpenNettyCapabilities.OnOffSwitchControl],
         Name = "Bathroom/All lights",
         Protocol = OpenNettyProtocol.Scs
@@ -690,13 +702,13 @@ To avoid ambiguities, OpenNetty requires that the actual type be specified for S
 
 ```xml
 <Device Brand="BTicino" Model="F411U2" SerialNumber="00B582A5">
-  <Endpoint Name="Garage/Recessed light 1" Area="4" Point="1">
+  <Endpoint Name="Garage/Recessed light 1" Type="SCS light point" Area="4" Point="1">
     <Setting Name="Actuator type" Value="Lighting" />
   </Endpoint>
 </Device>
 
 <Device Brand="BTicino" Model="F411U2" SerialNumber="00A472A9">
-  <Endpoint Name="Living room/Shutter" Area="1" Point="3">
+  <Endpoint Name="Living room/Shutter" Type="SCS light point" Area="1" Point="3">
     <Setting Name="Actuator type" Value="Automation" />
   </Endpoint>
 </Device>
@@ -736,7 +748,7 @@ switch mode so that OpenNetty can properly report the OFF state and ignore area 
 
 ```xml
 <Device Brand="BTicino" Model="F411U1" SerialNumber="0019BF87">
-  <Endpoint Name="Patio/Doorbell" Area="9" Point="1">
+  <Endpoint Name="Patio/Doorbell" Type="SCS light point" Area="9" Point="1">
     <Setting Name="Switch mode" Value="Push button" />
   </Endpoint>
 </Device>

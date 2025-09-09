@@ -277,28 +277,19 @@
     <value>The address doesn't represent a valid Nitoo address.</value>
   </data>
   <data name="ID0054" xml:space="preserve">
-    <value>The address doesn't represent a SCS light point area address.</value>
+    <value>The address doesn't represent a SCS light point address.</value>
   </data>
   <data name="ID0055" xml:space="preserve">
-    <value>The address doesn't represent a valid SCS light point area address.</value>
+    <value>The address doesn't represent a valid SCS light point address.</value>
   </data>
   <data name="ID0056" xml:space="preserve">
-    <value>The address doesn't represent a SCS light point general address.</value>
+    <value>A group cannot be specified for SCS light point addresses representing a general address.</value>
   </data>
   <data name="ID0057" xml:space="preserve">
-    <value>The address doesn't represent a valid SCS light point general address.</value>
+    <value>An area cannot be specified for SCS light point addresses representing a general or group address.</value>
   </data>
   <data name="ID0058" xml:space="preserve">
-    <value>The address doesn't represent a SCS light point group address.</value>
-  </data>
-  <data name="ID0059" xml:space="preserve">
-    <value>The address doesn't represent a valid SCS light point group address.</value>
-  </data>
-  <data name="ID0060" xml:space="preserve">
-    <value>The address doesn't represent a SCS light point point-to-point address.</value>
-  </data>
-  <data name="ID0061" xml:space="preserve">
-    <value>The address doesn't represent a valid SCS light point point-to-point address.</value>
+    <value>A point of light cannot be specified for SCS light point addresses representing a general or group address.</value>
   </data>
   <data name="ID0062" xml:space="preserve">
     <value>The address doesn't represent a Zigbee address.</value>
@@ -383,15 +374,6 @@
   </data>
   <data name="ID0089" xml:space="preserve">
     <value>A non-null '{0}' attribute is required for Nitoo devices.</value>
-  </data>
-  <data name="ID0091" xml:space="preserve">
-    <value>A non-null '{0}' attribute is required for SCS light point area addresses.</value>
-  </data>
-  <data name="ID0092" xml:space="preserve">
-    <value>A non-null '{0}' attribute is required for SCS light point group addresses.</value>
-  </data>
-  <data name="ID0093" xml:space="preserve">
-    <value>A non-null '{0}' attribute is required for SCS light point point-to-point addresses.</value>
   </data>
   <data name="ID0094" xml:space="preserve">
     <value>A non-null '{0}' attribute is required for Zigbee devices.</value>

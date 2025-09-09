@@ -478,7 +478,8 @@ public class OpenNettyController
         switch (endpoint.Protocol)
         {
             case OpenNettyProtocol.Nitoo:
-            case OpenNettyProtocol.Scs    when endpoint.Address is { Type: OpenNettyAddressType.ScsLightPointPointToPoint }:
+            case OpenNettyProtocol.Scs when endpoint.Address is { Type: OpenNettyAddressType.ScsLightPoint } &&
+                OpenNettyAddress.IsScsLightPointPointToPointAddress(endpoint.Address.Value):
             case OpenNettyProtocol.Zigbee when endpoint.Address is { Type: OpenNettyAddressType.Zigbee } address &&
                 OpenNettyAddress.ToZigbeeAddress(address) is { Identifier: not 0, Unit: not 0 }:
                 return GetBrightnessAsync(endpoint, cancellationToken)
@@ -616,9 +617,10 @@ public class OpenNettyController
         switch (endpoint.Protocol)
         {
             case OpenNettyProtocol.Nitoo:
-            case OpenNettyProtocol.Scs    when endpoint.Address is { Type: OpenNettyAddressType.ScsLightPointPointToPoint }:
-            case OpenNettyProtocol.Zigbee when endpoint.Address is { Type: OpenNettyAddressType.Zigbee } address &&
-                OpenNettyAddress.ToZigbeeAddress(address) is { Identifier: not 0, Unit: not 0 }:
+            case OpenNettyProtocol.Scs when endpoint.Address is { Type: OpenNettyAddressType.ScsLightPoint } &&
+                OpenNettyAddress.IsScsLightPointPointToPointAddress(endpoint.Address.Value):
+            case OpenNettyProtocol.Zigbee when endpoint.Address is { Type: OpenNettyAddressType.Zigbee } &&
+                OpenNettyAddress.ToZigbeeAddress(endpoint.Address.Value) is { Identifier: not 0, Unit: not 0 }:
                 return GetShutterPositionAsync(endpoint, cancellationToken)
                     .AsTask()
                     .ToAsyncEnumerable()
@@ -678,9 +680,10 @@ public class OpenNettyController
         switch (endpoint.Protocol)
         {
             case OpenNettyProtocol.Nitoo:
-            case OpenNettyProtocol.Scs    when endpoint.Address is { Type: OpenNettyAddressType.ScsLightPointPointToPoint }:
-            case OpenNettyProtocol.Zigbee when endpoint.Address is { Type: OpenNettyAddressType.Zigbee } address &&
-                OpenNettyAddress.ToZigbeeAddress(address) is { Identifier: not 0, Unit: not 0 }:
+            case OpenNettyProtocol.Scs when endpoint.Address is { Type: OpenNettyAddressType.ScsLightPoint } &&
+                OpenNettyAddress.IsScsLightPointPointToPointAddress(endpoint.Address.Value):
+            case OpenNettyProtocol.Zigbee when endpoint.Address is { Type: OpenNettyAddressType.Zigbee } &&
+                OpenNettyAddress.ToZigbeeAddress(endpoint.Address.Value) is { Identifier: not 0, Unit: not 0 }:
                 return GetShutterStateAsync(endpoint, cancellationToken)
                     .AsTask()
                     .ToAsyncEnumerable()
@@ -802,9 +805,10 @@ public class OpenNettyController
         switch (endpoint.Protocol)
         {
             case OpenNettyProtocol.Nitoo:
-            case OpenNettyProtocol.Scs    when endpoint.Address is { Type: OpenNettyAddressType.ScsLightPointPointToPoint }:
-            case OpenNettyProtocol.Zigbee when endpoint.Address is { Type: OpenNettyAddressType.Zigbee } address &&
-                OpenNettyAddress.ToZigbeeAddress(address) is { Identifier: not 0, Unit: not 0 }:
+            case OpenNettyProtocol.Scs when endpoint.Address is { Type: OpenNettyAddressType.ScsLightPoint } &&
+                OpenNettyAddress.IsScsLightPointPointToPointAddress(endpoint.Address.Value):
+            case OpenNettyProtocol.Zigbee when endpoint.Address is { Type: OpenNettyAddressType.Zigbee } &&
+                OpenNettyAddress.ToZigbeeAddress(endpoint.Address.Value) is { Identifier: not 0, Unit: not 0 }:
                 return GetSwitchStateAsync(endpoint, cancellationToken)
                     .AsTask()
                     .ToAsyncEnumerable()

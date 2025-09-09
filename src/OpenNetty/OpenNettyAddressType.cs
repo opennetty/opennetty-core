@@ -27,22 +27,7 @@ public enum OpenNettyAddressType
     Zigbee = 2,
 
     /// <summary>
-    /// SCS light point point-to-point address.
+    /// SCS light point address.
     /// </summary>
-    ScsLightPointPointToPoint = 3,
-
-    /// <summary>
-    /// SCS light point group address.
-    /// </summary>
-    ScsLightPointGroup = 4,
-
-    /// <summary>
-    /// SCS light point area address.
-    /// </summary>
-    ScsLightPointArea = 5,
-
-    /// <summary>
-    /// SCS light point general address.
-    /// </summary>
-    ScsLightPointGeneral = 6
+    ScsLightPoint = 3
 }

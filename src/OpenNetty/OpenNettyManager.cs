@@ -197,9 +197,21 @@ public class OpenNettyManager
     public virtual async IAsyncEnumerable<OpenNettyEndpoint> FindEndpointsByAddressAsync(
         OpenNettyAddress address, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        if (address.Type is OpenNettyAddressType.ScsLightPointArea)
+        if (address.Type is OpenNettyAddressType.Nitoo)
         {
-            var (extension, area) = OpenNettyAddress.ToScsLightPointAreaAddress(address);
+            await foreach (var endpoint in EnumerateEndpointsAsync(cancellationToken))
+            {
+                if (endpoint.Protocol is OpenNettyProtocol.Nitoo &&
+                    endpoint.Address is not null && endpoint.Address == address)
+                {
+                    yield return endpoint;
+                }
+            }
+        }
+
+        else if (address.Type is OpenNettyAddressType.ScsLightPoint)
+        {
+            var (extension, general, group, area, point) = OpenNettyAddress.ToScsLightPointAddress(address);
 
             await foreach (var endpoint in EnumerateEndpointsAsync(cancellationToken))
             {
@@ -213,64 +225,34 @@ public class OpenNettyManager
                     yield return endpoint;
                 }
 
-                switch (endpoint.Address?.Type)
+                if (OpenNettyAddress.IsScsLightPointAreaAddress(address))
                 {
-                    case OpenNettyAddressType.ScsLightPointArea when
-                        OpenNettyAddress.ToScsLightPointAreaAddress(endpoint.Address.Value) is var comparand &&
-                        comparand.Extension == extension && comparand.Area == area:
-                        yield return endpoint;
-                        break;
+                    var comparand = OpenNettyAddress.ToScsLightPointAddress(endpoint.Address.Value);
 
-                    case OpenNettyAddressType.ScsLightPointPointToPoint when
-                        OpenNettyAddress.ToScsLightPointPointToPointAddress(endpoint.Address.Value) is var comparand &&
-                        comparand.Extension == extension && comparand.Area == area:
+                    if ((OpenNettyAddress.IsScsLightPointAreaAddress(endpoint.Address.Value) ||
+                         OpenNettyAddress.IsScsLightPointPointToPointAddress(endpoint.Address.Value)) &&
+                        comparand.Extension == extension && comparand.Area == area)
+                    {
                         yield return endpoint;
-                        break;
+                    }
+                }
+
+                else if (OpenNettyAddress.IsScsLightPointGeneralAddress(address))
+                {
+                    var comparand = OpenNettyAddress.ToScsLightPointAddress(endpoint.Address.Value);
+
+                    if ((OpenNettyAddress.IsScsLightPointAreaAddress(endpoint.Address.Value) ||
+                         OpenNettyAddress.IsScsLightPointGeneralAddress(endpoint.Address.Value) ||
+                         OpenNettyAddress.IsScsLightPointPointToPointAddress(endpoint.Address.Value)) &&
+                        comparand.Extension == extension)
+                    {
+                        yield return endpoint;
+                    }
                 }
             }
         }
 
-        else if (address.Type is OpenNettyAddressType.ScsLightPointGeneral)
-        {
-            var extension = OpenNettyAddress.ToScsLightPointGeneralAddress(address);
-
-            await foreach (var endpoint in EnumerateEndpointsAsync(cancellationToken))
-            {
-                if (endpoint.Protocol is not OpenNettyProtocol.Scs || endpoint.Address is null)
-                {
-                    continue;
-                }
-
-                if (endpoint.Address == address)
-                {
-                    yield return endpoint;
-                }
-
-                switch (endpoint.Address?.Type)
-                {
-                    case OpenNettyAddressType.ScsLightPointArea when
-                        OpenNettyAddress.ToScsLightPointAreaAddress(endpoint.Address.Value) is var comparand &&
-                        comparand.Extension == extension:
-                        yield return endpoint;
-                        break;
-
-                    case OpenNettyAddressType.ScsLightPointGeneral when
-                        OpenNettyAddress.ToScsLightPointGeneralAddress(endpoint.Address.Value) is var comparand &&
-                        comparand == extension:
-                        yield return endpoint;
-                        break;
-
-                    case OpenNettyAddressType.ScsLightPointPointToPoint when
-                        OpenNettyAddress.ToScsLightPointPointToPointAddress(endpoint.Address.Value) is var comparand &&
-                        comparand.Extension == extension:
-                        yield return endpoint;
-                        break;
-                }
-            }
-        }
-
-        else if (address.Type is OpenNettyAddressType.Zigbee &&
-            OpenNettyAddress.ToZigbeeAddress(address) is not { Identifier: not 0, Unit: not 0 })
+        else if (address.Type is OpenNettyAddressType.Zigbee)
         {
             await foreach (var endpoint in EnumerateEndpointsAsync(cancellationToken))
             {
@@ -284,18 +266,8 @@ public class OpenNettyManager
                     yield return endpoint;
                 }
 
-                if (MatchesZigbeeAddress(address, endpoint.Address.Value))
-                {
-                    yield return endpoint;
-                }
-            }
-        }
-
-        else
-        {
-            await foreach (var endpoint in EnumerateEndpointsAsync(cancellationToken))
-            {
-                if (endpoint.Address is not null && endpoint.Address == address)
+                if (OpenNettyAddress.ToZigbeeAddress(address) is not { Identifier: not 0, Unit: not 0 } &&
+                    MatchesZigbeeAddress(address, endpoint.Address.Value))
                 {
                     yield return endpoint;
                 }
