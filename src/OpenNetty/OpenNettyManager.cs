@@ -225,7 +225,7 @@ public class OpenNettyManager
                     yield return endpoint;
                 }
 
-                if (OpenNettyAddress.IsScsLightPointAreaAddress(address))
+                else if (OpenNettyAddress.IsScsLightPointAreaAddress(address))
                 {
                     var comparand = OpenNettyAddress.ToScsLightPointAddress(endpoint.Address.Value);
 
@@ -266,7 +266,7 @@ public class OpenNettyManager
                     yield return endpoint;
                 }
 
-                if (OpenNettyAddress.ToZigbeeAddress(address) is not { Identifier: not 0, Unit: not 0 } &&
+                else if (OpenNettyAddress.ToZigbeeAddress(address) is not { Identifier: not 0, Unit: not 0 } &&
                     MatchesZigbeeAddress(address, endpoint.Address.Value))
                 {
                     yield return endpoint;
