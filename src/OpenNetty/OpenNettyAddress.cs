@@ -300,68 +300,22 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
     }
 
     /// <summary>
-    /// Creates a SCS light point area address based on the specified area and bus extension.
+    /// Creates a SCS light point address based on the specified parameters.
     /// </summary>
-    /// <param name="area">The area.</param>
     /// <param name="extension">The bus extension (also known as interface), or 0 to represent the private riser.</param>
-    /// <returns>A SCS light point area address based on the specified area and bus extension.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">The area or bus extension is not valid.</exception>
-    public static OpenNettyAddress FromScsLightPointAreaAddress(byte area, byte extension = 0)
+    /// <param name="general">A boolean indicating whether the address will be a general address or not.</param>
+    /// <param name="group">The group, or <see langword="null"/> if the address is an area, general or point-to-point address.</param>
+    /// <param name="area">The area, or <see langword="null"/> if the address is a general or group address.</param>
+    /// <param name="point">The point of light, or <see langword="null"/> if the address is an area, general or group address.</param>
+    /// <returns>A SCS light point address based on the specified parameters.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">One of the parameters is not valid.</exception>
+    public static OpenNettyAddress FromScsLightPointAddress(byte extension, bool general, byte? group, byte? area, byte? point)
     {
         if (area is > 10)
         {
             throw new ArgumentOutOfRangeException(nameof(area), SR.GetResourceString(SR.ID0046));
         }
 
-        if (extension is > 15)
-        {
-            throw new ArgumentOutOfRangeException(nameof(extension), SR.GetResourceString(SR.ID0047));
-        }
-
-        var builder = new StringBuilder();
-
-        if (area is 0)
-        {
-            builder.Append("00");
-        }
-
-        else
-        {
-            builder.Append(area);
-        }
-
-        return extension is not 0 ?
-            new OpenNettyAddress(OpenNettyAddressType.ScsLightPointArea, builder.ToString(), ["4", extension.ToString("00", CultureInfo.InvariantCulture)]) :
-            new OpenNettyAddress(OpenNettyAddressType.ScsLightPointArea, builder.ToString());
-    }
-
-    /// <summary>
-    /// Creates a SCS light point general address based on the specified bus extension.
-    /// </summary>
-    /// <param name="extension">The bus extension (also known as interface), or 0 to represent the private riser.</param>
-    /// <returns>A SCS light point general address based on the specified bus extension.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">The bus extension is not valid.</exception>
-    public static OpenNettyAddress FromScsLightPointGeneralAddress(byte extension = 0)
-    {
-        if (extension is > 15)
-        {
-            throw new ArgumentOutOfRangeException(nameof(extension), SR.GetResourceString(SR.ID0047));
-        }
-
-        return extension is not 0 ?
-            new OpenNettyAddress(OpenNettyAddressType.ScsLightPointGeneral, "0", ["4", extension.ToString("00", CultureInfo.InvariantCulture)]) :
-            new OpenNettyAddress(OpenNettyAddressType.ScsLightPointGeneral, "0");
-    }
-
-    /// <summary>
-    /// Creates a SCS light point group address based on the specified group and bus extension.
-    /// </summary>
-    /// <param name="group">The group.</param>
-    /// <param name="extension">The bus extension (also known as interface), or 0 to represent the private riser.</param>
-    /// <returns>A SCS light point general address based on the specified group and bus extension.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">The group or bus extension is not valid.</exception>
-    public static OpenNettyAddress FromScsLightPointGroupAddress(byte group, byte extension = 0)
-    {
         if (group is < 1 or > 255)
         {
             throw new ArgumentOutOfRangeException(nameof(group), SR.GetResourceString(SR.ID0048));
@@ -372,67 +326,140 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
             throw new ArgumentOutOfRangeException(nameof(extension), SR.GetResourceString(SR.ID0047));
         }
 
-        return extension is not 0 ?
-            new OpenNettyAddress(OpenNettyAddressType.ScsLightPointGroup, string.Empty, [group.ToString(), "4", extension.ToString("00", CultureInfo.InvariantCulture)]) :
-            new OpenNettyAddress(OpenNettyAddressType.ScsLightPointGroup, string.Empty, [group.ToString()]);
+        // SCS light point general address:
+        if (general)
+        {
+            if (group is not null)
+            {
+                throw new ArgumentException(SR.GetResourceString(SR.ID0056), nameof(group));
+            }
+
+            if (area is not null)
+            {
+                throw new ArgumentException(SR.GetResourceString(SR.ID0057), nameof(area));
+            }
+
+            if (point is not null)
+            {
+                throw new ArgumentException(SR.GetResourceString(SR.ID0058), nameof(point));
+            }
+
+            return extension is not 0 ?
+                new OpenNettyAddress(OpenNettyAddressType.ScsLightPoint, "0", ["4", extension.ToString("00", CultureInfo.InvariantCulture)]) :
+                new OpenNettyAddress(OpenNettyAddressType.ScsLightPoint, "0");
+        }
+
+        // SCS light point group address:
+        else if (group is not null)
+        {
+            if (area is not null)
+            {
+                throw new ArgumentException(SR.GetResourceString(SR.ID0057), nameof(area));
+            }
+
+            if (point is not null)
+            {
+                throw new ArgumentException(SR.GetResourceString(SR.ID0058), nameof(point));
+            }
+
+            return extension is not 0 ?
+                new OpenNettyAddress(OpenNettyAddressType.ScsLightPoint, string.Empty, [group.Value.ToString(), "4", extension.ToString("00", CultureInfo.InvariantCulture)]) :
+                new OpenNettyAddress(OpenNettyAddressType.ScsLightPoint, string.Empty, [group.Value.ToString()]);
+        }
+
+        // SCS light point area address:
+        else if (area is not null && point is null)
+        {
+            var builder = new StringBuilder();
+
+            if (area is 0)
+            {
+                builder.Append("00");
+            }
+
+            else
+            {
+                builder.Append(area);
+            }
+
+            return extension is not 0 ?
+                new OpenNettyAddress(OpenNettyAddressType.ScsLightPoint, builder.ToString(), ["4", extension.ToString("00", CultureInfo.InvariantCulture)]) :
+                new OpenNettyAddress(OpenNettyAddressType.ScsLightPoint, builder.ToString());
+        }
+
+        // SCS light point point-to-point address:
+        else if (area is not null && point is not null)
+        {
+            var builder = new StringBuilder();
+
+            if (area is 0)
+            {
+                builder.Append("00");
+            }
+
+            else if (point is >= 10)
+            {
+                builder.Append(area.Value.ToString("00", CultureInfo.InvariantCulture));
+            }
+
+            else
+            {
+                builder.Append(area);
+            }
+
+            if (area is 0 or 10)
+            {
+                builder.Append(point.Value.ToString("00", CultureInfo.InvariantCulture));
+            }
+
+            else
+            {
+                builder.Append(point);
+            }
+
+            return extension is not 0 ?
+                new OpenNettyAddress(OpenNettyAddressType.ScsLightPoint, builder.ToString(), ["4", extension.ToString("00", CultureInfo.InvariantCulture)]) :
+                new OpenNettyAddress(OpenNettyAddressType.ScsLightPoint, builder.ToString());
+        }
+
+        throw new InvalidOperationException(SR.GetResourceString(SR.ID0055));
     }
 
     /// <summary>
-    /// Creates a SCS light point point-to-point address based on the specified area, light point and bus extension.
+    /// Determines whether the specified address is a SCS light point area address.
     /// </summary>
-    /// <param name="area">The area.</param>
-    /// <param name="point">The light point.</param>
-    /// <param name="extension">The bus extension (also known as interface), or 0 to represent the private riser.</param>
-    /// <returns>A SCS light point point-to-point address based on the specified area, light point and bus extension.</returns>
-    /// <exception cref="ArgumentOutOfRangeException">The area, light point or bus extension is not valid.</exception>
-    public static OpenNettyAddress FromScsLightPointPointToPointAddress(byte area, byte point, byte extension = 0)
-    {
-        if (area is > 10)
-        {
-            throw new ArgumentOutOfRangeException(nameof(area), SR.GetResourceString(SR.ID0046));
-        }
+    /// <param name="address">The address.</param>
+    /// <returns><see langword="true"/> if the address is a SCS light point area address, <see langword="false"/> otherwise.</returns>
+    public static bool IsScsLightPointAreaAddress(OpenNettyAddress address)
+        => address.Type is OpenNettyAddressType.ScsLightPoint && ToScsLightPointAddress(address)
+            is { General: false, Group: null, Area: not null, Point: null };
 
-        if (point is < 1 or > 15)
-        {
-            throw new ArgumentOutOfRangeException(nameof(point), SR.GetResourceString(SR.ID0049));
-        }
+    /// <summary>
+    /// Determines whether the specified address is a SCS light point general address.
+    /// </summary>
+    /// <param name="address">The address.</param>
+    /// <returns><see langword="true"/> if the address is a SCS light point general address, <see langword="false"/> otherwise.</returns>
+    public static bool IsScsLightPointGeneralAddress(OpenNettyAddress address)
+        => address.Type is OpenNettyAddressType.ScsLightPoint && ToScsLightPointAddress(address)
+            is { General: true, Group: null, Area: null, Point: null };
 
-        if (extension is > 15)
-        {
-            throw new ArgumentOutOfRangeException(nameof(extension), SR.GetResourceString(SR.ID0047));
-        }
+    /// <summary>
+    /// Determines whether the specified address is a SCS light point group address.
+    /// </summary>
+    /// <param name="address">The address.</param>
+    /// <returns><see langword="true"/> if the address is a SCS light point group address, <see langword="false"/> otherwise.</returns>
+    public static bool IsScsLightPointGroupAddress(OpenNettyAddress address)
+        => address.Type is OpenNettyAddressType.ScsLightPoint && ToScsLightPointAddress(address)
+            is { General: false, Group: not null, Area: null, Point: null };
 
-        var builder = new StringBuilder();
-
-        if (area is 0)
-        {
-            builder.Append("00");
-        }
-
-        else if (point is >= 10)
-        {
-            builder.Append(area.ToString("00", CultureInfo.InvariantCulture));
-        }
-
-        else
-        {
-            builder.Append(area);
-        }
-
-        if (area is 0 or 10)
-        {
-            builder.Append(point.ToString("00", CultureInfo.InvariantCulture));
-        }
-
-        else
-        {
-            builder.Append(point);
-        }
-
-        return extension is not 0 ?
-            new OpenNettyAddress(OpenNettyAddressType.ScsLightPointPointToPoint, builder.ToString(), ["4", extension.ToString("00", CultureInfo.InvariantCulture)]) :
-            new OpenNettyAddress(OpenNettyAddressType.ScsLightPointPointToPoint, builder.ToString());
-    }
+    /// <summary>
+    /// Determines whether the specified address is a SCS light point point-to-point address.
+    /// </summary>
+    /// <param name="address">The address.</param>
+    /// <returns><see langword="true"/> if the address is a SCS light point point-to-point address, <see langword="false"/> otherwise.</returns>
+    public static bool IsScsLightPointPointToPointAddress(OpenNettyAddress address)
+        => address.Type is OpenNettyAddressType.ScsLightPoint && ToScsLightPointAddress(address)
+            is { General: false, Group: null, Area: not null, Point: not null };
 
     /// <summary>
     /// Converts the specified address to a Nitoo address.
@@ -456,122 +483,82 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
     }
 
     /// <summary>
-    /// Converts the specified address to a SCS light point area address.
+    /// Converts the specified address to a SCS light point address.
     /// </summary>
     /// <param name="address">The address.</param>
-    /// <returns>A SCS light point area address based on the specified address.</returns>
-    /// <exception cref="ArgumentException">The address doesn't represent a valid SCS light point area address.</exception>
-    public static (byte Extension, byte Area) ToScsLightPointAreaAddress(OpenNettyAddress address)
+    /// <returns>A SCS light point address based on the specified address.</returns>
+    /// <exception cref="ArgumentException">The address doesn't represent a valid SCS light point address.</exception>
+    public static (byte Extension, bool General, byte? Group, byte? Area, byte? Point) ToScsLightPointAddress(OpenNettyAddress address)
     {
-        if (address.Type is not OpenNettyAddressType.ScsLightPointArea)
+        if (address.Type is not OpenNettyAddressType.ScsLightPoint)
         {
             throw new ArgumentException(SR.GetResourceString(SR.ID0054), nameof(address));
         }
 
-        if (address.Value is not ("00" or "1" or "2" or "3" or "4" or "5" or "6" or "7" or "8" or "9" or "10"))
+        if (string.IsNullOrEmpty(address.Value))
         {
-            throw new ArgumentException(SR.GetResourceString(SR.ID0055), nameof(address));
+            return address.Parameters switch
+            {
+                // Group address without bus extension:
+                [string value] when byte.TryParse(value, CultureInfo.InvariantCulture, out byte group) && group is >= 1 and <= 255
+                    => (Extension: 0, General: false, Group: group, Area: null, Point: null),
+
+                // Group address with bus extension:
+                [string first, "4", string third] when
+                    byte.TryParse(first, CultureInfo.InvariantCulture, out byte group) && group is >= 1 and <= 255 &&
+                    byte.TryParse(third, CultureInfo.InvariantCulture, out byte extension) && extension is >= 0 and <= 15
+                    => (Extension: extension, General: false, Group: group, Area: null, Point: null),
+
+                _ => throw new ArgumentException(SR.GetResourceString(SR.ID0055), nameof(address)),
+            };
+        }
+
+        else if (address.Value is "0")
+        {
+            return address.Parameters switch
+            {
+                // General address without bus extension:
+                { IsDefaultOrEmpty: true } => (Extension: 0, General: true, Group: null, Area: null, Point: null),
+
+                // General address with bus extension:
+                ["4", string value] when byte.TryParse(value, CultureInfo.InvariantCulture, out byte extension) && extension is >= 0 and <= 15
+                    => (Extension: extension, General: true, Group: null, Area: null, Point: null),
+
+                _ => throw new ArgumentException(SR.GetResourceString(SR.ID0055), nameof(address))
+            };
+        }
+
+        else if (address.Value is "00" or "1" or "2" or "3" or "4" or "5" or "6" or "7" or "8" or "9" or "10")
+        {
+            return address.Parameters switch
+            {
+                // Area address without bus extension:
+                { IsDefaultOrEmpty: true } when byte.TryParse(address.Value, CultureInfo.InvariantCulture, out byte area) && area is >= 0 and <= 10
+                    => (Extension: 0, General: false, Group: null, Area: area, Point: null),
+
+                // Area address with bus extension:
+                ["4", string value] when
+                    byte.TryParse(address.Value, CultureInfo.InvariantCulture, out byte area) &&
+                    byte.TryParse(value, CultureInfo.InvariantCulture, out byte extension) && extension is >= 0 and <= 15
+                    => (Extension: extension, General: false, Group: null, Area: area, Point: null),
+
+                _ => throw new ArgumentException(SR.GetResourceString(SR.ID0055), nameof(address))
+            };
         }
 
         return address.Parameters switch
         {
-            { IsDefaultOrEmpty: true } when byte.TryParse(address.Value, CultureInfo.InvariantCulture, out byte area) && area is >= 0 and <= 10
-                => (Extension: 0, Area: area),
-
-            ["4", string value] when
-                byte.TryParse(address.Value, CultureInfo.InvariantCulture, out byte area) &&
-                byte.TryParse(value, CultureInfo.InvariantCulture, out byte extension)    && extension is >= 0 and <= 15
-                => (Extension: extension, Area: area),
-
-            _ => throw new ArgumentException(SR.GetResourceString(SR.ID0055), nameof(address)),
-        };
-    }
-
-    /// <summary>
-    /// Converts the specified address to a SCS light point general address.
-    /// </summary>
-    /// <param name="address">The address.</param>
-    /// <returns>The bus extension, if applicable.</returns>
-    /// <exception cref="ArgumentException">The address doesn't represent a valid SCS light point general address.</exception>
-    public static byte ToScsLightPointGeneralAddress(OpenNettyAddress address)
-    {
-        if (address.Type is not OpenNettyAddressType.ScsLightPointGeneral)
-        {
-            throw new ArgumentException(SR.GetResourceString(SR.ID0056), nameof(address));
-        }
-
-        if (address.Value is not "0")
-        {
-            throw new ArgumentException(SR.GetResourceString(SR.ID0057), nameof(address));
-        }
-
-        return address.Parameters switch
-        {
-            { IsDefaultOrEmpty: true } => 0,
-
-            ["4", string value] when byte.TryParse(value, CultureInfo.InvariantCulture, out byte extension) && extension is >= 0 and <= 15
-                => extension,
-
-            _ => throw new ArgumentException(SR.GetResourceString(SR.ID0057), nameof(address))
-        };
-    }
-
-    /// <summary>
-    /// Converts the specified address to a SCS light point group address.
-    /// </summary>
-    /// <param name="address">The address.</param>
-    /// <returns>A SCS light point group address based on the specified address.</returns>
-    /// <exception cref="ArgumentException">The address doesn't represent a valid SCS light point group address.</exception>
-    public static (byte Extension, byte Group) ToScsLightPointGroupAddress(OpenNettyAddress address)
-    {
-        if (address.Type is not OpenNettyAddressType.ScsLightPointGroup)
-        {
-            throw new ArgumentException(SR.GetResourceString(SR.ID0058), nameof(address));
-        }
-
-        if (!string.IsNullOrEmpty(address.Value))
-        {
-            throw new ArgumentException(SR.GetResourceString(SR.ID0059), nameof(address));
-        }
-
-        return address.Parameters switch
-        {
-            [string value] when byte.TryParse(value, CultureInfo.InvariantCulture, out byte group) && group is >= 1 and <= 255
-                => (Extension: 0, Group: group),
-
-            [string first, "4", string third] when
-                byte.TryParse(first, CultureInfo.InvariantCulture, out byte group)     && group     is >= 1 and <= 255 &&
-                byte.TryParse(third, CultureInfo.InvariantCulture, out byte extension) && extension is >= 0 and <= 15
-                => (Extension: extension, Group: group),
-
-            _ => throw new ArgumentException(SR.GetResourceString(SR.ID0059), nameof(address))
-        };
-    }
-
-    /// <summary>
-    /// Converts the specified address to a SCS light point point-to-point address.
-    /// </summary>
-    /// <param name="address">The address.</param>
-    /// <returns>A SCS light point point-to-point address based on the specified address.</returns>
-    /// <exception cref="ArgumentException">The address doesn't represent a valid SCS light point point-to-point address.</exception>
-    public static (byte Extension, byte Area, byte Point) ToScsLightPointPointToPointAddress(OpenNettyAddress address)
-    {
-        if (address.Type is not OpenNettyAddressType.ScsLightPointPointToPoint)
-        {
-            throw new ArgumentException(SR.GetResourceString(SR.ID0060), nameof(address));
-        }
-
-        return address.Parameters switch
-        {
+            // Point-to-point address without bus extension:
             { IsDefaultOrEmpty: true } when GetAreaAndLightPoint(address.Value) is { Area: byte area, Point: byte point }
-                => (Extension: 0, Area: area, Point: point),
+                => (Extension: 0, General: false, Group: null, Area: area, Point: point),
 
+            // Point-to-point address with bus extension:
             ["4", string value] when
                 GetAreaAndLightPoint(address.Value) is { Area: byte area, Point: byte point } &&
                 byte.TryParse(value, CultureInfo.InvariantCulture, out byte extension) && extension is >= 0 and <= 15
-                => (Extension: extension, Area: area, Point: point),
+                => (Extension: extension, General: false, Group: null, Area: area, Point: point),
 
-            _ => throw new ArgumentException(SR.GetResourceString(SR.ID0061), nameof(address))
+            _ => throw new ArgumentException(SR.GetResourceString(SR.ID0055), nameof(address))
         };
 
         static (byte Area, byte Point) GetAreaAndLightPoint(ReadOnlySpan<char> address) => address switch
@@ -598,7 +585,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
                 byte.TryParse(address[2..4], CultureInfo.InvariantCulture, out byte point) && point is >= 1 and <= 15
                 => (area, point),
 
-            _ => throw new ArgumentException(SR.GetResourceString(SR.ID0061), nameof(address))
+            _ => throw new ArgumentException(SR.GetResourceString(SR.ID0055), nameof(address))
         };
     }
 

@@ -307,12 +307,9 @@ public sealed class OpenNettyBuilder
 
             var type = (string?) endpoint.Attribute("Type") switch
             {
-                "Nitoo"                          => OpenNettyAddressType.Nitoo,
-                "SCS light point area"           => OpenNettyAddressType.ScsLightPointArea,
-                "SCS light point general"        => OpenNettyAddressType.ScsLightPointGeneral,
-                "SCS light point group"          => OpenNettyAddressType.ScsLightPointGroup,
-                "SCS light point point-to-point" => OpenNettyAddressType.ScsLightPointPointToPoint,
-                "Zigbee"                         => OpenNettyAddressType.Zigbee,
+                "Nitoo"           => OpenNettyAddressType.Nitoo,
+                "SCS light point" => OpenNettyAddressType.ScsLightPoint,
+                "Zigbee"          => OpenNettyAddressType.Zigbee,
 
                 null => (OpenNettyAddressType?) null,
 
@@ -325,21 +322,10 @@ public sealed class OpenNettyBuilder
                 // Note: gateway endpoints don't have an address attached.
                 _ when device is not null && device.Definition.Capabilities.Contains(OpenNettyCapabilities.OpenWebNetGateway) => null,
 
-                OpenNettyProtocol.Nitoo => OpenNettyAddressType.Nitoo,
-
-                OpenNettyProtocol.Scs when endpoint.Attribute("Area") is not null && endpoint.Attribute("Point") is null
-                    => OpenNettyAddressType.ScsLightPointArea,
-
-                OpenNettyProtocol.Scs when endpoint.Attribute("Area") is null && endpoint.Attribute("Group") is null
-                    => OpenNettyAddressType.ScsLightPointGeneral,
-
-                OpenNettyProtocol.Scs when endpoint.Attribute("Group") is not null
-                    => OpenNettyAddressType.ScsLightPointGroup,
-
-                OpenNettyProtocol.Scs when endpoint.Attribute("Area") is not null && endpoint.Attribute("Point") is not null
-                    => OpenNettyAddressType.ScsLightPointPointToPoint,
-
+                OpenNettyProtocol.Nitoo  => OpenNettyAddressType.Nitoo,
                 OpenNettyProtocol.Zigbee => OpenNettyAddressType.Zigbee,
+
+                // Note: SCS addresses are never inferred automatically and a type MUST be explicitly attached.
 
                 _ => throw new InvalidOperationException(SR.FormatID0088(name, "Type"))
             };
@@ -348,13 +334,9 @@ public sealed class OpenNettyBuilder
             {
                 null => device?.Definition.Protocol ?? throw new InvalidOperationException(SR.FormatID0088(name, "Type")),
 
-                OpenNettyAddressType.Nitoo => OpenNettyProtocol.Nitoo,
-
-                OpenNettyAddressType.ScsLightPointArea  or OpenNettyAddressType.ScsLightPointGeneral or
-                OpenNettyAddressType.ScsLightPointGroup or OpenNettyAddressType.ScsLightPointPointToPoint
-                    => OpenNettyProtocol.Scs,
-
-                OpenNettyAddressType.Zigbee => OpenNettyProtocol.Zigbee,
+                OpenNettyAddressType.Nitoo         => OpenNettyProtocol.Nitoo,
+                OpenNettyAddressType.ScsLightPoint => OpenNettyProtocol.Scs,
+                OpenNettyAddressType.Zigbee        => OpenNettyProtocol.Zigbee,
 
                 _ => throw new InvalidOperationException(SR.FormatID0088(name, "Type"))
             };
@@ -367,21 +349,12 @@ public sealed class OpenNettyBuilder
                     identifier: uint.Parse(device?.SerialNumber ?? throw new InvalidOperationException(SR.FormatID0089("SerialNumber")), CultureInfo.InvariantCulture),
                     unit      : (byte?) (uint?) endpoint.Parent?.Attribute("Id") ?? 0),
 
-                OpenNettyAddressType.ScsLightPointArea => OpenNettyAddress.FromScsLightPointAreaAddress(
-                    area     : (byte?) (uint?) endpoint.Attribute("Area") ?? throw new InvalidOperationException(SR.FormatID0091("Area")),
-                    extension: (byte?) (uint?) endpoint.Attribute("Extension") ?? 0),
-
-                OpenNettyAddressType.ScsLightPointGeneral => OpenNettyAddress.FromScsLightPointGeneralAddress(
-                    extension: (byte?) (uint?) endpoint.Attribute("Extension") ?? 0),
-
-                OpenNettyAddressType.ScsLightPointGroup => OpenNettyAddress.FromScsLightPointGroupAddress(
-                    group    : (byte?) (uint?) endpoint.Attribute("Group") ?? throw new InvalidOperationException(SR.FormatID0092("Group")),
-                    extension: (byte?) (uint?) endpoint.Attribute("Extension") ?? 0),
-
-                OpenNettyAddressType.ScsLightPointPointToPoint => OpenNettyAddress.FromScsLightPointPointToPointAddress(
-                    area     : (byte?) (uint?) endpoint.Attribute("Area") ?? throw new InvalidOperationException(SR.FormatID0093("Area")),
-                    point    : (byte?) (uint?) endpoint.Attribute("Point") ?? throw new InvalidOperationException(SR.FormatID0093("Point")),
-                    extension: (byte?) (uint?) endpoint.Attribute("Extension") ?? 0),
+                OpenNettyAddressType.ScsLightPoint => OpenNettyAddress.FromScsLightPointAddress(
+                    extension: (byte?) (uint?) endpoint.Attribute("Extension") ?? 0,
+                    general  : (bool?) endpoint.Attribute("General") ?? false,
+                    group    : (byte?) (uint?) endpoint.Attribute("Group"),
+                    area     : (byte?) (uint?) endpoint.Attribute("Area"),
+                    point    : (byte?) (uint?) endpoint.Attribute("Point")),
 
                 OpenNettyAddressType.Zigbee => OpenNettyAddress.FromHexadecimalZigbeeAddress(
                     identifier: device?.SerialNumber ?? throw new InvalidOperationException(SR.FormatID0094("SerialNumber")),
@@ -433,51 +406,42 @@ public sealed class OpenNettyBuilder
                             throw new InvalidOperationException(SR.GetResourceString(SR.ID0119));
                         }
 
-                        switch (address.Value.Type)
+                        var (extension, general, group, area, point) = OpenNettyAddress.ToScsLightPointAddress(address.Value);
+
+                        if (OpenNettyAddress.IsScsLightPointAreaAddress(address.Value))
                         {
-                            case OpenNettyAddressType.ScsLightPointArea:
-                            {
-                                var (extension, area) = OpenNettyAddress.ToScsLightPointAreaAddress(address.Value);
-                                builder.Append("light-point-area");
-                                builder.Append('/');
-                                builder.Append(extension);
-                                builder.Append('/');
-                                builder.Append(area);
-                                break;
-                            }
+                            builder.Append("light-point-area");
+                            builder.Append('/');
+                            builder.Append(extension);
+                            builder.Append('/');
+                            builder.Append(area);
+                        }
 
-                            case OpenNettyAddressType.ScsLightPointGeneral:
-                            {
-                                var extension = OpenNettyAddress.ToScsLightPointGeneralAddress(address.Value);
-                                builder.Append("light-point-general");
-                                builder.Append('/');
-                                builder.Append(extension);
-                                break;
-                            }
+                        else if (OpenNettyAddress.IsScsLightPointGeneralAddress(address.Value))
+                        {
+                            builder.Append("light-point-general");
+                            builder.Append('/');
+                            builder.Append(extension);
+                        }
 
-                            case OpenNettyAddressType.ScsLightPointGroup:
-                            {
-                                var (extension, group) = OpenNettyAddress.ToScsLightPointGroupAddress(address.Value);
-                                builder.Append("light-point-group");
-                                builder.Append('/');
-                                builder.Append(extension);
-                                builder.Append('/');
-                                builder.Append(group);
-                                break;
-                            }
+                        else if (OpenNettyAddress.IsScsLightPointGroupAddress(address.Value))
+                        {
+                            builder.Append("light-point-group");
+                            builder.Append('/');
+                            builder.Append(extension);
+                            builder.Append('/');
+                            builder.Append(group);
+                        }
 
-                            case OpenNettyAddressType.ScsLightPointPointToPoint:
-                            {
-                                var (extension, area, point) = OpenNettyAddress.ToScsLightPointPointToPointAddress(address.Value);
-                                builder.Append("light-point-point-to-point");
-                                builder.Append('/');
-                                builder.Append(extension);
-                                builder.Append('/');
-                                builder.Append(area);
-                                builder.Append('/');
-                                builder.Append(point);
-                                break;
-                            }
+                        else if (OpenNettyAddress.IsScsLightPointPointToPointAddress(address.Value))
+                        {
+                            builder.Append("light-point-point-to-point");
+                            builder.Append('/');
+                            builder.Append(extension);
+                            builder.Append('/');
+                            builder.Append(area);
+                            builder.Append('/');
+                            builder.Append(point);
                         }
 
                         builder.Append(address.Value.ToString());

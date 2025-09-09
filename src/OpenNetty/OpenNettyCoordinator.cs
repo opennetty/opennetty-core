@@ -242,7 +242,9 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         }
 
                         // SCS devices configured to use the PUL mode never react to area and general commands.
-                        if (address.Type is OpenNettyAddressType.ScsLightPointArea or OpenNettyAddressType.ScsLightPointGeneral &&
+                        if (address.Type is OpenNettyAddressType.ScsLightPoint &&
+                            (OpenNettyAddress.IsScsLightPointAreaAddress(address) ||
+                             OpenNettyAddress.IsScsLightPointGeneralAddress(address)) &&
                             endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
                         {
                             return;
@@ -284,7 +286,9 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         }
 
                         // SCS devices configured to use the PUL mode never react to area and general commands.
-                        if (address.Type is OpenNettyAddressType.ScsLightPointArea or OpenNettyAddressType.ScsLightPointGeneral &&
+                        if (address.Type is OpenNettyAddressType.ScsLightPoint &&
+                            (OpenNettyAddress.IsScsLightPointAreaAddress(address) ||
+                             OpenNettyAddress.IsScsLightPointGeneralAddress(address)) &&
                             endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
                         {
                             return;
@@ -344,7 +348,9 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         }
 
                         // SCS devices configured to use the PUL mode never react to area and general commands.
-                        if (address.Type is OpenNettyAddressType.ScsLightPointArea or OpenNettyAddressType.ScsLightPointGeneral &&
+                        if (address.Type is OpenNettyAddressType.ScsLightPoint &&
+                            (OpenNettyAddress.IsScsLightPointAreaAddress(address) ||
+                             OpenNettyAddress.IsScsLightPointGeneralAddress(address)) &&
                             endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
                         {
                             return;

@@ -253,27 +253,11 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
                 {
                     message.Medium = OpenNettyMedium.Bus;
 
-                    var type = field.Parameters[0] switch
-                    {
-                        { Value: "0" } when message.Category == OpenNettyCategories.Lighting ||
-                                            message.Category == OpenNettyCategories.Automation
-                            => OpenNettyAddressType.ScsLightPointGeneral,
-
-                        { Value: "00" or "1" or "2" or "3" or "4" or "5" or "6" or "7" or "8" or "9" or "10" }
-                            when message.Category == OpenNettyCategories.Lighting ||
-                                 message.Category == OpenNettyCategories.Automation
-                            => OpenNettyAddressType.ScsLightPointArea,
-
-                        { IsEmpty: true } when message.Category == OpenNettyCategories.Lighting ||
-                                               message.Category == OpenNettyCategories.Automation
-                            => OpenNettyAddressType.ScsLightPointGroup,
-
-                        _ when message.Category == OpenNettyCategories.Lighting ||
-                               message.Category == OpenNettyCategories.Automation
-                            => OpenNettyAddressType.ScsLightPointPointToPoint,
-
-                        _ => OpenNettyAddressType.Unknown
-                    };
+                    var type =
+                        message.Category == OpenNettyCategories.Lighting   ? OpenNettyAddressType.ScsLightPoint :
+                        // Note: the WHO=2 category uses the same addressing scheme as the lighting category (WHO=1).
+                        message.Category == OpenNettyCategories.Automation ? OpenNettyAddressType.ScsLightPoint :
+                                                                             OpenNettyAddressType.Unknown;
 
                     if (field.Parameters.Length is 1)
                     {

@@ -1614,22 +1614,20 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         when OpenNettyAddress.ToNitooAddress(address) is { Identifier: uint identifier, Unit: byte unit }
                         => $"D={identifier.ToString(CultureInfo.InvariantCulture)}/U={unit.ToString(CultureInfo.InvariantCulture)}",
 
-                    OpenNettyAddressType.ScsLightPointArea
-                        when OpenNettyAddress.ToScsLightPointAreaAddress(address) is { Extension: byte extension, Area: byte area }
+                    OpenNettyAddressType.ScsLightPoint when OpenNettyAddress.IsScsLightPointAreaAddress(address) &&
+                        OpenNettyAddress.ToScsLightPointAddress(address) is { Extension: byte extension, Area: byte area }
                         => $"A={area.ToString(CultureInfo.InvariantCulture)}/I={extension.ToString(CultureInfo.InvariantCulture)}",
 
-                    OpenNettyAddressType.ScsLightPointGeneral
-                        when OpenNettyAddress.ToScsLightPointGeneralAddress(address) is byte extension
+                    OpenNettyAddressType.ScsLightPoint when OpenNettyAddress.IsScsLightPointGeneralAddress(address) &&
+                        OpenNettyAddress.ToScsLightPointAddress(address) is { Extension: byte extension }
                         => $"GEN/I={extension.ToString(CultureInfo.InvariantCulture)}",
 
-                    OpenNettyAddressType.ScsLightPointGroup
-                        when OpenNettyAddress.ToScsLightPointGroupAddress(address)
-                        is { Extension: byte extension, Group: byte group }
+                    OpenNettyAddressType.ScsLightPoint when OpenNettyAddress.IsScsLightPointGroupAddress(address) &&
+                        OpenNettyAddress.ToScsLightPointAddress(address) is { Extension: byte extension, Group: byte group }
                         => $"GR={group.ToString(CultureInfo.InvariantCulture)}/I={extension.ToString(CultureInfo.InvariantCulture)}",
 
-                    OpenNettyAddressType.ScsLightPointPointToPoint
-                        when OpenNettyAddress.ToScsLightPointPointToPointAddress(address)
-                        is { Extension: byte extension, Area: byte area, Point: byte point }
+                    OpenNettyAddressType.ScsLightPoint when OpenNettyAddress.IsScsLightPointPointToPointAddress(address) &&
+                        OpenNettyAddress.ToScsLightPointAddress(address) is { Extension: byte extension, Area: byte area, Point: byte point }
                         => $"PL={point.ToString(CultureInfo.InvariantCulture)}/A={area.ToString(CultureInfo.InvariantCulture)}/I={extension.ToString(CultureInfo.InvariantCulture)}",
 
                     OpenNettyAddressType.Zigbee
