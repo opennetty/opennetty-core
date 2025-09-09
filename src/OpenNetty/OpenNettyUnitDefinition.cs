@@ -19,6 +19,11 @@ public sealed class OpenNettyUnitDefinition : IEquatable<OpenNettyUnitDefinition
     public byte? AssociatedUnitId { get; init; }
 
     /// <summary>
+    /// Gets or sets the description associated with the unit definition.
+    /// </summary>
+    public required string Description { get; init; }
+
+    /// <summary>
     /// Gets or sets the capabilities associated with the unit definition.
     /// </summary>
     public required ImmutableHashSet<OpenNettyCapability> Capabilities { get; init; } = [];
@@ -45,6 +50,7 @@ public sealed class OpenNettyUnitDefinition : IEquatable<OpenNettyUnitDefinition
         return other is not null &&
             AssociatedUnitId == other.AssociatedUnitId &&
             Capabilities.Count == other.Capabilities.Count && Capabilities.Except(other.Capabilities).IsEmpty &&
+            string.Equals(Description, other.Description, StringComparison.OrdinalIgnoreCase) &&
             Id == other.Id &&
             Settings.Count == other.Settings.Count && !Settings.Except(other.Settings).Any();
     }
@@ -64,6 +70,7 @@ public sealed class OpenNettyUnitDefinition : IEquatable<OpenNettyUnitDefinition
             hash.Add(capability);
         }
 
+        hash.Add(Description);
         hash.Add(Id);
 
         hash.Add(Settings.Count);

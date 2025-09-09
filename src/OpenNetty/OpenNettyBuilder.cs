@@ -9,6 +9,7 @@ using System.ComponentModel;
 using System.Globalization;
 using System.IO.Ports;
 using System.Net;
+using System.Text;
 using System.Xml.Linq;
 using Microsoft.Extensions.FileProviders;
 
@@ -349,6 +350,23 @@ public sealed class OpenNettyBuilder
                 _ => throw new InvalidOperationException(SR.FormatID0088(name, "Type"))
             };
 
+            var protocol = type switch
+            {
+                null => device?.Definition.Protocol ?? throw new InvalidOperationException(SR.FormatID0088(name, "Type")),
+
+                OpenNettyAddressType.NitooDevice or OpenNettyAddressType.NitooUnit => OpenNettyProtocol.Nitoo,
+
+                OpenNettyAddressType.ScsLightPointArea  or OpenNettyAddressType.ScsLightPointGeneral or
+                OpenNettyAddressType.ScsLightPointGroup or OpenNettyAddressType.ScsLightPointPointToPoint
+                    => OpenNettyProtocol.Scs,
+
+                OpenNettyAddressType.ZigbeeAllDevicesAllUnits     or OpenNettyAddressType.ZigbeeAllDevicesSpecificUnit or
+                OpenNettyAddressType.ZigbeeSpecificDeviceAllUnits or OpenNettyAddressType.ZigbeeSpecificDeviceSpecificUnit
+                    => OpenNettyProtocol.Zigbee,
+
+                _ => throw new InvalidOperationException(SR.FormatID0088(name, "Type"))
+            };
+
             var address = type switch
             {
                 null => (OpenNettyAddress?) null,
@@ -392,25 +410,102 @@ public sealed class OpenNettyBuilder
                 _ => throw new InvalidOperationException(SR.FormatID0088(name, "Type"))
             };
 
-            var protocol = address is not null ?
-                (OpenNettyAddress.IsNitooAddress(address.Value)  ? OpenNettyProtocol.Nitoo  :
-                 OpenNettyAddress.IsScsAddress(address.Value)    ? OpenNettyProtocol.Scs    :
-                 OpenNettyAddress.IsZigbeeAddress(address.Value) ? OpenNettyProtocol.Zigbee :
-                 throw new InvalidOperationException(SR.FormatID0088(name, "Type"))) :
-                 device?.Definition.Protocol ?? throw new InvalidOperationException(SR.FormatID0088(name, "Type"));
-
             endpoints.Add(new OpenNettyEndpoint
             {
                 Address = address,
                 Capabilities = device is null && unit is null ? GetCapabilities(endpoint) : [],
+                Description = (string?) endpoint.Attribute("Description"),
                 Device = device,
                 Gateway = (string?) endpoint.Attribute("Gateway") is string gateway ? FindGatewayByName(gateways, gateway) : null,
                 Medium = device?.Definition.Medium,
-                Name = name,
+                Name = name ?? ComputeDefaultEndpointName(protocol, address, device, unit),
                 Protocol = protocol,
                 Settings = GetSettings(endpoint),
                 Unit = unit
             });
+
+            static string ComputeDefaultEndpointName(
+                OpenNettyProtocol protocol, OpenNettyAddress? address, OpenNettyDevice? device, OpenNettyUnit? unit)
+            {
+                var builder = new StringBuilder(Enum.GetName(protocol));
+                builder.Append('/');
+
+                switch (protocol)
+                {
+                    case OpenNettyProtocol.Nitoo or OpenNettyProtocol.Zigbee:
+                        if (string.IsNullOrEmpty(device?.SerialNumber))
+                        {
+                            throw new InvalidOperationException(SR.GetResourceString(SR.ID0118));
+                        }
+
+                        builder.Append(device.SerialNumber);
+
+                        if (unit is not null)
+                        {
+                            builder.Append('/');
+                            builder.Append(unit.Definition.Id);
+                        }
+                        break;
+
+                    case OpenNettyProtocol.Scs:
+                        if (address is null)
+                        {
+                            throw new InvalidOperationException(SR.GetResourceString(SR.ID0119));
+                        }
+
+                        switch (address.Value.Type)
+                        {
+                            case OpenNettyAddressType.ScsLightPointArea:
+                            {
+                                var (extension, area) = OpenNettyAddress.ToScsLightPointAreaAddress(address.Value);
+                                builder.Append("light-point-area");
+                                builder.Append('/');
+                                builder.Append(extension);
+                                builder.Append('/');
+                                builder.Append(area);
+                                break;
+                            }
+
+                            case OpenNettyAddressType.ScsLightPointGeneral:
+                            {
+                                var extension = OpenNettyAddress.ToScsLightPointGeneralAddress(address.Value);
+                                builder.Append("light-point-general");
+                                builder.Append('/');
+                                builder.Append(extension);
+                                break;
+                            }
+
+                            case OpenNettyAddressType.ScsLightPointGroup:
+                            {
+                                var (extension, group) = OpenNettyAddress.ToScsLightPointGroupAddress(address.Value);
+                                builder.Append("light-point-group");
+                                builder.Append('/');
+                                builder.Append(extension);
+                                builder.Append('/');
+                                builder.Append(group);
+                                break;
+                            }
+
+                            case OpenNettyAddressType.ScsLightPointPointToPoint:
+                            {
+                                var (extension, area, point) = OpenNettyAddress.ToScsLightPointPointToPointAddress(address.Value);
+                                builder.Append("light-point-point-to-point");
+                                builder.Append('/');
+                                builder.Append(extension);
+                                builder.Append('/');
+                                builder.Append(area);
+                                builder.Append('/');
+                                builder.Append(point);
+                                break;
+                            }
+                        }
+
+                        builder.Append(address.Value.ToString());
+                        break;
+                }
+
+                return builder.ToString();
+            }
         }
 
         return Configure(options =>

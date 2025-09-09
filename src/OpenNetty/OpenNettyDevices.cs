@@ -136,6 +136,7 @@ public static class OpenNettyDevices
             {
                 Brand = Enum.Parse<OpenNettyBrand>((string) identity.Attribute("Brand")!),
                 Collection = (string?) identity.Attribute("Collection"),
+                Description = (string) identity.Attribute("Description")!,
                 Model = (string) identity.Attribute("Model")!
             });
         }
@@ -153,6 +154,7 @@ public static class OpenNettyDevices
         return new OpenNettyDeviceDefinition
         {
             Capabilities = [.. capabilities],
+            Description = (string) node.Attribute("Description")!,
             Identities = [.. identities],
             Medium = Enum.Parse<OpenNettyMedium>((string) node.Attribute("Medium")!),
             Protocol = Enum.Parse<OpenNettyProtocol>((string) node.Attribute("Protocol")!),
@@ -181,6 +183,7 @@ public static class OpenNettyDevices
         {
             AssociatedUnitId = (byte?) (uint?) node.Attribute("AssociatedUnitId"),
             Capabilities = [.. capabilities],
+            Description = (string) node.Attribute("Description")!,
             Id = (byte) (uint) node.Attribute("Id")!,
             Settings = settings.ToImmutableDictionary()
         };

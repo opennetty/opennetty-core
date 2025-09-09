@@ -14,16 +14,33 @@ namespace OpenNetty.Mqtt;
 /// </summary>
 [EditorBrowsable(EditorBrowsableState.Never)]
 public sealed class OpenNettyMqttConfiguration : IPostConfigureOptions<OpenNettyMqttOptions>,
+    IValidateOptions<OpenNettyOptions>,
     IValidateOptions<OpenNettyMqttOptions>
 {
+    /// <inheritdoc/>
+    public ValidateOptionsResult Validate(string? name, OpenNettyOptions options)
+    {
+        foreach (var endpoint in options.Endpoints)
+        {
+            if (endpoint.GetStringSetting(OpenNettySettings.MqttTopic) is string topic &&
+                (topic.Contains('+', StringComparison.OrdinalIgnoreCase) ||
+                 topic.Contains('*', StringComparison.OrdinalIgnoreCase)))
+            {
+                return ValidateOptionsResult.Fail(SR.FormatID2005(topic));
+            }
+        }
+
+        return ValidateOptionsResult.Success;
+    }
+
     /// <inheritdoc/>
     public void PostConfigure(string? name, OpenNettyMqttOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        if (string.IsNullOrEmpty(options.DiscoveryRootTopic))
+        if (string.IsNullOrEmpty(options.HomeAssistantDiscoveryRootTopic))
         {
-            options.DiscoveryRootTopic = "homeassistant";
+            options.HomeAssistantDiscoveryRootTopic = "homeassistant";
         }
 
         if (string.IsNullOrEmpty(options.RootTopic))
@@ -41,6 +58,21 @@ public sealed class OpenNettyMqttConfiguration : IPostConfigureOptions<OpenNetty
             options.RootTopic.Contains('*', StringComparison.OrdinalIgnoreCase))
         {
             return ValidateOptionsResult.Fail(SR.GetResourceString(SR.ID2001));
+        }
+
+        if (options.RootTopic.EndsWith("/", StringComparison.OrdinalIgnoreCase))
+        {
+            return ValidateOptionsResult.Fail(SR.GetResourceString(SR.ID2007));
+        }
+
+        if (options.HomeAssistantDiscoveryRootTopic.EndsWith("/", StringComparison.OrdinalIgnoreCase))
+        {
+            return ValidateOptionsResult.Fail(SR.GetResourceString(SR.ID2008));
+        }
+
+        if (string.Equals(options.HomeAssistantDiscoveryRootTopic, options.RootTopic, StringComparison.OrdinalIgnoreCase))
+        {
+            return ValidateOptionsResult.Fail(SR.GetResourceString(SR.ID2009));
         }
 
         return ValidateOptionsResult.Success;

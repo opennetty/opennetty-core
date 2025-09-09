@@ -37,8 +37,11 @@ public static class OpenNettyMqttExtensions
 
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<
             IOpenNettyHandler, OpenNettyMqttHostedService>());
+
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<
             IPostConfigureOptions<OpenNettyMqttOptions>, OpenNettyMqttConfiguration>());
+        builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<
+            IValidateOptions<OpenNettyOptions>, OpenNettyMqttConfiguration>());
         builder.Services.TryAddEnumerable(ServiceDescriptor.Singleton<
             IValidateOptions<OpenNettyMqttOptions>, OpenNettyMqttConfiguration>());
 

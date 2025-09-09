@@ -38,51 +38,51 @@ gateways and a higher-level MQTT integration that can be directly used with home
 
 The following Legrand and BTicino products are partially or fully supported by OpenNetty:
 
-| Product series    | Product collection | Legrand reference | BTicino reference | Remarks                           |
-|-------------------|--------------------|-------------------|-------------------|-----------------------------------|
-| In One by Legrand | Lexic              | 03600             |                   |                                   |
-| In One by Legrand | Lexic              | 03648             |                   |                                   |
-| In One by Legrand | Lexic              | 03809             |                   |                                   |
-| In One by Legrand |                    | 43214             |                   |                                   |
-| In One by Legrand | Céliane            | 67201             |                   |                                   |
-| In One by Legrand | Céliane            | 67202             |                   |                                   |
-| In One by Legrand | Céliane            | 67203             |                   |                                   |
-| In One by Legrand | Céliane            | 67204             |                   |                                   |
-| In One by Legrand | Céliane            | 67208             |                   |                                   |
-| In One by Legrand | Céliane            | 67210             |                   |                                   |
-| In One by Legrand | Céliane            | 67212             |                   |                                   |
-| In One by Legrand | Céliane            | 67214             |                   |                                   |
-| In One by Legrand | Céliane            | 67215             |                   |                                   |
-| In One by Legrand | Céliane            | 67220             |                   |                                   |
-| In One by Legrand | Céliane            | 67222             |                   |                                   |
-| In One by Legrand | Céliane            | 67280             |                   |                                   |
-| In One by Legrand | Céliane            | 67290             |                   |                                   |
-| In One by Legrand | Céliane            | 67445             |                   |                                   |
-| In One by Legrand | Céliane            | 67448             |                   |                                   |
-| In One by Legrand | Plexo              | 69510             |                   |                                   |
-| In One by Legrand | Sagane             | 84520             |                   |                                   |
-| In One by Legrand | Sagane             | 84522             |                   |                                   |
-| In One by Legrand | Sagane             | 84523             |                   |                                   |
-| In One by Legrand | Sagane             | 84524             |                   |                                   |
-| In One by Legrand | Sagane             | 84525             |                   |                                   |
-| In One by Legrand | Sagane             | 84529             |                   |                                   |
-| In One by Legrand | Sagane             | 84530             |                   |                                   |
-| In One by Legrand | Sagane             | 84531             |                   |                                   |
-| In One by Legrand | Sagane             | 84542             |                   |                                   |
-| In One by Legrand |                    | 88205             |                   |                                   |
-| In One by Legrand |                    | 88213             |                   |                                   |
-|                   |                    |                   |                   |                                   |
-| MyHome Up         |                    | 03535             | MH202             |                                   |
-| MyHome Up         |                    | 03598             | F454              |                                   |
-| MyHome Up         |                    | 03651             | F418U2            |                                   |
-| MyHome Up         |                    | 03847             | F411U1            |                                   |
-| MyHome Up         |                    | 03848             | F411U2            |                                   |
-| MyHome Up         | Céliane            | 67557             |                   |                                   |
-| MyHome Up         | Céliane            | 67561             |                   |                                   |
-|                   |                    |                   |                   |                                   |
-| MyHome Play       | Céliane            | 67223             |                   |                                   |
-| MyHome Play       |                    | 88328             | 3578              |                                   |
-| MyHome Play       |                    | 88337             |                   |                                   |
+| Product series    | Product collection | Legrand reference | BTicino reference | Description                            |
+|-------------------|--------------------|-------------------|-------------------|----------------------------------------|
+| In One by Legrand | Lexic              | 03600             |                   | 2-gang DIN rail switch                 |
+| In One by Legrand | Lexic              | 03648             |                   | SCS/Nitoo gateway                      |
+| In One by Legrand | Lexic              | 03809             |                   | DIN rail energy meter                  |
+| In One by Legrand |                    | 43214             |                   | Wireless burglar alarm                 |
+| In One by Legrand | Céliane            | 67201             |                   | 1-gang switch                          |
+| In One by Legrand | Céliane            | 67202             |                   | 2-gang switch                          |
+| In One by Legrand | Céliane            | 67203             |                   | 1-gang switch with indicator light     |
+| In One by Legrand | Céliane            | 67204             |                   | 2-gang switch with indicator light     |
+| In One by Legrand | Céliane            | 67208             |                   | Light control switch                   |
+| In One by Legrand | Céliane            | 67210             |                   | Dimmer switch                          |
+| In One by Legrand | Céliane            | 67212             |                   | Dimmer switch with indicator light     |
+| In One by Legrand | Céliane            | 67214             |                   | Dimmer switch with indicator light     |
+| In One by Legrand | Céliane            | 67215             |                   | Motion sensor switch                   |
+| In One by Legrand | Céliane            | 67220             |                   | Switched outlet                        |
+| In One by Legrand | Céliane            | 67222             |                   | Dimmable switched outlet               |
+| In One by Legrand | Céliane            | 67280             |                   | Multipurpose scenario switch           |
+| In One by Legrand | Céliane            | 67290             |                   | Multipurpose scenario switch           |
+| In One by Legrand | Céliane            | 67445             |                   | Pilot wire cable outlet                |
+| In One by Legrand | Céliane            | 67448             |                   | Pilot wire derogation command          |
+| In One by Legrand | Plexo              | 69510             |                   | 1-gang outdoor switch                  |
+| In One by Legrand | Sagane             | 84520             |                   | 2-gang switch                          |
+| In One by Legrand | Sagane             | 84522             |                   | Motion sensor switch                   |
+| In One by Legrand | Sagane             | 84523             |                   | Switched outlet                        |
+| In One by Legrand | Sagane             | 84524             |                   | Dimmable switched outlet               |
+| In One by Legrand | Sagane             | 84525             |                   | Multipurpose scenario switch           |
+| In One by Legrand | Sagane             | 84529             |                   | Pilot wire derogation command          |
+| In One by Legrand | Sagane             | 84530             |                   | Pilot wire cable outlet                |
+| In One by Legrand | Sagane             | 84531             |                   | 1-gang switch                          |
+| In One by Legrand | Sagane             | 84542             |                   | Multipurpose scenario switch           |
+| In One by Legrand |                    | 88205             |                   | Pocket scenario remote control         |
+| In One by Legrand |                    | 88213             |                   | PLC/USB gateway                        |
+|                   |                    |                   |                   |                                        |
+| MyHome Up         |                    | 03535             | MH202             | SCS scenario scheduler                 |
+| MyHome Up         |                    | 03598             | F454              | SCS/Ethernet gateway                   |
+| MyHome Up         |                    | 03651             | F418U2            | 2-gang DIN rail dimmer switch          |
+| MyHome Up         |                    | 03847             | F411U1            | 1-gang DIN rail switch                 |
+| MyHome Up         |                    | 03848             | F411U2            | 2-gang DIN rail switch                 |
+| MyHome Up         | Céliane            | 67557             |                   | 2-channel advanced automation actuator |
+| MyHome Up         | Céliane            | 67561             |                   | 2-channel lighting/automation actuator |
+|                   |                    |                   |                   |                                        |
+| MyHome Play       | Céliane            | 67223             |                   | Light control switch                   |
+| MyHome Play       |                    | 88328             | 3578              | Zigbee/USB gateway                     |
+| MyHome Play       |                    | 88337             |                   | Switched outlet                        |
 
 > [!NOTE]
 > Support for additional devices will be progressively added depending on the demand.

@@ -4,7 +4,6 @@
  * the license and the contributors participating to this project.
  */
 
-using System;
 using System.Buffers.Text;
 using System.Globalization;
 using System.IO.Hashing;
@@ -13,7 +12,7 @@ using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Text;
+using System.Runtime.InteropServices;
 using System.Text.Json.Nodes;
 using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
@@ -105,7 +104,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 return AsyncObservable.Return((Message: message, Endpoint: endpoint, Attribute: attribute, Operation: operation.Value));
 
                 bool Matches(OpenNettyEndpoint endpoint) => string.Equals(
-                    endpoint.GetStringSetting(OpenNettySettings.MqttEndpointName) ?? endpoint.Name?.ToLowerInvariant(),
+                    endpoint.GetStringSetting(OpenNettySettings.MqttTopic) ?? endpoint.Name.ToLowerInvariant(),
                     name, StringComparison.Ordinal);
             })
             .GroupBy(static arguments => arguments.Endpoint.Name)
@@ -117,8 +116,23 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                     try
                     {
-                        switch (attribute.ToLowerInvariant())
+                        switch (attribute)
                         {
+                            case OpenNettyMqttAttributes.BatteryAlert when operation is OpenNettyMqttOperation.Set:
+                                switch (message.ConvertPayloadToString()?.ToLowerInvariant())
+                                {
+                                    case "off":
+                                        await client.EnqueueAsync(new MqttApplicationMessageBuilder()
+                                            .WithPayloadFormatIndicator(MqttPayloadFormatIndicator.CharacterData)
+                                            .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
+                                            .WithTopic(message.Topic[..^4])
+                                            .WithPayload("OFF")
+                                            .WithRetainFlag()
+                                            .Build());
+                                        break;
+                                }
+                                break;
+
                             case OpenNettyMqttAttributes.Brightness when operation is OpenNettyMqttOperation.Get:
                                 _ = await _controller.EnumerateBrightnessAsync(endpoint).ToListAsync();
                                 break;
@@ -269,28 +283,32 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             case OpenNettyMqttAttributes.Scenario when operation is OpenNettyMqttOperation.Set:
                                 switch (message.ConvertPayloadToString()?.ToLowerInvariant())
                                 {
-                                    case "action" when endpoint.HasCapability(OpenNettyCapabilities.BasicScenario):
-                                        await _controller.DispatchBasicScenarioAsync(endpoint);
+                                    case "action":
+                                        await _controller.DispatchActionScenarioAsync(endpoint);
                                         break;
 
-                                    case "down" when endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenario):
+                                    case "shutter_down":
                                         await _controller.DispatchShutterDownScenarioAsync(endpoint);
                                         break;
 
-                                    case "on" when endpoint.HasCapability(OpenNettyCapabilities.OnOffScenario):
-                                        await _controller.DispatchOnScenarioAsync(endpoint);
-                                        break;
-
-                                    case "off" when endpoint.HasCapability(OpenNettyCapabilities.OnOffScenario):
-                                        await _controller.DispatchOffScenarioAsync(endpoint);
-                                        break;
-
-                                    case "stop" when endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenario):
+                                    case "shutter_stop":
                                         await _controller.DispatchShutterStopScenarioAsync(endpoint);
                                         break;
 
-                                    case "up" when endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenario):
+                                    case "shutter_up":
                                         await _controller.DispatchShutterUpScenarioAsync(endpoint);
+                                        break;
+
+                                    case "stop_action":
+                                        await _controller.DispatchStopActionScenarioAsync(endpoint);
+                                        break;
+
+                                    case "switch_on":
+                                        await _controller.DispatchOnScenarioAsync(endpoint);
+                                        break;
+
+                                    case "switch_off":
+                                        await _controller.DispatchOffScenarioAsync(endpoint);
                                         break;
                                 }
                                 break;
@@ -338,6 +356,10 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 _ = await _controller.GetSmartMeterInformationAsync(endpoint);
                                 break;
 
+                            case OpenNettyMqttAttributes.StartupDate when operation is OpenNettyMqttOperation.Get:
+                                _ = await _controller.GetUptimeAsync(endpoint);
+                                break;
+
                             case OpenNettyMqttAttributes.SwitchState when operation is OpenNettyMqttOperation.Get:
                                 _ = await _controller.EnumerateSwitchStatesAsync(endpoint).ToListAsync();
                                 break;
@@ -382,6 +404,19 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             case OpenNettyMqttAttributes.WaterHeaterState when operation is OpenNettyMqttOperation.Get:
                                 _ = await _controller.GetWaterHeaterStateAsync(endpoint);
                                 break;
+
+                            case OpenNettyMqttAttributes.ZigbeeBinding when operation is OpenNettyMqttOperation.Set:
+                                switch (message.ConvertPayloadToString()?.ToLowerInvariant())
+                                {
+                                    case "bind":
+                                        await _controller.BindAsync(endpoint);
+                                        break;
+
+                                    case "unbind":
+                                        await _controller.UnbindAsync(endpoint);
+                                        break;
+                                }
+                                break;
                         }
 
                         if (!string.IsNullOrEmpty(message.ResponseTopic))
@@ -420,31 +455,22 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
     /// <inheritdoc/>
     public async Task AnnounceEndpointsAsync(IManagedMqttClient client, CancellationToken cancellationToken)
     {
-        if (_options.CurrentValue is not { DisableDiscovery: false } options)
+        if (_options.CurrentValue is not { DisableHomeAssistantDiscovery: false } options)
         {
             return;
         }
 
-        await foreach (var endpoints in from endpoint in _manager.EnumerateEndpointsAsync(cancellationToken)
-                                        where endpoint.GetBooleanSetting(OpenNettySettings.MqttDiscovery) is not false
-                                        where endpoint.Device is { SerialNumber.Length: > 0 }
-                                        group endpoint by endpoint.Device!)
+        await foreach (var device in _manager.EnumerateDevicesAsync(cancellationToken))
         {
-            var components = new JsonObject();
-
-            var device = new JsonObject
+            if (device.GetBooleanSetting(OpenNettySettings.HomeAssistantDiscovery) is false ||
+                device.SerialNumber is null or { Length: 0 })
             {
-                ["identifiers"] = new JsonArray([endpoints.Key.SerialNumber]),
-                ["manufacturer"] = Enum.GetName(endpoints.Key.Identity.Brand),
-                ["model"] = endpoints.Key.Identity.Model,
-                ["serial_number"] = endpoints.Key.SerialNumber,
-                ["name"] = $"{Enum.GetName(endpoints.Key.Identity.Brand)} {endpoints.Key.Identity.Model} ({endpoints.Key.SerialNumber})"
-            };
-
-            if (endpoints.Key.GetStringSetting(OpenNettySettings.HomeAssistantSuggestedArea) is { Length: > 0 } area)
-            {
-                device["suggested_area"] = area;
+                continue;
             }
+
+            var identifier = ComputeDeviceUniqueId(device);
+
+            var components = new JsonObject();
 
             var configuration = new JsonObject
             {
@@ -456,17 +482,17 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                        ?.InformationalVersion,
                     ["support_url"] = "https://github.com/opennetty/opennetty-core"
                 },
-                ["device"] = device,
+                ["device"] = CreateDeviceNode(device, identifier),
                 ["components"] = components,
                 ["qos"] = 2
             };
 
-            await foreach (var (endpoint, name) in from endpoint in endpoints
-                                                   let name = endpoint.GetStringSetting(OpenNettySettings.MqttEndpointName) ?? endpoint.Name?.ToLowerInvariant()
-                                                   where !string.IsNullOrEmpty(name)
-                                                   orderby name
-                                                   select (Endpoint: endpoint, Name: name))
+            await foreach (var endpoint in from endpoint in _manager.EnumerateEndpointsAsync(cancellationToken)
+                                           where endpoint.Device == device
+                                           select endpoint)
             {
+                var topic = endpoint.GetStringSetting(OpenNettySettings.MqttTopic) ?? endpoint.Name.ToLowerInvariant();
+
                 if (SupportsLightOrSwitchEntity(endpoint))
                 {
                     // Note: by default, endpoints that support ON/OFF switching are always treated as light entities.
@@ -476,22 +502,34 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     var component = new JsonObject
                     {
                         ["platform"] = platform,
-                        ["unique_id"] = ComputeUniqueId("feb44223-4814-4652-933c-53dbbaabac3f"u8),
-                        ["name"] = endpoint.Name,
-                        ["command_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.SwitchState}/set"
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "feb44223-4814-4652-933c-53dbbaabac3f"u8),
+                        ["name"] = ComputeEntityName(
+                            name    : platform is OpenNettySettings.HomeAssistantEntityTypes.Switch ? "Switch" : "Light",
+                            endpoint: endpoint,
+                            setting : OpenNettySettings.HomeAssistantLightSwitchName,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(SupportsLightOrSwitchEntity)
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SwitchState}/set"
                     };
+
+                    if (endpoint.GetStringSetting(OpenNettySettings.HomeAssistantLightSwitchIcon) is string icon)
+                    {
+                        component["icon"] = icon;
+                    }
 
                     // Note: endpoints that can't report their state (e.g radio Nitoo devices) can still be mapped to a light entity:
                     // in that case, Home Assistant will automatically use the optimistic mode to dynamically update the current state.
                     if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
                     {
-                        component["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.SwitchState}";
+                        component["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SwitchState}";
                     }
 
                     // Unlike light entities, switch entities can specify a device class but cannot support brightness control.
                     if (platform is OpenNettySettings.HomeAssistantEntityTypes.Switch)
                     {
-                        component["device_class"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantDeviceClass)
+                        component["device_class"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantLightSwitchDeviceClass)
                             ?? OpenNettySettings.HomeAssistantDeviceClasses.Switch;
                     }
 
@@ -500,7 +538,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         if (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingControl) ||
                             endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingControl))
                         {
-                            component["brightness_command_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.Brightness}/set";
+                            component["brightness_command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Brightness}/set";
                             component["brightness_scale"] = 100;
                             component["on_command_type"] = "brightness";
                         }
@@ -508,11 +546,401 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         if (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) ||
                             endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
                         {
-                            component["brightness_state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.Brightness}";
+                            component["brightness_state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Brightness}";
                         }
                     }
 
                     components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", component);
+
+                    if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
+                    {
+                        components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                        {
+                            ["platform"] = "button",
+                            ["unique_id"] = ComputeEntityUniqueId(endpoint, "3a10d925-c599-41a9-8a7e-30a04aefec86"u8),
+                            ["name"] = ComputeEntityName(
+                                name    : "Get switch state",
+                                endpoint: endpoint,
+                                setting : OpenNettySettings.HomeAssistantLightSwitchName,
+                                count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                    .Where(endpoint => endpoint.Device == device)
+                                    .Where(SupportsLightOrSwitchEntity)
+                                    .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
+                                    .CountAsync(cancellationToken)),
+                            ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SwitchState}/get",
+                            ["payload_press"] = string.Empty
+                        });
+                    }
+
+                    if (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) ||
+                        endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
+                    {
+                        components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                        {
+                            ["platform"] = "button",
+                            ["unique_id"] = ComputeEntityUniqueId(endpoint, "f05ecfb8-70d5-4116-b0a8-2f6d9d02090f"u8),
+                            ["name"] = ComputeEntityName(
+                                name    : "Get brightness",
+                                endpoint: endpoint,
+                                setting : OpenNettySettings.HomeAssistantLightSwitchName,
+                                count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                    .Where(endpoint => endpoint.Device == device)
+                                    .Where(SupportsLightOrSwitchEntity)
+                                    .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) ||
+                                                       endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
+                                    .CountAsync(cancellationToken)),
+                            ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Brightness}/get",
+                            ["payload_press"] = string.Empty
+                        });
+                    }
+                }
+
+                if (SupportsCoverEntity(endpoint))
+                {
+                    var component = new JsonObject
+                    {
+                        ["platform"] = "cover",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "9b138d62-bb0d-49cb-8624-1d85f9e86a6e"u8),
+                        ["device_class"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantCoverDeviceClass)
+                            ?? OpenNettySettings.HomeAssistantDeviceClasses.Shutter,
+                        ["name"] = ComputeEntityName(
+                            name    : "Cover",
+                            endpoint: endpoint,
+                            setting : OpenNettySettings.HomeAssistantCoverName,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(SupportsCoverEntity)
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ShutterState}/set"
+                    };
+
+                    if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState))
+                    {
+                        component["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ShutterState}";
+                    }
+
+                    if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterControl))
+                    {
+                        component["set_position_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ShutterPosition}/set";
+                    }
+
+                    if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
+                    {
+                        component["position_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ShutterPosition}";
+                    }
+
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", component);
+
+                    if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState) ||
+                        endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
+                    {
+                        components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                        {
+                            ["platform"] = "button",
+                            ["unique_id"] = ComputeEntityUniqueId(endpoint, "3a760f9d-ca89-4c9e-9ad4-8ba40ad36f59"u8),
+                            ["name"] = ComputeEntityName(
+                                name    : "Get cover state",
+                                endpoint: endpoint,
+                                setting : OpenNettySettings.HomeAssistantCoverName,
+                                count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                    .Where(endpoint => endpoint.Device == device)
+                                    .Where(SupportsCoverEntity)
+                                    .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState) ||
+                                                       endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
+                                    .CountAsync(cancellationToken)),
+                            ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ShutterState}/get",
+                            ["payload_press"] = string.Empty
+                        });
+                    }
+
+                    if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
+                    {
+                        components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                        {
+                            ["platform"] = "button",
+                            ["unique_id"] = ComputeEntityUniqueId(endpoint, "5731274c-e498-4c7b-8671-6de8c448eb99"u8),
+                            ["name"] = ComputeEntityName(
+                                name    : "Get cover position",
+                                endpoint: endpoint,
+                                setting : OpenNettySettings.HomeAssistantCoverName,
+                                count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                    .Where(endpoint => endpoint.Device == device)
+                                    .Where(SupportsCoverEntity)
+                                    .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
+                                    .CountAsync(cancellationToken)),
+                            ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ShutterPosition}/get",
+                            ["payload_press"] = string.Empty
+                        });
+                    }
+                }
+
+                if (endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioState) ||
+                    endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioState) ||
+                    endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioState) ||
+                    endpoint.HasCapability(OpenNettyCapabilities.ProgressiveScenarioState) ||
+                    endpoint.HasCapability(OpenNettyCapabilities.StopActionScenarioState) ||
+                    endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioState) ||
+                    endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioState) ||
+                    endpoint.HasCapability(OpenNettyCapabilities.ToggleScenarioState))
+                {
+                    var types = new HashSet<string>(StringComparer.Ordinal);
+
+                    if (endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioState))
+                    {
+                        types.Add("action");
+                    }
+
+                    if (endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioState))
+                    {
+                        types.Add("dimming_step_up");
+                        types.Add("dimming_step_down");
+                    }
+
+                    if (endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioState))
+                    {
+                        types.Add("switch_on");
+                        types.Add("switch_off");
+                    }
+
+                    if (endpoint.HasCapability(OpenNettyCapabilities.ProgressiveScenarioState))
+                    {
+                        types.Add("progressive_action");
+                    }
+
+                    if (endpoint.HasCapability(OpenNettyCapabilities.StopActionScenarioState))
+                    {
+                        types.Add("stop_action");
+                    }
+
+                    if (endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioState))
+                    {
+                        types.Add("shutter_up");
+                        types.Add("shutter_down");
+                        types.Add("shutter_stop");
+                    }
+
+                    if (endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioState))
+                    {
+                        types.Add("timed_action");
+                    }
+
+                    if (endpoint.HasCapability(OpenNettyCapabilities.ToggleScenarioState))
+                    {
+                        types.Add("switch_toggle");
+                    }
+
+                    var component = new JsonObject
+                    {
+                        ["platform"] = "event",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "7faeaa9a-ae51-43f4-af82-65d2e24e14d0"u8),
+                        ["icon"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantScenarioIcon) ?? "mdi:lightning-bolt",
+                        ["name"] = ComputeEntityName(
+                            name    : "Scenario",
+                            endpoint: endpoint,
+                            setting : OpenNettySettings.HomeAssistantScenarioName,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioState) ||
+                                                   endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioState) ||
+                                                   endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioState) ||
+                                                   endpoint.HasCapability(OpenNettyCapabilities.ProgressiveScenarioState) ||
+                                                   endpoint.HasCapability(OpenNettyCapabilities.StopActionScenarioState) ||
+                                                   endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioState) ||
+                                                   endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioState) ||
+                                                   endpoint.HasCapability(OpenNettyCapabilities.ToggleScenarioState))
+                                .CountAsync(cancellationToken)),
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}",
+                        ["event_types"] = new JsonArray([.. types])
+                    };
+
+                    if (endpoint.GetStringSetting(OpenNettySettings.HomeAssistantScenarioDeviceClass) is string type)
+                    {
+                        component["device_class"] = type;
+                    }
+
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", component);
+                }
+
+                if (endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioControl))
+                {
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "button",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "63485e4c-a3bd-4fc9-831d-b96bacddade9"u8),
+                        ["name"] = ComputeEntityName(
+                            name    : "Dispatch action scenario",
+                            endpoint: endpoint,
+                            setting : OpenNettySettings.HomeAssistantScenarioName,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioControl))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
+                        ["payload_press"] = "action"
+                    });
+                }
+
+                if (endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioControl))
+                {
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "button",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "f053a594-66fa-42a6-9237-64d570b2bd57"u8),
+                        ["name"] = ComputeEntityName(
+                            name    : "Dispatch ON scenario",
+                            endpoint: endpoint,
+                            setting : OpenNettySettings.HomeAssistantScenarioName,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioControl))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
+                        ["payload_press"] = "switch_on"
+                    });
+
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "button",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "d292636e-00d3-442e-b1db-73d60b4085ec"u8),
+                        ["name"] = ComputeEntityName(
+                            name    : "Dispatch OFF scenario",
+                            endpoint: endpoint,
+                            setting : OpenNettySettings.HomeAssistantScenarioName,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioControl))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
+                        ["payload_press"] = "switch_off"
+                    });
+                }
+
+                if (endpoint.HasCapability(OpenNettyCapabilities.StopActionScenarioControl))
+                {
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "button",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "bca953c0-7598-4baa-91df-f14ddc30450f"u8),
+                        ["name"] = ComputeEntityName(
+                            name    : "Dispatch stop action scenario",
+                            endpoint: endpoint,
+                            setting : OpenNettySettings.HomeAssistantScenarioName,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.StopActionScenarioControl))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
+                        ["payload_press"] = "stop_action",
+                        ["enabled_by_default"] = false
+                    });
+                }
+
+                if (endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioControl))
+                {
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "button",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "9065ccb4-d2c6-47f5-b118-e3d2ecbe20c3"u8),
+                        ["name"] = ComputeEntityName(
+                            name    : "Dispatch UP scenario",
+                            endpoint: endpoint,
+                            setting : OpenNettySettings.HomeAssistantScenarioName,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioControl))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
+                        ["payload_press"] = "shutter_up"
+                    });
+
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "button",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "4006cf9e-620c-49d4-81b3-ab060d376966"u8),
+                        ["name"] = ComputeEntityName(
+                            name    : "Dispatch DOWN scenario",
+                            endpoint: endpoint,
+                            setting : OpenNettySettings.HomeAssistantScenarioName,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioControl))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
+                        ["payload_press"] = "shutter_down"
+                    });
+
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "button",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "d13fdcd2-c974-490a-b544-436a91785ffa"u8),
+                        ["name"] = ComputeEntityName(
+                            name    : "Dispatch STOP scenario",
+                            endpoint: endpoint,
+                            setting : OpenNettySettings.HomeAssistantScenarioName,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioControl))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
+                        ["payload_press"] = "shutter_stop"
+                    });
+                }
+
+                if (endpoint.HasCapability(OpenNettyCapabilities.BatteryAlert))
+                {
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "binary_sensor",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "b7dd3824-ddc3-4cf3-b79e-168faa710e43"u8),
+                        ["device_class"] = "battery",
+                        ["off_delay"] = 3600,
+                        ["name"] = ComputeEntityName(
+                            name    : "Battery",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.BatteryAlert))
+                                .CountAsync(cancellationToken)),
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.BatteryAlert}"
+                    });
+
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "button",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "7f7625f0-2461-4804-9cae-829a1040cd93"u8),
+                        ["icon"] = "mdi:battery-check",
+                        ["name"] = ComputeEntityName(
+                            name    : "Reset battery state",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.BatteryAlert))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.BatteryAlert}/set",
+                        ["payload_press"] = "OFF"
+                    });
+                }
+
+                if (endpoint.HasCapability(OpenNettyCapabilities.BatteryLevel))
+                {
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "sensor",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "6a8c7f1c-426a-47ab-97a1-a476acc603fd"u8),
+                        ["device_class"] = "battery",
+                        ["unit_of_measurement"] = "%",
+                        ["name"] = ComputeEntityName(
+                            name    : "Battery",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.BatteryLevel))
+                                .CountAsync(cancellationToken)),
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.BatteryLevel}"
+                    });
                 }
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchControl) &&
@@ -522,52 +950,18 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
                     {
                         ["platform"] = "button",
-                        ["unique_id"] = ComputeUniqueId("5c207503-bbc7-47dc-a4a7-8833c5bf058f"u8),
-                        ["name"] = endpoint.Name,
-                        ["command_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.SwitchState}/set",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "5c207503-bbc7-47dc-a4a7-8833c5bf058f"u8),
+                        ["name"] = ComputeEntityName(
+                            name    : "Push button",
+                            endpoint: endpoint,
+                            setting : OpenNettySettings.HomeAssistantLightSwitchName,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchControl))
+                                .Where(endpoint => endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SwitchState}/set",
                         ["payload_press"] = "ON"
-                    });
-                }
-
-                if (SupportsCoverEntity(endpoint))
-                {
-                    var component = new JsonObject
-                    {
-                        ["platform"] = "cover",
-                        ["unique_id"] = ComputeUniqueId("9b138d62-bb0d-49cb-8624-1d85f9e86a6e"u8),
-                        ["device_class"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantDeviceClass)
-                            ?? OpenNettySettings.HomeAssistantDeviceClasses.Shutter,
-                        ["name"] = endpoint.Name,
-                        ["command_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.ShutterState}/set"
-                    };
-
-                    if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState))
-                    {
-                        component["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.ShutterState}";
-                    }
-
-                    if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterControl))
-                    {
-                        component["set_position_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.ShutterPosition}/set";
-                    }
-
-                    if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
-                    {
-                        component["position_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.ShutterPosition}";
-                    }
-
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", component);
-                }
-
-                if (endpoint.HasCapability(OpenNettyCapabilities.Battery))
-                {
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
-                    {
-                        ["platform"] = "sensor",
-                        ["unique_id"] = ComputeUniqueId("6a8c7f1c-426a-47ab-97a1-a476acc603fd"u8),
-                        ["device_class"] = "battery",
-                        ["name"] = "Battery level",
-                        ["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.Battery}"
                     });
                 }
 
@@ -576,11 +970,18 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
                     {
                         ["platform"] = "select",
-                        ["unique_id"] = ComputeUniqueId("205a01a1-ba4c-4e9b-a19a-c1589c445cbb"u8),
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "205a01a1-ba4c-4e9b-a19a-c1589c445cbb"u8),
                         ["icon"] = "mdi:radiator",
-                        ["name"] = "Setpoint mode",
-                        ["command_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.PilotWireSetpointMode}/set",
-                        ["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.PilotWireSetpointMode}",
+                        ["name"] = ComputeEntityName(
+                            name    : "Setpoint mode",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.PilotWireSetpointMode}/set",
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.PilotWireSetpointMode}",
                         ["options"] = new JsonArray(["Comfort", "Comfort -1°C", "Comfort -2°C", "Eco", "Frost protection"]),
                         ["value_template"] = """
                             {% set map = {
@@ -607,11 +1008,18 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
                     {
                         ["platform"] = "select",
-                        ["unique_id"] = ComputeUniqueId("f5f57920-d758-4ca8-8161-2614d4abeef0"u8),
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "f5f57920-d758-4ca8-8161-2614d4abeef0"u8),
                         ["icon"] = "mdi:radiator",
-                        ["name"] = "Derogation mode",
-                        ["command_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.PilotWireDerogationMode}/set",
-                        ["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.PilotWireDerogationMode}",
+                        ["name"] = ComputeEntityName(
+                            name    : "Derogation mode",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.PilotWireDerogationMode}/set",
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.PilotWireDerogationMode}",
                         ["options"] = new JsonArray(
                         [
                             "No derogation",
@@ -674,6 +1082,38 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             {{ map[value] }}
                             """
                     });
+
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "button",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "7a9130b9-675a-437d-b806-cbfe6f6e20a6"u8),
+                        ["name"] = ComputeEntityName(
+                            name    : "Get setpoint mode",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.PilotWireSetpointMode}/get",
+                        ["payload_press"] = string.Empty
+                    });
+
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "button",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "787582e8-0c5f-4c97-9277-0ad23dab4024"u8),
+                        ["name"] = ComputeEntityName(
+                            name    : "Get derogation mode",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.PilotWireDerogationMode}/get",
+                        ["payload_press"] = string.Empty
+                    });
                 }
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
@@ -681,66 +1121,113 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
                     {
                         ["platform"] = "sensor",
-                        ["unique_id"] = ComputeUniqueId("6c83787a-3537-49fa-b409-dc15d5c37b43"u8),
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "6c83787a-3537-49fa-b409-dc15d5c37b43"u8),
                         ["device_class"] = "energy",
                         ["unit_of_measurement"] = "kWh",
-                        ["name"] = "Base index",
-                        ["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.SmartMeterIndexes}",
+                        ["suggested_display_precision"] = 0,
+                        ["name"] = ComputeEntityName(
+                            name    : "Base index",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
+                                .CountAsync(cancellationToken)),
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterIndexes}",
                         ["value_template"] = "{{ value_json.base_index }}"
                     });
 
                     components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
                     {
                         ["platform"] = "sensor",
-                        ["unique_id"] = ComputeUniqueId("0a9d909b-8449-496e-b38c-4dc3e2653288"u8),
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "0a9d909b-8449-496e-b38c-4dc3e2653288"u8),
                         ["device_class"] = "energy",
                         ["unit_of_measurement"] = "kWh",
-                        ["name"] = "Blue index",
-                        ["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.SmartMeterIndexes}",
+                        ["suggested_display_precision"] = 0,
+                        ["name"] = ComputeEntityName(
+                            name    : "Blue index",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
+                                .CountAsync(cancellationToken)),
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterIndexes}",
                         ["value_template"] = "{{ value_json.blue_index }}"
                     });
 
                     components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
                     {
                         ["platform"] = "sensor",
-                        ["unique_id"] = ComputeUniqueId("2661d8db-085a-41bb-bab6-a1627cbf91d0"u8),
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "2661d8db-085a-41bb-bab6-a1627cbf91d0"u8),
                         ["device_class"] = "energy",
                         ["unit_of_measurement"] = "kWh",
-                        ["name"] = "Off-peak index",
-                        ["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.SmartMeterIndexes}",
+                        ["suggested_display_precision"] = 0,
+                        ["name"] = ComputeEntityName(
+                            name    : "Off-peak index",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
+                                .CountAsync(cancellationToken)),
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterIndexes}",
                         ["value_template"] = "{{ value_json.off_peak_index }}"
                     });
 
                     components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
                     {
                         ["platform"] = "sensor",
-                        ["unique_id"] = ComputeUniqueId("7dcf846c-fbdd-4457-9a17-9cbc0a7c072b"u8),
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "7dcf846c-fbdd-4457-9a17-9cbc0a7c072b"u8),
                         ["device_class"] = "energy",
                         ["unit_of_measurement"] = "kWh",
-                        ["name"] = "Red index",
-                        ["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.SmartMeterIndexes}",
+                        ["suggested_display_precision"] = 0,
+                        ["name"] = ComputeEntityName(
+                            name    : "Red index",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
+                                .CountAsync(cancellationToken)),
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterIndexes}",
                         ["value_template"] = "{{ value_json.red_index }}"
                     });
 
                     components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
                     {
                         ["platform"] = "sensor",
-                        ["unique_id"] = ComputeUniqueId("1de29bc5-70b6-4302-aa27-8ecbcce13ec9"u8),
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "1de29bc5-70b6-4302-aa27-8ecbcce13ec9"u8),
                         ["device_class"] = "energy",
                         ["unit_of_measurement"] = "kWh",
-                        ["name"] = "White index",
-                        ["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.SmartMeterIndexes}",
+                        ["suggested_display_precision"] = 0,
+                        ["name"] = ComputeEntityName(
+                            name    : "White index",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
+                                .CountAsync(cancellationToken)),
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterIndexes}",
                         ["value_template"] = "{{ value_json.white_index }}"
                     });
 
                     components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
                     {
                         ["platform"] = "sensor",
-                        ["unique_id"] = ComputeUniqueId("e07f0687-6ca1-47d9-a5b7-b20c0e79775a"u8),
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "e07f0687-6ca1-47d9-a5b7-b20c0e79775a"u8),
                         ["device_class"] = "enum",
                         ["icon"] = "mdi:receipt-text-outline",
-                        ["name"] = "Subscription type",
-                        ["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.SmartMeterIndexes}",
+                        ["name"] = ComputeEntityName(
+                            name    : "Subscription type",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
+                                .CountAsync(cancellationToken)),
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterIndexes}",
                         ["options"] = new JsonArray(
                         [
                             "Base",
@@ -756,6 +1243,22 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             {{ map[value_json.subscription_type] }}
                             """,
                     });
+
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "button",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "2eddee8f-7c81-47ea-a775-785e9dfb5c26"u8),
+                        ["name"] = ComputeEntityName(
+                            name    : "Get indexes",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterIndexes}/get",
+                        ["payload_press"] = string.Empty
+                    });
                 }
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))
@@ -763,11 +1266,18 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
                     {
                         ["platform"] = "sensor",
-                        ["unique_id"] = ComputeUniqueId("31eda1f3-343f-4cd7-9f56-ea792fcaec7f"u8),
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "31eda1f3-343f-4cd7-9f56-ea792fcaec7f"u8),
                         ["device_class"] = "enum",
                         ["icon"] = "mdi:receipt-text-outline",
-                        ["name"] = "Rate type",
-                        ["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.SmartMeterRateType}",
+                        ["name"] = ComputeEntityName(
+                            name    : "Rate type",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))
+                                .CountAsync(cancellationToken)),
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterRateType}",
                         ["options"] = new JsonArray(
                         [
                             "Off-peak",
@@ -778,19 +1288,93 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                               'off_peak': 'Off-peak',
                               'peak': 'Peak'
                             } %}
-                            {{ map[value_json.rate_type] }}
+                            {{ map[value] }}
                             """,
                     });
 
                     components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
                     {
                         ["platform"] = "binary_sensor",
-                        ["unique_id"] = ComputeUniqueId("280fd1d1-4220-42ec-bf70-69936b728eb2"u8),
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "280fd1d1-4220-42ec-bf70-69936b728eb2"u8),
                         ["icon"] = "mdi:transmission-tower-off",
-                        ["name"] = "Power cut mode active",
-                        ["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.SmartMeterPowerCutMode}",
+                        ["name"] = ComputeEntityName(
+                            name    : "Power cut mode active",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))
+                                .CountAsync(cancellationToken)),
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterPowerCutMode}",
                         ["payload_on"] = "1",
                         ["payload_off"] = "0"
+                    });
+
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "button",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "91e32508-61fa-46e3-ba57-32166b2de116"u8),
+                        ["name"] = ComputeEntityName(
+                            name    : "Get rate type",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterRateType}/get",
+                        ["payload_press"] = string.Empty
+                    });
+
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "button",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "df24321d-01e8-4d1a-9cca-92ece18934b4"u8),
+                        ["name"] = ComputeEntityName(
+                            name    : "Get power cut mode",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterPowerCutMode}/get",
+                        ["payload_press"] = string.Empty
+                    });
+                }
+
+                if (endpoint.HasCapability(OpenNettyCapabilities.Uptime))
+                {
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "sensor",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "46c1f892-f9bf-46b6-8658-fed1d7eb177b"u8),
+                        ["device_class"] = "date",
+                        ["name"] = ComputeEntityName(
+                            name    : "Startup date",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.Uptime))
+                                .CountAsync(cancellationToken)),
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.StartupDate}",
+                    });
+
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "button",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "5e9b5094-b028-492c-8be4-5b73139e2c57"u8),
+                        ["name"] = ComputeEntityName(
+                            name    : "Get startup date",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.Uptime))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.StartupDate}/get",
+                        ["payload_press"] = string.Empty
                     });
                 }
 
@@ -799,11 +1383,18 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
                     {
                         ["platform"] = "select",
-                        ["unique_id"] = ComputeUniqueId("733d9bf6-fd89-4ce1-bd71-d12a1c6a846e"u8),
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "733d9bf6-fd89-4ce1-bd71-d12a1c6a846e"u8),
                         ["icon"] = "mdi:water-boiler",
-                        ["name"] = "Setpoint mode",
-                        ["command_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.WaterHeaterSetpointMode}/set",
-                        ["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.WaterHeaterSetpointMode}",
+                        ["name"] = ComputeEntityName(
+                            name    : "Setpoint mode",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.WaterHeaterSetpointMode}/set",
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.WaterHeaterSetpointMode}",
                         ["options"] = new JsonArray(["Automatic", "Forced on", "Forced off"]),
                         ["value_template"] = """
                             {% set map = {
@@ -826,12 +1417,51 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
                     {
                         ["platform"] = "binary_sensor",
-                        ["unique_id"] = ComputeUniqueId("344b6548-196d-42de-b627-22530cc28f07"u8),
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "344b6548-196d-42de-b627-22530cc28f07"u8),
                         ["icon"] = "mdi:fire",
-                        ["name"] = "Heater active",
-                        ["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.WaterHeaterState}",
+                        ["name"] = ComputeEntityName(
+                            name    : "Heater active",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
+                                .CountAsync(cancellationToken)),
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.WaterHeaterState}",
                         ["payload_on"] = "heating",
                         ["payload_off"] = "idle"
+                    });
+
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "button",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "9aa4633b-c253-4623-a80c-54ba9d681777"u8),
+                        ["name"] = ComputeEntityName(
+                            name    : "Get setpoint mode",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.WaterHeaterSetpointMode}/get",
+                        ["payload_press"] = string.Empty
+                    });
+
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "button",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "bb186d7c-f49d-4aa2-8770-a0fdcf9de123"u8),
+                        ["name"] = ComputeEntityName(
+                            name    : "Get heater state",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.WaterHeaterState}/get",
+                        ["payload_press"] = string.Empty
                     });
                 }
 
@@ -840,11 +1470,18 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
                     {
                         ["platform"] = "sensor",
-                        ["unique_id"] = ComputeUniqueId("2dd476d5-a35a-442a-a3f2-4c2621dcf375"u8),
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "2dd476d5-a35a-442a-a3f2-4c2621dcf375"u8),
                         ["device_class"] = "enum",
                         ["icon"] = "mdi:shield-home-outline",
-                        ["name"] = "Alarm state",
-                        ["state_topic"] = $"{options.RootTopic}/{name}/{OpenNettyMqttAttributes.WirelessBurglarAlarmState}",
+                        ["name"] = ComputeEntityName(
+                            name    : "Alarm state",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.WirelessBurglarAlarmState))
+                                .CountAsync(cancellationToken)),
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.WirelessBurglarAlarmState}",
                         ["options"] = new JsonArray(
                         [
                             "Disarmed",
@@ -868,28 +1505,156 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     });
                 }
 
-                string ComputeUniqueId(ReadOnlySpan<byte> identifier) => Base64Url.EncodeToString(XxHash128.Hash(
-                [
-                    ..identifier,
-                    ..Encoding.UTF8.GetBytes(name),
-                    ..Encoding.UTF8.GetBytes(endpoint.Address?.Value ?? string.Empty)
-                ]));
+                if (endpoint.HasCapability(OpenNettyCapabilities.ZigbeeBinding))
+                {
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "button",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "d04dc07d-b614-4e3e-aeac-ccaead40d919"u8),
+                        ["icon"] = "mdi:link",
+                        ["name"] = ComputeEntityName(
+                            name    : "Bind to gateway",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeBinding))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeBinding}/set",
+                        ["payload_press"] = "bind"
+                    });
+
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "button",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "55a25c45-cb7a-4b74-baa4-7f9b87465d1a"u8),
+                        ["icon"] = "mdi:link-off",
+                        ["name"] = ComputeEntityName(
+                            name    : "Unbind from gateway",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeBinding))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeBinding}/set",
+                        ["payload_press"] = "unbind"
+                    });
+                }
             }
 
             if (components.Count is not 0)
             {
-                var node = $"opennetty-{Enum.GetName(endpoints.Key.Definition.Protocol)!.ToLowerInvariant()}";
-                var topic = $"{options.DiscoveryRootTopic}/device/{node}/{endpoints.Key.SerialNumber}/config";
-
                 await client.EnqueueAsync(new MqttApplicationMessageBuilder()
                     .WithContentType(MediaTypeNames.Application.Json)
                     .WithPayload(configuration.ToJsonString())
                     .WithPayloadFormatIndicator(MqttPayloadFormatIndicator.CharacterData)
                     .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
                     .WithRetainFlag()
-                    .WithTopic(topic)
+                    .WithTopic($"{options.HomeAssistantDiscoveryRootTopic}/device/opennetty/{identifier}/config")
                     .Build());
             }
+        }
+
+        static JsonObject CreateDeviceNode(OpenNettyDevice device, string identifier)
+        {
+            var node = new JsonObject
+            {
+                ["identifiers"] = new JsonArray([identifier]),
+                ["manufacturer"] = Enum.GetName(device.Identity.Brand),
+                ["model"] = device.Identity.Description,
+                ["model_id"] = device.Identity.Model,
+                ["serial_number"] = device.SerialNumber,
+                ["name"] = $"{Enum.GetName(device.Identity.Brand)} {device.Identity.Model} ({device.SerialNumber})"
+            };
+
+            if (device.GetStringSetting(OpenNettySettings.HomeAssistantSuggestedArea) is { Length: > 0 } area)
+            {
+                node["suggested_area"] = area;
+            }
+
+            return node;
+        }
+
+        static string ComputeDeviceUniqueId(OpenNettyDevice device)
+        {
+            var hash = new XxHash128();
+            hash.Append(MemoryMarshal.AsBytes<char>(Enum.GetName(device.Definition.Protocol)));
+            hash.Append(MemoryMarshal.AsBytes<char>(device.SerialNumber));
+
+            return Base64Url.EncodeToString(hash.GetCurrentHash());
+        }
+
+        static string ComputeEntityUniqueId(OpenNettyEndpoint endpoint, ReadOnlySpan<byte> discriminator)
+        {
+            var hash = new XxHash128();
+            hash.Append(MemoryMarshal.AsBytes<char>(endpoint.Name));
+            hash.Append(discriminator);
+
+            return Base64Url.EncodeToString(hash.GetCurrentHash());
+        }
+
+        static string ComputeEntityName(string name, OpenNettyEndpoint endpoint, OpenNettySetting? setting, int count)
+        {
+            if (count is < 2)
+            {
+                return name;
+            }
+
+            if (setting is not null && endpoint.GetStringSetting(setting.Value) is { Length: > 0 } description)
+            {
+                return $"{name} [{description}]";
+            }
+
+            if (endpoint.Address is OpenNettyAddress address)
+            {
+                return $"{name} [{address.Type switch
+                {
+                    OpenNettyAddressType.ZigbeeAllDevicesAllUnits => "D=all/U=all",
+
+                    OpenNettyAddressType.ZigbeeAllDevicesSpecificUnit
+                        when OpenNettyAddress.ToZigbeeAddress(address) is { Unit: byte unit }
+                        => $"D=all/U={unit.ToString(CultureInfo.InvariantCulture)}",
+
+                    OpenNettyAddressType.ZigbeeSpecificDeviceAllUnits
+                        when OpenNettyAddress.ToZigbeeAddress(address) is { Identifier: uint identifier }
+                        => $"D={identifier.ToString(CultureInfo.InvariantCulture)}/U=all",
+
+                    OpenNettyAddressType.ZigbeeSpecificDeviceSpecificUnit
+                        when OpenNettyAddress.ToZigbeeAddress(address) is { Identifier: uint identifier, Unit: byte unit }
+                        => $"D={identifier.ToString(CultureInfo.InvariantCulture)}/U={unit.ToString(CultureInfo.InvariantCulture)}",
+
+                    OpenNettyAddressType.NitooDevice
+                        when OpenNettyAddress.ToNitooAddress(address) is { Identifier: uint identifier }
+                        => $"D={identifier.ToString(CultureInfo.InvariantCulture)}",
+
+                    OpenNettyAddressType.NitooUnit
+                        when OpenNettyAddress.ToNitooAddress(address) is { Identifier: uint identifier, Unit: byte unit }
+                        => $"D={identifier.ToString(CultureInfo.InvariantCulture)}/U={unit.ToString(CultureInfo.InvariantCulture)}",
+
+                    OpenNettyAddressType.ScsLightPointArea
+                        when OpenNettyAddress.ToScsLightPointAreaAddress(address) is { Extension: byte extension, Area: byte area }
+                        => $"A={area.ToString(CultureInfo.InvariantCulture)}/I={extension.ToString(CultureInfo.InvariantCulture)}",
+
+                    OpenNettyAddressType.ScsLightPointGeneral
+                        when OpenNettyAddress.ToScsLightPointGeneralAddress(address) is byte extension
+                        => $"GEN/I={extension.ToString(CultureInfo.InvariantCulture)}",
+
+                    OpenNettyAddressType.ScsLightPointGroup
+                        when OpenNettyAddress.ToScsLightPointGroupAddress(address)
+                        is { Extension: byte extension, Group: byte group }
+                        => $"GR={group.ToString(CultureInfo.InvariantCulture)}/I={extension.ToString(CultureInfo.InvariantCulture)}",
+
+                    OpenNettyAddressType.ScsLightPointPointToPoint
+                        when OpenNettyAddress.ToScsLightPointPointToPointAddress(address)
+                        is { Extension: byte extension, Area: byte area, Point: byte point }
+                        => $"PL={point.ToString(CultureInfo.InvariantCulture)}/A={area.ToString(CultureInfo.InvariantCulture)}/I={extension.ToString(CultureInfo.InvariantCulture)}",
+
+                    _ => string.Empty
+                }}]";
+            }
+
+            return $"{name} [Local gateway]";
         }
 
         static bool SupportsCoverEntity(OpenNettyEndpoint endpoint)

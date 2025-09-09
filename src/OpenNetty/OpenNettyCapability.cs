@@ -37,9 +37,9 @@ public readonly struct OpenNettyCapability : IEquatable<OpenNettyCapability>
     public override int GetHashCode() => Name?.GetHashCode() ?? 0;
 
     /// <summary>
-    /// Computes the <see cref="string"/> representation of the current capability.
+    /// Returns a human-readable representation of the current capability.
     /// </summary>
-    /// <returns>The <see cref="string"/> representation of the current capability.</returns>
+    /// <returns>A human-readable representation of the current capability.</returns>
     public override string ToString() => Name?.ToString() ?? string.Empty;
 
     /// <summary>

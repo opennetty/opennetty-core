@@ -22,9 +22,24 @@ public static class OpenNettySettings
     public static readonly OpenNettySetting ActuatorType = new("Actuator type");
 
     /// <summary>
-    /// Home Assistant device class.
+    /// Home Assistant light/switch device class.
     /// </summary>
-    public static readonly OpenNettySetting HomeAssistantDeviceClass = new("Home Assistant device class");
+    public static readonly OpenNettySetting HomeAssistantCoverDeviceClass = new("Home Assistant cover device class");
+
+    /// <summary>
+    /// Home Assistant light/switch icon.
+    /// </summary>
+    public static readonly OpenNettySetting HomeAssistantCoverIcon = new("Home Assistant cover icon");
+
+    /// <summary>
+    /// Home Assistant light/switch name.
+    /// </summary>
+    public static readonly OpenNettySetting HomeAssistantCoverName = new("Home Assistant cover name");
+
+    /// <summary>
+    /// Home Assistant discovery.
+    /// </summary>
+    public static readonly OpenNettySetting HomeAssistantDiscovery = new("Home Assistant discovery");
 
     /// <summary>
     /// Home Assistant entity type.
@@ -32,19 +47,44 @@ public static class OpenNettySettings
     public static readonly OpenNettySetting HomeAssistantEntityType = new("Home Assistant entity type");
 
     /// <summary>
+    /// Home Assistant light/switch device class.
+    /// </summary>
+    public static readonly OpenNettySetting HomeAssistantLightSwitchDeviceClass = new("Home Assistant light/switch device class");
+
+    /// <summary>
+    /// Home Assistant light/switch icon.
+    /// </summary>
+    public static readonly OpenNettySetting HomeAssistantLightSwitchIcon = new("Home Assistant light/switch icon");
+
+    /// <summary>
+    /// Home Assistant light/switch name.
+    /// </summary>
+    public static readonly OpenNettySetting HomeAssistantLightSwitchName = new("Home Assistant light/switch name");
+
+    /// <summary>
+    /// Home Assistant scenario device class.
+    /// </summary>
+    public static readonly OpenNettySetting HomeAssistantScenarioDeviceClass = new("Home Assistant scenario device class");
+
+    /// <summary>
+    /// Home Assistant scenario icon.
+    /// </summary>
+    public static readonly OpenNettySetting HomeAssistantScenarioIcon = new("Home Assistant scenario icon");
+
+    /// <summary>
+    /// Home Assistant scenario name.
+    /// </summary>
+    public static readonly OpenNettySetting HomeAssistantScenarioName = new("Home Assistant scenario name");
+
+    /// <summary>
     /// Home Assistant suggested area.
     /// </summary>
     public static readonly OpenNettySetting HomeAssistantSuggestedArea = new("Home Assistant suggested area");
 
     /// <summary>
-    /// MQTT discovery.
+    /// MQTT topic.
     /// </summary>
-    public static readonly OpenNettySetting MqttDiscovery = new("MQTT discovery");
-
-    /// <summary>
-    /// MQTT endpoint name.
-    /// </summary>
-    public static readonly OpenNettySetting MqttEndpointName = new("MQTT endpoint name");
+    public static readonly OpenNettySetting MqttTopic = new("MQTT topic");
 
     /// <summary>
     /// Serial port baud rate.

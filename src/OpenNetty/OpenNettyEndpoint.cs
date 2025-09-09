@@ -28,6 +28,11 @@ public sealed class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
     public ImmutableHashSet<OpenNettyCapability> Capabilities { get; init; } = [];
 
     /// <summary>
+    /// Gets or sets the description associated with the endpoint, if applicable.
+    /// </summary>
+    public string? Description { get; init; }
+
+    /// <summary>
     /// Gets or sets the device associated with the endpoint, if applicable.
     /// </summary>
     public OpenNettyDevice? Device { get; init; }
@@ -47,9 +52,9 @@ public sealed class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
     public OpenNettyMedium? Medium { get; init; }
 
     /// <summary>
-    /// Gets or sets the optional name associated with the endpoint.
+    /// Gets or sets the name associated with the endpoint.
     /// </summary>
-    public string? Name { get; init; }
+    public required string Name { get; init; }
 
     /// <summary>
     /// Gets or sets the protocol associated with the endpoint.
@@ -96,12 +101,12 @@ public sealed class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
     {
         if (Protocol is OpenNettyProtocol.Nitoo or OpenNettyProtocol.Zigbee && Unit is OpenNettyUnit unit)
         {
-            return unit.Definition.HasCapability(capability);
+            return unit.HasCapability(capability);
         }
 
         if (Device is OpenNettyDevice device)
         {
-            return device.Definition.HasCapability(capability);
+            return device.HasCapability(capability);
         }
 
         return Capabilities.Contains(capability);
@@ -116,21 +121,22 @@ public sealed class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
     /// <returns><see langword="true"/> if the setting was found, <see langword="false"/> otherwise.</returns>
     public bool TryGetSetting(OpenNettySetting setting, [NotNullWhen(true)] out string? value)
     {
-        if (Protocol is OpenNettyProtocol.Nitoo or OpenNettyProtocol.Zigbee && Unit is OpenNettyUnit unit)
+        if (Settings.TryGetValue(setting, out value))
         {
-            return unit.Settings.TryGetValue(setting, out value) ||
-                unit.Definition.Settings.TryGetValue(setting, out value) ||
-                Settings.TryGetValue(setting, out value);
+            return true;
         }
 
-        else if (Device is OpenNettyDevice device)
+        return Protocol switch
         {
-            return device.Settings.TryGetValue(setting, out value) ||
-                device.Definition.Settings.TryGetValue(setting, out value) ||
-                Settings.TryGetValue(setting, out value);
-        }
+            OpenNettyProtocol.Nitoo or OpenNettyProtocol.Zigbee when Unit is OpenNettyUnit unit
+                => unit.TryGetSetting(setting, out value),
 
-        return Settings.TryGetValue(setting, out value);
+            OpenNettyProtocol.Nitoo or OpenNettyProtocol.Scs or
+            OpenNettyProtocol.Zigbee when Device is OpenNettyDevice device
+                => device.TryGetSetting(setting, out value),
+
+            _ => false
+        };
     }
 
     /// <inheritdoc/>
@@ -157,6 +163,11 @@ public sealed class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
         }
 
         if (Device != other.Device)
+        {
+            return false;
+        }
+
+        if (!string.Equals(Description, other.Description, StringComparison.OrdinalIgnoreCase))
         {
             return false;
         }
@@ -204,6 +215,7 @@ public sealed class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
             hash.Add(capability);
         }
 
+        hash.Add(Description);
         hash.Add(Device);
         hash.Add(Medium);
         hash.Add(Name);

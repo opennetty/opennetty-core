@@ -444,32 +444,6 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
     }
 
     /// <summary>
-    /// Determines whether the specified address is a Nitoo address.
-    /// </summary>
-    /// <param name="address">The address.</param>
-    /// <returns><see langword="true"/> if the address is a Nitoo address, <see langword="false"/> otherwise.</returns>
-    public static bool IsNitooAddress(OpenNettyAddress address)
-        => address.Type is OpenNettyAddressType.NitooDevice or OpenNettyAddressType.NitooUnit;
-
-    /// <summary>
-    /// Determines whether the specified address is a SCS address.
-    /// </summary>
-    /// <param name="address">The address.</param>
-    /// <returns><see langword="true"/> if the address is a SCS address, <see langword="false"/> otherwise.</returns>
-    public static bool IsScsAddress(OpenNettyAddress address)
-        => address.Type is OpenNettyAddressType.ScsLightPointArea  or OpenNettyAddressType.ScsLightPointGeneral or
-                           OpenNettyAddressType.ScsLightPointGroup or OpenNettyAddressType.ScsLightPointPointToPoint;
-
-    /// <summary>
-    /// Determines whether the specified address is a Zigbee address.
-    /// </summary>
-    /// <param name="address">The address.</param>
-    /// <returns><see langword="true"/> if the address is a Zigbee address, <see langword="false"/> otherwise.</returns>
-    public static bool IsZigbeeAddress(OpenNettyAddress address)
-        => address.Type is OpenNettyAddressType.ZigbeeAllDevicesAllUnits     or OpenNettyAddressType.ZigbeeAllDevicesSpecificUnit or
-                           OpenNettyAddressType.ZigbeeSpecificDeviceAllUnits or OpenNettyAddressType.ZigbeeSpecificDeviceSpecificUnit;
-
-    /// <summary>
     /// Converts the specified address to a Nitoo address.
     /// </summary>
     /// <param name="address">The address.</param>
@@ -477,7 +451,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
     /// <exception cref="InvalidOperationException">The address doesn't represent a valid Nitoo address.</exception>
     public static (uint Identifier, byte Unit) ToNitooAddress(OpenNettyAddress address)
     {
-        if (!IsNitooAddress(address))
+        if (address.Type is not (OpenNettyAddressType.NitooDevice or OpenNettyAddressType.NitooUnit))
         {
             throw new ArgumentException(SR.GetResourceString(SR.ID0052), nameof(address));
         }
@@ -496,7 +470,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
     /// <param name="address">The address.</param>
     /// <returns>A SCS light point area address based on the specified address.</returns>
     /// <exception cref="ArgumentException">The address doesn't represent a valid SCS light point area address.</exception>
-    public static (byte? Extension, byte? Area) ToScsLightPointAreaAddress(OpenNettyAddress address)
+    public static (byte Extension, byte Area) ToScsLightPointAreaAddress(OpenNettyAddress address)
     {
         if (address.Type is not OpenNettyAddressType.ScsLightPointArea)
         {
@@ -511,7 +485,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
         return address.Parameters switch
         {
             { IsDefaultOrEmpty: true } when byte.TryParse(address.Value, CultureInfo.InvariantCulture, out byte area) && area is >= 0 and <= 10
-                => (Extension: null, Area: area),
+                => (Extension: 0, Area: area),
 
             ["4", string value] when
                 byte.TryParse(address.Value, CultureInfo.InvariantCulture, out byte area) &&
@@ -557,7 +531,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
     /// <param name="address">The address.</param>
     /// <returns>A SCS light point group address based on the specified address.</returns>
     /// <exception cref="ArgumentException">The address doesn't represent a valid SCS light point group address.</exception>
-    public static (byte? Extension, byte? Group) ToScsLightPointGroupAddress(OpenNettyAddress address)
+    public static (byte Extension, byte Group) ToScsLightPointGroupAddress(OpenNettyAddress address)
     {
         if (address.Type is not OpenNettyAddressType.ScsLightPointGroup)
         {
@@ -572,7 +546,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
         return address.Parameters switch
         {
             [string value] when byte.TryParse(value, CultureInfo.InvariantCulture, out byte group) && group is >= 1 and <= 255
-                => (Extension: null, Group: group),
+                => (Extension: 0, Group: group),
 
             [string first, "4", string third] when
                 byte.TryParse(first, CultureInfo.InvariantCulture, out byte group)     && group     is >= 1 and <= 255 &&
@@ -589,7 +563,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
     /// <param name="address">The address.</param>
     /// <returns>A SCS light point point-to-point address based on the specified address.</returns>
     /// <exception cref="ArgumentException">The address doesn't represent a valid SCS light point point-to-point address.</exception>
-    public static (byte? Extension, byte? Area, byte? Point) ToScsLightPointPointToPointAddress(OpenNettyAddress address)
+    public static (byte Extension, byte Area, byte Point) ToScsLightPointPointToPointAddress(OpenNettyAddress address)
     {
         if (address.Type is not OpenNettyAddressType.ScsLightPointPointToPoint)
         {
@@ -599,7 +573,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
         return address.Parameters switch
         {
             { IsDefaultOrEmpty: true } when GetAreaAndLightPoint(address.Value) is { Area: byte area, Point: byte point }
-                => (Extension: null, Area: area, Point: point),
+                => (Extension: 0, Area: area, Point: point),
 
             ["4", string value] when
                 GetAreaAndLightPoint(address.Value) is { Area: byte area, Point: byte point } &&
@@ -645,7 +619,9 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
     /// <exception cref="ArgumentException">The address doesn't represent a valid Zigbee address.</exception>
     public static (uint? Identifier, byte Unit) ToZigbeeAddress(OpenNettyAddress address)
     {
-        if (!IsZigbeeAddress(address))
+        if (address.Type is not
+            (OpenNettyAddressType.ZigbeeAllDevicesAllUnits     or OpenNettyAddressType.ZigbeeAllDevicesSpecificUnit or
+             OpenNettyAddressType.ZigbeeSpecificDeviceAllUnits or OpenNettyAddressType.ZigbeeSpecificDeviceSpecificUnit))
         {
             throw new ArgumentException(SR.GetResourceString(SR.ID0062), nameof(address));
         }

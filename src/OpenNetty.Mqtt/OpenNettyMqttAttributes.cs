@@ -12,19 +12,19 @@ namespace OpenNetty.Mqtt;
 public static class OpenNettyMqttAttributes
 {
     /// <summary>
-    /// Battery.
+    /// Battery alert.
     /// </summary>
-    public const string Battery = "battery";
+    public const string BatteryAlert = "battery_alert";
+
+    /// <summary>
+    /// Battery level.
+    /// </summary>
+    public const string BatteryLevel = "battery_level";
 
     /// <summary>
     /// Brightness.
     /// </summary>
     public const string Brightness = "brightness";
-
-    /// <summary>
-    /// Dimming step.
-    /// </summary>
-    public const string DimmingStep = "dimming_step";
 
     /// <summary>
     /// Pilot wire derogation mode.
@@ -67,6 +67,11 @@ public static class OpenNettyMqttAttributes
     public const string SmartMeterRateType = "smart_meter_rate_type";
 
     /// <summary>
+    /// Startup date.
+    /// </summary>
+    public const string StartupDate = "startup_date";
+
+    /// <summary>
     /// Switch state.
     /// </summary>
     public const string SwitchState = "switch_state";
@@ -85,4 +90,9 @@ public static class OpenNettyMqttAttributes
     /// Wireless burglar alarm state.
     /// </summary>
     public const string WirelessBurglarAlarmState = "wireless_burglar_alarm_state";
+
+    /// <summary>
+    /// Zigbee binding.
+    /// </summary>
+    public const string ZigbeeBinding = "zigbee_binding";
 }

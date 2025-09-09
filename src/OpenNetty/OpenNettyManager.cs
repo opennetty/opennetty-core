@@ -24,6 +24,22 @@ public class OpenNettyManager
         => _options = options ?? throw new ArgumentNullException(nameof(options));
 
     /// <summary>
+    /// Iterates all the devices registered in the options.
+    /// </summary>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>
+    /// An <see cref="IAsyncEnumerable{T}"/> that can be used to iterate the devices registered in the options.
+    /// </returns>
+    public virtual async IAsyncEnumerable<OpenNettyDevice> EnumerateDevicesAsync(
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        await foreach (var device in _options.CurrentValue.Devices.ToAsyncEnumerable())
+        {
+            yield return device;
+        }
+    }
+
+    /// <summary>
     /// Iterates all the endpoints registered in the options.
     /// </summary>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
@@ -85,8 +101,8 @@ public class OpenNettyManager
             {
                 if (endpoint is not null)
                 {
-                    return ValueTask.FromException<OpenNettyEndpoint?>(new InvalidOperationException(
-                        "Multiple endpoints matching the specified endpoint name exist."));
+                    return ValueTask.FromException<OpenNettyEndpoint?>(
+                        new InvalidOperationException(SR.GetResourceString(SR.ID0116)));
                 }
 
                 endpoint = _options.CurrentValue.Endpoints[index];
@@ -123,8 +139,8 @@ public class OpenNettyManager
             {
                 if (endpoint is not null)
                 {
-                    return ValueTask.FromException<OpenNettyEndpoint?>(new InvalidOperationException(
-                        "Multiple endpoints matching the specified predicate exist."));
+                    return ValueTask.FromException<OpenNettyEndpoint?>(
+                        new InvalidOperationException(SR.GetResourceString(SR.ID0116)));
                 }
 
                 endpoint = _options.CurrentValue.Endpoints[index];
@@ -159,8 +175,8 @@ public class OpenNettyManager
             {
                 if (endpoint is not null)
                 {
-                    return ValueTask.FromException<OpenNettyEndpoint?>(new InvalidOperationException(
-                        "Multiple endpoints matching the specified address exist."));
+                    return ValueTask.FromException<OpenNettyEndpoint?>(
+                        new InvalidOperationException(SR.GetResourceString(SR.ID0116)));
                 }
 
                 endpoint = _options.CurrentValue.Endpoints[index];
@@ -333,8 +349,8 @@ public class OpenNettyManager
             {
                 if (gateway is not null)
                 {
-                    return ValueTask.FromException<OpenNettyGateway?>(new InvalidOperationException(
-                        "Multiple gateways matching the specified address exist."));
+                    return ValueTask.FromException<OpenNettyGateway?>(
+                        new InvalidOperationException(SR.GetResourceString(SR.ID0116)));
                 }
 
                 gateway = _options.CurrentValue.Gateways[index];
