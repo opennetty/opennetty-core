@@ -1183,7 +1183,8 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     // Note: while the battery level is reported using a unit-specific address, it applies to the entire
                     // device: this task retrieves the device endpoint and, if available, report its battery level.
                     var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromDecimalZigbeeAddress(
-                        OpenNettyAddress.ToZigbeeAddress(address).Identifier));
+                        identifier: OpenNettyAddress.ToZigbeeAddress(address).Identifier,
+                        unit      : 0));
                     
                     if (endpoint is null || (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway))
                     {
@@ -1392,7 +1393,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                 return;
                             }
 
-                            var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(identifier));
+                            var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(identifier, 0));
                             if (endpoint is null || !endpoint.HasCapability(OpenNettyCapabilities.WirelessBurglarAlarmState))
                             {
                                 return;
@@ -1640,11 +1641,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
             _ => AsyncObservable.Empty<(OpenNettyNotification Notification, OpenNettyMessage Message)>()
         })
         .GroupBy(static arguments => arguments.Message.Address!.Value)
-        .SelectMany(static group => group.Throttle(group.Key.Type switch
-        {
-            OpenNettyAddressType.NitooUnit     => TimeSpan.FromSeconds(0.5),
-            not OpenNettyAddressType.NitooUnit => TimeSpan.FromSeconds(1)
-        }))
+        .SelectMany(static group => group.Throttle(TimeSpan.FromSeconds(group.Key.Type is OpenNettyAddressType.Nitoo ? 0.5 : 1)))
         .Do(async arguments =>
         {
             await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(arguments.Message.Address!.Value), async (endpoint, cancellationToken) =>

@@ -464,7 +464,7 @@ public static class OpenNettyModels
             /// <returns>A new instance of the <see cref="MemoryData"/> class.</returns>
             public static MemoryData CreateFromUnitDescription(ImmutableArray<string> values) => new()
             {
-                Address      = new OpenNettyAddress(OpenNettyAddressType.NitooDevice, values[1]),
+                Address      = new OpenNettyAddress(OpenNettyAddressType.Nitoo, values[1]),
                 FunctionCode = byte.Parse(values[2], CultureInfo.InvariantCulture),
                 Medium       = values[0] switch
                 {

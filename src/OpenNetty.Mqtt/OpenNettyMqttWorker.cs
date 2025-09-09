@@ -1610,25 +1610,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
             {
                 return $"{name} [{address.Type switch
                 {
-                    OpenNettyAddressType.ZigbeeAllDevicesAllUnits => "D=all/U=all",
-
-                    OpenNettyAddressType.ZigbeeAllDevicesSpecificUnit
-                        when OpenNettyAddress.ToZigbeeAddress(address) is { Unit: byte unit }
-                        => $"D=all/U={unit.ToString(CultureInfo.InvariantCulture)}",
-
-                    OpenNettyAddressType.ZigbeeSpecificDeviceAllUnits
-                        when OpenNettyAddress.ToZigbeeAddress(address) is { Identifier: uint identifier }
-                        => $"D={identifier.ToString(CultureInfo.InvariantCulture)}/U=all",
-
-                    OpenNettyAddressType.ZigbeeSpecificDeviceSpecificUnit
-                        when OpenNettyAddress.ToZigbeeAddress(address) is { Identifier: uint identifier, Unit: byte unit }
-                        => $"D={identifier.ToString(CultureInfo.InvariantCulture)}/U={unit.ToString(CultureInfo.InvariantCulture)}",
-
-                    OpenNettyAddressType.NitooDevice
-                        when OpenNettyAddress.ToNitooAddress(address) is { Identifier: uint identifier }
-                        => $"D={identifier.ToString(CultureInfo.InvariantCulture)}",
-
-                    OpenNettyAddressType.NitooUnit
+                    OpenNettyAddressType.Nitoo
                         when OpenNettyAddress.ToNitooAddress(address) is { Identifier: uint identifier, Unit: byte unit }
                         => $"D={identifier.ToString(CultureInfo.InvariantCulture)}/U={unit.ToString(CultureInfo.InvariantCulture)}",
 
@@ -1649,6 +1631,10 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         when OpenNettyAddress.ToScsLightPointPointToPointAddress(address)
                         is { Extension: byte extension, Area: byte area, Point: byte point }
                         => $"PL={point.ToString(CultureInfo.InvariantCulture)}/A={area.ToString(CultureInfo.InvariantCulture)}/I={extension.ToString(CultureInfo.InvariantCulture)}",
+
+                    OpenNettyAddressType.Zigbee
+                        when OpenNettyAddress.ToZigbeeAddress(address) is { Identifier: uint identifier, Unit: byte unit }
+                        => $"D={identifier.ToString(CultureInfo.InvariantCulture)}/U={unit.ToString(CultureInfo.InvariantCulture)}",
 
                     _ => string.Empty
                 }}]";

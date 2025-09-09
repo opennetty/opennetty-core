@@ -269,9 +269,8 @@ public class OpenNettyManager
             }
         }
 
-        else if (address.Type is OpenNettyAddressType.ZigbeeAllDevicesAllUnits     or
-                                 OpenNettyAddressType.ZigbeeAllDevicesSpecificUnit or
-                                 OpenNettyAddressType.ZigbeeSpecificDeviceAllUnits)
+        else if (address.Type is OpenNettyAddressType.Zigbee &&
+            OpenNettyAddress.ToZigbeeAddress(address) is not { Identifier: not 0, Unit: not 0 })
         {
             await foreach (var endpoint in EnumerateEndpointsAsync(cancellationToken))
             {
@@ -308,12 +307,12 @@ public class OpenNettyManager
             var first = OpenNettyAddress.ToZigbeeAddress(left);
             var second = OpenNettyAddress.ToZigbeeAddress(right);
 
-            if (first is { Identifier: null, Unit: not 0 })
+            if (first is { Identifier: 0, Unit: not 0 })
             {
                 return second.Unit == first.Unit;
             }
 
-            else if (first is { Identifier: null, Unit: 0 })
+            else if (first is { Identifier: 0, Unit: 0 })
             {
                 return true;
             }
