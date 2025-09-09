@@ -21,12 +21,12 @@ public sealed class OpenNettyMqttOptions
     /// <summary>
     /// Gets or sets a boolean indicating whether Home Assistant discovery is enabled.
     /// </summary>
-    public bool DisableDiscovery { get; set; }
+    public bool DisableHomeAssistantDiscovery { get; set; }
 
     /// <summary>
     /// Gets or sets the MQTT discovery root topic (by default, "homeassistant").
     /// </summary>
-    public string DiscoveryRootTopic { get; set; } = default!;
+    public string HomeAssistantDiscoveryRootTopic { get; set; } = default!;
 
     /// <summary>
     /// Gets or sets the MQTT root topic (by default, "opennetty").

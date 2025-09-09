@@ -77,13 +77,25 @@ public sealed class OpenNettyEvents : IDisposable
         => _observable.OfType<EventArgs, BasicScenarioReportedEventArgs>();
 
     /// <summary>
+    /// Gets an event triggered when a battery alert is reported.
+    /// </summary>
+    public IAsyncObservable<BatteryAlertReportedEventArgs> BatteryAlertReported
+        => _observable.OfType<EventArgs, BatteryAlertReportedEventArgs>();
+
+    /// <summary>
     /// Gets an event triggered when a battery level is reported.
     /// </summary>
     public IAsyncObservable<BatteryLevelReportedEventArgs> BatteryLevelReported
         => _observable.OfType<EventArgs, BatteryLevelReportedEventArgs>();
 
     /// <summary>
-    /// Gets an event triggered when a binding is closed is reported.
+    /// Gets an event triggered when a binding is canceled.
+    /// </summary>
+    public IAsyncObservable<BindingCanceledEventArgs> BindingCanceled
+        => _observable.OfType<EventArgs, BindingCanceledEventArgs>();
+
+    /// <summary>
+    /// Gets an event triggered when a binding is closed.
     /// </summary>
     public IAsyncObservable<BindingClosedEventArgs> BindingClosed
         => _observable.OfType<EventArgs, BindingClosedEventArgs>();
@@ -209,6 +221,12 @@ public sealed class OpenNettyEvents : IDisposable
         => _observable.OfType<EventArgs, ToggleScenarioReportedEventArgs>();
 
     /// <summary>
+    /// Gets an event triggered when an uptime duration is reported.
+    /// </summary>
+    public IAsyncObservable<UptimeReportedEventArgs> UptimeReported
+        => _observable.OfType<EventArgs, UptimeReportedEventArgs>();
+
+    /// <summary>
     /// Gets an event triggered when a water heater setpoint mode is reported.
     /// </summary>
     public IAsyncObservable<WaterHeaterSetpointModeReportedEventArgs> WaterHeaterSetpointModeReported
@@ -264,11 +282,23 @@ public sealed class OpenNettyEvents : IDisposable
     public sealed record class BasicScenarioReportedEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
 
     /// <summary>
+    /// Represents event arguments used when a battery alert is reported.
+    /// </summary>
+    /// <param name="Endpoint">The endpoint.</param>
+    public sealed record class BatteryAlertReportedEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
+
+    /// <summary>
     /// Represents event arguments used when a battery level is reported.
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
     /// <param name="Level">The battery level.</param>
     public sealed record class BatteryLevelReportedEventArgs(OpenNettyEndpoint Endpoint, byte Level) : EventArgs(Endpoint);
+
+    /// <summary>
+    /// Represents event arguments used when a binding is canceled.
+    /// </summary>
+    /// <param name="Endpoint">The endpoint.</param>
+    public sealed record class BindingCanceledEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when a binding is closed.
@@ -418,6 +448,13 @@ public sealed class OpenNettyEvents : IDisposable
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
     public sealed record class ToggleScenarioReportedEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
+
+    /// <summary>
+    /// Represents event arguments used when an uptime duration is reported.
+    /// </summary>
+    /// <param name="Endpoint">The endpoint.</param>
+    /// <param name="Duration">The uptime duration.</param>
+    public sealed record class UptimeReportedEventArgs(OpenNettyEndpoint Endpoint, TimeSpan Duration) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when a water heater setpoint mode is reported.

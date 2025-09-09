@@ -191,18 +191,18 @@ public class OpenNettyController
     }
 
     /// <summary>
-    /// Dispatches a virtual basic (action) scenario for the specified endpoint.
+    /// Dispatches a virtual action scenario for the specified endpoint.
     /// </summary>
     /// <param name="endpoint">The endpoint.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
-    public virtual async ValueTask DispatchBasicScenarioAsync(
+    public virtual async ValueTask DispatchActionScenarioAsync(
         OpenNettyEndpoint endpoint,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 
-        if (!endpoint.HasCapability(OpenNettyCapabilities.BasicScenario))
+        if (!endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioControl))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
         }
@@ -210,18 +210,6 @@ public class OpenNettyController
         await _service.ExecuteCommandAsync(
             protocol         : endpoint.Protocol,
             command          : OpenNettyCommands.Scenario.Action,
-            address          : endpoint.Address,
-            medium           : endpoint.Medium,
-            mode             : OpenNettyMode.Broadcast,
-            gateway          : endpoint.Gateway,
-            options          : OpenNettyTransmissionOptions.None,
-            cancellationToken: cancellationToken);
-
-        await Task.Delay(TimeSpan.FromSeconds(0.5), cancellationToken);
-
-        await _service.ExecuteCommandAsync(
-            protocol         : endpoint.Protocol,
-            command          : OpenNettyCommands.Scenario.StopAction,
             address          : endpoint.Address,
             medium           : endpoint.Medium,
             mode             : OpenNettyMode.Broadcast,
@@ -242,7 +230,7 @@ public class OpenNettyController
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 
-        if (!endpoint.HasCapability(OpenNettyCapabilities.OnOffScenario))
+        if (!endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioControl))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
         }
@@ -270,7 +258,7 @@ public class OpenNettyController
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 
-        if (!endpoint.HasCapability(OpenNettyCapabilities.OnOffScenario))
+        if (!endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioControl))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
         }
@@ -293,34 +281,22 @@ public class OpenNettyController
     /// <param name="duration">The scenario duration.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
-    public virtual async ValueTask DispatchProgressiveScenarioAsync(
+    public virtual ValueTask DispatchProgressiveScenarioAsync(
         OpenNettyEndpoint endpoint,
         TimeSpan duration,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 
-        if (!endpoint.HasCapability(OpenNettyCapabilities.ProgressiveScenario))
+        if (!endpoint.HasCapability(OpenNettyCapabilities.ProgressiveScenarioControl))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
         }
 
-        await _service.ExecuteCommandAsync(
+        return _service.ExecuteCommandAsync(
             protocol         : endpoint.Protocol,
             command          : OpenNettyCommands.Scenario.ActionInTime.WithParameters(
                 /* TIME: */ ((long) (duration.TotalSeconds * 5 + .5)).ToString(CultureInfo.InvariantCulture)),
-            address          : endpoint.Address,
-            medium           : endpoint.Medium,
-            mode             : OpenNettyMode.Broadcast,
-            gateway          : endpoint.Gateway,
-            options          : OpenNettyTransmissionOptions.None,
-            cancellationToken: cancellationToken);
-
-        await Task.Delay(TimeSpan.FromSeconds(0.5), cancellationToken);
-
-        await _service.ExecuteCommandAsync(
-            protocol         : endpoint.Protocol,
-            command          : OpenNettyCommands.Scenario.StopAction,
             address          : endpoint.Address,
             medium           : endpoint.Medium,
             mode             : OpenNettyMode.Broadcast,
@@ -341,7 +317,7 @@ public class OpenNettyController
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 
-        if (!endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenario))
+        if (!endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioControl))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
         }
@@ -369,7 +345,7 @@ public class OpenNettyController
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 
-        if (!endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenario))
+        if (!endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioControl))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
         }
@@ -397,7 +373,7 @@ public class OpenNettyController
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 
-        if (!endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenario))
+        if (!endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioControl))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
         }
@@ -414,40 +390,56 @@ public class OpenNettyController
     }
 
     /// <summary>
-    /// Dispatches a virtual timed scenario for the specified endpoint.
+    /// Dispatches a virtual stop action scenario for the specified endpoint.
     /// </summary>
     /// <param name="endpoint">The endpoint.</param>
-    /// <param name="duration">The duration after which associated devices will change their state.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
-    public virtual async ValueTask DispatchTimedScenarioAsync(
+    public virtual ValueTask DispatchStopActionScenarioAsync(
         OpenNettyEndpoint endpoint,
-        TimeSpan duration,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 
-        if (!endpoint.HasCapability(OpenNettyCapabilities.TimedScenario))
+        if (!endpoint.HasCapability(OpenNettyCapabilities.StopActionScenarioControl))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
         }
 
-        await _service.ExecuteCommandAsync(
+        return _service.ExecuteCommandAsync(
             protocol         : endpoint.Protocol,
-            command          : OpenNettyCommands.Scenario.ActionForTime.WithParameters(
-                /* TIME: */ ((long) (duration.TotalSeconds * 5 + .5)).ToString(CultureInfo.InvariantCulture)),
+            command          : OpenNettyCommands.Scenario.StopAction,
             address          : endpoint.Address,
             medium           : endpoint.Medium,
             mode             : OpenNettyMode.Broadcast,
             gateway          : endpoint.Gateway,
             options          : OpenNettyTransmissionOptions.None,
             cancellationToken: cancellationToken);
+    }
 
-        await Task.Delay(TimeSpan.FromSeconds(0.5), cancellationToken);
+    /// <summary>
+    /// Dispatches a virtual timed scenario for the specified endpoint.
+    /// </summary>
+    /// <param name="endpoint">The endpoint.</param>
+    /// <param name="duration">The duration after which associated devices will change their state.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
+    public virtual ValueTask DispatchTimedScenarioAsync(
+        OpenNettyEndpoint endpoint,
+        TimeSpan duration,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
 
-        await _service.ExecuteCommandAsync(
+        if (!endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioControl))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+        }
+
+        return _service.ExecuteCommandAsync(
             protocol         : endpoint.Protocol,
-            command          : OpenNettyCommands.Scenario.StopAction,
+            command          : OpenNettyCommands.Scenario.ActionForTime.WithParameters(
+                /* TIME: */ ((long) (duration.TotalSeconds * 5 + .5)).ToString(CultureInfo.InvariantCulture)),
             address          : endpoint.Address,
             medium           : endpoint.Medium,
             mode             : OpenNettyMode.Broadcast,
@@ -1059,6 +1051,84 @@ public class OpenNettyController
             cancellationToken: cancellationToken);
 
         return OpenNettyModels.Diagnostics.DeviceDescription.CreateFromDeviceDescription(values);
+    }
+
+    /// <summary>
+    /// Resolves the firmware version of the specified endpoint.
+    /// </summary>
+    /// <param name="endpoint">The endpoint.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>
+    /// A <see cref="ValueTask{TResult}"/> that can be used to monitor the asynchronous
+    /// operation and whose result returns the firmware version of the specified endpoint.
+    /// </returns>
+    public virtual async ValueTask<Version> GetFirmwareVersionAsync(
+        OpenNettyEndpoint endpoint,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
+
+        if (endpoint.HasCapability(OpenNettyCapabilities.FirmwareVersion))
+        {
+            var values = await _service.GetDimensionAsync(
+                protocol         : endpoint.Protocol,
+                dimension        : OpenNettyDimensions.Management.FirmwareVersion,
+                address          : endpoint.Address,
+                medium           : endpoint.Medium,
+                mode             : null,
+                gateway          : endpoint.Gateway,
+                options          : OpenNettyTransmissionOptions.None,
+                cancellationToken: cancellationToken);
+
+            return new Version(
+                major: int.Parse(values[0], CultureInfo.InvariantCulture),
+                minor: int.Parse(values[1], CultureInfo.InvariantCulture),
+                build: int.Parse(values[2], CultureInfo.InvariantCulture));
+        }
+
+        else if (endpoint.HasCapability(OpenNettyCapabilities.DeviceDescription))
+        {
+            var description = await GetDeviceDescriptionAsync(endpoint, cancellationToken);
+            return description.Version;
+        }
+
+        throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+    }
+
+    /// <summary>
+    /// Resolves the hardware version of the specified endpoint.
+    /// </summary>
+    /// <param name="endpoint">The endpoint.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>
+    /// A <see cref="ValueTask{TResult}"/> that can be used to monitor the asynchronous
+    /// operation and whose result returns the hardware version of the specified endpoint.
+    /// </returns>
+    public virtual async ValueTask<Version> GetHardwareVersionAsync(
+        OpenNettyEndpoint endpoint,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
+
+        if (!endpoint.HasCapability(OpenNettyCapabilities.HardwareVersion))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+        }
+
+        var values = await _service.GetDimensionAsync(
+            protocol         : endpoint.Protocol,
+            dimension        : OpenNettyDimensions.Management.HardwareVersion,
+            address          : endpoint.Address,
+            medium           : endpoint.Medium,
+            mode             : null,
+            gateway          : endpoint.Gateway,
+            options          : OpenNettyTransmissionOptions.None,
+            cancellationToken: cancellationToken);
+
+        return new Version(
+            major: int.Parse(values[0], CultureInfo.InvariantCulture),
+            minor: int.Parse(values[1], CultureInfo.InvariantCulture),
+            build: int.Parse(values[2], CultureInfo.InvariantCulture));
     }
 
     /// <summary>

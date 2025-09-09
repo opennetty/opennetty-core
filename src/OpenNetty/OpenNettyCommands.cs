@@ -200,6 +200,11 @@ public static class OpenNettyCommands
         /// Close binding (WHAT = 36).
         /// </summary>
         public static readonly OpenNettyCommand CloseBinding = new(OpenNettyCategories.Scenarios, "36");
+
+        /// <summary>
+        /// Cancel binding (WHAT = 37).
+        /// </summary>
+        public static readonly OpenNettyCommand CancelBinding = new(OpenNettyCategories.Scenarios, "37");
     }
 
     /// <summary>

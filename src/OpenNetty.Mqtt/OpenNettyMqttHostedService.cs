@@ -65,14 +65,30 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
                 {
-                    builder.WithPayload("action");
+                    var node = new JsonObject
+                    {
+                        ["event_type"] = "action"
+                    };
+
+                    builder.WithContentType(MediaTypeNames.Application.Json);
+                    builder.WithPayload(node.ToJsonString());
+                }))
+                .Retry()
+                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
+
+            await _events.BatteryAlertReported
+                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.BatteryAlert, builder =>
+                {
+                    builder.WithPayload("ON");
+                    builder.WithRetainFlag();
                 }))
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.BatteryLevelReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Battery, builder =>
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.BatteryLevel, builder =>
                 {
                     builder.WithPayload(arguments.Level.ToString(CultureInfo.InvariantCulture));
                     builder.WithRetainFlag();
@@ -92,9 +108,16 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
 
             await _events.DimmingStepReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.DimmingStep, builder =>
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
                 {
-                    builder.WithPayload(arguments.Delta.ToString(CultureInfo.InvariantCulture));
+                    var node = new JsonObject
+                    {
+                        ["event_type"] = arguments.Delta is < 0 ? "dimming_step_down" : "dimming_step_up",
+                        ["delta"] = arguments.Delta
+                    };
+
+                    builder.WithContentType(MediaTypeNames.Application.Json);
+                    builder.WithPayload(node.ToJsonString());
                 }))
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
@@ -103,7 +126,13 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
                 {
-                    builder.WithPayload("OFF");
+                    var node = new JsonObject
+                    {
+                        ["event_type"] = "switch_off"
+                    };
+
+                    builder.WithContentType(MediaTypeNames.Application.Json);
+                    builder.WithPayload(node.ToJsonString());
                 }))
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
@@ -112,7 +141,13 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
                 {
-                    builder.WithPayload("ON");
+                    var node = new JsonObject
+                    {
+                        ["event_type"] = "switch_on"
+                    };
+
+                    builder.WithContentType(MediaTypeNames.Application.Json);
+                    builder.WithPayload(node.ToJsonString());
                 }))
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
@@ -202,7 +237,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 {
                     var node = new JsonObject
                     {
-                        ["scenario_type"] = "progressive",
+                        ["event_type"] = "progressive_action",
                         ["duration"] = arguments.Duration.TotalSeconds
                     };
 
@@ -216,7 +251,13 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
                 {
-                    builder.WithPayload("CLOSE");
+                    var node = new JsonObject
+                    {
+                        ["event_type"] = "shutter_down"
+                    };
+
+                    builder.WithContentType(MediaTypeNames.Application.Json);
+                    builder.WithPayload(node.ToJsonString());
                 }))
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
@@ -255,7 +296,13 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
                 {
-                    builder.WithPayload("STOP");
+                    var node = new JsonObject
+                    {
+                        ["event_type"] = "shutter_stop"
+                    };
+
+                    builder.WithContentType(MediaTypeNames.Application.Json);
+                    builder.WithPayload(node.ToJsonString());
                 }))
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
@@ -264,7 +311,13 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
                 {
-                    builder.WithPayload("OPEN");
+                    var node = new JsonObject
+                    {
+                        ["event_type"] = "shutter_up"
+                    };
+
+                    builder.WithContentType(MediaTypeNames.Application.Json);
+                    builder.WithPayload(node.ToJsonString());
                 }))
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
@@ -343,7 +396,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 {
                     var node = new JsonObject
                     {
-                        ["scenario_type"] = "timed",
+                        ["event_type"] = "timed_action",
                         ["duration"] = arguments.Duration.TotalSeconds
                     };
 
@@ -357,7 +410,22 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
                 {
-                    builder.WithPayload("toggle");
+                    var node = new JsonObject
+                    {
+                        ["event_type"] = "switch_toggle"
+                    };
+
+                    builder.WithContentType(MediaTypeNames.Application.Json);
+                    builder.WithPayload(node.ToJsonString());
+                }))
+                .Retry()
+                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
+
+            await _events.UptimeReported
+                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.StartupDate, builder =>
+                {
+                    builder.WithPayload((TimeProvider.System.GetUtcNow() - arguments.Duration).ToString("o", CultureInfo.InvariantCulture));
                 }))
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
@@ -421,38 +489,23 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
 
         async ValueTask ReportAsync(OpenNettyEndpoint endpoint, string attribute, Action<MqttApplicationMessageBuilder> configuration)
         {
-            var topic = GetMessageTopic(endpoint, attribute);
-            if (string.IsNullOrEmpty(topic))
-            {
-                return;
-            }
-
             var builder = new MqttApplicationMessageBuilder()
                 .WithPayloadFormatIndicator(MqttPayloadFormatIndicator.CharacterData)
                 .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
-                .WithTopic(topic);
+                .WithTopic(GetMessageTopic(endpoint, attribute));
 
             configuration(builder);
 
             await _client.EnqueueAsync(builder.Build());
         }
 
-        string? GetMessageTopic(OpenNettyEndpoint endpoint, string attribute)
-        {
-            var name = endpoint.GetStringSetting(OpenNettySettings.MqttEndpointName) ?? endpoint.Name?.ToLowerInvariant();
-            if (string.IsNullOrEmpty(name))
-            {
-                return null;
-            }
-
-            return new StringBuilder()
-                .Append(_options.CurrentValue.RootTopic)
-                .Append('/')
-                .Append(name)
-                .Append('/')
-                .Append(attribute)
-                .ToString();
-        }
+        string GetMessageTopic(OpenNettyEndpoint endpoint, string attribute) => new StringBuilder()
+            .Append(_options.CurrentValue.RootTopic)
+            .Append('/')
+            .Append(endpoint.GetStringSetting(OpenNettySettings.MqttTopic) ?? endpoint.Name.ToLowerInvariant())
+            .Append('/')
+            .Append(attribute)
+            .ToString();
     }
 
     /// <inheritdoc/>

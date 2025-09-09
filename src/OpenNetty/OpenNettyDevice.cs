@@ -57,13 +57,22 @@ public sealed class OpenNettyDevice : IEquatable<OpenNettyDevice>
     public string? GetStringSetting(OpenNettySetting setting) => TryGetSetting(setting, out string? value) ? value : null;
 
     /// <summary>
+    /// Determines whether the device has the specified capability.
+    /// </summary>
+    /// <param name="capability">The capability name.</param>
+    /// <returns>
+    /// <see langword="true"/> if the device has the specified capability, <see langword="false"/> otherwise.
+    /// </returns>
+    public bool HasCapability(OpenNettyCapability capability) => Definition.HasCapability(capability);
+
+    /// <summary>
     /// Tries to resolve the specified setting from the settings.
     /// </summary>
     /// <param name="setting">The setting name.</param>
     /// <param name="value">The setting value, or <see langword="null"/> if it was not found.</param>
     /// <returns><see langword="true"/> if the setting was found, <see langword="false"/> otherwise.</returns>
     public bool TryGetSetting(OpenNettySetting setting, [NotNullWhen(true)] out string? value)
-        => Settings.TryGetValue(setting, out value);
+        => Settings.TryGetValue(setting, out value) || Definition.Settings.TryGetValue(setting, out value);
 
     /// <inheritdoc/>
     public bool Equals(OpenNettyDevice? other)

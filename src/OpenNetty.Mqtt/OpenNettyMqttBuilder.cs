@@ -181,11 +181,11 @@ public sealed class OpenNettyMqttBuilder
 
         return Configure(options =>
         {
-            options.DisableDiscovery = (bool?) element.Attribute("DisableDiscovery") ?? false;
+            options.DisableHomeAssistantDiscovery = (bool?) element.Attribute("DisableHomeAssistantDiscovery") ?? false;
 
             var topics = (
                 RootTopic: (string?) element.Attribute("RootTopic"),
-                DiscoveryRootTopic: (string?) element.Attribute("DiscoveryRootTopic"));
+                DiscoveryRootTopic: (string?) element.Attribute("HomeAssistantDiscoveryRootTopic"));
 
             if (!string.IsNullOrEmpty(topics.RootTopic))
             {
@@ -194,7 +194,7 @@ public sealed class OpenNettyMqttBuilder
 
             if (!string.IsNullOrEmpty(topics.DiscoveryRootTopic))
             {
-                options.DiscoveryRootTopic = topics.DiscoveryRootTopic;
+                options.HomeAssistantDiscoveryRootTopic = topics.DiscoveryRootTopic;
             }
 
             options.ClientOptions = builder.Build();

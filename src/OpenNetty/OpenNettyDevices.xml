@@ -9,96 +9,149 @@
   -->
 
   <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
-    <Identity Brand="Legrand" Collection="Lexic" Model="03600" />
+    <Identity Brand="Legrand" Collection="Lexic" Model="03600" Description="2-gang DIN rail switch" />
 
     <Capability Name="Device description" />
 
-    <Unit Id="1" AssociatedUnitId="3">
-      <Capability Name="Dimming scenario" />
-      <Capability Name="On/off scenario" />
+    <Unit Id="1" AssociatedUnitId="3" Description="Local control for output 1 and lighting scenario">
+      <Capability Name="Dimming scenario control" />
+      <Capability Name="Dimming scenario state" />
+      <Capability Name="On/off scenario control" />
+      <Capability Name="On/off scenario state" />
       <Capability Name="Unit description" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="ON/OFF/dimming command 1" />
     </Unit>
 
-    <Unit Id="2" AssociatedUnitId="4">
-      <Capability Name="Dimming scenario" />
-      <Capability Name="On/off scenario" />
+    <Unit Id="2" AssociatedUnitId="4" Description="Local control for output 2 and lighting scenario">
+      <Capability Name="Dimming scenario control" />
+      <Capability Name="Dimming scenario state" />
+      <Capability Name="On/off scenario control" />
+      <Capability Name="On/off scenario state" />
       <Capability Name="Unit description" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="ON/OFF/dimming command 2" />
     </Unit>
 
-    <Unit Id="3">
+    <Unit Id="3" Description="Output 1">
       <Capability Name="Memory reading" />
       <Capability Name="Memory writing" />
       <Capability Name="On/off switch state" />
       <Capability Name="On/off switch control" />
       <Capability Name="Unit description" />
+
+      <Setting Name="Home Assistant light/switch name" Value="Output 1" />
     </Unit>
 
-    <Unit Id="4">
+    <Unit Id="4" Description="Output 2">
       <Capability Name="Memory reading" />
       <Capability Name="Memory writing" />
       <Capability Name="On/off switch state" />
       <Capability Name="On/off switch control" />
       <Capability Name="Unit description" />
+
+      <Setting Name="Home Assistant light/switch name" Value="Output 1" />
     </Unit>
   </Device>
 
   <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
-    <Identity Brand="Legrand" Collection="Lexic" Model="03648" />
+    <Identity Brand="Legrand" Collection="Lexic" Model="03648" Description="SCS/Nitoo gateway" />
 
     <Capability Name="Device description" />
 
-    <Unit Id="1">
-      <Capability Name="Basic scenario" />
+    <Unit Id="1" Description="Doorbell call scenario">
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
       <Capability Name="Unit description" />
+
+      <Setting Name="Home Assistant scenario device class" Value="doorbell" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:doorbell" />
+      <Setting Name="Home Assistant scenario name" Value="Doorbell" />
     </Unit>
 
     <Unit Id="2">
-      <Capability Name="Basic scenario" />
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
       <Capability Name="Unit description" />
     </Unit>
 
     <Unit Id="3">
-      <Capability Name="Basic scenario" />
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
       <Capability Name="Unit description" />
     </Unit>
 
     <Unit Id="4">
-      <Capability Name="Basic scenario" />
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
       <Capability Name="Unit description" />
     </Unit>
 
     <Unit Id="5">
-      <Capability Name="Basic scenario" />
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
       <Capability Name="Unit description" />
     </Unit>
 
     <Unit Id="6">
-      <Capability Name="Basic scenario" />
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
       <Capability Name="Unit description" />
     </Unit>
 
     <Unit Id="7">
-      <Capability Name="Basic scenario" />
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
       <Capability Name="Unit description" />
     </Unit>
 
     <Unit Id="8">
-      <Capability Name="Basic scenario" />
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
       <Capability Name="Unit description" />
     </Unit>
 
     <Unit Id="9">
-      <Capability Name="Basic scenario" />
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
       <Capability Name="Unit description" />
     </Unit>
 
     <Unit Id="10">
-      <Capability Name="Basic scenario" />
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
       <Capability Name="Unit description" />
     </Unit>
 
     <Unit Id="11">
-      <Capability Name="Basic scenario" />
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
       <Capability Name="Unit description" />
     </Unit>
 
@@ -116,18 +169,18 @@
   </Device>
 
   <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
-    <Identity Brand="Legrand" Collection="Lexic" Model="03809" />
+    <Identity Brand="Legrand" Collection="Lexic" Model="03809" Description="DIN rail energy meter" />
 
     <Capability Name="Device description" />
 
-    <Unit Id="1">
+    <Unit Id="1" Description="Water heater control">
       <Capability Name="Memory reading" />
       <Capability Name="Memory writing" />
       <Capability Name="Unit description" />
       <Capability Name="Water heating" />
     </Unit>
 
-    <Unit Id="2">
+    <Unit Id="2" Description="Pilot wire control">
       <Capability Name="Memory reading" />
       <Capability Name="Memory writing" />
       <Capability Name="Smart meter indexes" />
@@ -137,160 +190,380 @@
   </Device>
 
   <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Radio">
-    <Identity Brand="Legrand" Model="43214" />
+    <Identity Brand="Legrand" Model="43214" Description="Wireless burglar alarm" />
 
     <Capability Name="Wireless burglar alarm state" />
 
     <Unit Id="1">
-      <Capability Name="Wireless burglar alarm scenario" />
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
     </Unit>
 
     <Unit Id="2">
-      <Capability Name="Basic scenario" />
-      <Capability Name="Wireless burglar alarm scenario" />
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
     </Unit>
 
     <Unit Id="3">
-      <Capability Name="Basic scenario" />
-      <Capability Name="Wireless burglar alarm scenario" />
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
     </Unit>
 
-    <Unit Id="4">
-      <Capability Name="Basic scenario" />
-      <Capability Name="Wireless burglar alarm scenario" />
+    <Unit Id="4" Description="Alarm armed scenario">
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
+
+      <Setting Name="Home Assistant scenario icon" Value="mdi:security" />
+      <Setting Name="Home Assistant scenario name" Value="Alarm armed" />
     </Unit>
 
-    <Unit Id="5">
-      <Capability Name="Basic scenario" />
-      <Capability Name="Wireless burglar alarm scenario" />
+    <Unit Id="5" Description="Alarm disarmed scenario">
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
+
+      <Setting Name="Home Assistant scenario icon" Value="mdi:security" />
+      <Setting Name="Home Assistant scenario name" Value="Alarm disarmed" />
     </Unit>
 
-    <Unit Id="6">
-      <Capability Name="Basic scenario" />
-      <Capability Name="Wireless burglar alarm scenario" />
+    <Unit Id="6" Description="Alarm partially armed scenario">
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
+
+      <Setting Name="Home Assistant scenario icon" Value="mdi:security" />
+      <Setting Name="Home Assistant scenario name" Value="Alarm partially armed" />
     </Unit>
 
-    <Unit Id="7">
-      <Capability Name="Basic scenario" />
-      <Capability Name="Wireless burglar alarm scenario" />
+    <Unit Id="7" Description="Alarm triggered scenario">
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
+
+      <Setting Name="Home Assistant scenario icon" Value="mdi:security" />
+      <Setting Name="Home Assistant scenario name" Value="Alarm triggered" />
     </Unit>
 
-    <Unit Id="8">
-      <Capability Name="Basic scenario" />
-      <Capability Name="Wireless burglar alarm scenario" />
+    <Unit Id="8" Description="Exit delay elapsed scenario">
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
+
+      <Setting Name="Home Assistant scenario icon" Value="mdi:security" />
+      <Setting Name="Home Assistant scenario name" Value="Exit delay elapsed" />
     </Unit>
 
-    <Unit Id="9">
-      <Capability Name="Basic scenario" />
-      <Capability Name="Wireless burglar alarm scenario" />
+    <Unit Id="9" Description="Event detected scenario">
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
+
+      <Setting Name="Home Assistant scenario icon" Value="mdi:security" />
+      <Setting Name="Home Assistant scenario name" Value="Event detected" />
     </Unit>
   </Device>
 
   <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
-    <Identity Brand="Legrand" Collection="Céliane" Model="67201" />
-    <Identity Brand="Legrand" Collection="Céliane" Model="67203" />
-    <Identity Brand="Legrand" Collection="Sagane"  Model="84531" />
+    <Identity Brand="Legrand" Collection="Céliane" Model="67201" Description="1-gang switch" />
+    <Identity Brand="Legrand" Collection="Céliane" Model="67203" Description="1-gang switch with indicator light" />
+    <Identity Brand="Legrand" Collection="Sagane"  Model="84531" Description="1-gang switch" />
 
     <Capability Name="Device description" />
 
-    <Unit Id="1" AssociatedUnitId="2">
-      <Capability Name="Dimming scenario" />
-      <Capability Name="On/off scenario" />
+    <Unit Id="1" AssociatedUnitId="2" Description="Local control and lighting scenario">
+      <Capability Name="Dimming scenario control" />
+      <Capability Name="Dimming scenario state" />
+      <Capability Name="On/off scenario control" />
+      <Capability Name="On/off scenario state" />
       <Capability Name="Unit description" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="ON/OFF command" />
     </Unit>
 
-    <Unit Id="2">
+    <Unit Id="2" Description="Output">
       <Capability Name="Memory reading" />
       <Capability Name="Memory writing" />
       <Capability Name="On/off switch state" />
       <Capability Name="On/off switch control" />
       <Capability Name="Unit description" />
+
+      <Setting Name="Home Assistant light/switch name" Value="Output" />
     </Unit>
   </Device>
 
   <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
-    <Identity Brand="Legrand" Collection="Céliane" Model="67202" />
-    <Identity Brand="Legrand" Collection="Céliane" Model="67204" />
-    <Identity Brand="Legrand" Collection="Sagane"  Model="84520" />
+    <Identity Brand="Legrand" Collection="Céliane" Model="67202" Description="2-gang switch" />
+    <Identity Brand="Legrand" Collection="Céliane" Model="67204" Description="2-gang switch with indicator light" />
+    <Identity Brand="Legrand" Collection="Sagane"  Model="84520" Description="2-gang switch" />
 
     <Capability Name="Device description" />
 
-    <Unit Id="1" AssociatedUnitId="3">
-      <Capability Name="Dimming scenario" />
-      <Capability Name="On/off scenario" />
+    <Unit Id="1" AssociatedUnitId="3" Description="Local control for output 1 and lighting scenario">
+      <Capability Name="Dimming scenario control" />
+      <Capability Name="Dimming scenario state" />
+      <Capability Name="On/off scenario control" />
+      <Capability Name="On/off scenario state" />
       <Capability Name="Unit description" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="ON/OFF/dimming command 1" />
     </Unit>
 
-    <Unit Id="2" AssociatedUnitId="4">
-      <Capability Name="Dimming scenario" />
-      <Capability Name="On/off scenario" />
+    <Unit Id="2" AssociatedUnitId="4" Description="Local control for output 2 and lighting scenario">
+      <Capability Name="Dimming scenario control" />
+      <Capability Name="Dimming scenario state" />
+      <Capability Name="On/off scenario control" />
+      <Capability Name="On/off scenario state" />
       <Capability Name="Unit description" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="ON/OFF/dimming command 2" />
     </Unit>
 
-    <Unit Id="3">
+    <Unit Id="3" Description="Output 1">
       <Capability Name="Memory reading" />
       <Capability Name="Memory writing" />
       <Capability Name="On/off switch state" />
       <Capability Name="On/off switch control" />
       <Capability Name="Unit description" />
+
+      <Setting Name="Home Assistant light/switch name" Value="Output 1" />
     </Unit>
 
-    <Unit Id="4">
+    <Unit Id="4" Description="Output 2">
       <Capability Name="Memory reading" />
       <Capability Name="Memory writing" />
       <Capability Name="On/off switch state" />
       <Capability Name="On/off switch control" />
       <Capability Name="Unit description" />
+
+      <Setting Name="Home Assistant light/switch name" Value="Output 1" />
     </Unit>
   </Device>
 
   <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
-    <Identity Brand="Legrand" Collection="Céliane" Model="67208" />
+    <Identity Brand="Legrand" Collection="Céliane" Model="67208" Description="Lighting control switch" />
 
     <Capability Name="Device description" />
 
-    <Unit Id="1">
-      <Capability Name="Dimming scenario" />
-      <Capability Name="On/off scenario" />
+    <Unit Id="1" Description="Lighting scenario">
+      <Capability Name="Dimming scenario control" />
+      <Capability Name="Dimming scenario state" />
+      <Capability Name="On/off scenario control" />
+      <Capability Name="On/off scenario state" />
       <Capability Name="Unit description" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="ON/OFF/dimming command" />
     </Unit>
 
-    <Unit Id="2">
-      <Capability Name="Basic scenario" />
-      <Capability Name="Dimming scenario" />
+    <Unit Id="2" Description="Multifunction scenario 1">
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Dimming scenario control" />
+      <Capability Name="Dimming scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
       <Capability Name="Unit description" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Button 1" />
     </Unit>
 
-    <Unit Id="3">
-      <Capability Name="Basic scenario" />
-      <Capability Name="Dimming scenario" />
+    <Unit Id="3" Description="Multifunction scenario 2">
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Dimming scenario control" />
+      <Capability Name="Dimming scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
       <Capability Name="Unit description" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Button 2" />
     </Unit>
   </Device>
 
   <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
-    <Identity Brand="Legrand" Collection="Céliane" Model="67210" />
-    <Identity Brand="Legrand" Collection="Céliane" Model="67212" />
-    <Identity Brand="Legrand" Collection="Céliane" Model="67214" />
+    <Identity Brand="Legrand" Collection="Céliane" Model="67210" Description="Dimmer switch" />
+    <Identity Brand="Legrand" Collection="Céliane" Model="67212" Description="Dimmer switch with indicator light" />
+    <Identity Brand="Legrand" Collection="Céliane" Model="67214" Description="Dimmer switch with indicator light" />
 
     <Capability Name="Device description" />
 
-    <Unit Id="1" AssociatedUnitId="4">
-      <Capability Name="Dimming scenario" />
-      <Capability Name="On/off scenario" />
+    <Unit Id="1" AssociatedUnitId="4" Description="Local control and lighting scenario">
+      <Capability Name="Dimming scenario control" />
+      <Capability Name="Dimming scenario state" />
+      <Capability Name="On/off scenario control" />
+      <Capability Name="On/off scenario state" />
+      <Capability Name="Unit description" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="ON/OFF/dimming command" />
+    </Unit>
+
+    <Unit Id="2" AssociatedUnitId="4" Description="Local preset+ control and lighting scenario">
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Dimming scenario control" />
+      <Capability Name="Dimming scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
+      <Capability Name="Unit description" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Preset+ command" />
+    </Unit>
+
+    <Unit Id="3" AssociatedUnitId="4" Description="Local preset- control and lighting scenario">
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Dimming scenario control" />
+      <Capability Name="Dimming scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
+      <Capability Name="Unit description" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Preset- command" />
+    </Unit>
+
+    <Unit Id="4" Description="Output">
+      <Capability Name="Advanced dimming control" />
+      <Capability Name="Advanced dimming state" />
+      <Capability Name="Memory reading" />
+      <Capability Name="Memory writing" />
+      <Capability Name="On/off switch state" />
+      <Capability Name="On/off switch control" />
+      <Capability Name="Unit description" />
+
+      <Setting Name="Home Assistant light/switch name" Value="Output" />
+    </Unit>
+  </Device>
+
+  <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
+    <Identity Brand="Legrand" Collection="Céliane" Model="67215" Description="Motion sensor switch" />
+    <Identity Brand="Legrand" Collection="Sagane"  Model="84522" Description="Motion sensor switch" />
+
+    <Capability Name="Device description" />
+
+    <Unit Id="1" AssociatedUnitId="3" Description="Local control and motion detection scenario">
+      <Capability Name="Timed scenario control" />
+      <Capability Name="Timed scenario state" />
       <Capability Name="Unit description" />
     </Unit>
 
-    <Unit Id="2" AssociatedUnitId="4">
-      <Capability Name="Basic scenario" />
-      <Capability Name="Dimming scenario" />
+    <Unit Id="2" AssociatedUnitId="3" Description="Local control and lighting scenario">
+      <Capability Name="On/off scenario control" />
+      <Capability Name="On/off scenario state" />
       <Capability Name="Unit description" />
     </Unit>
 
-    <Unit Id="3" AssociatedUnitId="4">
-      <Capability Name="Basic scenario" />
-      <Capability Name="Dimming scenario" />
+    <Unit Id="3" Description="Output">
+      <Capability Name="Memory reading" />
+      <Capability Name="Memory writing" />
+      <Capability Name="On/off switch state" />
+      <Capability Name="On/off switch control" />
       <Capability Name="Unit description" />
+
+      <Setting Name="Home Assistant light/switch name" Value="Output" />
+    </Unit>
+  </Device>
+
+  <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
+    <Identity Brand="Legrand" Collection="Céliane" Model="67220" Description="Switched outlet" />
+    <Identity Brand="Legrand" Collection="Sagane"  Model="84523" Description="Switched outlet" />
+
+    <Capability Name="Device description" />
+
+    <Unit Id="1" AssociatedUnitId="2" Description="Local control and lighting scenario">
+      <Capability Name="Dimming scenario control" />
+      <Capability Name="Dimming scenario state" />
+      <Capability Name="On/off scenario control" />
+      <Capability Name="On/off scenario state" />
+      <Capability Name="Unit description" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="ON/OFF/dimming command" />
+    </Unit>
+
+    <Unit Id="2" Description="Output">
+      <Capability Name="On/off switch state" />
+      <Capability Name="On/off switch control" />
+      <Capability Name="Unit description" />
+
+      <Setting Name="Home Assistant light/switch name" Value="Output" />
+    </Unit>
+  </Device>
+
+  <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
+    <Identity Brand="Legrand" Collection="Céliane" Model="67222" Description="Dimmable switched outlet" />
+    <Identity Brand="Legrand" Collection="Sagane"  Model="84524" Description="Dimmable switched outlet" />
+
+    <Capability Name="Device description" />
+
+    <Unit Id="1" AssociatedUnitId="4" Description="Local control and lighting scenario">
+      <Capability Name="Dimming scenario control" />
+      <Capability Name="Dimming scenario state" />
+      <Capability Name="On/off scenario control" />
+      <Capability Name="On/off scenario state" />
+      <Capability Name="Unit description" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="ON/OFF/dimming command" />
+    </Unit>
+
+    <Unit Id="2" AssociatedUnitId="4" Description="Local preset+ control and lighting scenario">
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Dimming scenario control" />
+      <Capability Name="Dimming scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
+      <Capability Name="Unit description" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Preset+ command" />
+    </Unit>
+
+    <Unit Id="3" AssociatedUnitId="4" Description="Local preset- control and lighting scenario">
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Dimming scenario control" />
+      <Capability Name="Dimming scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
+      <Capability Name="Unit description" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Preset- command" />
     </Unit>
 
     <Unit Id="4">
@@ -301,147 +574,132 @@
       <Capability Name="On/off switch state" />
       <Capability Name="On/off switch control" />
       <Capability Name="Unit description" />
+
+      <Setting Name="Home Assistant light/switch name" Value="Output" />
     </Unit>
   </Device>
 
   <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
-    <Identity Brand="Legrand" Collection="Céliane" Model="67215" />
-    <Identity Brand="Legrand" Collection="Sagane"  Model="84522" />
+    <Identity Brand="Legrand" Collection="Céliane" Model="67280" Description="Multifunction scenario switch" />
+    <Identity Brand="Legrand" Collection="Sagane"  Model="84525" Description="Multifunction scenario switch" />
 
     <Capability Name="Device description" />
 
-    <Unit Id="1" AssociatedUnitId="3">
-      <Capability Name="Timed scenario" />
+    <Unit Id="1" Description="Multifunction scenario 1">
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Dimming scenario control" />
+      <Capability Name="Dimming scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
       <Capability Name="Unit description" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Button 1" />
     </Unit>
 
-    <Unit Id="2" AssociatedUnitId="3">
-      <Capability Name="On/off scenario" />
+    <Unit Id="2" Description="Multifunction scenario 2">
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Dimming scenario control" />
+      <Capability Name="Dimming scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
       <Capability Name="Unit description" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Button 2" />
     </Unit>
 
-    <Unit Id="3">
-      <Capability Name="Memory reading" />
-      <Capability Name="Memory writing" />
-      <Capability Name="On/off switch state" />
-      <Capability Name="On/off switch control" />
+    <Unit Id="3" Description="Multifunction scenario 3">
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Dimming scenario control" />
+      <Capability Name="Dimming scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
       <Capability Name="Unit description" />
-    </Unit>
-  </Device>
 
-  <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
-    <Identity Brand="Legrand" Collection="Céliane" Model="67220" />
-    <Identity Brand="Legrand" Collection="Sagane"  Model="84523" />
-
-    <Capability Name="Device description" />
-
-    <Unit Id="1" AssociatedUnitId="2">
-      <Capability Name="Dimming scenario" />
-      <Capability Name="On/off scenario" />
-      <Capability Name="Unit description" />
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Button 3" />
     </Unit>
 
-    <Unit Id="2">
-      <Capability Name="On/off switch state" />
-      <Capability Name="On/off switch control" />
+    <Unit Id="4" Description="Multifunction scenario 4">
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Dimming scenario control" />
+      <Capability Name="Dimming scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
       <Capability Name="Unit description" />
-    </Unit>
-  </Device>
 
-  <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
-    <Identity Brand="Legrand" Collection="Céliane" Model="67222" />
-    <Identity Brand="Legrand" Collection="Sagane"  Model="84524" />
-
-    <Capability Name="Device description" />
-
-    <Unit Id="1" AssociatedUnitId="4">
-      <Capability Name="Dimming scenario" />
-      <Capability Name="On/off scenario" />
-      <Capability Name="Unit description" />
-    </Unit>
-
-    <Unit Id="2" AssociatedUnitId="4">
-      <Capability Name="Basic scenario" />
-      <Capability Name="Dimming scenario" />
-      <Capability Name="Unit description" />
-    </Unit>
-
-    <Unit Id="3" AssociatedUnitId="4">
-      <Capability Name="Basic scenario" />
-      <Capability Name="Dimming scenario" />
-      <Capability Name="Unit description" />
-    </Unit>
-
-    <Unit Id="4">
-      <Capability Name="Advanced dimming control" />
-      <Capability Name="Advanced dimming state" />
-      <Capability Name="Memory reading" />
-      <Capability Name="Memory writing" />
-      <Capability Name="On/off switch state" />
-      <Capability Name="On/off switch control" />
-      <Capability Name="Unit description" />
-    </Unit>
-  </Device>
-
-  <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
-    <Identity Brand="Legrand" Collection="Céliane" Model="67280" />
-    <Identity Brand="Legrand" Collection="Sagane"  Model="84525" />
-
-    <Capability Name="Device description" />
-
-    <Unit Id="1">
-      <Capability Name="Basic scenario" />
-      <Capability Name="Dimming scenario" />
-      <Capability Name="Unit description" />
-    </Unit>
-
-    <Unit Id="2">
-      <Capability Name="Basic scenario" />
-      <Capability Name="Dimming scenario" />
-      <Capability Name="Unit description" />
-    </Unit>
-
-    <Unit Id="3">
-      <Capability Name="Basic scenario" />
-      <Capability Name="Dimming scenario" />
-      <Capability Name="Unit description" />
-    </Unit>
-
-    <Unit Id="4">
-      <Capability Name="Basic scenario" />
-      <Capability Name="Dimming scenario" />
-      <Capability Name="Unit description" />
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Button 4" />
     </Unit>
   </Device>
 
   <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Radio">
-    <Identity Brand="Legrand" Collection="Céliane" Model="67290" />
-    <Identity Brand="Legrand" Collection="Sagane"  Model="84542" />
+    <Identity Brand="Legrand" Collection="Céliane" Model="67290" Description="Multifunction scenario switch" />
+    <Identity Brand="Legrand" Collection="Sagane"  Model="84542" Description="Multifunction scenario switch" />
 
-    <Unit Id="1">
-      <Capability Name="Basic scenario" />
+    <Capability Name="Battery alert" />
+
+    <Unit Id="1" Description="Multifunction scenario 1">
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Button 1" />
     </Unit>
 
-    <Unit Id="2">
-      <Capability Name="Basic scenario" />
+    <Unit Id="2" Description="Multifunction scenario 2">
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Button 2" />
     </Unit>
 
-    <Unit Id="3">
-      <Capability Name="Basic scenario" />
+    <Unit Id="3" Description="Multifunction scenario 3">
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Button 3" />
     </Unit>
 
-    <Unit Id="4">
-      <Capability Name="Basic scenario" />
+    <Unit Id="4" Description="Multifunction scenario 4">
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Button 4" />
     </Unit>
   </Device>
 
   <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
-    <Identity Brand="Legrand" Collection="Céliane" Model="67445" />
-    <Identity Brand="Legrand" Collection="Sagane"  Model="84530" />
+    <Identity Brand="Legrand" Collection="Céliane" Model="67445" Description="Pilot wire cable outlet" />
+    <Identity Brand="Legrand" Collection="Sagane"  Model="84530" Description="Pilot wire cable outlet" />
 
     <Capability Name="Device description" />
 
-    <Unit Id="1">
+    <Unit Id="1" Description="Local control">
       <Capability Name="Memory reading" />
       <Capability Name="Memory writing" />
       <Capability Name="Pilot wire heating" />
@@ -450,52 +708,85 @@
   </Device>
 
   <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
-    <Identity Brand="Legrand" Collection="Céliane" Model="67448" />
-    <Identity Brand="Legrand" Collection="Sagane"  Model="84529" />
+    <Identity Brand="Legrand" Collection="Céliane" Model="67448" Description="Pilot wire derogation command" />
+    <Identity Brand="Legrand" Collection="Sagane"  Model="84529" Description="Pilot wire derogation command" />
 
     <Capability Name="Device description" />
 
-    <Unit Id="1">
+    <Unit Id="1" Description="Wire pilot heating scenario">
       <Capability Name="Memory reading" />
       <Capability Name="Memory writing" />
       <Capability Name="Pilot wire heating" />
-      <Capability Name="Pilot wire scenario" />
       <Capability Name="Unit description" />
     </Unit>
   </Device>
 
   <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Radio">
-    <Identity Brand="Legrand" Collection="Plexo" Model="69510" />
+    <Identity Brand="Legrand" Collection="Plexo" Model="69510" Description="1-gang outdoor switch" />
 
-    <Unit Id="1">
+    <Unit Id="1" Description="Output">
       <Capability Name="On/off switch control" />
       <Capability Name="Unit description" />
+
+      <Setting Name="Home Assistant light/switch name" Value="Output" />
     </Unit>
   </Device>
 
   <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Radio">
-    <Identity Brand="Legrand" Model="88205" />
+    <Identity Brand="Legrand" Model="88205" Description="Pocket scenario remote control" />
 
-    <Unit Id="1">
-      <Capability Name="Basic scenario" />
+    <Capability Name="Battery alert" />
+
+    <Unit Id="1" Description="Multifunction scenario 1">
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Button 1" />
     </Unit>
 
-    <Unit Id="2">
-      <Capability Name="Basic scenario" />
+    <Unit Id="2" Description="Multifunction scenario 2">
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Button 2" />
     </Unit>
 
-    <Unit Id="3">
-      <Capability Name="Basic scenario" />
+    <Unit Id="3" Description="Multifunction scenario 3">
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Button 3" />
     </Unit>
 
-    <Unit Id="4">
-      <Capability Name="Basic scenario" />
+    <Unit Id="4" Description="Multifunction scenario 4">
+      <Capability Name="Action scenario control" />
+      <Capability Name="Action scenario state" />
+      <Capability Name="Stop action scenario control" />
+      <Capability Name="Stop action scenario state" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Button 4" />
     </Unit>
   </Device>
 
   <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
-    <Identity Brand="Legrand" Model="88213" />
+    <Identity Brand="Legrand" Model="88213" Description="PLC/USB gateway" />
 
+    <Capability Name="Firmware version" />
+    <Capability Name="Hardware version" />
     <Capability Name="OpenWebNet gateway" />
     <Capability Name="OpenWebNet generic session" />
 
@@ -514,16 +805,16 @@
   -->
 
   <Device Series="MyHome" Protocol="Scs" Medium="Bus">
-    <Identity Brand="BTicino" Model="F411U1" />
-    <Identity Brand="Legrand" Model="03847" />
+    <Identity Brand="BTicino" Model="F411U1" Description="1-gang DIN rail switch" />
+    <Identity Brand="Legrand" Model="03847"  Description="1-gang DIN rail switch" />
 
     <Capability Name="On/off switch state" />
     <Capability Name="On/off switch control" />
   </Device>
 
   <Device Series="MyHome" Protocol="Scs" Medium="Bus">
-    <Identity Brand="BTicino" Model="F411U2" />
-    <Identity Brand="Legrand" Model="03848" />
+    <Identity Brand="BTicino" Model="F411U2" Description="2-gang DIN rail switch" />
+    <Identity Brand="Legrand" Model="03848"  Description="2-gang DIN rail switch" />
 
     <Capability Name="Basic shutter control" />
     <Capability Name="Basic shutter state" />
@@ -532,8 +823,8 @@
   </Device>
 
   <Device Series="MyHome" Protocol="Scs" Medium="Bus">
-    <Identity Brand="BTicino" Model="F418U2" />
-    <Identity Brand="Legrand" Model="03651" />
+    <Identity Brand="BTicino" Model="F418U2" Description="2-gang DIN rail dimmer switch" />
+    <Identity Brand="Legrand" Model="03651"  Description="2-gang DIN rail dimmer switch" />
 
     <Capability Name="Advanced dimming control" />
     <Capability Name="Advanced dimming state" />
@@ -544,10 +835,11 @@
   </Device>
 
   <Device Series="MyHome" Protocol="Scs" Medium="Bus">
-    <Identity Brand="BTicino" Model="F454" />
-    <Identity Brand="Legrand" Model="03598" />
+    <Identity Brand="BTicino" Model="F454"  Description="SCS/Ethernet gateway" />
+    <Identity Brand="Legrand" Model="03598" Description="SCS/Ethernet gateway" />
 
     <Capability Name="Date/time" />
+    <Capability Name="Firmware version" />
     <Capability Name="OpenWebNet command session" />
     <Capability Name="OpenWebNet event session" />
     <Capability Name="OpenWebNet gateway" />
@@ -555,10 +847,11 @@
   </Device>
 
   <Device Series="MyHome" Protocol="Scs" Medium="Bus">
-    <Identity Brand="BTicino" Model="MH202" />
-    <Identity Brand="Legrand" Model="03535" />
+    <Identity Brand="BTicino" Model="MH202" Description="SCS scenario scheduler" />
+    <Identity Brand="Legrand" Model="03535" Description="SCS scenario scheduler" />
 
     <Capability Name="Date/time" />
+    <Capability Name="Firmware version" />
     <Capability Name="OpenWebNet command session" />
     <Capability Name="OpenWebNet event session" />
     <Capability Name="OpenWebNet gateway" />
@@ -566,7 +859,7 @@
   </Device>
 
   <Device Series="MyHome" Protocol="Scs" Medium="Bus">
-    <Identity Brand="Legrand" Collection="Céliane" Model="67557" />
+    <Identity Brand="Legrand" Collection="Céliane" Model="67557" Description="2-channel advanced automation actuator" />
 
     <Capability Name="Advanced shutter control" />
     <Capability Name="Advanced shutter state" />
@@ -575,7 +868,7 @@
   </Device>
 
   <Device Series="MyHome" Protocol="Scs" Medium="Bus">
-    <Identity Brand="Legrand" Collection="Céliane" Model="67561" />
+    <Identity Brand="Legrand" Collection="Céliane" Model="67561" Description="2-channel lighting/automation actuator" />
 
     <Capability Name="Basic shutter control" />
     <Capability Name="Basic shutter state" />
@@ -592,22 +885,30 @@
   -->
 
   <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
-    <Identity Brand="Legrand" Collection="Céliane" Model="67223" />
+    <Identity Brand="Legrand" Collection="Céliane" Model="67223" Description="Lighting control switch" />
 
-    <Unit Id="1">
-      <Capability Name="Toggle scenario" />
+    <Capability Name="Battery level" />
+    <Capability Name="Firmware version" />
+    <Capability Name="Hardware version" />
+
+    <Unit Id="1" Description="Toggle scenario">
+      <Capability Name="Toggle scenario state" />
+      <Capability Name="Zigbee binding" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Button" />
     </Unit>
-
-    <Capability Name="Battery" />
   </Device>
 
   <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
-    <Identity Brand="BTicino" Model="3578" />
-    <Identity Brand="Legrand" Model="88328" />
+    <Identity Brand="BTicino" Model="3578"  Description="Zigbee/USB gateway" />
+    <Identity Brand="Legrand" Model="88328" Description="Zigbee/USB gateway" />
 
+    <Capability Name="Firmware version" />
+    <Capability Name="Hardware version" />
     <Capability Name="OpenWebNet gateway" />
     <Capability Name="OpenWebNet generic session" />
-    <Capability Name="Zigbee binding" />
     <Capability Name="Zigbee supervision" />
 
     <Setting Name="Serial port baud rate" Value="19200" />
@@ -617,11 +918,22 @@
   </Device>
 
   <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
-    <Identity Brand="Legrand" Model="88337" />
+    <Identity Brand="Legrand" Model="88337" Description="Switched outlet" />
 
-    <Unit Id="1">
+    <Capability Name="Firmware version" />
+    <Capability Name="Hardware version" />
+
+    <Unit Id="1" Description="Local control and toggle scenario">
       <Capability Name="On/off switch state" />
       <Capability Name="On/off switch control" />
+      <Capability Name="Toggle scenario state" />
+      <Capability Name="Zigbee binding" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Button" />
+
+      <Setting Name="Home Assistant light/switch name" Value="Output" />
     </Unit>
   </Device>
 

@@ -60,7 +60,6 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     Type    : OpenNettyMessageType.BusCommand    or
                               OpenNettyMessageType.DimensionRead or
                               OpenNettyMessageType.DimensionSet,
-                    Address : not null,
                     Mode    : OpenNettyMode.Broadcast } message }
                 => AsyncObservable.Return<(OpenNettyNotification Notification, OpenNettyMessage Message)>((notification, message)),
 
@@ -70,8 +69,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     Protocol: OpenNettyProtocol.Scs,
                     Type    : OpenNettyMessageType.BusCommand    or
                               OpenNettyMessageType.DimensionRead or
-                              OpenNettyMessageType.DimensionSet,
-                    Address : not null } message }
+                              OpenNettyMessageType.DimensionSet } message }
                 => AsyncObservable.Return<(OpenNettyNotification Notification, OpenNettyMessage Message)>((notification, message)),
 
             OpenNettyNotifications.MessageReceived {
@@ -80,8 +78,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     Protocol: OpenNettyProtocol.Zigbee,
                     Type    : OpenNettyMessageType.BusCommand    or
                               OpenNettyMessageType.DimensionRead or
-                              OpenNettyMessageType.DimensionSet,
-                    Address : not null } message }
+                              OpenNettyMessageType.DimensionSet } message }
                 => AsyncObservable.Return<(OpenNettyNotification Notification, OpenNettyMessage Message)>((notification, message)),
 
             // Note: unlike SCS (and Zigbee devices when the supervision mode is enabled), Nitoo devices
@@ -93,8 +90,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 Session.Type: OpenNettySessionType.Generic,
                 Message: {
                     Protocol: OpenNettyProtocol.Nitoo,
-                    Type    : OpenNettyMessageType.BusCommand or OpenNettyMessageType.DimensionSet,
-                    Address : not null } message }
+                    Type    : OpenNettyMessageType.BusCommand or OpenNettyMessageType.DimensionSet } message }
                 => AsyncObservable.Return<(OpenNettyNotification Notification, OpenNettyMessage Message)>((notification, message)),
 
             _ => AsyncObservable.Empty<(OpenNettyNotification Notification, OpenNettyMessage Message)>()
@@ -134,7 +130,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     // If the message was received and was emitted by the source using
                     // a broadcast transmission, it is considered as an ON/OFF scenario.
                     if (notification is OpenNettyNotifications.MessageReceived && mode is OpenNettyMode.Broadcast &&
-                        endpoint.HasCapability(OpenNettyCapabilities.OnOffScenario))
+                        endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioState))
                     {
                         if (command == OpenNettyCommands.Lighting.On)
                         {
@@ -507,7 +503,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         return;
                     }
 
-                    if (endpoint.HasCapability(OpenNettyCapabilities.ToggleScenario))
+                    if (endpoint.HasCapability(OpenNettyCapabilities.ToggleScenarioState))
                     {
                         await _events.PublishAsync(new ToggleScenarioReportedEventArgs(endpoint));
                     }
@@ -542,7 +538,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     // If the message was received and was emitted by the source using a
                     // broadcast transmission, it is considered as an STOP/UP/DOWN scenario.
                     if (notification is OpenNettyNotifications.MessageReceived && mode is OpenNettyMode.Broadcast &&
-                        endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenario))
+                        endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioState))
                     {
                         if (command == OpenNettyCommands.Automation.Stop)
                         {
@@ -1183,47 +1179,32 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 {
                     // Ignore the message if the corresponding endpoint couldn't be resolved or if it
                     // was received by a different gateway than the one associated with the endpoint.
-                    var endpoint = await _manager.FindEndpointByAddressAsync(address);
+                    //
+                    // Note: while the battery level is reported using a unit-specific address, it applies to the entire
+                    // device: this task retrieves the device endpoint and, if available, report its battery level.
+                    var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromDecimalZigbeeAddress(
+                        OpenNettyAddress.ToZigbeeAddress(address).Identifier));
+                    
                     if (endpoint is null || (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway))
                     {
                         return;
                     }
 
-                    List<Task> tasks = [];
-
-                    if (endpoint.HasCapability(OpenNettyCapabilities.Battery))
+                    if (endpoint.HasCapability(OpenNettyCapabilities.BatteryLevel))
                     {
-                        tasks.Add(ReportBatteryLevelAsync(endpoint, CancellationToken.None).AsTask());
-                    }
-
-                    tasks.Add(Task.Run(async () =>
-                    {
-                        // Note: while the battery level is reported using a unit-specific address, it applies to the entire
-                        // device: this task retrieves the device endpoint and, if available, report its battery level.
-                        var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromDecimalZigbeeAddress(
-                            OpenNettyAddress.ToZigbeeAddress(address).Identifier));
-
-                        if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.Battery))
+                        await _events.PublishAsync(new BatteryLevelReportedEventArgs(endpoint, value switch
                         {
-                            await ReportBatteryLevelAsync(endpoint, CancellationToken.None);
-                        }
-                    }));
-
-                    async ValueTask ReportBatteryLevelAsync(OpenNettyEndpoint endpoint, CancellationToken cancellationToken)
-                        => await _events.PublishAsync(new BatteryLevelReportedEventArgs(endpoint, value switch
-                        {
-                            "0" => 0,
+                            "0" => 5,
                             "1" => 33,
                             "2" => 66,
                             "3" => 100,
 
                             _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
-                        }), cancellationToken);
+                        }));
+                    }
                     break;
                 }
 
-                // Note: Nitoo radio devices don't directly expose the battery level but send a special frame
-                // header converted to an OpenWebNet "BATTERY WEAK" BUS COMMAND when the battery is low.
                 case (OpenNettyNotifications.MessageReceived,
                       OpenNettyMessage { Protocol: OpenNettyProtocol.Nitoo,
                                          Type    : OpenNettyMessageType.BusCommand,
@@ -1239,9 +1220,38 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         return;
                     }
 
-                    if (endpoint.HasCapability(OpenNettyCapabilities.Battery))
+                    if (endpoint.HasCapability(OpenNettyCapabilities.BatteryAlert))
                     {
-                        await _events.PublishAsync(new BatteryLevelReportedEventArgs(endpoint, 5));
+                        await _events.PublishAsync(new BatteryAlertReportedEventArgs(endpoint));
+                    }
+                    break;
+                }
+
+                // Note: uptime DIMENSION READ messages never include an address, as they are sent by the gateway itself.
+                case (OpenNettyNotifications.MessageReceived,
+                      OpenNettyMessage { Protocol : OpenNettyProtocol.Nitoo or OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee,
+                                         Type     : OpenNettyMessageType.DimensionRead,
+                                         Address  : null,
+                                         Dimension: OpenNettyDimension dimension,
+                                         Values   : [{ Length: > 0 }, { Length: > 0 }, { Length: > 0 }, { Length: > 0 }] values })
+                    when dimension == OpenNettyDimensions.Management.Uptime:
+                {
+                    // Resolve the endpoint associated with the gateway that received the DIMENSION READ message.
+                    var endpoint = await _manager.FindEndpointAsync(endpoint =>
+                        endpoint.Device == arguments.Notification.Gateway.Device && endpoint.Unit is null);
+
+                    if (endpoint is null)
+                    {
+                        return;
+                    }
+
+                    if (endpoint.HasCapability(OpenNettyCapabilities.Uptime))
+                    {
+                        await _events.PublishAsync(new UptimeReportedEventArgs(endpoint, new TimeSpan(
+                            days   : int.Parse(values[0], CultureInfo.InvariantCulture),
+                            hours  : int.Parse(values[1], CultureInfo.InvariantCulture),
+                            minutes: int.Parse(values[2], CultureInfo.InvariantCulture),
+                            seconds: int.Parse(values[3], CultureInfo.InvariantCulture))));
                     }
                     break;
                 }
@@ -1252,7 +1262,8 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Command : OpenNettyCommand command,
                                          Address : OpenNettyAddress address })
                     when command == OpenNettyCommands.Scenario.OpenBinding ||
-                         command == OpenNettyCommands.Scenario.CloseBinding:
+                         command == OpenNettyCommands.Scenario.CloseBinding ||
+                         command == OpenNettyCommands.Scenario.CancelBinding:
                 {
                     // Ignore the message if the corresponding endpoint couldn't be resolved or if it
                     // was received by a different gateway than the one associated with the endpoint.
@@ -1269,9 +1280,14 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                             await _events.PublishAsync(new BindingOpenEventArgs(endpoint));
                         }
 
-                        else
+                        else if (command == OpenNettyCommands.Scenario.CloseBinding)
                         {
                             await _events.PublishAsync(new BindingClosedEventArgs(endpoint));
+                        }
+
+                        else if (command == OpenNettyCommands.Scenario.CancelBinding)
+                        {
+                            await _events.PublishAsync(new BindingCanceledEventArgs(endpoint));
                         }
                     }
                     break;
@@ -1315,7 +1331,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         return;
                     }
 
-                    if (endpoint.HasCapability(OpenNettyCapabilities.DimmingScenario))
+                    if (endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioState))
                     {
                         var step = int.Parse(value, CultureInfo.InvariantCulture);
                         if (step is >= 128)
@@ -1355,7 +1371,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
 
                     if (command == OpenNettyCommands.Scenario.Action)
                     {
-                        if (!endpoint.HasCapability(OpenNettyCapabilities.BasicScenario))
+                        if (!endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioState))
                         {
                             break;
                         }
@@ -1368,40 +1384,37 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         // Note: since they are radiofrequency devices, the current state of Nitoo wireless burglar alarms
                         // cannot be retrieved using a unit description request. To inform devices associated using a
                         // PnL scenario of a state change, Nitoo alarms broadcast it using unit-specific ACTION scenarios.
-                        if (endpoint.HasCapability(OpenNettyCapabilities.WirelessBurglarAlarmScenario))
+                        tasks.Add(Task.Run(async () =>
                         {
-                            tasks.Add(Task.Run(async () =>
+                            var (identifier, unit) = OpenNettyAddress.ToNitooAddress(address);
+                            if (unit is not (>= 4 and <= 9))
                             {
-                                var (identifier, unit) = OpenNettyAddress.ToNitooAddress(address);
+                                return;
+                            }
 
-                                var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(identifier));
-                                if (endpoint is null || !endpoint.HasCapability(OpenNettyCapabilities.WirelessBurglarAlarmState))
-                                {
-                                    return;
-                                }
+                            var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(identifier));
+                            if (endpoint is null || !endpoint.HasCapability(OpenNettyCapabilities.WirelessBurglarAlarmState))
+                            {
+                                return;
+                            }
 
-                                var state = unit switch
-                                {
-                                    4 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.Armed,
-                                    5 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.Disarmed,
-                                    6 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.PartiallyArmed,
-                                    7 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.Triggered,
-                                    8 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.ExitDelayElapsed,
-                                    9 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.EventDetected,
-                                    _ => null as OpenNettyModels.Alarm.WirelessBurglarAlarmState?
-                                };
+                            await _events.PublishAsync(new WirelessBurglarAlarmStateReportedEventArgs(endpoint, unit switch
+                            {
+                                4 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.Armed,
+                                5 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.Disarmed,
+                                6 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.PartiallyArmed,
+                                7 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.Triggered,
+                                8 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.ExitDelayElapsed,
+                                9 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.EventDetected,
 
-                                if (state is not null)
-                                {
-                                    await _events.PublishAsync(new WirelessBurglarAlarmStateReportedEventArgs(endpoint, state.Value));
-                                }
+                                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
                             }));
-                        }
+                        }));
                     }
 
                     else if (command.Value == OpenNettyCommands.Scenario.ActionForTime.Value)
                     {
-                        if (!endpoint.HasCapability(OpenNettyCapabilities.TimedScenario))
+                        if (!endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioState))
                         {
                             break;
                         }
@@ -1416,7 +1429,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
 
                     else if (command.Value == OpenNettyCommands.Scenario.ActionInTime.Value)
                     {
-                        if (!endpoint.HasCapability(OpenNettyCapabilities.ProgressiveScenario))
+                        if (!endpoint.HasCapability(OpenNettyCapabilities.ProgressiveScenarioState))
                         {
                             break;
                         }
@@ -1645,7 +1658,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 switch (arguments.Message)
                 {
                     case { Type: OpenNettyMessageType.BusCommand, Command: OpenNettyCommand command }
-                        when command == OpenNettyCommands.Scenario.Action && !endpoint.HasCapability(OpenNettyCapabilities.BasicScenario):
+                        when command == OpenNettyCommands.Scenario.Action && !endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioState):
                         return;
 
                     case { Type: OpenNettyMessageType.BusCommand, Command: OpenNettyCommand command }
@@ -1671,18 +1684,18 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     case { Type: OpenNettyMessageType.BusCommand, Command: OpenNettyCommand command }
                         when command.Category == OpenNettyCategories.Scenarios                  &&
                              command.Value    == OpenNettyCommands.Scenario.ActionForTime.Value &&
-                            !endpoint.HasCapability(OpenNettyCapabilities.TimedScenario):
+                            !endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioState):
                         return;
 
                     case { Type: OpenNettyMessageType.BusCommand, Command: OpenNettyCommand command }
                         when command.Category == OpenNettyCategories.Scenarios                 &&
                              command.Value    == OpenNettyCommands.Scenario.ActionInTime.Value &&
-                            !endpoint.HasCapability(OpenNettyCapabilities.ProgressiveScenario):
+                            !endpoint.HasCapability(OpenNettyCapabilities.ProgressiveScenarioState):
                         return;
 
                     case { Type: OpenNettyMessageType.DimensionSet, Dimension: OpenNettyDimension dimension }
                         when dimension == OpenNettyDimensions.Lighting.DimmerStep &&
-                            !endpoint.HasCapability(OpenNettyCapabilities.DimmingScenario):
+                            !endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioState):
                         return;
                 }
 
@@ -1779,7 +1792,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 return;
             }
 
-            if (!endpoint.HasCapability(OpenNettyCapabilities.TimedScenario))
+            if (!endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioState))
             {
                 return;
             }
