@@ -317,10 +317,17 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
                 {
                     null or { Length: 0 } => null,
 
-                    { Length:   2 } value when value is "00"       => new OpenNettyAddress(OpenNettyAddressType.ZigbeeAllDevicesAllUnits, value),
-                    { Length:   2 } value                          => new OpenNettyAddress(OpenNettyAddressType.ZigbeeAllDevicesSpecificUnit, value),
-                    { Length: > 2 } value when value[^2..] is "00" => new OpenNettyAddress(OpenNettyAddressType.ZigbeeSpecificDeviceAllUnits, value),
-                    { Length: > 2 } value                          => new OpenNettyAddress(OpenNettyAddressType.ZigbeeSpecificDeviceSpecificUnit, value),
+                    { Length: 2 } value when byte.TryParse(value, CultureInfo.InvariantCulture, out byte unit)
+                        => OpenNettyAddress.FromDecimalZigbeeAddress(0, unit),
+
+                    { Length: > 2 } value when value[^2..] is "00" &&
+                        uint.TryParse(value[0..^2], CultureInfo.InvariantCulture, out uint identifier)
+                        => OpenNettyAddress.FromDecimalZigbeeAddress(identifier, 0),
+
+                    { Length: > 2 } value when
+                        uint.TryParse(value[0..^2], CultureInfo.InvariantCulture, out uint identifier) &&
+                        byte.TryParse(value[^2..],  CultureInfo.InvariantCulture, out byte unit)
+                        => OpenNettyAddress.FromDecimalZigbeeAddress(identifier, unit),
 
                     _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0066))
                 };
@@ -340,7 +347,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
                 {
                     [{ IsEmpty: true }] => (null as OpenNettyMode?, null as OpenNettyAddress?, null as OpenNettyMedium?),
 
-                    [{        Value: "0"        }, {  Value: var address     }] => (OpenNettyMode.Broadcast, CreateAddress(address), OpenNettyMedium.Powerline),
+                    [{        Value: "0"        }, {    Value: var address   }] => (OpenNettyMode.Broadcast, CreateAddress(address), OpenNettyMedium.Powerline),
                     [{   Value: "0"  }, { Value: var address }, { Value: "0" }] => (OpenNettyMode.Broadcast, CreateAddress(address), OpenNettyMedium.Powerline),
                     [{   Value: "0"  }, { Value: var address }, { Value: "1" }] => (OpenNettyMode.Broadcast, CreateAddress(address), OpenNettyMedium.Radio),
                     [{   Value: "0"  }, { Value: var address }, { Value: "2" }] => (OpenNettyMode.Broadcast, CreateAddress(address), OpenNettyMedium.Infrared),
@@ -362,11 +369,8 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
                 {
                     null or { Length: 0 } => null,
 
-                    string value when uint.TryParse(value, CultureInfo.InvariantCulture, out uint result) && result % 16 is 0
-                        => new OpenNettyAddress(OpenNettyAddressType.NitooDevice, value),
-
-                    string value when uint.TryParse(value, CultureInfo.InvariantCulture, out uint result) && result % 16 is not 0
-                        => new OpenNettyAddress(OpenNettyAddressType.NitooUnit, value),
+                    string value when uint.TryParse(value, CultureInfo.InvariantCulture, out uint result)
+                        => OpenNettyAddress.FromNitooAddress(result / 16, (byte) (result % 16)),
 
                     _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0066))
                 };
@@ -697,8 +701,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
                 // Note: broadcast is always the default transmission mode for messages
                 // sent to an address that doesn't include a device identifier part.
                 case OpenNettyMode.Broadcast:
-                case null when address.Value.Type is OpenNettyAddressType.ZigbeeAllDevicesAllUnits or
-                                                     OpenNettyAddressType.ZigbeeAllDevicesSpecificUnit:
+                case null when OpenNettyAddress.ToZigbeeAddress(address.Value) is { Identifier: 0 }:
                     parameters.Add(new OpenNettyParameter("0"));
                     break;
             }

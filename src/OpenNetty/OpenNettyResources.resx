@@ -384,9 +384,6 @@
   <data name="ID0089" xml:space="preserve">
     <value>A non-null '{0}' attribute is required for Nitoo devices.</value>
   </data>
-  <data name="ID0090" xml:space="preserve">
-    <value>A non-null '{0}' attribute is required for Nitoo units.</value>
-  </data>
   <data name="ID0091" xml:space="preserve">
     <value>A non-null '{0}' attribute is required for SCS light point area addresses.</value>
   </data>
@@ -398,9 +395,6 @@
   </data>
   <data name="ID0094" xml:space="preserve">
     <value>A non-null '{0}' attribute is required for Zigbee devices.</value>
-  </data>
-  <data name="ID0095" xml:space="preserve">
-    <value>A non-null '{0}' attribute is required for Zigbee units.</value>
   </data>
   <data name="ID0096" xml:space="preserve">
     <value>A non-null '{0}' attribute is required for endpoint capabilities.</value>

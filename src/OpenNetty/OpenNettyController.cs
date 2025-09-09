@@ -479,7 +479,8 @@ public class OpenNettyController
         {
             case OpenNettyProtocol.Nitoo:
             case OpenNettyProtocol.Scs    when endpoint.Address is { Type: OpenNettyAddressType.ScsLightPointPointToPoint }:
-            case OpenNettyProtocol.Zigbee when endpoint.Address is { Type: OpenNettyAddressType.ZigbeeSpecificDeviceSpecificUnit }:
+            case OpenNettyProtocol.Zigbee when endpoint.Address is { Type: OpenNettyAddressType.Zigbee } address &&
+                OpenNettyAddress.ToZigbeeAddress(address) is { Identifier: not 0, Unit: not 0 }:
                 return GetBrightnessAsync(endpoint, cancellationToken)
                     .AsTask()
                     .ToAsyncEnumerable()
@@ -616,7 +617,8 @@ public class OpenNettyController
         {
             case OpenNettyProtocol.Nitoo:
             case OpenNettyProtocol.Scs    when endpoint.Address is { Type: OpenNettyAddressType.ScsLightPointPointToPoint }:
-            case OpenNettyProtocol.Zigbee when endpoint.Address is { Type: OpenNettyAddressType.ZigbeeSpecificDeviceSpecificUnit }:
+            case OpenNettyProtocol.Zigbee when endpoint.Address is { Type: OpenNettyAddressType.Zigbee } address &&
+                OpenNettyAddress.ToZigbeeAddress(address) is { Identifier: not 0, Unit: not 0 }:
                 return GetShutterPositionAsync(endpoint, cancellationToken)
                     .AsTask()
                     .ToAsyncEnumerable()
@@ -677,7 +679,8 @@ public class OpenNettyController
         {
             case OpenNettyProtocol.Nitoo:
             case OpenNettyProtocol.Scs    when endpoint.Address is { Type: OpenNettyAddressType.ScsLightPointPointToPoint }:
-            case OpenNettyProtocol.Zigbee when endpoint.Address is { Type: OpenNettyAddressType.ZigbeeSpecificDeviceSpecificUnit }:
+            case OpenNettyProtocol.Zigbee when endpoint.Address is { Type: OpenNettyAddressType.Zigbee } address &&
+                OpenNettyAddress.ToZigbeeAddress(address) is { Identifier: not 0, Unit: not 0 }:
                 return GetShutterStateAsync(endpoint, cancellationToken)
                     .AsTask()
                     .ToAsyncEnumerable()
@@ -800,7 +803,8 @@ public class OpenNettyController
         {
             case OpenNettyProtocol.Nitoo:
             case OpenNettyProtocol.Scs    when endpoint.Address is { Type: OpenNettyAddressType.ScsLightPointPointToPoint }:
-            case OpenNettyProtocol.Zigbee when endpoint.Address is { Type: OpenNettyAddressType.ZigbeeSpecificDeviceSpecificUnit }:
+            case OpenNettyProtocol.Zigbee when endpoint.Address is { Type: OpenNettyAddressType.Zigbee } address &&
+                OpenNettyAddress.ToZigbeeAddress(address) is { Identifier: not 0, Unit: not 0 }:
                 return GetSwitchStateAsync(endpoint, cancellationToken)
                     .AsTask()
                     .ToAsyncEnumerable()

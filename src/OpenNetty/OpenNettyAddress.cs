@@ -238,7 +238,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
     /// <param name="unit">The unit, or 0 to represent a device address that doesn't point to a specific unit.</param>
     /// <returns>A Zigbee address based on the specified device identifier and unit.</returns>
     /// <exception cref="ArgumentOutOfRangeException">The identifier or unit is not valid.</exception>
-    public static OpenNettyAddress FromDecimalZigbeeAddress(uint? identifier, byte unit = 0)
+    public static OpenNettyAddress FromDecimalZigbeeAddress(uint identifier, byte unit)
     {
         // Note: Zigbee identifiers are 4-byte long and fit exactly in an
         // unsigned 32-bit integer, so a range check is not required.
@@ -248,18 +248,14 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
             throw new ArgumentOutOfRangeException(nameof(unit), SR.GetResourceString(SR.ID0050));
         }
 
-        if (identifier is null)
+        if (identifier is 0)
         {
-            return unit is 0 ?
-                new OpenNettyAddress(OpenNettyAddressType.ZigbeeAllDevicesAllUnits, "00") :
-                new OpenNettyAddress(OpenNettyAddressType.ZigbeeAllDevicesSpecificUnit, unit.ToString("00", CultureInfo.InvariantCulture));
+            return new OpenNettyAddress(OpenNettyAddressType.Zigbee, unit is 0 ? "00" : unit.ToString("00", CultureInfo.InvariantCulture));
         }
 
-        return unit is 0 ?
-            new OpenNettyAddress(OpenNettyAddressType.ZigbeeSpecificDeviceAllUnits,
-                identifier.Value.ToString(CultureInfo.InvariantCulture) + "00") :
-            new OpenNettyAddress(OpenNettyAddressType.ZigbeeSpecificDeviceSpecificUnit,
-                identifier.Value.ToString(CultureInfo.InvariantCulture) + unit.ToString("00", CultureInfo.InvariantCulture));
+        return new OpenNettyAddress(OpenNettyAddressType.Zigbee, unit is 0 ?
+            identifier.ToString(CultureInfo.InvariantCulture) + "00" :
+            identifier.ToString(CultureInfo.InvariantCulture) + unit.ToString("00", CultureInfo.InvariantCulture));
     }
 
     /// <summary>
@@ -269,12 +265,9 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
     /// <param name="unit">The unit, or 0 to represent a device address that doesn't point to a specific unit.</param>
     /// <returns>A Zigbee address based on the specified device identifier and unit.</returns>
     /// <exception cref="ArgumentException">The identifier is not a valid hexadecimal string.</exception>
-    public static OpenNettyAddress FromHexadecimalZigbeeAddress(string? identifier, byte unit = 0)
+    public static OpenNettyAddress FromHexadecimalZigbeeAddress(string identifier, byte unit)
     {
-        if (string.IsNullOrEmpty(identifier))
-        {
-            return FromDecimalZigbeeAddress(null, unit);
-        }
+        ArgumentException.ThrowIfNullOrEmpty(identifier);
 
         if (!uint.TryParse(identifier, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out uint result))
         {
@@ -291,7 +284,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
     /// <param name="unit">The unit, or 0 to represent a device address that doesn't point to a specific unit.</param>
     /// <returns>A Nitoo address based on the specified device identifier and unit.</returns>
     /// <exception cref="ArgumentOutOfRangeException">The identifier or unit is not valid.</exception>
-    public static OpenNettyAddress FromNitooAddress(uint identifier, byte unit = 0)
+    public static OpenNettyAddress FromNitooAddress(uint identifier, byte unit)
     {
         if (identifier > Math.Pow(2, 24))
         {
@@ -303,9 +296,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
             throw new ArgumentOutOfRangeException(nameof(unit), SR.GetResourceString(SR.ID0045));
         }
 
-        return unit is 0 ?
-            new OpenNettyAddress(OpenNettyAddressType.NitooDevice, (identifier * 16).ToString(CultureInfo.InvariantCulture)) :
-            new OpenNettyAddress(OpenNettyAddressType.NitooUnit, ((identifier * 16) + unit).ToString(CultureInfo.InvariantCulture));
+        return new OpenNettyAddress(OpenNettyAddressType.Nitoo, ((identifier * 16) + unit).ToString(CultureInfo.InvariantCulture));
     }
 
     /// <summary>
@@ -451,7 +442,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
     /// <exception cref="InvalidOperationException">The address doesn't represent a valid Nitoo address.</exception>
     public static (uint Identifier, byte Unit) ToNitooAddress(OpenNettyAddress address)
     {
-        if (address.Type is not (OpenNettyAddressType.NitooDevice or OpenNettyAddressType.NitooUnit))
+        if (address.Type is not OpenNettyAddressType.Nitoo)
         {
             throw new ArgumentException(SR.GetResourceString(SR.ID0052), nameof(address));
         }
@@ -502,7 +493,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
     /// <param name="address">The address.</param>
     /// <returns>The bus extension, if applicable.</returns>
     /// <exception cref="ArgumentException">The address doesn't represent a valid SCS light point general address.</exception>
-    public static byte? ToScsLightPointGeneralAddress(OpenNettyAddress address)
+    public static byte ToScsLightPointGeneralAddress(OpenNettyAddress address)
     {
         if (address.Type is not OpenNettyAddressType.ScsLightPointGeneral)
         {
@@ -516,7 +507,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
 
         return address.Parameters switch
         {
-            { IsDefaultOrEmpty: true } => null,
+            { IsDefaultOrEmpty: true } => 0,
 
             ["4", string value] when byte.TryParse(value, CultureInfo.InvariantCulture, out byte extension) && extension is >= 0 and <= 15
                 => extension,
@@ -617,11 +608,9 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
     /// <param name="address">The address.</param>
     /// <returns>A Zigbee address based on the specified address.</returns>
     /// <exception cref="ArgumentException">The address doesn't represent a valid Zigbee address.</exception>
-    public static (uint? Identifier, byte Unit) ToZigbeeAddress(OpenNettyAddress address)
+    public static (uint Identifier, byte Unit) ToZigbeeAddress(OpenNettyAddress address)
     {
-        if (address.Type is not
-            (OpenNettyAddressType.ZigbeeAllDevicesAllUnits     or OpenNettyAddressType.ZigbeeAllDevicesSpecificUnit or
-             OpenNettyAddressType.ZigbeeSpecificDeviceAllUnits or OpenNettyAddressType.ZigbeeSpecificDeviceSpecificUnit))
+        if (address.Type is not OpenNettyAddressType.Zigbee)
         {
             throw new ArgumentException(SR.GetResourceString(SR.ID0062), nameof(address));
         }
@@ -633,7 +622,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
                 throw new ArgumentException(SR.GetResourceString(SR.ID0063), nameof(address));
             }
 
-            return (Identifier: null, unit);
+            return (Identifier: 0, unit);
         }
 
         else if (address.Value is { Length: > 2 })

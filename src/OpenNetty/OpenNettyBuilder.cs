@@ -307,16 +307,12 @@ public sealed class OpenNettyBuilder
 
             var type = (string?) endpoint.Attribute("Type") switch
             {
-                "Nitoo device"                          => OpenNettyAddressType.NitooDevice,
-                "Nitoo unit"                            => OpenNettyAddressType.NitooUnit,
-                "SCS light point area"                  => OpenNettyAddressType.ScsLightPointArea,
-                "SCS light point general"               => OpenNettyAddressType.ScsLightPointGeneral,
-                "SCS light point group"                 => OpenNettyAddressType.ScsLightPointGroup,
-                "SCS light point point-to-point"        => OpenNettyAddressType.ScsLightPointPointToPoint,
-                "Zigbee all devices, all units"         => OpenNettyAddressType.ZigbeeAllDevicesAllUnits,
-                "Zigbee all devices, specific unit"     => OpenNettyAddressType.ZigbeeAllDevicesSpecificUnit,
-                "Zigbee specific device, all units"     => OpenNettyAddressType.ZigbeeSpecificDeviceAllUnits,
-                "Zigbee specific device, specific unit" => OpenNettyAddressType.ZigbeeSpecificDeviceSpecificUnit,
+                "Nitoo"                          => OpenNettyAddressType.Nitoo,
+                "SCS light point area"           => OpenNettyAddressType.ScsLightPointArea,
+                "SCS light point general"        => OpenNettyAddressType.ScsLightPointGeneral,
+                "SCS light point group"          => OpenNettyAddressType.ScsLightPointGroup,
+                "SCS light point point-to-point" => OpenNettyAddressType.ScsLightPointPointToPoint,
+                "Zigbee"                         => OpenNettyAddressType.Zigbee,
 
                 null => (OpenNettyAddressType?) null,
 
@@ -329,8 +325,7 @@ public sealed class OpenNettyBuilder
                 // Note: gateway endpoints don't have an address attached.
                 _ when device is not null && device.Definition.Capabilities.Contains(OpenNettyCapabilities.OpenWebNetGateway) => null,
 
-                OpenNettyProtocol.Nitoo when unit is not null => OpenNettyAddressType.NitooUnit,
-                OpenNettyProtocol.Nitoo => OpenNettyAddressType.NitooDevice,
+                OpenNettyProtocol.Nitoo => OpenNettyAddressType.Nitoo,
 
                 OpenNettyProtocol.Scs when endpoint.Attribute("Area") is not null && endpoint.Attribute("Point") is null
                     => OpenNettyAddressType.ScsLightPointArea,
@@ -344,8 +339,7 @@ public sealed class OpenNettyBuilder
                 OpenNettyProtocol.Scs when endpoint.Attribute("Area") is not null && endpoint.Attribute("Point") is not null
                     => OpenNettyAddressType.ScsLightPointPointToPoint,
 
-                OpenNettyProtocol.Zigbee when unit is not null => OpenNettyAddressType.ZigbeeSpecificDeviceSpecificUnit,
-                OpenNettyProtocol.Zigbee                       => OpenNettyAddressType.ZigbeeSpecificDeviceAllUnits,
+                OpenNettyProtocol.Zigbee => OpenNettyAddressType.Zigbee,
 
                 _ => throw new InvalidOperationException(SR.FormatID0088(name, "Type"))
             };
@@ -354,15 +348,13 @@ public sealed class OpenNettyBuilder
             {
                 null => device?.Definition.Protocol ?? throw new InvalidOperationException(SR.FormatID0088(name, "Type")),
 
-                OpenNettyAddressType.NitooDevice or OpenNettyAddressType.NitooUnit => OpenNettyProtocol.Nitoo,
+                OpenNettyAddressType.Nitoo => OpenNettyProtocol.Nitoo,
 
                 OpenNettyAddressType.ScsLightPointArea  or OpenNettyAddressType.ScsLightPointGeneral or
                 OpenNettyAddressType.ScsLightPointGroup or OpenNettyAddressType.ScsLightPointPointToPoint
                     => OpenNettyProtocol.Scs,
 
-                OpenNettyAddressType.ZigbeeAllDevicesAllUnits     or OpenNettyAddressType.ZigbeeAllDevicesSpecificUnit or
-                OpenNettyAddressType.ZigbeeSpecificDeviceAllUnits or OpenNettyAddressType.ZigbeeSpecificDeviceSpecificUnit
-                    => OpenNettyProtocol.Zigbee,
+                OpenNettyAddressType.Zigbee => OpenNettyProtocol.Zigbee,
 
                 _ => throw new InvalidOperationException(SR.FormatID0088(name, "Type"))
             };
@@ -371,12 +363,9 @@ public sealed class OpenNettyBuilder
             {
                 null => (OpenNettyAddress?) null,
 
-                OpenNettyAddressType.NitooDevice => OpenNettyAddress.FromNitooAddress(
-                    uint.Parse(device?.SerialNumber ?? throw new InvalidOperationException(SR.FormatID0089("SerialNumber")), CultureInfo.InvariantCulture)),
-
-                OpenNettyAddressType.NitooUnit => OpenNettyAddress.FromNitooAddress(
+                OpenNettyAddressType.Nitoo => OpenNettyAddress.FromNitooAddress(
                     identifier: uint.Parse(device?.SerialNumber ?? throw new InvalidOperationException(SR.FormatID0089("SerialNumber")), CultureInfo.InvariantCulture),
-                    unit      : (byte?) (uint?) endpoint.Parent?.Attribute("Id") ?? throw new InvalidOperationException(SR.FormatID0090("Id"))),
+                    unit      : (byte?) (uint?) endpoint.Parent?.Attribute("Id") ?? 0),
 
                 OpenNettyAddressType.ScsLightPointArea => OpenNettyAddress.FromScsLightPointAreaAddress(
                     area     : (byte?) (uint?) endpoint.Attribute("Area") ?? throw new InvalidOperationException(SR.FormatID0091("Area")),
@@ -394,18 +383,9 @@ public sealed class OpenNettyBuilder
                     point    : (byte?) (uint?) endpoint.Attribute("Point") ?? throw new InvalidOperationException(SR.FormatID0093("Point")),
                     extension: (byte?) (uint?) endpoint.Attribute("Extension") ?? 0),
 
-                OpenNettyAddressType.ZigbeeAllDevicesAllUnits => OpenNettyAddress.FromHexadecimalZigbeeAddress(null),
-
-                OpenNettyAddressType.ZigbeeAllDevicesSpecificUnit => OpenNettyAddress.FromHexadecimalZigbeeAddress(
-                    identifier: null,
-                    unit      : (byte?) (uint?) endpoint.Parent?.Attribute("Id") ?? throw new InvalidOperationException(SR.FormatID0095("Id"))),
-
-                OpenNettyAddressType.ZigbeeSpecificDeviceAllUnits => OpenNettyAddress.FromHexadecimalZigbeeAddress(
-                    device?.SerialNumber ?? throw new InvalidOperationException(SR.FormatID0094("SerialNumber"))),
-
-                OpenNettyAddressType.ZigbeeSpecificDeviceSpecificUnit => OpenNettyAddress.FromHexadecimalZigbeeAddress(
+                OpenNettyAddressType.Zigbee => OpenNettyAddress.FromHexadecimalZigbeeAddress(
                     identifier: device?.SerialNumber ?? throw new InvalidOperationException(SR.FormatID0094("SerialNumber")),
-                    unit      : (byte?) (uint?) endpoint.Parent?.Attribute("Id") ?? throw new InvalidOperationException(SR.FormatID0095("Id"))),
+                    unit      : (byte?) (uint?) endpoint.Parent?.Attribute("Id") ?? 0),
 
                 _ => throw new InvalidOperationException(SR.FormatID0088(name, "Type"))
             };
