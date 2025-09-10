@@ -77,7 +77,7 @@ The following Legrand and BTicino products are partially or fully supported by O
 | MyHome Up         |                    | 03651             | F418U2            | 2-gang DIN rail dimmer switch          |
 | MyHome Up         |                    | 03847             | F411U1            | 1-gang DIN rail switch                 |
 | MyHome Up         |                    | 03848             | F411U2            | 2-gang DIN rail switch                 |
-| MyHome Up         | Céliane            | 67557             |                   | 2-channel advanced automation actuator |
+| MyHome Up         | Céliane            | 67557             |                   | 1-channel advanced automation actuator |
 | MyHome Up         | Céliane            | 67561             |                   | 2-channel lighting/automation actuator |
 |                   |                    |                   |                   |                                        |
 | MyHome Play       | Céliane            | 67223             |                   | Light control switch                   |
@@ -246,7 +246,8 @@ To be able to communicate with "In One by Legrand", "MyHome Play" and "MyHome Up
 
 For that, you need to add a `Device` node with the correct brand/model attributes for each device present in the installation:
   - The serial number is required for In One by Legrand and MyHome Play devices and optional for MyHome Up devices.
-  - The unit node is not used for MyHome Up devices but is generally required for In One by Legrand and MyHome Play devices.
+  - The unit node - also known as a "module" in MyHome Suite - is generally required,
+  except when targeting a feature exposed by the device itself and not one of its units.
   - The unit must match one of the unit identifiers offered by the specific device. If you're unsure what identifier should be used,
   you can see [`OpenNettyDevices.xml`](src/OpenNetty/OpenNettyDevices.xml) for a list of all the supported devices and the units they expose.
   - For MyHome Up devices, the area/point attributes must match the values assigned via [MyHome Suite](https://www.homesystems-legrandgroup.com/home?p_p_id=it_smc_bticino_homesystems_search_AutocompletesearchPortlet&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_it_smc_bticino_homesystems_search_AutocompletesearchPortlet_journalArticleId=2493426&_it_smc_bticino_homesystems_search_AutocompletesearchPortlet_mvcPath=%2Fview_journal_article_content.jsp).
@@ -316,28 +317,39 @@ For that, you need to add a `Device` node with the correct brand/model attribute
   <!-- MyHome Up two-way light actuator -->
 
   <Device Brand="BTicino" Model="F411U2" SerialNumber="00B582A5">
-    <Endpoint Name="Garage/Recessed light 1" Type="SCS light point" Area="4" Point="1">
-      <Setting Name="Actuator type" Value="Lighting" />
-    </Endpoint>
+    <Unit Id="1">
+      <Endpoint Name="Garage/Recessed light 1" Area="4" Point="1">
+        <Setting Name="Actuator type" Value="Lighting" />
+      </Endpoint>
+    </Unit>
 
-    <Endpoint Name="Garage/Recessed light 2" Type="SCS light point" Area="4" Point="2">
-      <Setting Name="Actuator type" Value="Lighting" />
-    </Endpoint>
+    <Unit Id="2">
+      <Endpoint Name="Garage/Recessed light 2" Area="4" Point="2">
+        <Setting Name="Actuator type" Value="Lighting" />
+      </Endpoint>
+    </Unit>
   </Device>
 
   <!-- MyHome Up shutter actuator -->
 
   <Device Brand="BTicino" Model="F411U2" SerialNumber="00A472A9">
-    <Endpoint Name="Living room/Shutter" Type="SCS light point" Area="1" Point="3">
-      <Setting Name="Actuator type" Value="Automation" />
-    </Endpoint>
+    <Unit Id="1">
+      <Endpoint Name="Living room/Shutter" Area="1" Point="3">
+        <Setting Name="Actuator type" Value="Automation" />
+      </Endpoint>
+    </Unit>
   </Device>
 
   <!-- MyHome Up two-way dimmer -->
 
   <Device Brand="BTicino" Model="F418U2" SerialNumber="00B582A5">
-    <Endpoint Name="Living room/Wall light 1" Type="SCS light point" Area="1" Point="1" />
-    <Endpoint Name="Living room/Wall light 2" Type="SCS light point" Area="1" Point="2" />
+    <Unit Id="1">
+      <Endpoint Name="Living room/Wall light 1" Area="1" Point="1" />
+    </Unit>
+
+    <Unit Id="2">
+      <Endpoint Name="Living room/Wall light 2" Area="1" Point="2" />
+    </Unit>
   </Device>
 
   <!-- MyHome Up light point group endpoint -->
@@ -575,7 +587,19 @@ builder.Services.AddOpenNetty(options =>
         Device = new OpenNettyDevice
         {
             Definition = OpenNettyDevices.GetDeviceByModel(OpenNettyBrand.BTicino, "F418U2")
-                ?? throw new InvalidOperationException("The specified gateway model is not supported.")
+                ?? throw new InvalidOperationException("The specified product is not supported."),
+            Identity = new OpenNettyIdentity
+            {
+                Brand = OpenNettyBrand.BTicino,
+                Collection = null,
+                Description = "2-gang DIN rail dimmer switch",
+                Model = "F418U2"
+            }
+        },
+        Unit = new OpenNettyUnit
+        {
+            Definition = OpenNettyDevices.GetUnitByModel(OpenNettyBrand.BTicino, "F418U2", 1)
+                ?? throw new InvalidOperationException("The specified product is not supported.")
         },
         Name = "Bathroom/Recessed light",
         Protocol = OpenNettyProtocol.Scs
@@ -680,6 +704,7 @@ options.AddEndpoint(new OpenNettyEndpoint
         {
             Brand = OpenNettyBrand.Legrand,
             Collection = "Céliane",
+            Description = "Dimmable switched outlet",
             Model = "67222"
         },
         SerialNumber = "487932",
@@ -702,15 +727,19 @@ To avoid ambiguities, OpenNetty requires that the actual type be specified for S
 
 ```xml
 <Device Brand="BTicino" Model="F411U2" SerialNumber="00B582A5">
-  <Endpoint Name="Garage/Recessed light 1" Type="SCS light point" Area="4" Point="1">
-    <Setting Name="Actuator type" Value="Lighting" />
-  </Endpoint>
+  <Unit Id="1">
+    <Endpoint Name="Garage/Recessed light 1" Area="4" Point="1">
+      <Setting Name="Actuator type" Value="Lighting" />
+    </Endpoint>
+  </Unit>
 </Device>
 
 <Device Brand="BTicino" Model="F411U2" SerialNumber="00A472A9">
-  <Endpoint Name="Living room/Shutter" Type="SCS light point" Area="1" Point="3">
-    <Setting Name="Actuator type" Value="Automation" />
-  </Endpoint>
+  <Unit Id="1">
+    <Endpoint Name="Living room/Shutter" Area="1" Point="3">
+      <Setting Name="Actuator type" Value="Automation" />
+    </Endpoint>
+  </Unit>
 </Device>
 ```
 
@@ -748,9 +777,11 @@ switch mode so that OpenNetty can properly report the OFF state and ignore area 
 
 ```xml
 <Device Brand="BTicino" Model="F411U1" SerialNumber="0019BF87">
-  <Endpoint Name="Patio/Doorbell" Type="SCS light point" Area="9" Point="1">
-    <Setting Name="Switch mode" Value="Push button" />
-  </Endpoint>
+  <Unit Id="1">
+    <Endpoint Name="Patio/Doorbell" Area="9" Point="1">
+      <Setting Name="Switch mode" Value="Push button" />
+    </Endpoint>
+  </Unit>
 </Device>
 ```
 

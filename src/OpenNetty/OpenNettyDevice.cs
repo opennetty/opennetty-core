@@ -37,7 +37,7 @@ public sealed class OpenNettyDevice : IEquatable<OpenNettyDevice>
         ImmutableDictionary<OpenNettySetting, string>.Empty;
 
     /// <summary>
-    /// Gets or sets the units associated with the device, if applicable.
+    /// Gets or sets the units associated with the device.
     /// </summary>
     public ImmutableArray<OpenNettyUnit> Units { get; init; } = [];
 
