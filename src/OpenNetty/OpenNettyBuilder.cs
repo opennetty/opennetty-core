@@ -325,7 +325,13 @@ public sealed class OpenNettyBuilder
                 OpenNettyProtocol.Nitoo  => OpenNettyAddressType.Nitoo,
                 OpenNettyProtocol.Zigbee => OpenNettyAddressType.Zigbee,
 
-                // Note: SCS addresses are never inferred automatically and a type MUST be explicitly attached.
+                // Note: SCS units/modules supporting ON/OFF switching or shutter
+                // control are assumed to use SCS light point addresses by default.
+                OpenNettyProtocol.Scs when unit is not null &&
+                    (unit.Definition.Capabilities.Contains(OpenNettyCapabilities.OnOffSwitchControl) ||
+                     unit.Definition.Capabilities.Contains(OpenNettyCapabilities.BasicShutterControl) ||
+                     unit.Definition.Capabilities.Contains(OpenNettyCapabilities.AdvancedShutterControl))
+                    => OpenNettyAddressType.ScsLightPoint,
 
                 _ => throw new InvalidOperationException(SR.FormatID0088(name, "Type"))
             };

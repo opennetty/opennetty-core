@@ -20,7 +20,7 @@ public sealed class OpenNettyUnit : IEquatable<OpenNettyUnit>
     public required OpenNettyUnitDefinition Definition { get; init; }
 
     /// <summary>
-    /// Gets or sets the scenarios associated with the unit, if applicable.
+    /// Gets or sets the scenarios associated with the unit, if applicable (Nitoo-only).
     /// </summary>
     public ImmutableArray<OpenNettyScenario> Scenarios { get; init; } = [];
 

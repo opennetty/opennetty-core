@@ -70,7 +70,6 @@ public sealed class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
     /// <summary>
     /// Gets or sets the unit associated with the endpoint, if applicable.
     /// </summary>
-    /// <remarks>Note: units are only valid for Nitoo or Zigbee endpoints.</remarks>
     public OpenNettyUnit? Unit { get; init; }
 
     /// <summary>
@@ -99,7 +98,7 @@ public sealed class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
     /// </returns>
     public bool HasCapability(OpenNettyCapability capability)
     {
-        if (Protocol is OpenNettyProtocol.Nitoo or OpenNettyProtocol.Zigbee && Unit is OpenNettyUnit unit)
+        if (Unit is OpenNettyUnit unit)
         {
             return unit.HasCapability(capability);
         }
@@ -126,17 +125,17 @@ public sealed class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
             return true;
         }
 
-        return Protocol switch
+        if (Unit is OpenNettyUnit unit)
         {
-            OpenNettyProtocol.Nitoo or OpenNettyProtocol.Zigbee when Unit is OpenNettyUnit unit
-                => unit.TryGetSetting(setting, out value),
+            return unit.TryGetSetting(setting, out value);
+        }
 
-            OpenNettyProtocol.Nitoo or OpenNettyProtocol.Scs or
-            OpenNettyProtocol.Zigbee when Device is OpenNettyDevice device
-                => device.TryGetSetting(setting, out value),
+        if (Device is OpenNettyDevice device)
+        {
+            return device.TryGetSetting(setting, out value);
+        }
 
-            _ => false
-        };
+        return false;
     }
 
     /// <inheritdoc/>

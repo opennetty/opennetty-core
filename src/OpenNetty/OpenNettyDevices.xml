@@ -808,30 +808,61 @@
     <Identity Brand="BTicino" Model="F411U1" Description="1-gang DIN rail switch" />
     <Identity Brand="Legrand" Model="03847"  Description="1-gang DIN rail switch" />
 
-    <Capability Name="On/off switch state" />
-    <Capability Name="On/off switch control" />
+    <Unit Id="1" Description="Output">
+      <Capability Name="On/off switch state" />
+      <Capability Name="On/off switch control" />
+
+      <Setting Name="Home Assistant light/switch name" Value="Module 1" />
+    </Unit>
   </Device>
 
   <Device Series="MyHome" Protocol="Scs" Medium="Bus">
     <Identity Brand="BTicino" Model="F411U2" Description="2-gang DIN rail switch" />
     <Identity Brand="Legrand" Model="03848"  Description="2-gang DIN rail switch" />
 
-    <Capability Name="Basic shutter control" />
-    <Capability Name="Basic shutter state" />
-    <Capability Name="On/off switch state" />
-    <Capability Name="On/off switch control" />
+    <Unit Id="1" Description="Output 1">
+      <Capability Name="Basic shutter control" />
+      <Capability Name="Basic shutter state" />
+      <Capability Name="On/off switch state" />
+      <Capability Name="On/off switch control" />
+
+      <Setting Name="Home Assistant cover name" Value="Module 1" />
+      <Setting Name="Home Assistant light/switch name" Value="Module 1" />
+    </Unit>
+
+    <Unit Id="2" Description="Output 2">
+      <Capability Name="On/off switch state" />
+      <Capability Name="On/off switch control" />
+
+      <Setting Name="Home Assistant light/switch name" Value="Module 2" />
+    </Unit>
   </Device>
 
   <Device Series="MyHome" Protocol="Scs" Medium="Bus">
     <Identity Brand="BTicino" Model="F418U2" Description="2-gang DIN rail dimmer switch" />
     <Identity Brand="Legrand" Model="03651"  Description="2-gang DIN rail dimmer switch" />
 
-    <Capability Name="Advanced dimming control" />
-    <Capability Name="Advanced dimming state" />
-    <Capability Name="Basic dimming control" />
-    <Capability Name="Basic dimming state" />
-    <Capability Name="On/off switch state" />
-    <Capability Name="On/off switch control" />
+    <Unit Id="1" Description="Output 1">
+      <Capability Name="Advanced dimming control" />
+      <Capability Name="Advanced dimming state" />
+      <Capability Name="Basic dimming control" />
+      <Capability Name="Basic dimming state" />
+      <Capability Name="On/off switch state" />
+      <Capability Name="On/off switch control" />
+
+      <Setting Name="Home Assistant light/switch name" Value="Module 1" />
+    </Unit>
+
+    <Unit Id="2" Description="Output 2">
+      <Capability Name="Advanced dimming control" />
+      <Capability Name="Advanced dimming state" />
+      <Capability Name="Basic dimming control" />
+      <Capability Name="Basic dimming state" />
+      <Capability Name="On/off switch state" />
+      <Capability Name="On/off switch control" />
+
+      <Setting Name="Home Assistant light/switch name" Value="Module 2" />
+    </Unit>
   </Device>
 
   <Device Series="MyHome" Protocol="Scs" Medium="Bus">
@@ -859,21 +890,40 @@
   </Device>
 
   <Device Series="MyHome" Protocol="Scs" Medium="Bus">
-    <Identity Brand="Legrand" Collection="Céliane" Model="67557" Description="2-channel advanced automation actuator" />
+    <Identity Brand="Legrand" Collection="Céliane" Model="67557" Description="1-channel advanced automation actuator" />
 
-    <Capability Name="Advanced shutter control" />
-    <Capability Name="Advanced shutter state" />
-    <Capability Name="Basic shutter control" />
-    <Capability Name="Basic shutter state" />
+    <Unit Id="1" Description="Output 1">
+      <Capability Name="Advanced shutter control" />
+      <Capability Name="Advanced shutter state" />
+      <Capability Name="Basic shutter control" />
+      <Capability Name="Basic shutter state" />
+
+      <Setting Name="Home Assistant cover name" Value="Module 1" />
+    </Unit>
   </Device>
 
   <Device Series="MyHome" Protocol="Scs" Medium="Bus">
     <Identity Brand="Legrand" Collection="Céliane" Model="67561" Description="2-channel lighting/automation actuator" />
 
-    <Capability Name="Basic shutter control" />
-    <Capability Name="Basic shutter state" />
-    <Capability Name="On/off switch state" />
-    <Capability Name="On/off switch control" />
+    <Unit Id="1" Description="Output 1">
+      <Capability Name="Basic shutter control" />
+      <Capability Name="Basic shutter state" />
+      <Capability Name="On/off switch state" />
+      <Capability Name="On/off switch control" />
+
+      <Setting Name="Home Assistant cover name" Value="Module 1" />
+      <Setting Name="Home Assistant light/switch name" Value="Module 1" />
+    </Unit>
+
+    <Unit Id="2" Description="Output 2">
+      <Capability Name="On/off switch state" />
+      <Capability Name="On/off switch control" />
+
+      <Setting Name="Home Assistant light/switch name" Value="Module 2" />
+    </Unit>
+
+    <Unit Id="3" Description="Command 1" />
+    <Unit Id="4" Description="Command 2" />
   </Device>
 
   <!--
