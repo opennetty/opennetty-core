@@ -497,29 +497,6 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     break;
                 }
 
-                case (OpenNettyNotifications.MessageReceived,
-                      OpenNettyMessage { Protocol: OpenNettyProtocol.Zigbee,
-                                         Type    : OpenNettyMessageType.BusCommand,
-                                         Command : OpenNettyCommand command,
-                                         Address : OpenNettyAddress address })
-                    when command == OpenNettyCommands.Lighting.Toggle:
-                {
-                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
-                    {
-                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                        if (endpoint.Gateway != notification.Gateway)
-                        {
-                            return;
-                        }
-
-                        if (endpoint.HasCapability(OpenNettyCapabilities.ToggleScenarioState))
-                        {
-                            await _events.PublishAsync(new ToggleScenarioReportedEventArgs(endpoint), cancellationToken);
-                        }
-                    });
-                    break;
-                }
-
                 // The shutter state and the position of an endpoint can be inferred from 3 types of messages:
                 //
                 //   - From an incoming or outgoing "STOP", "UP" or "DOWN" BUS COMMAND message:
@@ -1341,6 +1318,52 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                             }
 
                             await _events.PublishAsync(new DimmingStepReportedEventArgs(endpoint, step), cancellationToken);
+                        }
+                    });
+                    break;
+                }
+
+                case (OpenNettyNotifications.MessageReceived,
+                      OpenNettyMessage { Protocol: OpenNettyProtocol.Zigbee,
+                                         Type    : OpenNettyMessageType.BusCommand,
+                                         Command : OpenNettyCommand command,
+                                         Address : OpenNettyAddress address })
+                    when command == OpenNettyCommands.Lighting.Toggle:
+                {
+                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
+                    {
+                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
+                        if (endpoint.Gateway != notification.Gateway)
+                        {
+                            return;
+                        }
+
+                        if (endpoint.HasCapability(OpenNettyCapabilities.ToggleScenarioState))
+                        {
+                            await _events.PublishAsync(new ToggleScenarioReportedEventArgs(endpoint), cancellationToken);
+                        }
+                    });
+                    break;
+                }
+
+                case (OpenNettyNotifications.MessageReceived,
+                      OpenNettyMessage { Protocol: OpenNettyProtocol.Zigbee,
+                                         Type    : OpenNettyMessageType.BusCommand,
+                                         Command : OpenNettyCommand command,
+                                         Address : OpenNettyAddress address })
+                    when command == OpenNettyCommands.Scenario.ShortPressure:
+                {
+                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
+                    {
+                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
+                        if (endpoint.Gateway != notification.Gateway)
+                        {
+                            return;
+                        }
+
+                        if (endpoint.HasCapability(OpenNettyCapabilities.ShortPressureScenarioState))
+                        {
+                            await _events.PublishAsync(new ShortPressureScenarioReportedEventArgs(endpoint), cancellationToken);
                         }
                     });
                     break;

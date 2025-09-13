@@ -716,6 +716,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioState) ||
                     endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioState) ||
                     endpoint.HasCapability(OpenNettyCapabilities.ProgressiveScenarioState) ||
+                    endpoint.HasCapability(OpenNettyCapabilities.ShortPressureScenarioState) ||
                     endpoint.HasCapability(OpenNettyCapabilities.StopActionScenarioState) ||
                     endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioState) ||
                     endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioState) ||
@@ -743,6 +744,11 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     if (endpoint.HasCapability(OpenNettyCapabilities.ProgressiveScenarioState))
                     {
                         types.Add("progressive_action");
+                    }
+
+                    if (endpoint.HasCapability(OpenNettyCapabilities.ShortPressureScenarioState))
+                    {
+                        types.Add("short_pressure");
                     }
 
                     if (endpoint.HasCapability(OpenNettyCapabilities.StopActionScenarioState))
@@ -782,6 +788,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                                    endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioState) ||
                                                    endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioState) ||
                                                    endpoint.HasCapability(OpenNettyCapabilities.ProgressiveScenarioState) ||
+                                                   endpoint.HasCapability(OpenNettyCapabilities.ShortPressureScenarioState) ||
                                                    endpoint.HasCapability(OpenNettyCapabilities.StopActionScenarioState) ||
                                                    endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioState) ||
                                                    endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioState) ||
@@ -1769,39 +1776,17 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 return $"{name} [{description}]";
             }
 
-            if (endpoint.Address is OpenNettyAddress address)
+            if (endpoint.Unit is not null)
             {
-                return $"{name} [{address.Type switch
-                {
-                    OpenNettyAddressType.Nitoo
-                        when OpenNettyAddress.ToNitooAddress(address) is { Identifier: uint identifier, Unit: byte unit }
-                        => $"D={identifier.ToString(CultureInfo.InvariantCulture)}/U={unit.ToString(CultureInfo.InvariantCulture)}",
-
-                    OpenNettyAddressType.ScsLightPoint when OpenNettyAddress.IsScsLightPointAreaAddress(address) &&
-                        OpenNettyAddress.ToScsLightPointAddress(address) is { Extension: byte extension, Area: byte area }
-                        => $"A={area.ToString(CultureInfo.InvariantCulture)}/I={extension.ToString(CultureInfo.InvariantCulture)}",
-
-                    OpenNettyAddressType.ScsLightPoint when OpenNettyAddress.IsScsLightPointGeneralAddress(address) &&
-                        OpenNettyAddress.ToScsLightPointAddress(address) is { Extension: byte extension }
-                        => $"GEN/I={extension.ToString(CultureInfo.InvariantCulture)}",
-
-                    OpenNettyAddressType.ScsLightPoint when OpenNettyAddress.IsScsLightPointGroupAddress(address) &&
-                        OpenNettyAddress.ToScsLightPointAddress(address) is { Extension: byte extension, Group: byte group }
-                        => $"GR={group.ToString(CultureInfo.InvariantCulture)}/I={extension.ToString(CultureInfo.InvariantCulture)}",
-
-                    OpenNettyAddressType.ScsLightPoint when OpenNettyAddress.IsScsLightPointPointToPointAddress(address) &&
-                        OpenNettyAddress.ToScsLightPointAddress(address) is { Extension: byte extension, Area: byte area, Point: byte point }
-                        => $"PL={point.ToString(CultureInfo.InvariantCulture)}/A={area.ToString(CultureInfo.InvariantCulture)}/I={extension.ToString(CultureInfo.InvariantCulture)}",
-
-                    OpenNettyAddressType.Zigbee
-                        when OpenNettyAddress.ToZigbeeAddress(address) is { Identifier: uint identifier, Unit: byte unit }
-                        => $"D={identifier.ToString(CultureInfo.InvariantCulture)}/U={unit.ToString(CultureInfo.InvariantCulture)}",
-
-                    _ => string.Empty
-                }}]";
+                return $"{name} [{endpoint.Unit.Definition.Description}]";
             }
 
-            return $"{name} [Local gateway]";
+            if (endpoint.Address is null)
+            {
+                return $"{name} [Local gateway]";
+            }
+
+            return name;
         }
 
         static bool SupportsCoverEntity(OpenNettyEndpoint endpoint)

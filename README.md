@@ -81,6 +81,7 @@ The following Legrand and BTicino products are partially or fully supported by O
 | MyHome Up         | Céliane            | 67561             |                   | 2-channel lighting/automation actuator |
 |                   |                    |                   |                   |                                        |
 | MyHome Play       | Céliane            | 67223             |                   | Light control switch                   |
+| MyHome Play       | Céliane            | 67266             |                   | Multifunction scenario switch          |
 | MyHome Play       |                    | 88328             | 3578              | Zigbee/USB gateway                     |
 | MyHome Play       |                    | 88337             |                   | Switched outlet                        |
 
