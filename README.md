@@ -568,12 +568,14 @@ var builder = Host.CreateApplicationBuilder();
 
 builder.Services.AddOpenNetty(options =>
 {
-    options.AddGateway(OpenNettyGateway.Create(
+    var gateway = OpenNettyGateway.Create(
         name    : "F454 gateway",
         brand   : OpenNettyBrand.BTicino,
         model   : "F454",
         endpoint: IPEndPoint.Parse("192.168.5.10:20000"),
-        password: "aJhYiBHk8"));
+        password: "aJhYiBHk8");
+
+    options.AddGateway(gateway);
 
     options.AddEndpoint(new OpenNettyEndpoint
     {
@@ -596,6 +598,7 @@ builder.Services.AddOpenNetty(options =>
                 Model = "F418U2"
             }
         },
+        Gateway = gateway,
         Unit = new OpenNettyUnit
         {
             Definition = OpenNettyDevices.GetUnitByModel(OpenNettyBrand.BTicino, "F418U2", 1)
@@ -615,6 +618,7 @@ builder.Services.AddOpenNetty(options =>
             area     : 1,
             point    : null),
         Capabilities = [OpenNettyCapabilities.OnOffSwitchControl],
+        Gateway = gateway,
         Name = "Bathroom/All lights",
         Protocol = OpenNettyProtocol.Scs
     });
@@ -711,6 +715,7 @@ options.AddEndpoint(new OpenNettyEndpoint
         Settings = ImmutableDictionary.Create<OpenNettySetting, string>()
             .Add(OpenNettySettings.ActionValidation, bool.FalseString)
     },
+    Gateway = gateway,
     Name = "Kitchen/Dimmable socket",
     Protocol = OpenNettyProtocol.Nitoo,
     Unit = new OpenNettyUnit

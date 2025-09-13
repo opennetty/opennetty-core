@@ -237,6 +237,11 @@ public static class OpenNettyCapabilities
     public static readonly OpenNettyCapability ZigbeeBinding = new("Zigbee binding");
 
     /// <summary>
+    /// Zigbee network management.
+    /// </summary>
+    public static readonly OpenNettyCapability ZigbeeNetworkManagement = new("Zigbee network management");
+
+    /// <summary>
     /// Zigbee supervision.
     /// </summary>
     public static readonly OpenNettyCapability ZigbeeSupervision = new("Zigbee supervision");

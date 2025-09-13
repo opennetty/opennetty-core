@@ -49,7 +49,7 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
                     },
                     Capabilities = [],
                     Device = device,
-                    Gateway = null,
+                    Gateway = options.Gateways.First(gateway => gateway.Protocol == device.Definition.Protocol),
                     Medium = device.Definition.Medium,
                     Name = ComputeDefaultEndpointName(device),
                     Protocol = device.Definition.Protocol,
@@ -91,7 +91,8 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
                         },
                         Capabilities = [],
                         Device = device,
-                        Gateway = null,
+                        Gateway = options.Gateways.FirstOrDefault(gateway => gateway.Protocol == device.Definition.Protocol)
+                            ?? throw new InvalidOperationException(SR.FormatID0120(device.Definition.Protocol)),
                         Medium = device.Definition.Medium,
                         Name = ComputeDefaultEndpointName(device, definition),
                         Protocol = device.Definition.Protocol,
@@ -139,6 +140,23 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
                  endpoint.Name.Contains('*', StringComparison.OrdinalIgnoreCase)))
             {
                 return ValidateOptionsResult.Fail(SR.FormatID2000(endpoint.Name));
+            }
+
+            switch (endpoint.GetBooleanSetting(OpenNettySettings.ActionValidation))
+            {
+                case null: break;
+
+                case not null:
+                    if (endpoint.Protocol is not OpenNettyProtocol.Nitoo)
+                    {
+                        return ValidateOptionsResult.Fail(SR.GetResourceString(SR.ID2010));
+                    }
+
+                    if (endpoint.Address is null)
+                    {
+                        return ValidateOptionsResult.Fail(SR.GetResourceString(SR.ID2011));
+                    }
+                    break;
             }
 
             switch (endpoint.GetStringSetting(OpenNettySettings.ActuatorType))

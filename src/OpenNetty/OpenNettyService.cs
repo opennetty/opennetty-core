@@ -48,7 +48,7 @@ public class OpenNettyService : IOpenNettyService
         OpenNettyMedium? medium = null,
         OpenNettyMode? mode = null,
         OpenNettyGateway? gateway = null,
-        OpenNettyTransmissionOptions options = OpenNettyTransmissionOptions.None,
+        OpenNettyTransmissionOptions? options = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         if (!Enum.IsDefined(protocol))
@@ -69,12 +69,13 @@ public class OpenNettyService : IOpenNettyService
         // If no gateway was explicitly specified, try to resolve it from the options.
         gateway ??= _options.CurrentValue.Gateways.Find(gateway => gateway.Protocol == protocol) ??
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0032));
+        options ??= gateway.Options.DefaultTransmissionOptions;
 
         var message = OpenNettyMessage.CreateDimensionRequest(protocol, dimension, address, medium, mode);
 
         // Note: acknowledgement validation is deliberately disabled while sending the DIMENSION REQUEST frame
         // as it's used by the OWN gateway to indicate when it's done pushing additional DIMENSION READ frames.
-        options |= OpenNettyTransmissionOptions.IgnoreAcknowledgementValidation;
+        options = options with { IgnoreAcknowledgementValidation = true };
 
         var context = ResilienceContextPool.Shared.Get(cancellationToken);
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)), gateway);
@@ -129,7 +130,7 @@ public class OpenNettyService : IOpenNettyService
 
         try
         {
-            session = await gateway.Options.OutgoingMessageResiliencePipeline.ExecuteAsync(async context =>
+            session = await options.OutgoingMessageResiliencePipeline.ExecuteAsync(async context =>
                 await DispatchMessageAsync(message, gateway, options, context.CancellationToken), context);
         }
 
@@ -141,7 +142,7 @@ public class OpenNettyService : IOpenNettyService
         await foreach (var notification in notifications
             .Where(notification => notification.Session == session)
             .OfType<(OpenNettySession Session, OpenNettyMessage Message), (OpenNettySession Session, OpenNettyMessage Message)?>()
-            .Timeout(gateway.Options.MultipleDimensionReplyTimeout, AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)?>(null))
+            .Timeout(options.MultipleDimensionReplyTimeout, AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)?>(null))
             .ToAsyncEnumerable())
         {
             switch (notification?.Message.Type)
@@ -169,7 +170,7 @@ public class OpenNettyService : IOpenNettyService
         OpenNettyMode? mode = null,
         Func<OpenNettyCommand, ValueTask<bool>>? filter = null,
         OpenNettyGateway? gateway = null,
-        OpenNettyTransmissionOptions options = OpenNettyTransmissionOptions.None,
+        OpenNettyTransmissionOptions? options = null,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         if (!Enum.IsDefined(protocol))
@@ -190,12 +191,13 @@ public class OpenNettyService : IOpenNettyService
         // If no gateway was explicitly specified, try to resolve it from the options.
         gateway ??= _options.CurrentValue.Gateways.Find(gateway => gateway.Protocol == protocol) ??
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0032));
+        options ??= gateway.Options.DefaultTransmissionOptions;
 
         var message = OpenNettyMessage.CreateStatusRequest(protocol, category, address, medium, mode);
 
         // Note: acknowledgement validation is deliberately disabled while sending the STATUS REQUEST frame
         // as it's used by the gateway to indicate when it's done pushing additional BUS COMMAND frames.
-        options |= OpenNettyTransmissionOptions.IgnoreAcknowledgementValidation;
+        options = options with { IgnoreAcknowledgementValidation = true };
 
         var context = ResilienceContextPool.Shared.Get(cancellationToken);
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)), gateway);
@@ -254,7 +256,7 @@ public class OpenNettyService : IOpenNettyService
 
         try
         {
-            session = await gateway.Options.OutgoingMessageResiliencePipeline.ExecuteAsync(async context =>
+            session = await options.OutgoingMessageResiliencePipeline.ExecuteAsync(async context =>
                 await DispatchMessageAsync(message, gateway, options, context.CancellationToken), context);
         }
 
@@ -266,7 +268,7 @@ public class OpenNettyService : IOpenNettyService
         await foreach (var notification in notifications
             .Where(notification => notification.Session == session)
             .OfType<(OpenNettySession Session, OpenNettyMessage Message), (OpenNettySession Session, OpenNettyMessage Message)?>()
-            .Timeout(gateway.Options.MultipleStatusReplyTimeout, AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)?>(null))
+            .Timeout(options.MultipleStatusReplyTimeout, AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)?>(null))
             .ToAsyncEnumerable())
         {
             switch (notification?.Message.Type)
@@ -293,7 +295,7 @@ public class OpenNettyService : IOpenNettyService
         OpenNettyMedium? medium = null,
         OpenNettyMode? mode = null,
         OpenNettyGateway? gateway = null,
-        OpenNettyTransmissionOptions options = OpenNettyTransmissionOptions.None,
+        OpenNettyTransmissionOptions? options = null,
         CancellationToken cancellationToken = default)
     {
         if (!Enum.IsDefined(protocol))
@@ -309,6 +311,7 @@ public class OpenNettyService : IOpenNettyService
         // If no gateway was explicitly specified, try to resolve it from the options.
         gateway ??= _options.CurrentValue.Gateways.Find(gateway => gateway.Protocol == protocol) ??
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0032));
+        options ??= gateway.Options.DefaultTransmissionOptions;
 
         var message = OpenNettyMessage.CreateCommand(protocol, command, address, medium, mode);
 
@@ -320,7 +323,7 @@ public class OpenNettyService : IOpenNettyService
 
         try
         {
-            await gateway.Options.OutgoingMessageResiliencePipeline.ExecuteAsync(async context =>
+            await options.OutgoingMessageResiliencePipeline.ExecuteAsync(async context =>
                 await DispatchMessageAsync(message, gateway, options, context.CancellationToken), context);
         }
 
@@ -338,7 +341,7 @@ public class OpenNettyService : IOpenNettyService
         OpenNettyMedium? medium = null,
         OpenNettyMode? mode = null,
         OpenNettyGateway? gateway = null,
-        OpenNettyTransmissionOptions options = OpenNettyTransmissionOptions.None,
+        OpenNettyTransmissionOptions? options = null,
         CancellationToken cancellationToken = default)
     {
         if (!Enum.IsDefined(protocol))
@@ -354,6 +357,7 @@ public class OpenNettyService : IOpenNettyService
         // If no gateway was explicitly specified, try to resolve it from the options.
         gateway ??= _options.CurrentValue.Gateways.Find(gateway => gateway.Protocol == protocol) ??
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0032));
+        options ??= gateway.Options.DefaultTransmissionOptions;
 
         var message = OpenNettyMessage.CreateDimensionRequest(protocol, dimension, address, medium, mode);
 
@@ -392,14 +396,14 @@ public class OpenNettyService : IOpenNettyService
 
         try
         {
-            return await gateway.Options.OutgoingMessageResiliencePipeline.ExecuteAsync(async context =>
+            return await options.OutgoingMessageResiliencePipeline.ExecuteAsync(async context =>
             {
                 var session = await DispatchMessageAsync(message, gateway, options, context.CancellationToken);
 
                 return (await notifications
                     .FirstOrDefault(notification => notification.Session == session)
                     .OfType<(OpenNettySession Session, OpenNettyMessage Message), (OpenNettySession Session, OpenNettyMessage Message)?>()
-                    .Timeout(gateway.Options.UniqueDimensionReplyTimeout, AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)?>(null))
+                    .Timeout(options.UniqueDimensionReplyTimeout, AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)?>(null))
                     .RunAsync(cancellationToken))?.Message.Values ?? throw new OpenNettyException(
                         OpenNettyErrorCode.NoDimensionReceived, SR.GetResourceString(SR.ID0033));
             }, context);
@@ -420,7 +424,7 @@ public class OpenNettyService : IOpenNettyService
         OpenNettyMode? mode = null,
         Func<OpenNettyCommand, ValueTask<bool>>? filter = null,
         OpenNettyGateway? gateway = null,
-        OpenNettyTransmissionOptions options = OpenNettyTransmissionOptions.None,
+        OpenNettyTransmissionOptions? options = null,
         CancellationToken cancellationToken = default)
     {
         if (!Enum.IsDefined(protocol))
@@ -436,6 +440,7 @@ public class OpenNettyService : IOpenNettyService
         // If no gateway was explicitly specified, try to resolve it from the options.
         gateway ??= _options.CurrentValue.Gateways.Find(gateway => gateway.Protocol == protocol) ??
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0032));
+        options ??= gateway.Options.DefaultTransmissionOptions;
 
         var message = OpenNettyMessage.CreateStatusRequest(protocol, category, address, medium, mode);
 
@@ -478,14 +483,14 @@ public class OpenNettyService : IOpenNettyService
 
         try
         {
-            return await gateway.Options.OutgoingMessageResiliencePipeline.ExecuteAsync(async context =>
+            return await options.OutgoingMessageResiliencePipeline.ExecuteAsync(async context =>
             {
                 var session = await DispatchMessageAsync(message, gateway, options, context.CancellationToken);
 
                 return (await notifications
                     .FirstOrDefault(notification => notification.Session == session)
                     .OfType<(OpenNettySession Session, OpenNettyMessage Message), (OpenNettySession Session, OpenNettyMessage Message)?>()
-                    .Timeout(gateway.Options.UniqueStatusReplyTimeout, AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)?>(null))
+                    .Timeout(options.UniqueStatusReplyTimeout, AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)?>(null))
                     .RunAsync(cancellationToken))?.Message.Command ?? throw new OpenNettyException(
                         OpenNettyErrorCode.NoStatusReceived, SR.GetResourceString(SR.ID0034));
             }, context);
@@ -502,7 +507,7 @@ public class OpenNettyService : IOpenNettyService
     public virtual IAsyncObservable<OpenNettyMessage> ObserveMessagesAsync(
         OpenNettyMessage message,
         OpenNettyGateway? gateway = null,
-        OpenNettyTransmissionOptions options = OpenNettyTransmissionOptions.None,
+        OpenNettyTransmissionOptions? options = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(message);
@@ -515,6 +520,7 @@ public class OpenNettyService : IOpenNettyService
         // If no gateway was explicitly specified, try to resolve it from the options.
         gateway ??= _options.CurrentValue.Gateways.Find(gateway => gateway.Protocol == message.Protocol) ??
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0032));
+        options ??= gateway.Options.DefaultTransmissionOptions;
 
         return AsyncObservable.Create<OpenNettyMessage>(async observer =>
         {
@@ -542,7 +548,7 @@ public class OpenNettyService : IOpenNettyService
 
             try
             {
-                session = await gateway.Options.OutgoingMessageResiliencePipeline.ExecuteAsync(async context =>
+                session = await options.OutgoingMessageResiliencePipeline.ExecuteAsync(async context =>
                     await DispatchMessageAsync(message, gateway, options, context.CancellationToken), context);
             }
 
@@ -565,7 +571,7 @@ public class OpenNettyService : IOpenNettyService
     public virtual async ValueTask SendMessageAsync(
         OpenNettyMessage message,
         OpenNettyGateway? gateway = null,
-        OpenNettyTransmissionOptions options = OpenNettyTransmissionOptions.None,
+        OpenNettyTransmissionOptions? options = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(message);
@@ -578,6 +584,7 @@ public class OpenNettyService : IOpenNettyService
         // If no gateway was explicitly specified, try to resolve it from the options.
         gateway ??= _options.CurrentValue.Gateways.Find(gateway => gateway.Protocol == message.Protocol) ??
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0032));
+        options ??= gateway.Options.DefaultTransmissionOptions;
 
         var context = ResilienceContextPool.Shared.Get(cancellationToken);
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)), gateway);
@@ -587,7 +594,7 @@ public class OpenNettyService : IOpenNettyService
 
         try
         {
-            await gateway.Options.OutgoingMessageResiliencePipeline.ExecuteAsync(async context =>
+            await options.OutgoingMessageResiliencePipeline.ExecuteAsync(async context =>
                 await DispatchMessageAsync(message, gateway, options, context.CancellationToken), context);
         }
 
@@ -606,7 +613,7 @@ public class OpenNettyService : IOpenNettyService
         OpenNettyMedium? medium = null,
         OpenNettyMode? mode = null,
         OpenNettyGateway? gateway = null,
-        OpenNettyTransmissionOptions options = OpenNettyTransmissionOptions.None,
+        OpenNettyTransmissionOptions? options = null,
         CancellationToken cancellationToken = default)
     {
         if (!Enum.IsDefined(protocol))
@@ -622,6 +629,7 @@ public class OpenNettyService : IOpenNettyService
         // If no gateway was explicitly specified, try to resolve it from the options.
         gateway ??= _options.CurrentValue.Gateways.Find(gateway => gateway.Protocol == protocol) ??
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0032));
+        options ??= gateway.Options.DefaultTransmissionOptions;
 
         var message = OpenNettyMessage.CreateDimensionSet(protocol, dimension, values, address, medium, mode);
 
@@ -633,7 +641,7 @@ public class OpenNettyService : IOpenNettyService
 
         try
         {
-            await gateway.Options.OutgoingMessageResiliencePipeline.ExecuteAsync(async context =>
+            await options.OutgoingMessageResiliencePipeline.ExecuteAsync(async context =>
                 await DispatchMessageAsync(message, gateway, options, context.CancellationToken), context);
         }
 
@@ -680,7 +688,7 @@ public class OpenNettyService : IOpenNettyService
                 when dimension == OpenNettyDimensions.Management.FirmwareVersion ||
                      dimension == OpenNettyDimensions.Management.HardwareVersion ||
                      dimension == OpenNettyDimensions.Management.DeviceIdentifier:
-                options |= OpenNettyTransmissionOptions.IgnoreAcknowledgementValidation;
+                options = options with { IgnoreAcknowledgementValidation = true };
                 break;
         }
 
@@ -722,7 +730,7 @@ public class OpenNettyService : IOpenNettyService
         // If no notification is received, assume the message couldn't be processed by a worker.
         switch (await notifications
             .FirstOrDefault()
-            .Timeout(gateway.Options.OutgoingMessageProcessingTimeout, AsyncObservable.Return(default(OpenNettyNotification)))
+            .Timeout(options.OutgoingMessageProcessingTimeout, AsyncObservable.Return(default(OpenNettyNotification)))
             .RunAsync(cancellationToken))
         {
             case OpenNettyNotifications.MessageSent { Session: OpenNettySession session }:

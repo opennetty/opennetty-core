@@ -37,7 +37,7 @@ public interface IOpenNettyService
         OpenNettyMedium? medium = null,
         OpenNettyMode? mode = null,
         OpenNettyGateway? gateway = null,
-        OpenNettyTransmissionOptions options = OpenNettyTransmissionOptions.None,
+        OpenNettyTransmissionOptions? options = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -68,7 +68,7 @@ public interface IOpenNettyService
         OpenNettyMode? mode = null,
         Func<OpenNettyCommand, ValueTask<bool>>? filter = null,
         OpenNettyGateway? gateway = null,
-        OpenNettyTransmissionOptions options = OpenNettyTransmissionOptions.None,
+        OpenNettyTransmissionOptions? options = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -90,7 +90,7 @@ public interface IOpenNettyService
         OpenNettyMedium? medium = null,
         OpenNettyMode? mode = null,
         OpenNettyGateway? gateway = null,
-        OpenNettyTransmissionOptions options = OpenNettyTransmissionOptions.None,
+        OpenNettyTransmissionOptions? options = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -115,7 +115,7 @@ public interface IOpenNettyService
         OpenNettyMedium? medium = null,
         OpenNettyMode? mode = null,
         OpenNettyGateway? gateway = null,
-        OpenNettyTransmissionOptions options = OpenNettyTransmissionOptions.None,
+        OpenNettyTransmissionOptions? options = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -146,7 +146,7 @@ public interface IOpenNettyService
         OpenNettyMode? mode = null,
         Func<OpenNettyCommand, ValueTask<bool>>? filter = null,
         OpenNettyGateway? gateway = null,
-        OpenNettyTransmissionOptions options = OpenNettyTransmissionOptions.None,
+        OpenNettyTransmissionOptions? options = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -164,7 +164,7 @@ public interface IOpenNettyService
     IAsyncObservable<OpenNettyMessage> ObserveMessagesAsync(
         OpenNettyMessage message,
         OpenNettyGateway? gateway = null,
-        OpenNettyTransmissionOptions options = OpenNettyTransmissionOptions.None,
+        OpenNettyTransmissionOptions? options = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -179,7 +179,7 @@ public interface IOpenNettyService
     ValueTask SendMessageAsync(
         OpenNettyMessage message,
         OpenNettyGateway? gateway = null,
-        OpenNettyTransmissionOptions options = OpenNettyTransmissionOptions.None,
+        OpenNettyTransmissionOptions? options = null,
         CancellationToken cancellationToken = default);
 
     /// <summary>
@@ -203,6 +203,6 @@ public interface IOpenNettyService
         OpenNettyMedium? medium = null,
         OpenNettyMode? mode = null,
         OpenNettyGateway? gateway = null,
-        OpenNettyTransmissionOptions options = OpenNettyTransmissionOptions.None,
+        OpenNettyTransmissionOptions? options = null,
         CancellationToken cancellationToken = default);
 }

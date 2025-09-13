@@ -107,7 +107,8 @@ public sealed class OpenNettyHostedService : BackgroundService
                 }, stoppingToken));
 
                 // Ask the worker to process incoming and outgoing notifications for this gateway.
-                tasks.Add(_worker.ProcessNotificationsAsync(gateway, output.Reader, input.Writer, stoppingToken));
+                tasks.Add(_worker.ProcessNotificationsAsync(gateway,
+                    gateway.Options.DefaultWorkerOptions, output.Reader, input.Writer, stoppingToken));
             }
 
             // Connect the observable instances to allow observers to start processing notifications.

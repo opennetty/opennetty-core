@@ -93,106 +93,142 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     Type    : OpenNettyMessageType.BusCommand or OpenNettyMessageType.DimensionSet } message }
                 => AsyncObservable.Return<(OpenNettyNotification Notification, OpenNettyMessage Message)>((notification, message)),
 
+            // Note: while Zigbee devices report back state changes to the gateway when the supervisor mode
+            // is enabled, this mode suffers from two major limitations: it is not recommended to use it on
+            // more than one Zigbee gateway at a time and state changes are always throttled so that they are
+            // only reported 3 seconds after the last change (intermediate changes are also not reported).
+            // To mitigate these limitations, the outgoing Zigbee BUS COMMAND and DIMENSION SET messages that
+            // have been acknowledged by the gateway are monitored so that changes can be reported immediately.
+            OpenNettyNotifications.MessageSent {
+                Session.Type: OpenNettySessionType.Generic,
+                Message: {
+                    Protocol: OpenNettyProtocol.Zigbee,
+                    Type    : OpenNettyMessageType.BusCommand or OpenNettyMessageType.DimensionSet } message }
+                => AsyncObservable.Return<(OpenNettyNotification Notification, OpenNettyMessage Message)>((notification, message)),
+
             _ => AsyncObservable.Empty<(OpenNettyNotification Notification, OpenNettyMessage Message)>()
         })
         .Do(async arguments =>
         {
+            var (notification, message) = arguments;
+
             // Important: to ensure the order of events is preserved, this RX event handler processes incoming and outgoing
             // messages sequentially. As such, it is critical that this asynchronous method completes as quickly as possible.
 
-            switch (arguments)
+            switch ((notification, message))
             {
                 // The switch state and the brightness level of an endpoint can be inferred from 6 types of messages:
                 //
-                //   - For Nitoo devices, from an incoming or outgoing "OFF" or "ON" BUS COMMAND message.
-                //   - For SCS/Zigbee devices, from an incoming "OFF" or "ON" - parameterized or not - BUS COMMAND message.
-                //   - For SCS/Zigbee devices, from an incoming "ON%" BUS COMMAND message.
-                //   - For SCS/Zigbee devices, from an incoming "DIMMER SPEED LEVEL" or "DIMMER STATUS" DIMENSION READ message.
-                //   - For Nitoo devices, from an incoming "UNIT DESCRIPTION" DIMENSION READ message.
-                //   - For Nitoo devices, from an outgoing "DIMMER SPEED LEVEL" DIMENSION SET message.
+                //   - From an "OFF" or "ON" BUS COMMAND message:
+                //     * For Nitoo and Zigbee devices, the message MAY be incoming or outgoing.
+                //     * For SCS devices, the message MUST be incoming.
+                //
+                //   - From an incoming or outgoing "ON%" BUS COMMAND message:
+                //     * For SCS devices, the message MUST be incoming.
+                //     * For Zigbee devices, the message MAY be incoming or outgoing.
+                //
+                //   - For SCS and Zigbee devices, from an incoming "DIMMER SPEED LEVEL" or "DIMMER STATUS" DIMENSION READ message.
+                //   - For Nitoo and Zigbee devices, from an outgoing "DIMMER SPEED LEVEL" DIMENSION SET message.
+                //   - For Nitoo devices, from an incoming "UNIT DESCRIPTION=129" DIMENSION READ message (non-dimmable devices).
+                //   - For Nitoo devices, from an incoming "UNIT DESCRIPTION=143" DIMENSION READ message (dimmable devices).
 
-                case (OpenNettyNotification notification,
-                      OpenNettyMessage { Protocol: OpenNettyProtocol.Nitoo,
+                case (OpenNettyNotifications.MessageReceived or OpenNettyNotifications.MessageSent,
+                      OpenNettyMessage { Protocol: OpenNettyProtocol.Nitoo or OpenNettyProtocol.Zigbee,
                                          Type    : OpenNettyMessageType.BusCommand,
-                                         Command : OpenNettyCommand command,
-                                         Address : OpenNettyAddress address,
-                                         Mode    : OpenNettyMode mode })
-                    when command == OpenNettyCommands.Lighting.Off || command == OpenNettyCommands.Lighting.On:
+                                         Command : OpenNettyCommand,
+                                         Address : not null }) or
+                     (OpenNettyNotifications.MessageReceived,
+                      OpenNettyMessage { Protocol: OpenNettyProtocol.Scs,
+                                         Type    : OpenNettyMessageType.BusCommand,
+                                         Command : OpenNettyCommand,
+                                         Address : not null })
+                    // Note: ON/OFF BUS COMMAND frames can be parameterized.
+                    when message.Command?.WithParameters([]) == OpenNettyCommands.Lighting.On ||
+                         message.Command?.WithParameters([]) == OpenNettyCommands.Lighting.Off:
                 {
-                    // Ignore the message if the corresponding endpoint couldn't be resolved or if it
-                    // was received by a different gateway than the one associated with the endpoint.
-                    var endpoint = await _manager.FindEndpointByAddressAsync(address);
-                    if (endpoint is null || (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway))
+                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
                     {
-                        return;
-                    }
-
-                    // If the message was received and was emitted by the source using
-                    // a broadcast transmission, it is considered as an ON/OFF scenario.
-                    if (notification is OpenNettyNotifications.MessageReceived && mode is OpenNettyMode.Broadcast &&
-                        endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioState))
-                    {
-                        if (command == OpenNettyCommands.Lighting.On)
+                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
+                        if (endpoint.Gateway != notification.Gateway)
                         {
-                            await _events.PublishAsync(new OnScenarioReportedEventArgs(endpoint));
+                            return;
                         }
 
-                        else
-                        {
-                            await _events.PublishAsync(new OffScenarioReportedEventArgs(endpoint));
-                        }
-                    }
+                        List<Task> tasks = [];
 
-                    List<Task> tasks = [];
-
-                    // Note: outgoing ON/OFF commands sent using broadcast or multicast transmission
-                    // generally don't affect the local output of a Nitoo lighting device. As such,
-                    // the switch state/brightness of the endpoint is only reported if the message was
-                    // received (e.g by a different unit on the same device) or was sent in unicast.
-                    if (mode is OpenNettyMode.Unicast || notification is OpenNettyNotifications.MessageReceived)
-                    {
-                        if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState) &&
-                            endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is null or OpenNettySettings.ActuatorTypes.Lighting)
+                        switch (endpoint.Protocol)
                         {
-                            tasks.Add(ReportStateAsync(endpoint, CancellationToken.None).AsTask());
+                            // Note: outgoing ON/OFF commands sent using broadcast or multicast transmission
+                            // generally don't affect the local output of a Nitoo lighting device. As such,
+                            // the switch state/brightness of the endpoint is only reported if the message was
+                            // received (e.g by a different unit on the same device) or was sent in unicast.
+                            case OpenNettyProtocol.Nitoo when notification is OpenNettyNotifications.MessageReceived:
+                            case OpenNettyProtocol.Nitoo when notification is OpenNettyNotifications.MessageSent && message.Mode is OpenNettyMode.Unicast:
+                            case OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee:
+                                if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
+                                {
+                                    tasks.Add(ReportStateAsync(endpoint, cancellationToken).AsTask());
+                                }
+                                break;
                         }
 
-                        if (endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit.Definition.AssociatedUnitId: byte unit })
+                        // For Nitoo devices, if the ON/OFF command was emitted by a different unit
+                        // on the same device, reflect the state change on the linked endpoint.
+                        if (notification is OpenNettyNotifications.MessageReceived &&
+                            endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit.Definition.AssociatedUnitId: byte unit })
                         {
                             tasks.Add(Task.Run(async () =>
                             {
                                 var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(
-                                    OpenNettyAddress.ToNitooAddress(address).Identifier, unit));
+                                    OpenNettyAddress.ToNitooAddress(message.Address.Value).Identifier, unit));
 
-                                if (endpoint is not null &&
-                                    endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState) &&
-                                    endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is null or OpenNettySettings.ActuatorTypes.Lighting)
+                                if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
                                 {
-                                    await ReportStateAsync(endpoint, CancellationToken.None);
+                                    await ReportStateAsync(endpoint, cancellationToken);
                                 }
-                            }));
+                            }, cancellationToken));
                         }
-                    }
 
-                    if (mode is OpenNettyMode.Broadcast or OpenNettyMode.Multicast && endpoint is { Unit.Scenarios: [_, ..] scenarios })
-                    {
-                        var endpoints = scenarios.ToAsyncEnumerable()
-                            .Where(static scenario => scenario.FunctionCode is < 105)
-                            .SelectAwait(scenario => _manager.FindEndpointByNameAsync(scenario.EndpointName))
-                            .Where(static endpoint => endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit: OpenNettyUnit })
-                            .OfType<OpenNettyEndpoint>()
-                            .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
-                            .Where(static endpoint => endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is
-                                null or OpenNettySettings.ActuatorTypes.Lighting);
+                        // For Nitoo devices, if the message was sent using a broadcast or multicast transmission,
+                        // reflect the state change on all the other endpoints that are part of the same scenario.
+                        if (notification is OpenNettyNotifications.MessageReceived &&
+                            message.Mode is OpenNettyMode.Broadcast or OpenNettyMode.Multicast &&
+                            endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit.Scenarios: [_, ..] scenarios })
+                        {
+                            var endpoints = scenarios.ToAsyncEnumerable()
+                                .Where(static scenario => scenario.FunctionCode is < 105)
+                                .SelectAwait(scenario => _manager.FindEndpointByNameAsync(scenario.EndpointName))
+                                .Where(static endpoint => endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit: OpenNettyUnit })
+                                .OfType<OpenNettyEndpoint>()
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState));
 
-                        tasks.Add(Parallel.ForEachAsync(endpoints, ReportStateAsync));
-                    }
+                            tasks.Add(Parallel.ForEachAsync(endpoints, ReportStateAsync));
+                        }
 
-                    await Task.WhenAll(tasks);
+                        // If the message was emitted by a Nitoo device using a broadcast
+                        // transmission, it is also considered an ON/OFF scenario.
+                        if (notification is OpenNettyNotifications.MessageReceived &&
+                            message.Mode is OpenNettyMode.Broadcast &&
+                            endpoint.Protocol is OpenNettyProtocol.Nitoo &&
+                            endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioState))
+                        {
+                            if (message.Command == OpenNettyCommands.Lighting.On)
+                            {
+                                tasks.Add(_events.PublishAsync(new OnScenarioReportedEventArgs(endpoint), cancellationToken).AsTask());
+                            }
+
+                            else
+                            {
+                                tasks.Add(_events.PublishAsync(new OffScenarioReportedEventArgs(endpoint), cancellationToken).AsTask());
+                            }
+                        }
+
+                        await Task.WhenAll(tasks);
+                    });
 
                     async ValueTask ReportStateAsync(OpenNettyEndpoint endpoint, CancellationToken cancellationToken)
                     {
-                        if (command == OpenNettyCommands.Lighting.On)
+                        if (message.Command == OpenNettyCommands.Lighting.On)
                         {
                             await _events.PublishAsync(new SwitchStateReportedEventArgs(endpoint,
                                 OpenNettyModels.Lighting.SwitchState.On), cancellationToken);
@@ -214,8 +250,9 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         }
                         
                         // Note: for Nitoo devices supporting dimming, an ON command always changes the brightness to 100%.
-                        if (command == OpenNettyCommands.Lighting.On && (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) ||
-                                                                         endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState)))
+                        if (message.Command == OpenNettyCommands.Lighting.On && endpoint.Protocol is OpenNettyProtocol.Nitoo &&
+                           (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) ||
+                            endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState)))
                         {
                             await _events.PublishAsync(new BrightnessReportedEventArgs(endpoint, 100), cancellationToken);
                         }
@@ -224,77 +261,38 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 }
 
                 case (OpenNettyNotifications.MessageReceived,
-                      OpenNettyMessage { Protocol: OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee,
+                      OpenNettyMessage { Protocol: OpenNettyProtocol.Scs,
                                          Type    : OpenNettyMessageType.BusCommand,
-                                         Command : OpenNettyCommand command,
-                                         Address : OpenNettyAddress address })
-                    // Note: ON/OFF BUS COMMAND frames can be parameterized.
-                    when command.Category == OpenNettyCategories.Lighting &&
-                        (command.Value    == OpenNettyCommands.Lighting.On.Value ||
-                         command.Value    == OpenNettyCommands.Lighting.Off.Value):
+                                         Command : OpenNettyCommand,
+                                         Address : not null }) or
+                     (OpenNettyNotifications.MessageReceived or OpenNettyNotifications.MessageSent,
+                      OpenNettyMessage { Protocol: OpenNettyProtocol.Zigbee,
+                                         Type    : OpenNettyMessageType.BusCommand,
+                                         Command : OpenNettyCommand,
+                                         Address : not null })
+                    when message.Command == OpenNettyCommands.Lighting.On20 ||
+                         message.Command == OpenNettyCommands.Lighting.On30 ||
+                         message.Command == OpenNettyCommands.Lighting.On40 ||
+                         message.Command == OpenNettyCommands.Lighting.On50 ||
+                         message.Command == OpenNettyCommands.Lighting.On60 ||
+                         message.Command == OpenNettyCommands.Lighting.On70 ||
+                         message.Command == OpenNettyCommands.Lighting.On80 ||
+                         message.Command == OpenNettyCommands.Lighting.On90 ||
+                         message.Command == OpenNettyCommands.Lighting.On100:
                 {
-                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(address), async (endpoint, cancellationToken) =>
+                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
                     {
                         // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                        if (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway)
+                        if (endpoint.Gateway != notification.Gateway)
                         {
                             return;
                         }
 
                         // SCS devices configured to use the PUL mode never react to area and general commands.
-                        if (address.Type is OpenNettyAddressType.ScsLightPoint &&
-                            (OpenNettyAddress.IsScsLightPointAreaAddress(address) ||
-                             OpenNettyAddress.IsScsLightPointGeneralAddress(address)) &&
+                        if (message.Address.Value.Type is OpenNettyAddressType.ScsLightPoint &&
+                            (OpenNettyAddress.IsScsLightPointAreaAddress(message.Address.Value) ||
+                             OpenNettyAddress.IsScsLightPointGeneralAddress(message.Address.Value)) &&
                             endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
-                        {
-                            return;
-                        }
-
-                        if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState) &&
-                            endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is null or OpenNettySettings.ActuatorTypes.Lighting)
-                        {
-                            await _events.PublishAsync(new SwitchStateReportedEventArgs(endpoint,
-                                command.Value == OpenNettyCommands.Lighting.On.Value ?
-                                    OpenNettyModels.Lighting.SwitchState.On :
-                                    OpenNettyModels.Lighting.SwitchState.Off), cancellationToken);
-                        }
-                    });
-                    break;
-                }
-
-                case (OpenNettyNotifications.MessageReceived,
-                      OpenNettyMessage { Protocol: OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee,
-                                         Type    : OpenNettyMessageType.BusCommand,
-                                         Command : OpenNettyCommand command,
-                                         Address : OpenNettyAddress address })
-                    when command == OpenNettyCommands.Lighting.On20 ||
-                         command == OpenNettyCommands.Lighting.On30 ||
-                         command == OpenNettyCommands.Lighting.On40 ||
-                         command == OpenNettyCommands.Lighting.On50 ||
-                         command == OpenNettyCommands.Lighting.On60 ||
-                         command == OpenNettyCommands.Lighting.On70 ||
-                         command == OpenNettyCommands.Lighting.On80 ||
-                         command == OpenNettyCommands.Lighting.On90 ||
-                         command == OpenNettyCommands.Lighting.On100:
-                {
-                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(address), async (endpoint, cancellationToken) =>
-                    {
-                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                        if (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway)
-                        {
-                            return;
-                        }
-
-                        // SCS devices configured to use the PUL mode never react to area and general commands.
-                        if (address.Type is OpenNettyAddressType.ScsLightPoint &&
-                            (OpenNettyAddress.IsScsLightPointAreaAddress(address) ||
-                             OpenNettyAddress.IsScsLightPointGeneralAddress(address)) &&
-                            endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
-                        {
-                            return;
-                        }
-
-                        if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Lighting))
                         {
                             return;
                         }
@@ -317,14 +315,14 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                            !endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
                         {
                             await _events.PublishAsync(new BrightnessReportedEventArgs(endpoint, (byte)
-                                (command == OpenNettyCommands.Lighting.On20 ? 20 :
-                                 command == OpenNettyCommands.Lighting.On30 ? 30 :
-                                 command == OpenNettyCommands.Lighting.On40 ? 40 :
-                                 command == OpenNettyCommands.Lighting.On50 ? 50 :
-                                 command == OpenNettyCommands.Lighting.On60 ? 60 :
-                                 command == OpenNettyCommands.Lighting.On70 ? 70 :
-                                 command == OpenNettyCommands.Lighting.On80 ? 80 :
-                                 command == OpenNettyCommands.Lighting.On90 ? 90 : 100)), cancellationToken);
+                                (message.Command == OpenNettyCommands.Lighting.On20 ? 20 :
+                                 message.Command == OpenNettyCommands.Lighting.On30 ? 30 :
+                                 message.Command == OpenNettyCommands.Lighting.On40 ? 40 :
+                                 message.Command == OpenNettyCommands.Lighting.On50 ? 50 :
+                                 message.Command == OpenNettyCommands.Lighting.On60 ? 60 :
+                                 message.Command == OpenNettyCommands.Lighting.On70 ? 70 :
+                                 message.Command == OpenNettyCommands.Lighting.On80 ? 80 :
+                                 message.Command == OpenNettyCommands.Lighting.On90 ? 90 : 100)), cancellationToken);
                         }
                     });
                     break;
@@ -342,7 +340,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(address), async (endpoint, cancellationToken) =>
                     {
                         // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                        if (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway)
+                        if (endpoint.Gateway != notification.Gateway)
                         {
                             return;
                         }
@@ -352,11 +350,6 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                             (OpenNettyAddress.IsScsLightPointAreaAddress(address) ||
                              OpenNettyAddress.IsScsLightPointGeneralAddress(address)) &&
                             endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
-                        {
-                            return;
-                        }
-
-                        if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Lighting))
                         {
                             return;
                         }
@@ -373,10 +366,66 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         // Note: the special brightness level "0" always indicates that the output is switched off.
                         // To avoid overriding the last known level (which is typically restored by SCS devices when
                         // receiving an ON command), the brightness level is only reported if it's higher than zero.
+                        // 
+                        // Note: while Nitoo devices normally don't restore the last known brightness level when
+                        // receiving an ON command, the same rule applies for consistency with MyHome/SCS devices.
                         if (level is not 0 && (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) ||
                                                endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState)))
                         {
                             await _events.PublishAsync(new BrightnessReportedEventArgs(endpoint, level), cancellationToken);
+                        }
+                    });
+                    break;
+                }
+
+                case (OpenNettyNotifications.MessageSent,
+                      OpenNettyMessage { Protocol : OpenNettyProtocol.Nitoo or OpenNettyProtocol.Zigbee,
+                                         Type     : OpenNettyMessageType.DimensionSet,
+                                         Address  : OpenNettyAddress address,
+                                         Dimension: OpenNettyDimension dimension,
+                                         Values   : [{ Length: > 0 } value, ..] })
+                    when dimension == OpenNettyDimensions.Lighting.DimmerLevelSpeed:
+                {
+                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(address), async (endpoint, cancellationToken) =>
+                    {
+                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
+                        if (endpoint.Gateway != notification.Gateway)
+                        {
+                            return;
+                        }
+
+                        // Note: for Nitoo devices, the brightness level is expressed differently.
+                        var level = message.Protocol is OpenNettyProtocol.Nitoo ?
+                            (byte) (byte.Parse(value, CultureInfo.InvariantCulture) - 100) :
+                            (byte) Math.Round(decimal.Parse(value, CultureInfo.InvariantCulture), MidpointRounding.AwayFromZero);
+
+                        switch (endpoint.Protocol)
+                        {
+                            // Note: outgoing dimmer level commands sent using broadcast or multicast transmission
+                            // generally don't affect the local output of a Nitoo lighting device. As such, the switch
+                            // state/brightness of the endpoint is only reported if the message was sent in unicast.
+                            case OpenNettyProtocol.Nitoo when message.Mode is OpenNettyMode.Unicast:
+                            case OpenNettyProtocol.Zigbee:
+                                if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
+                                {
+                                    await _events.PublishAsync(new SwitchStateReportedEventArgs(endpoint, level is not 0 ?
+                                        OpenNettyModels.Lighting.SwitchState.On :
+                                        OpenNettyModels.Lighting.SwitchState.Off), cancellationToken);
+                                    break;
+                                }
+
+                                // Note: the special brightness level "0" always indicates that the output is switched off.
+                                // To avoid overriding the last known level (which is typically restored by SCS devices when
+                                // receiving an ON command), the brightness level is only reported if it's higher than zero.
+                                // 
+                                // Note: while Nitoo devices normally don't restore the last known brightness level when
+                                // receiving an ON command, the same rule applies for consistency with MyHome/SCS devices.
+                                if (level is not 0 && (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) ||
+                                                       endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState)))
+                                {
+                                    await _events.PublishAsync(new BrightnessReportedEventArgs(endpoint, level), cancellationToken);
+                                }
+                                break;
                         }
                     });
                     break;
@@ -390,21 +439,21 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Values   : ["129", { Length: > 0 } value] })
                     when dimension == OpenNettyDimensions.Diagnostics.UnitDescription:
                 {
-                    // Ignore the message if the corresponding endpoint couldn't be resolved or if it
-                    // was received by a different gateway than the one associated with the endpoint.
-                    var endpoint = await _manager.FindEndpointByAddressAsync(address);
-                    if (endpoint is null || (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway))
+                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(address), async (endpoint, cancellationToken) =>
                     {
-                        return;
-                    }
+                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
+                        if (endpoint.Gateway != notification.Gateway)
+                        {
+                            return;
+                        }
 
-                    if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState) &&
-                        endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is null or OpenNettySettings.ActuatorTypes.Lighting)
-                    {
-                        await _events.PublishAsync(new SwitchStateReportedEventArgs(endpoint, value is "128" or "129" or "130" ?
-                            OpenNettyModels.Lighting.SwitchState.On :
-                            OpenNettyModels.Lighting.SwitchState.Off));
-                    }
+                        if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
+                        {
+                            await _events.PublishAsync(new SwitchStateReportedEventArgs(endpoint, value is "128" or "129" or "130" ?
+                                OpenNettyModels.Lighting.SwitchState.On :
+                                OpenNettyModels.Lighting.SwitchState.Off), cancellationToken);
+                        }
+                    });
                     break;
                 }
 
@@ -416,81 +465,35 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Values   : ["143", { Length: > 0 } value, ..] })
                     when dimension == OpenNettyDimensions.Diagnostics.UnitDescription:
                 {
-                    // Ignore the message if the corresponding endpoint couldn't be resolved or if it
-                    // was received by a different gateway than the one associated with the endpoint.
-                    var endpoint = await _manager.FindEndpointByAddressAsync(address);
-                    if (endpoint is null || (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway))
+                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
                     {
-                        return;
-                    }
+                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
+                        if (endpoint.Gateway != notification.Gateway)
+                        {
+                            return;
+                        }
 
-                    var level = byte.Parse(value, CultureInfo.InvariantCulture);
+                        var level = byte.Parse(value, CultureInfo.InvariantCulture);
 
-                    if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Lighting))
-                    {
-                        return;
-                    }
+                        if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
+                        {
+                            await _events.PublishAsync(new SwitchStateReportedEventArgs(endpoint, level is not 0 ?
+                                OpenNettyModels.Lighting.SwitchState.On :
+                                OpenNettyModels.Lighting.SwitchState.Off), cancellationToken);
+                        }
 
-                    if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
-                    {
-                        await _events.PublishAsync(new SwitchStateReportedEventArgs(endpoint, level is not 0 ?
-                            OpenNettyModels.Lighting.SwitchState.On :
-                            OpenNettyModels.Lighting.SwitchState.Off));
-                    }
-
-                    // Note: the special brightness level "0" always indicates that the output is switched off.
-                    // While Nitoo devices normally don't restore the last known brightness level, the brightness
-                    // level is only reported if it's higher than zero for consistency with MyHome/SCS devices.
-                    if (level is not 0 && (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) ||
-                                           endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState)))
-                    {
-                        await _events.PublishAsync(new BrightnessReportedEventArgs(endpoint, level));
-                    }
-                    break;
-                }
-
-                // Note: outgoing dimmer level commands sent using broadcast or multicast transmission
-                // generally don't affect the local output of a Nitoo lighting device. As such, the switch
-                // state/brightness of the endpoint is only reported if the message was sent in unicast.
-                case (OpenNettyNotifications.MessageReceived or OpenNettyNotifications.MessageSent,
-                      OpenNettyMessage { Protocol : OpenNettyProtocol.Nitoo,
-                                         Type     : OpenNettyMessageType.DimensionSet,
-                                         Address  : OpenNettyAddress address,
-                                         Mode     : OpenNettyMode.Unicast,
-                                         Dimension: OpenNettyDimension dimension,
-                                         Values   : [{ Length: > 0 } value, ..] })
-                    when dimension == OpenNettyDimensions.Lighting.DimmerLevelSpeed:
-                {
-                    // Ignore the message if the corresponding endpoint couldn't be resolved or if it
-                    // was received by a different gateway than the one associated with the endpoint.
-                    var endpoint = await _manager.FindEndpointByAddressAsync(address);
-                    if (endpoint is null || (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway))
-                    {
-                        return;
-                    }
-
-                    if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Lighting))
-                    {
-                        return;
-                    }
-
-                    var level = (byte) Math.Round(decimal.Parse(value, CultureInfo.InvariantCulture), MidpointRounding.AwayFromZero);
-
-                    if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
-                    {
-                        await _events.PublishAsync(new SwitchStateReportedEventArgs(endpoint, level is not 0 ?
-                            OpenNettyModels.Lighting.SwitchState.On :
-                            OpenNettyModels.Lighting.SwitchState.Off));
-                    }
-
-                    // Note: the special brightness level "0" always indicates that the output is switched off.
-                    // While Nitoo devices normally don't restore the last known brightness level, the brightness
-                    // level is only reported if it's higher than zero for consistency with MyHome/SCS devices.
-                    if (level is not 0 && (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) ||
-                                           endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState)))
-                    {
-                        await _events.PublishAsync(new BrightnessReportedEventArgs(endpoint, level));
-                    }
+                        // Note: the special brightness level "0" always indicates that the output is switched off.
+                        // To avoid overriding the last known level (which is typically restored by SCS devices when
+                        // receiving an ON command), the brightness level is only reported if it's higher than zero.
+                        // 
+                        // Note: while Nitoo devices normally don't restore the last known brightness level when
+                        // receiving an ON command, the same rule applies for consistency with MyHome/SCS devices.
+                        if (level is not 0 && (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) ||
+                                               endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState)))
+                        {
+                            await _events.PublishAsync(new BrightnessReportedEventArgs(endpoint, level), cancellationToken);
+                        }
+                    });
                     break;
                 }
 
@@ -501,160 +504,142 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Address : OpenNettyAddress address })
                     when command == OpenNettyCommands.Lighting.Toggle:
                 {
-                    // Ignore the message if the corresponding endpoint couldn't be resolved or if it
-                    // was received by a different gateway than the one associated with the endpoint.
-                    var endpoint = await _manager.FindEndpointByAddressAsync(address);
-                    if (endpoint is null || (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway))
-                    {
-                        return;
-                    }
-
-                    if (endpoint.HasCapability(OpenNettyCapabilities.ToggleScenarioState))
-                    {
-                        await _events.PublishAsync(new ToggleScenarioReportedEventArgs(endpoint));
-                    }
-                    break;
-                }
-
-                // The shutter state and the position of an endpoint can be inferred from 4 types of messages:
-                //
-                //   - For Nitoo devices, from an incoming or outgoing "STOP", "UP" or "DOWN" BUS COMMAND message.
-                //   - For SCS/Zigbee devices, from an incoming "STOP", "UP" or "DOWN" BUS COMMAND message.
-                //   - For SCS/Zigbee devices, from an incoming "SHUTTER STATUS" DIMENSION READ message.
-                //   - For Nitoo devices, from an incoming "UNIT DESCRIPTION" DIMENSION READ message.
-
-                case (OpenNettyNotification notification,
-                      OpenNettyMessage { Protocol: OpenNettyProtocol.Nitoo,
-                                         Type    : OpenNettyMessageType.BusCommand,
-                                         Command : OpenNettyCommand command,
-                                         Address : OpenNettyAddress address,
-                                         Mode    : OpenNettyMode mode })
-                    when command == OpenNettyCommands.Automation.Stop ||
-                         command == OpenNettyCommands.Automation.Up   ||
-                         command == OpenNettyCommands.Automation.Down:
-                {
-                    // Ignore the message if the corresponding endpoint couldn't be resolved or if it
-                    // was received by a different gateway than the one associated with the endpoint.
-                    var endpoint = await _manager.FindEndpointByAddressAsync(address);
-                    if (endpoint is null || (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway))
-                    {
-                        return;
-                    }
-
-                    // If the message was received and was emitted by the source using a
-                    // broadcast transmission, it is considered as an STOP/UP/DOWN scenario.
-                    if (notification is OpenNettyNotifications.MessageReceived && mode is OpenNettyMode.Broadcast &&
-                        endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioState))
-                    {
-                        if (command == OpenNettyCommands.Automation.Stop)
-                        {
-                            await _events.PublishAsync(new ShutterStopScenarioReportedEventArgs(endpoint));
-                        }
-
-                        else if (command == OpenNettyCommands.Automation.Up)
-                        {
-                            await _events.PublishAsync(new ShutterUpScenarioReportedEventArgs(endpoint));
-                        }
-
-                        else
-                        {
-                            await _events.PublishAsync(new ShutterDownScenarioReportedEventArgs(endpoint));
-                        }
-                    }
-
-                    List<Task> tasks = [];
-
-                    // Note: outgoing STOP/UP/DOWN commands sent using broadcast or multicast transmission
-                    // generally don't affect the local output of a Nitoo automation device. As such,
-                    // the shutter state/position of the endpoint is only reported if the message was
-                    // received (e.g by a different unit on the same device) or was sent in unicast.
-                    if (mode is OpenNettyMode.Unicast || notification is OpenNettyNotifications.MessageReceived)
-                    {
-                        if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState) &&
-                            endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is null or OpenNettySettings.ActuatorTypes.Automation)
-                        {
-                            tasks.Add(ReportStateAsync(endpoint, CancellationToken.None).AsTask());
-                        }
-
-                        if (endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit.Definition.AssociatedUnitId: byte unit })
-                        {
-                            tasks.Add(Task.Run(async () =>
-                            {
-                                var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(
-                                    OpenNettyAddress.ToNitooAddress(address).Identifier, unit));
-
-                                if (endpoint is not null &&
-                                    endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState) &&
-                                    endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is null or OpenNettySettings.ActuatorTypes.Automation)
-                                {
-                                    await ReportStateAsync(endpoint, CancellationToken.None);
-                                }
-                            }));
-                        }
-                    }
-
-                    if (mode is OpenNettyMode.Broadcast or OpenNettyMode.Multicast && endpoint is { Unit.Scenarios: [_, ..] scenarios })
-                    {
-                        var endpoints = scenarios.ToAsyncEnumerable()
-                            .Where(static scenario => scenario.FunctionCode is < 110 or 111 or 112)
-                            .SelectAwait(scenario => _manager.FindEndpointByNameAsync(scenario.EndpointName))
-                            .Where(static endpoint => endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit: OpenNettyUnit })
-                            .OfType<OpenNettyEndpoint>()
-                            .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState));
-
-                        tasks.Add(Parallel.ForEachAsync(endpoints, ReportStateAsync));
-                    }
-
-                    await Task.WhenAll(tasks);
-
-                    async ValueTask ReportStateAsync(OpenNettyEndpoint endpoint, CancellationToken cancellationToken)
-                        => await _events.PublishAsync(new ShutterStateReportedEventArgs(endpoint,
-                            command == OpenNettyCommands.Automation.Stop ? OpenNettyModels.Automation.ShutterState.Stopped :
-                            command == OpenNettyCommands.Automation.Up   ? OpenNettyModels.Automation.ShutterState.Opening :
-                            command == OpenNettyCommands.Automation.Down ? OpenNettyModels.Automation.ShutterState.Closing :
-                            throw new InvalidDataException(SR.GetResourceString(SR.ID0075))), cancellationToken);
-                    break;
-                }
-
-                case (OpenNettyNotifications.MessageReceived,
-                      OpenNettyMessage { Protocol: OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee,
-                                         Type    : OpenNettyMessageType.BusCommand,
-                                         Command : OpenNettyCommand command,
-                                         Address : OpenNettyAddress address })
-                    when command == OpenNettyCommands.Automation.Stop ||
-                         command == OpenNettyCommands.Automation.Up   ||
-                         command == OpenNettyCommands.Automation.Down:
-                {
-                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(address), async (endpoint, cancellationToken) =>
+                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
                     {
                         // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                        if (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway)
+                        if (endpoint.Gateway != notification.Gateway)
                         {
                             return;
                         }
 
-                        if (endpoint is null || !endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState) ||
-                            endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Automation))
+                        if (endpoint.HasCapability(OpenNettyCapabilities.ToggleScenarioState))
                         {
-                            return;
-                        }
-
-                        // Note: the STOP command is only reported if the endpoint isn't an advanced shutter.
-                        if (command != OpenNettyCommands.Automation.Stop || !endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
-                        {
-                            await _events.PublishAsync(new ShutterStateReportedEventArgs(endpoint,
-                                command == OpenNettyCommands.Automation.Stop ? OpenNettyModels.Automation.ShutterState.Stopped :
-                                command == OpenNettyCommands.Automation.Up   ? OpenNettyModels.Automation.ShutterState.Opening :
-                                command == OpenNettyCommands.Automation.Down ? OpenNettyModels.Automation.ShutterState.Closing :
-                                throw new InvalidDataException(SR.GetResourceString(SR.ID0075))), cancellationToken);
+                            await _events.PublishAsync(new ToggleScenarioReportedEventArgs(endpoint), cancellationToken);
                         }
                     });
                     break;
                 }
 
+                // The shutter state and the position of an endpoint can be inferred from 3 types of messages:
+                //
+                //   - From an incoming or outgoing "STOP", "UP" or "DOWN" BUS COMMAND message:
+                //     * For Nitoo and Zigbee devices, the message MAY be incoming or outgoing.
+                //     * For SCS devices, the message MUST be incoming.
+                //
+                //   - For SCS and Zigbee devices, from an incoming "SHUTTER STATUS" DIMENSION READ message.
+                //   - For Nitoo devices, from an incoming "UNIT DESCRIPTION=139" DIMENSION READ message.
+
+                case (OpenNettyNotifications.MessageReceived or OpenNettyNotifications.MessageSent,
+                      OpenNettyMessage { Protocol: OpenNettyProtocol.Nitoo or OpenNettyProtocol.Zigbee,
+                                         Type    : OpenNettyMessageType.BusCommand,
+                                         Command : OpenNettyCommand,
+                                         Address : not null }) or
+                     (OpenNettyNotifications.MessageReceived,
+                      OpenNettyMessage { Protocol: OpenNettyProtocol.Scs,
+                                         Type    : OpenNettyMessageType.BusCommand,
+                                         Command : OpenNettyCommand,
+                                         Address : not null })
+                    when message.Command == OpenNettyCommands.Automation.Stop ||
+                         message.Command == OpenNettyCommands.Automation.Up   ||
+                         message.Command == OpenNettyCommands.Automation.Down:
+                {
+                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
+                    {
+                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
+                        if (endpoint.Gateway != notification.Gateway)
+                        {
+                            return;
+                        }
+
+                        List<Task> tasks = [];
+
+                        switch (endpoint.Protocol)
+                        {
+                            // Note: outgoing STOP/UP/DOWN commands sent using broadcast or multicast transmission
+                            // generally don't affect the local output of a Nitoo automation device. As such,
+                            // the shutter state/position of the endpoint is only reported if the message was
+                            // received (e.g by a different unit on the same device) or was sent in unicast.
+                            case OpenNettyProtocol.Nitoo when notification is OpenNettyNotifications.MessageReceived:
+                            case OpenNettyProtocol.Nitoo when notification is OpenNettyNotifications.MessageSent && message.Mode is OpenNettyMode.Unicast:
+                            case OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee:
+                                if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState))
+                                {
+                                    tasks.Add(ReportStateAsync(endpoint, cancellationToken).AsTask());
+                                }
+                                break;
+                        }
+
+                        // For Nitoo devices, if the STOP/UP/DOWN command was emitted by a different
+                        // unit on the same device, reflect the state change on the linked endpoint.
+                        if (notification is OpenNettyNotifications.MessageReceived &&
+                            endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit.Definition.AssociatedUnitId: byte unit })
+                        {
+                            tasks.Add(Task.Run(async () =>
+                            {
+                                var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(
+                                    OpenNettyAddress.ToNitooAddress(message.Address.Value).Identifier, unit));
+
+                                if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState))
+                                {
+                                    await ReportStateAsync(endpoint, cancellationToken);
+                                }
+                            }, cancellationToken));
+                        }
+
+                        // For Nitoo devices, if the message was sent using a broadcast or multicast transmission,
+                        // reflect the state change on all the other endpoints that are part of the same scenario.
+                        if (notification is OpenNettyNotifications.MessageReceived &&
+                            message.Mode is OpenNettyMode.Broadcast or OpenNettyMode.Multicast &&
+                            endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit.Scenarios: [_, ..] scenarios })
+                        {
+                            var endpoints = scenarios.ToAsyncEnumerable()
+                                .Where(static scenario => scenario.FunctionCode is < 110 or 111 or 112)
+                                .SelectAwait(scenario => _manager.FindEndpointByNameAsync(scenario.EndpointName))
+                                .Where(static endpoint => endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit: OpenNettyUnit })
+                                .OfType<OpenNettyEndpoint>()
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState));
+
+                            tasks.Add(Parallel.ForEachAsync(endpoints, ReportStateAsync));
+                        }
+
+                        // If the message was received and was emitted by the source using a
+                        // broadcast transmission, it is also considered an STOP/UP/DOWN scenario.
+                        if (notification is OpenNettyNotifications.MessageReceived &&
+                            message.Protocol is OpenNettyProtocol.Nitoo &&
+                            message.Mode is OpenNettyMode.Broadcast &&
+                            endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioState))
+                        {
+                            if (message.Command == OpenNettyCommands.Automation.Stop)
+                            {
+                                tasks.Add(_events.PublishAsync(new ShutterStopScenarioReportedEventArgs(endpoint), cancellationToken).AsTask());
+                            }
+
+                            else if (message.Command == OpenNettyCommands.Automation.Up)
+                            {
+                                tasks.Add(_events.PublishAsync(new ShutterUpScenarioReportedEventArgs(endpoint), cancellationToken).AsTask());
+                            }
+
+                            else
+                            {
+                                tasks.Add(_events.PublishAsync(new ShutterDownScenarioReportedEventArgs(endpoint), cancellationToken).AsTask());
+                            }
+                        }
+
+                        await Task.WhenAll(tasks);
+                    });
+
+                    async ValueTask ReportStateAsync(OpenNettyEndpoint endpoint, CancellationToken cancellationToken)
+                        => await _events.PublishAsync(new ShutterStateReportedEventArgs(endpoint,
+                            message.Command == OpenNettyCommands.Automation.Stop ? OpenNettyModels.Automation.ShutterState.Stopped :
+                            message.Command == OpenNettyCommands.Automation.Up   ? OpenNettyModels.Automation.ShutterState.Opening :
+                            message.Command == OpenNettyCommands.Automation.Down ? OpenNettyModels.Automation.ShutterState.Closing :
+                            throw new InvalidDataException(SR.GetResourceString(SR.ID0075))), cancellationToken);
+                    break;
+                }
+
                 case (OpenNettyNotifications.MessageReceived,
-                      OpenNettyMessage { Protocol : OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee,
-                                         Type     : OpenNettyMessageType.DimensionRead,
+                      OpenNettyMessage { Protocol : OpenNettyProtocol.Zigbee,
+                                         Type     : OpenNettyMessageType.DimensionSet,
                                          Address  : OpenNettyAddress address,
                                          Dimension: OpenNettyDimension dimension,
                                          Values   : [{ Length: > 0 } status, { Length: > 0 } position, ..] })
@@ -663,7 +648,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(address), async (endpoint, cancellationToken) =>
                     {
                         // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                        if (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway)
+                        if (endpoint.Gateway != notification.Gateway)
                         {
                             return;
                         }
@@ -699,24 +684,24 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Values   : ["139", { Length: > 0 } value, ..] })
                     when dimension == OpenNettyDimensions.Diagnostics.UnitDescription:
                 {
-                    // Ignore the message if the corresponding endpoint couldn't be resolved or if it
-                    // was received by a different gateway than the one associated with the endpoint.
-                    var endpoint = await _manager.FindEndpointByAddressAsync(address);
-                    if (endpoint is null || (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway))
+                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
                     {
-                        return;
-                    }
-
-                    if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState) &&
-                        endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Automation))
-                    {
-                        await _events.PublishAsync(new ShutterStateReportedEventArgs(endpoint, value switch
+                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
+                        if (endpoint.Gateway != notification.Gateway)
                         {
-                            "100" or "102" => OpenNettyModels.Automation.ShutterState.Opening,
-                            "0"   or "103" => OpenNettyModels.Automation.ShutterState.Closing,
-                                  _        => OpenNettyModels.Automation.ShutterState.Stopped
-                        }));
-                    }
+                            return;
+                        }
+
+                        if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState))
+                        {
+                            await _events.PublishAsync(new ShutterStateReportedEventArgs(endpoint, value switch
+                            {
+                                "100" or "102" => OpenNettyModels.Automation.ShutterState.Opening,
+                                "0"   or "103" => OpenNettyModels.Automation.ShutterState.Closing,
+                                      _        => OpenNettyModels.Automation.ShutterState.Stopped
+                            }), cancellationToken);
+                        }
+                    });
                     break;
                 }
 
@@ -728,19 +713,20 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Values   : [{ Length: > 0 }, { Length: > 0 }, { Length: > 0 }] values })
                     when dimension == OpenNettyDimensions.TemperatureControl.SmartMeterIndexes:
                 {
-                    // Ignore the message if the corresponding endpoint couldn't be resolved or if it
-                    // was received by a different gateway than the one associated with the endpoint.
-                    var endpoint = await _manager.FindEndpointByAddressAsync(address);
-                    if (endpoint is null || (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway))
+                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
                     {
-                        return;
-                    }
+                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
+                        if (endpoint.Gateway != notification.Gateway)
+                        {
+                            return;
+                        }
 
-                    if (endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
-                    {
-                        await _events.PublishAsync(new SmartMeterIndexesReportedEventArgs(endpoint,
-                            OpenNettyModels.TemperatureControl.SmartMeterIndexes.CreateFromDimensionValues(values)));
-                    }
+                        if (endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
+                        {
+                            await _events.PublishAsync(new SmartMeterIndexesReportedEventArgs(endpoint,
+                                OpenNettyModels.TemperatureControl.SmartMeterIndexes.CreateFromDimensionValues(values)), cancellationToken);
+                        }
+                    });
                     break;
                 }
 
@@ -752,24 +738,25 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Values   : [{ Length: > 0 } value] })
                     when dimension == OpenNettyDimensions.TemperatureControl.SmartMeterRateType:
                 {
-                    // Ignore the message if the corresponding endpoint couldn't be resolved or if it
-                    // was received by a different gateway than the one associated with the endpoint.
-                    var endpoint = await _manager.FindEndpointByAddressAsync(address);
-                    if (endpoint is null || (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway))
+                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
                     {
-                        return;
-                    }
-
-                    if (endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))
-                    {
-                        await _events.PublishAsync(new SmartMeterRateTypeReportedEventArgs(endpoint, value switch
+                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
+                        if (endpoint.Gateway != notification.Gateway)
                         {
-                            "2" => OpenNettyModels.TemperatureControl.SmartMeterRateType.OffPeak,
-                            "3" => OpenNettyModels.TemperatureControl.SmartMeterRateType.Peak,
+                            return;
+                        }
 
-                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
-                        }));
-                    }
+                        if (endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))
+                        {
+                            await _events.PublishAsync(new SmartMeterRateTypeReportedEventArgs(endpoint, value switch
+                            {
+                                "2" => OpenNettyModels.TemperatureControl.SmartMeterRateType.OffPeak,
+                                "3" => OpenNettyModels.TemperatureControl.SmartMeterRateType.Peak,
+
+                                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                            }), cancellationToken);
+                        }
+                    });
                     break;
                 }
 
@@ -781,26 +768,27 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Values   : ["7", { Length: > 0 } value] })
                     when dimension == OpenNettyDimensions.Diagnostics.UnitDescription:
                 {
-                    // Ignore the message if the corresponding endpoint couldn't be resolved or if it
-                    // was received by a different gateway than the one associated with the endpoint.
-                    var endpoint = await _manager.FindEndpointByAddressAsync(address);
-                    if (endpoint is null || (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway))
+                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
                     {
-                        return;
-                    }
-
-                    if (endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))
-                    {
-                        await _events.PublishAsync(new SmartMeterRateTypeReportedEventArgs(endpoint, value switch
+                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
+                        if (endpoint.Gateway != notification.Gateway)
                         {
-                            "32" or "33" => OpenNettyModels.TemperatureControl.SmartMeterRateType.OffPeak,
-                            "48" or "49" => OpenNettyModels.TemperatureControl.SmartMeterRateType.Peak,
+                            return;
+                        }
 
-                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
-                        }));
+                        if (endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))
+                        {
+                            await _events.PublishAsync(new SmartMeterRateTypeReportedEventArgs(endpoint, value switch
+                            {
+                                "32" or "33" => OpenNettyModels.TemperatureControl.SmartMeterRateType.OffPeak,
+                                "48" or "49" => OpenNettyModels.TemperatureControl.SmartMeterRateType.Peak,
 
-                        await _events.PublishAsync(new SmartMeterPowerCutModeReportedEventArgs(endpoint, value is "33" or "49"));
-                    }
+                                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                            }), cancellationToken);
+
+                            await _events.PublishAsync(new SmartMeterPowerCutModeReportedEventArgs(endpoint, value is "33" or "49"), cancellationToken);
+                        }
+                    });
                     break;
                 }
 
@@ -812,58 +800,59 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Values   : ["133", { Length: > 0 } value] })
                     when dimension == OpenNettyDimensions.Diagnostics.UnitDescription:
                 {
-                    // Ignore the message if the corresponding endpoint couldn't be resolved or if it
-                    // was received by a different gateway than the one associated with the endpoint.
-                    var endpoint = await _manager.FindEndpointByAddressAsync(address);
-                    if (endpoint is null || (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway))
+                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
                     {
-                        return;
-                    }
-
-                    if (endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
-                    {
-                        switch (value)
+                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
+                        if (endpoint.Gateway != notification.Gateway)
                         {
-                            // Note: the value "0" is ambiguous and appears to be used to represent two cases:
-                            //
-                            //  - When the user selected the "automatic" mode but hot water is not currently
-                            //    being produced (e.g because the off-peak signal was not yet received).
-                            //
-                            //  - When no hot water is produced because the user selected the "forced off" mode.
-                            //
-                            // Since the value is ambiguous, it is not possible to reliably determine the actual
-                            // water heating mode: in this case, the mode is not immediately reported and an another
-                            // event handler is responsible for reporting it when the off-peak signal is received.
-                            case "0":
-                                await _events.PublishAsync(new WaterHeaterStateReportedEventArgs(endpoint,
-                                    OpenNettyModels.TemperatureControl.WaterHeaterState.Idle));
-                                break;
-
-                            case "32":
-                                await _events.PublishAsync(new WaterHeaterSetpointModeReportedEventArgs(endpoint,
-                                    OpenNettyModels.TemperatureControl.WaterHeaterMode.Automatic));
-
-                                await _events.PublishAsync(new WaterHeaterStateReportedEventArgs(endpoint,
-                                    OpenNettyModels.TemperatureControl.WaterHeaterState.Idle));
-                                break;
-
-                            case "1" or "33":
-                                await _events.PublishAsync(new WaterHeaterSetpointModeReportedEventArgs(endpoint,
-                                    OpenNettyModels.TemperatureControl.WaterHeaterMode.Automatic));
-
-                                await _events.PublishAsync(new WaterHeaterStateReportedEventArgs(endpoint,
-                                    OpenNettyModels.TemperatureControl.WaterHeaterState.Heating));
-                                break;
-
-                            case "17":
-                                await _events.PublishAsync(new WaterHeaterSetpointModeReportedEventArgs(endpoint,
-                                    OpenNettyModels.TemperatureControl.WaterHeaterMode.ForcedOn));
-
-                                await _events.PublishAsync(new WaterHeaterStateReportedEventArgs(endpoint,
-                                    OpenNettyModels.TemperatureControl.WaterHeaterState.Heating));
-                                break;
+                            return;
                         }
-                    }
+
+                        if (endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
+                        {
+                            switch (value)
+                            {
+                                // Note: the value "0" is ambiguous and appears to be used to represent two cases:
+                                //
+                                //  - When the user selected the "automatic" mode but hot water is not currently
+                                //    being produced (e.g because the off-peak signal was not yet received).
+                                //
+                                //  - When no hot water is produced because the user selected the "forced off" mode.
+                                //
+                                // Since the value is ambiguous, it is not possible to reliably determine the actual
+                                // water heating mode: in this case, the mode is not immediately reported and an another
+                                // event handler is responsible for reporting it when the off-peak signal is received.
+                                case "0":
+                                    await _events.PublishAsync(new WaterHeaterStateReportedEventArgs(endpoint,
+                                        OpenNettyModels.TemperatureControl.WaterHeaterState.Idle), cancellationToken);
+                                    break;
+
+                                case "32":
+                                    await _events.PublishAsync(new WaterHeaterSetpointModeReportedEventArgs(endpoint,
+                                        OpenNettyModels.TemperatureControl.WaterHeaterMode.Automatic), cancellationToken);
+
+                                    await _events.PublishAsync(new WaterHeaterStateReportedEventArgs(endpoint,
+                                        OpenNettyModels.TemperatureControl.WaterHeaterState.Idle), cancellationToken);
+                                    break;
+
+                                case "1" or "33":
+                                    await _events.PublishAsync(new WaterHeaterSetpointModeReportedEventArgs(endpoint,
+                                        OpenNettyModels.TemperatureControl.WaterHeaterMode.Automatic), cancellationToken);
+
+                                    await _events.PublishAsync(new WaterHeaterStateReportedEventArgs(endpoint,
+                                        OpenNettyModels.TemperatureControl.WaterHeaterState.Heating), cancellationToken);
+                                    break;
+
+                                case "17":
+                                    await _events.PublishAsync(new WaterHeaterSetpointModeReportedEventArgs(endpoint,
+                                        OpenNettyModels.TemperatureControl.WaterHeaterMode.ForcedOn), cancellationToken);
+
+                                    await _events.PublishAsync(new WaterHeaterStateReportedEventArgs(endpoint,
+                                        OpenNettyModels.TemperatureControl.WaterHeaterState.Heating), cancellationToken);
+                                    break;
+                            }
+                        }
+                    });
                     break;
                 }
 
@@ -876,48 +865,49 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Values   : [{ Length: > 0 } value, ..] })
                     when dimension == OpenNettyDimensions.TemperatureControl.WaterHeatingMode:
                 {
-                    // Ignore the message if the corresponding endpoint couldn't be resolved or if it
-                    // was received by a different gateway than the one associated with the endpoint.
-                    var endpoint = await _manager.FindEndpointByAddressAsync(address);
-                    if (endpoint is null || (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway))
+                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
                     {
-                        return;
-                    }
-
-                    List<Task> tasks = [];
-
-                    if (endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
-                    {
-                        tasks.Add(ReportSetpointModeAsync(endpoint, CancellationToken.None).AsTask());
-                    }
-
-                    if (endpoint is { Unit.Definition.AssociatedUnitId: byte unit })
-                    {
-                        tasks.Add(Task.Run(async () =>
+                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
+                        if (endpoint.Gateway != notification.Gateway)
                         {
-                            var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(
-                                OpenNettyAddress.ToNitooAddress(address).Identifier, unit));
+                            return;
+                        }
 
-                            if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
+                        List<Task> tasks = [];
+
+                        if (endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
+                        {
+                            tasks.Add(ReportSetpointModeAsync(endpoint, cancellationToken).AsTask());
+                        }
+
+                        if (endpoint is { Unit.Definition.AssociatedUnitId: byte unit })
+                        {
+                            tasks.Add(Task.Run(async () =>
                             {
-                                await ReportSetpointModeAsync(endpoint, CancellationToken.None);
-                            }
-                        }));
-                    }
+                                var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(
+                                    OpenNettyAddress.ToNitooAddress(address).Identifier, unit));
 
-                    if (mode is OpenNettyMode.Broadcast or OpenNettyMode.Multicast && endpoint is { Unit.Scenarios: [_, ..] scenarios })
-                    {
-                        var endpoints = scenarios.ToAsyncEnumerable()
-                            .Where(static scenario => scenario.FunctionCode is 255)
-                            .SelectAwait(scenario => _manager.FindEndpointByNameAsync(scenario.EndpointName))
-                            .Where(static endpoint => endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit: OpenNettyUnit })
-                            .OfType<OpenNettyEndpoint>()
-                            .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.WaterHeating));
+                                if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
+                                {
+                                    await ReportSetpointModeAsync(endpoint, cancellationToken);
+                                }
+                            }, cancellationToken));
+                        }
 
-                        tasks.Add(Parallel.ForEachAsync(endpoints, ReportSetpointModeAsync));
-                    }
+                        if (mode is OpenNettyMode.Broadcast or OpenNettyMode.Multicast && endpoint is { Unit.Scenarios: [_, ..] scenarios })
+                        {
+                            var endpoints = scenarios.ToAsyncEnumerable()
+                                .Where(static scenario => scenario.FunctionCode is 255)
+                                .SelectAwait(scenario => _manager.FindEndpointByNameAsync(scenario.EndpointName))
+                                .Where(static endpoint => endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit: OpenNettyUnit })
+                                .OfType<OpenNettyEndpoint>()
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.WaterHeating));
 
-                    await Task.WhenAll(tasks);
+                            tasks.Add(Parallel.ForEachAsync(endpoints, ReportSetpointModeAsync));
+                        }
+
+                        await Task.WhenAll(tasks);
+                    });
 
                     async ValueTask ReportSetpointModeAsync(OpenNettyEndpoint endpoint, CancellationToken cancellationToken) =>
                         await _events.PublishAsync(new WaterHeaterSetpointModeReportedEventArgs(endpoint, value switch
@@ -946,83 +936,84 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Values   : ["6" or "132", { Length: > 0 } value] })
                     when dimension == OpenNettyDimensions.Diagnostics.UnitDescription:
                 {
-                    // Ignore the message if the corresponding endpoint couldn't be resolved or if it
-                    // was received by a different gateway than the one associated with the endpoint.
-                    var endpoint = await _manager.FindEndpointByAddressAsync(address);
-                    if (endpoint is null || (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway))
+                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
                     {
-                        return;
-                    }
-
-                    if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
-                    {
-                        var configuration = OpenNettyModels.TemperatureControl.PilotWireConfiguration.CreateFromUnitDescription([value]);
-                        if (configuration.IsDerogationActive)
+                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
+                        if (endpoint.Gateway != notification.Gateway)
                         {
-                            await _events.PublishAsync(new PilotWireDerogationModeReportedEventArgs(endpoint, configuration.Mode, configuration.DerogationDuration));
+                            return;
                         }
 
-                        else
+                        if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
                         {
-                            await _events.PublishAsync(new PilotWireSetpointModeReportedEventArgs(endpoint, configuration.Mode));
-                            await _events.PublishAsync(new PilotWireDerogationModeReportedEventArgs(endpoint, null, null));
+                            var configuration = OpenNettyModels.TemperatureControl.PilotWireConfiguration.CreateFromUnitDescription([value]);
+                            if (configuration.IsDerogationActive)
+                            {
+                                await _events.PublishAsync(new PilotWireDerogationModeReportedEventArgs(endpoint, configuration.Mode, configuration.DerogationDuration), cancellationToken);
+                            }
+
+                            else
+                            {
+                                await _events.PublishAsync(new PilotWireSetpointModeReportedEventArgs(endpoint, configuration.Mode), cancellationToken);
+                                await _events.PublishAsync(new PilotWireDerogationModeReportedEventArgs(endpoint, null, null), cancellationToken);
+                            }
                         }
-                    }
+                    });
                     break;
                 }
 
-                case (OpenNettyNotification notification,
+                case (OpenNettyNotifications.MessageReceived or OpenNettyNotifications.MessageSent,
                       OpenNettyMessage { Protocol : OpenNettyProtocol.Nitoo,
                                          Type     : OpenNettyMessageType.BusCommand,
                                          Command  : OpenNettyCommand command,
                                          Address  : OpenNettyAddress address,
                                          Mode     : OpenNettyMode mode })
-                    when command.Category   == OpenNettyCategories.TemperatureControl                           &&
-                         command.Value      == OpenNettyCommands.TemperatureControl.WirePilotSetpointMode.Value &&
+                    when command.WithParameters([]) == OpenNettyCommands.TemperatureControl.WirePilotSetpointMode &&
                          command.Parameters is [{ Length: > 0 } value]:
                 {
-                    // Ignore the message if the corresponding endpoint couldn't be resolved or if it
-                    // was received by a different gateway than the one associated with the endpoint.
-                    var endpoint = await _manager.FindEndpointByAddressAsync(address);
-                    if (endpoint is null || (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway))
+                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
                     {
-                        return;
-                    }
-
-                    List<Task> tasks = [];
-
-                    if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
-                    {
-                        tasks.Add(ReportSetpointModeAsync(endpoint, CancellationToken.None).AsTask());
-                    }
-
-                    if (endpoint is { Unit.Definition.AssociatedUnitId: byte unit })
-                    {
-                        tasks.Add(Task.Run(async () =>
+                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
+                        if (endpoint.Gateway != notification.Gateway)
                         {
-                            var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(
-                                OpenNettyAddress.ToNitooAddress(address).Identifier, unit));
+                            return;
+                        }
 
-                            if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
+                        List<Task> tasks = [];
+
+                        if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
+                        {
+                            tasks.Add(ReportSetpointModeAsync(endpoint, cancellationToken).AsTask());
+                        }
+
+                        if (endpoint is { Unit.Definition.AssociatedUnitId: byte unit })
+                        {
+                            tasks.Add(Task.Run(async () =>
                             {
-                                await ReportSetpointModeAsync(endpoint, CancellationToken.None);
-                            }
-                        }));
-                    }
+                                var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(
+                                    OpenNettyAddress.ToNitooAddress(address).Identifier, unit));
 
-                    if (mode is OpenNettyMode.Broadcast or OpenNettyMode.Multicast && endpoint is { Unit.Scenarios: [_, ..] scenarios })
-                    {
-                        var endpoints = scenarios.ToAsyncEnumerable()
-                            .Where(static scenario => scenario.FunctionCode is 255)
-                            .SelectAwait(scenario => _manager.FindEndpointByNameAsync(scenario.EndpointName))
-                            .Where(static endpoint => endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit: OpenNettyUnit })
-                            .OfType<OpenNettyEndpoint>()
-                            .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating));
+                                if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
+                                {
+                                    await ReportSetpointModeAsync(endpoint, cancellationToken);
+                                }
+                            }, cancellationToken));
+                        }
 
-                        tasks.Add(Parallel.ForEachAsync(endpoints, ReportSetpointModeAsync));
-                    }
+                        if (mode is OpenNettyMode.Broadcast or OpenNettyMode.Multicast && endpoint is { Unit.Scenarios: [_, ..] scenarios })
+                        {
+                            var endpoints = scenarios.ToAsyncEnumerable()
+                                .Where(static scenario => scenario.FunctionCode is 255)
+                                .SelectAwait(scenario => _manager.FindEndpointByNameAsync(scenario.EndpointName))
+                                .Where(static endpoint => endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit: OpenNettyUnit })
+                                .OfType<OpenNettyEndpoint>()
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating));
 
-                    await Task.WhenAll(tasks);
+                            tasks.Add(Parallel.ForEachAsync(endpoints, ReportSetpointModeAsync));
+                        }
+
+                        await Task.WhenAll(tasks);
+                    });
 
                     // Note: setting the setpoint mode may not have an immediate effect on the device (e.g if a
                     // derogation mode was set with a minimal duration during which setpoint commands are ignored).
@@ -1048,52 +1039,52 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Command  : OpenNettyCommand command,
                                          Address  : OpenNettyAddress address,
                                          Mode     : OpenNettyMode mode })
-                    when command.Category   == OpenNettyCategories.TemperatureControl                             &&
-                         command.Value      == OpenNettyCommands.TemperatureControl.WirePilotDerogationMode.Value &&
+                    when command.WithParameters([]) == OpenNettyCommands.TemperatureControl.WirePilotDerogationMode &&
                          command.Parameters is [{ Length: > 0 } value]:
                 {
-                    // Ignore the message if the corresponding endpoint couldn't be resolved or if it
-                    // was received by a different gateway than the one associated with the endpoint.
-                    var endpoint = await _manager.FindEndpointByAddressAsync(address);
-                    if (endpoint is null || (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway))
+                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
                     {
-                        return;
-                    }
-
-                    List<Task> tasks = [];
-
-                    if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
-                    {
-                        tasks.Add(ReportDerogationModeAsync(endpoint, CancellationToken.None).AsTask());
-                    }
-
-                    if (endpoint is { Unit.Definition.AssociatedUnitId: byte unit })
-                    {
-                        tasks.Add(Task.Run(async () =>
+                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
+                        if (endpoint.Gateway != notification.Gateway)
                         {
-                            var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(
-                                OpenNettyAddress.ToNitooAddress(address).Identifier, unit));
+                            return;
+                        }
 
-                            if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
+                        List<Task> tasks = [];
+
+                        if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
+                        {
+                            tasks.Add(ReportDerogationModeAsync(endpoint, cancellationToken).AsTask());
+                        }
+
+                        if (endpoint is { Unit.Definition.AssociatedUnitId: byte unit })
+                        {
+                            tasks.Add(Task.Run(async () =>
                             {
-                                await ReportDerogationModeAsync(endpoint, CancellationToken.None);
-                            }
-                        }));
-                    }
+                                var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(
+                                    OpenNettyAddress.ToNitooAddress(address).Identifier, unit));
 
-                    if (mode is OpenNettyMode.Broadcast or OpenNettyMode.Multicast && endpoint is { Unit.Scenarios: [_, ..] scenarios })
-                    {
-                        var endpoints = scenarios.ToAsyncEnumerable()
-                            .Where(static scenario => scenario.FunctionCode is 255)
-                            .SelectAwait(scenario => _manager.FindEndpointByNameAsync(scenario.EndpointName))
-                            .Where(static endpoint => endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit: OpenNettyUnit })
-                            .OfType<OpenNettyEndpoint>()
-                            .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating));
+                                if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
+                                {
+                                    await ReportDerogationModeAsync(endpoint, cancellationToken);
+                                }
+                            }, cancellationToken));
+                        }
 
-                        tasks.Add(Parallel.ForEachAsync(endpoints, ReportDerogationModeAsync));
-                    }
+                        if (mode is OpenNettyMode.Broadcast or OpenNettyMode.Multicast && endpoint is { Unit.Scenarios: [_, ..] scenarios })
+                        {
+                            var endpoints = scenarios.ToAsyncEnumerable()
+                                .Where(static scenario => scenario.FunctionCode is 255)
+                                .SelectAwait(scenario => _manager.FindEndpointByNameAsync(scenario.EndpointName))
+                                .Where(static endpoint => endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit: OpenNettyUnit })
+                                .OfType<OpenNettyEndpoint>()
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating));
 
-                    await Task.WhenAll(tasks);
+                            tasks.Add(Parallel.ForEachAsync(endpoints, ReportDerogationModeAsync));
+                        }
+
+                        await Task.WhenAll(tasks);
+                    });
 
                     async ValueTask ReportDerogationModeAsync(OpenNettyEndpoint endpoint, CancellationToken cancellationToken) =>
                         await _events.PublishAsync(new PilotWireDerogationModeReportedEventArgs(endpoint,
@@ -1124,51 +1115,52 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Mode     : OpenNettyMode mode })
                     when command == OpenNettyCommands.TemperatureControl.CancelWirePilotDerogationMode:
                 {
-                    // Ignore the message if the corresponding endpoint couldn't be resolved or if it
-                    // was received by a different gateway than the one associated with the endpoint.
-                    var endpoint = await _manager.FindEndpointByAddressAsync(address);
-                    if (endpoint is null || (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway))
+                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
                     {
-                        return;
-                    }
-
-                    List<Task> tasks = [];
-
-                    if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
-                    {
-                        tasks.Add(_events.PublishAsync(new PilotWireDerogationModeReportedEventArgs(endpoint, null, null)).AsTask());
-                    }
-
-                    if (endpoint is { Unit.Definition.AssociatedUnitId: byte unit })
-                    {
-                        tasks.Add(Task.Run(async () =>
+                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
+                        if (endpoint.Gateway != notification.Gateway)
                         {
-                            var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(
-                                OpenNettyAddress.ToNitooAddress(address).Identifier, unit));
+                            return;
+                        }
 
-                            if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
+                        List<Task> tasks = [];
+
+                        if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
+                        {
+                            tasks.Add(_events.PublishAsync(new PilotWireDerogationModeReportedEventArgs(endpoint, null, null), cancellationToken).AsTask());
+                        }
+
+                        if (endpoint is { Unit.Definition.AssociatedUnitId: byte unit })
+                        {
+                            tasks.Add(Task.Run(async () =>
                             {
-                                await _events.PublishAsync(new PilotWireDerogationModeReportedEventArgs(endpoint, null, null));
-                            }
-                        }));
-                    }
+                                var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(
+                                    OpenNettyAddress.ToNitooAddress(address).Identifier, unit));
 
-                    if (mode is OpenNettyMode.Broadcast or OpenNettyMode.Multicast && endpoint is { Unit.Scenarios: [_, ..] scenarios })
-                    {
-                        var endpoints = scenarios.ToAsyncEnumerable()
-                            .Where(static scenario => scenario.FunctionCode is 255)
-                            .SelectAwait(scenario => _manager.FindEndpointByNameAsync(scenario.EndpointName))
-                            .Where(static endpoint => endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit: OpenNettyUnit })
-                            .OfType<OpenNettyEndpoint>()
-                            .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating));
+                                if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
+                                {
+                                    await _events.PublishAsync(new PilotWireDerogationModeReportedEventArgs(endpoint, null, null));
+                                }
+                            }, cancellationToken));
+                        }
 
-                        tasks.Add(Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                        if (mode is OpenNettyMode.Broadcast or OpenNettyMode.Multicast && endpoint is { Unit.Scenarios: [_, ..] scenarios })
                         {
-                            await _events.PublishAsync(new PilotWireDerogationModeReportedEventArgs(endpoint, null, null), cancellationToken);
-                        }));
-                    }
+                            var endpoints = scenarios.ToAsyncEnumerable()
+                                .Where(static scenario => scenario.FunctionCode is 255)
+                                .SelectAwait(scenario => _manager.FindEndpointByNameAsync(scenario.EndpointName))
+                                .Where(static endpoint => endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit: OpenNettyUnit })
+                                .OfType<OpenNettyEndpoint>()
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating));
 
-                    await Task.WhenAll(tasks);
+                            tasks.Add(Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                            {
+                                await _events.PublishAsync(new PilotWireDerogationModeReportedEventArgs(endpoint, null, null), cancellationToken);
+                            }));
+                        }
+
+                        await Task.WhenAll(tasks);
+                    });
                     break;
                 }
 
@@ -1183,32 +1175,31 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Values   : [{ Length: > 0 } value] })
                     when dimension == OpenNettyDimensions.Management.BatteryInformation:
                 {
-                    // Ignore the message if the corresponding endpoint couldn't be resolved or if it
-                    // was received by a different gateway than the one associated with the endpoint.
-                    //
                     // Note: while the battery level is reported using a unit-specific address, it applies to the entire
                     // device: this task retrieves the device endpoint and, if available, report its battery level.
-                    var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromDecimalZigbeeAddress(
+                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(OpenNettyAddress.FromDecimalZigbeeAddress(
                         identifier: OpenNettyAddress.ToZigbeeAddress(address).Identifier,
-                        unit      : 0));
-                    
-                    if (endpoint is null || (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway))
+                        unit      : 0)), async (endpoint, cancellationToken) =>
                     {
-                        return;
-                    }
-
-                    if (endpoint.HasCapability(OpenNettyCapabilities.BatteryLevel))
-                    {
-                        await _events.PublishAsync(new BatteryLevelReportedEventArgs(endpoint, value switch
+                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
+                        if (endpoint.Gateway != notification.Gateway)
                         {
-                            "0" => 5,
-                            "1" => 33,
-                            "2" => 66,
-                            "3" => 100,
+                            return;
+                        }
 
-                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
-                        }));
-                    }
+                        if (endpoint.HasCapability(OpenNettyCapabilities.BatteryLevel))
+                        {
+                            await _events.PublishAsync(new BatteryLevelReportedEventArgs(endpoint, value switch
+                            {
+                                "0" => 5,
+                                "1" => 33,
+                                "2" => 66,
+                                "3" => 100,
+
+                                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                            }), cancellationToken);
+                        }
+                    });
                     break;
                 }
 
@@ -1219,18 +1210,19 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Address : OpenNettyAddress address })
                     when command == OpenNettyCommands.Management.BatteryWeak:
                 {
-                    // Ignore the message if the corresponding endpoint couldn't be resolved or if it
-                    // was received by a different gateway than the one associated with the endpoint.
-                    var endpoint = await _manager.FindEndpointByAddressAsync(address);
-                    if (endpoint is null || (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway))
+                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
                     {
-                        return;
-                    }
+                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
+                        if (endpoint.Gateway != notification.Gateway)
+                        {
+                            return;
+                        }
 
-                    if (endpoint.HasCapability(OpenNettyCapabilities.BatteryAlert))
-                    {
-                        await _events.PublishAsync(new BatteryAlertReportedEventArgs(endpoint));
-                    }
+                        if (endpoint.HasCapability(OpenNettyCapabilities.BatteryAlert))
+                        {
+                            await _events.PublishAsync(new BatteryAlertReportedEventArgs(endpoint), cancellationToken);
+                        }
+                    });
                     break;
                 }
 
@@ -1245,7 +1237,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 {
                     // Resolve the endpoint associated with the gateway that received the DIMENSION READ message.
                     var endpoint = await _manager.FindEndpointAsync(endpoint =>
-                        endpoint.Device == arguments.Notification.Gateway.Device && endpoint.Unit is null);
+                        endpoint.Device == notification.Gateway.Device && endpoint.Unit is null);
 
                     if (endpoint is null)
                     {
@@ -1272,31 +1264,32 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                          command == OpenNettyCommands.Scenario.CloseBinding ||
                          command == OpenNettyCommands.Scenario.CancelBinding:
                 {
-                    // Ignore the message if the corresponding endpoint couldn't be resolved or if it
-                    // was received by a different gateway than the one associated with the endpoint.
-                    var endpoint = await _manager.FindEndpointByAddressAsync(address);
-                    if (endpoint is null || (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway))
+                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
                     {
-                        return;
-                    }
-
-                    if (endpoint.HasCapability(OpenNettyCapabilities.ZigbeeBinding))
-                    {
-                        if (command == OpenNettyCommands.Scenario.OpenBinding)
+                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
+                        if (endpoint.Gateway != notification.Gateway)
                         {
-                            await _events.PublishAsync(new BindingOpenEventArgs(endpoint));
+                            return;
                         }
 
-                        else if (command == OpenNettyCommands.Scenario.CloseBinding)
+                        if (endpoint.HasCapability(OpenNettyCapabilities.ZigbeeBinding))
                         {
-                            await _events.PublishAsync(new BindingClosedEventArgs(endpoint));
-                        }
+                            if (command == OpenNettyCommands.Scenario.OpenBinding)
+                            {
+                                await _events.PublishAsync(new BindingOpenEventArgs(endpoint), cancellationToken);
+                            }
 
-                        else if (command == OpenNettyCommands.Scenario.CancelBinding)
-                        {
-                            await _events.PublishAsync(new BindingCanceledEventArgs(endpoint));
+                            else if (command == OpenNettyCommands.Scenario.CloseBinding)
+                            {
+                                await _events.PublishAsync(new BindingClosedEventArgs(endpoint), cancellationToken);
+                            }
+
+                            else if (command == OpenNettyCommands.Scenario.CancelBinding)
+                            {
+                                await _events.PublishAsync(new BindingCanceledEventArgs(endpoint), cancellationToken);
+                            }
                         }
-                    }
+                    });
                     break;
                 }
 
@@ -1308,16 +1301,17 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Values   : [{ Length: > 0 }, { Length: > 0 }, { Length: > 0 }, { Length: > 0 }] values })
                     when dimension == OpenNettyDimensions.Diagnostics.DeviceDescription:
                 {
-                    // Ignore the message if the corresponding endpoint couldn't be resolved or if it
-                    // was received by a different gateway than the one associated with the endpoint.
-                    var endpoint = await _manager.FindEndpointByAddressAsync(address);
-                    if (endpoint is null || (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway))
+                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
                     {
-                        return;
-                    }
+                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
+                        if (endpoint.Gateway != notification.Gateway)
+                        {
+                            return;
+                        }
 
-                    await _events.PublishAsync(new DeviceDescriptionReportedEventArgs(endpoint,
-                        OpenNettyModels.Diagnostics.DeviceDescription.CreateFromDeviceDescription(values)));
+                        await _events.PublishAsync(new DeviceDescriptionReportedEventArgs(endpoint,
+                            OpenNettyModels.Diagnostics.DeviceDescription.CreateFromDeviceDescription(values)), cancellationToken);
+                    });
                     break;
                 }
 
@@ -1330,28 +1324,29 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Values   : [{ Length: > 0 } value, ..] })
                     when dimension == OpenNettyDimensions.Lighting.DimmerStep:
                 {
-                    // Ignore the message if the corresponding endpoint couldn't be resolved or if it
-                    // was received by a different gateway than the one associated with the endpoint.
-                    var endpoint = await _manager.FindEndpointByAddressAsync(address);
-                    if (endpoint is null || (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway))
+                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
                     {
-                        return;
-                    }
-
-                    if (endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioState))
-                    {
-                        var step = int.Parse(value, CultureInfo.InvariantCulture);
-                        if (step is >= 128)
+                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
+                        if (endpoint.Gateway != notification.Gateway)
                         {
-                            step -= 256;
+                            return;
                         }
 
-                        await _events.PublishAsync(new DimmingStepReportedEventArgs(endpoint, step));
-                    }
+                        if (endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioState))
+                        {
+                            var step = int.Parse(value, CultureInfo.InvariantCulture);
+                            if (step is >= 128)
+                            {
+                                step -= 256;
+                            }
+
+                            await _events.PublishAsync(new DimmingStepReportedEventArgs(endpoint, step), cancellationToken);
+                        }
+                    });
                     break;
                 }
 
-                case (OpenNettyNotification notification,
+                case (OpenNettyNotifications.MessageReceived or OpenNettyNotifications.MessageSent,
                       OpenNettyMessage { Protocol: OpenNettyProtocol.Nitoo,
                                          Type    : OpenNettyMessageType.BusCommand,
                                          Command : OpenNettyCommand command,
@@ -1359,179 +1354,178 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Mode    : OpenNettyMode mode })
                     // Note: timed and progressive scenarios are parameterized.
                     when command == OpenNettyCommands.Scenario.Action ||
-                        (command.Category   == OpenNettyCategories.Scenarios                  &&
-                         command.Value      == OpenNettyCommands.Scenario.ActionForTime.Value &&
-                         command.Parameters is [{ Length: > 0 }]) ||
-                        (command.Category   == OpenNettyCategories.Scenarios                 &&
-                         command.Value      == OpenNettyCommands.Scenario.ActionInTime.Value &&
-                         command.Parameters is [{ Length: > 0 }]):
+                         command.WithParameters([]) == OpenNettyCommands.Scenario.ActionForTime ||
+                         command.WithParameters([]) == OpenNettyCommands.Scenario.ActionInTime:
                 {
-                    // Ignore the message if the corresponding endpoint couldn't be resolved or if it
-                    // was received by a different gateway than the one associated with the endpoint.
-                    var endpoint = await _manager.FindEndpointByAddressAsync(address);
-                    if (endpoint is null || (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway))
+                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
                     {
-                        return;
-                    }
-
-                    List<Task> tasks = [];
-
-                    if (command == OpenNettyCommands.Scenario.Action)
-                    {
-                        if (!endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioState))
+                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
+                        if (endpoint.Gateway != notification.Gateway)
                         {
-                            break;
+                            return;
                         }
 
-                        if (mode is OpenNettyMode.Broadcast && notification is OpenNettyNotifications.MessageReceived)
-                        {
-                            tasks.Add(_events.PublishAsync(new BasicScenarioReportedEventArgs(endpoint)).AsTask());
-                        }
+                        List<Task> tasks = [];
 
-                        // Note: since they are radiofrequency devices, the current state of Nitoo wireless burglar alarms
-                        // cannot be retrieved using a unit description request. To inform devices associated using a
-                        // PnL scenario of a state change, Nitoo alarms broadcast it using unit-specific ACTION scenarios.
-                        tasks.Add(Task.Run(async () =>
+                        if (command == OpenNettyCommands.Scenario.Action)
                         {
-                            var (identifier, unit) = OpenNettyAddress.ToNitooAddress(address);
-                            if (unit is not (>= 4 and <= 9))
+                            if (!endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioState))
                             {
                                 return;
                             }
 
-                            var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(identifier, 0));
-                            if (endpoint is null || !endpoint.HasCapability(OpenNettyCapabilities.WirelessBurglarAlarmState))
+                            if (mode is OpenNettyMode.Broadcast && notification is OpenNettyNotifications.MessageReceived)
+                            {
+                                tasks.Add(_events.PublishAsync(new BasicScenarioReportedEventArgs(endpoint), cancellationToken).AsTask());
+                            }
+
+                            // Note: since they are radiofrequency devices, the current state of Nitoo wireless burglar alarms
+                            // cannot be retrieved using a unit description request. To inform devices associated using a
+                            // PnL scenario of a state change, Nitoo alarms broadcast it using unit-specific ACTION scenarios.
+                            tasks.Add(Task.Run(async () =>
+                            {
+                                var (identifier, unit) = OpenNettyAddress.ToNitooAddress(address);
+                                if (unit is not (>= 4 and <= 9))
+                                {
+                                    return;
+                                }
+
+                                var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(identifier, 0));
+                                if (endpoint is null || !endpoint.HasCapability(OpenNettyCapabilities.WirelessBurglarAlarmState))
+                                {
+                                    return;
+                                }
+
+                                await _events.PublishAsync(new WirelessBurglarAlarmStateReportedEventArgs(endpoint, unit switch
+                                {
+                                    4 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.Armed,
+                                    5 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.Disarmed,
+                                    6 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.PartiallyArmed,
+                                    7 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.Triggered,
+                                    8 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.ExitDelayElapsed,
+                                    9 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.EventDetected,
+
+                                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                                }));
+                            }, cancellationToken));
+                        }
+
+                        else if (command.Value == OpenNettyCommands.Scenario.ActionForTime.Value)
+                        {
+                            if (!endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioState))
                             {
                                 return;
                             }
 
-                            await _events.PublishAsync(new WirelessBurglarAlarmStateReportedEventArgs(endpoint, unit switch
+                            if (notification is OpenNettyNotifications.MessageReceived && mode is OpenNettyMode.Broadcast)
                             {
-                                4 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.Armed,
-                                5 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.Disarmed,
-                                6 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.PartiallyArmed,
-                                7 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.Triggered,
-                                8 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.ExitDelayElapsed,
-                                9 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.EventDetected,
+                                var duration = Math.Round(double.Parse(command.Parameters[0], CultureInfo.InvariantCulture) / 5, MidpointRounding.AwayFromZero);
 
-                                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
-                            }));
-                        }));
-                    }
-
-                    else if (command.Value == OpenNettyCommands.Scenario.ActionForTime.Value)
-                    {
-                        if (!endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioState))
-                        {
-                            break;
+                                await _events.PublishAsync(new TimedScenarioReportedEventArgs(endpoint, TimeSpan.FromSeconds(duration)), cancellationToken);
+                            }
                         }
 
-                        if (notification is OpenNettyNotifications.MessageReceived && mode is OpenNettyMode.Broadcast)
+                        else if (command.Value == OpenNettyCommands.Scenario.ActionInTime.Value)
                         {
-                            var duration = Math.Round(double.Parse(command.Parameters[0], CultureInfo.InvariantCulture) / 5, MidpointRounding.AwayFromZero);
-
-                            await _events.PublishAsync(new TimedScenarioReportedEventArgs(endpoint, TimeSpan.FromSeconds(duration)));
-                        }
-                    }
-
-                    else if (command.Value == OpenNettyCommands.Scenario.ActionInTime.Value)
-                    {
-                        if (!endpoint.HasCapability(OpenNettyCapabilities.ProgressiveScenarioState))
-                        {
-                            break;
-                        }
-
-                        if (notification is OpenNettyNotifications.MessageReceived && mode is OpenNettyMode.Broadcast)
-                        {
-                            var duration = Math.Round(double.Parse(command.Parameters[0], CultureInfo.InvariantCulture) / 5, MidpointRounding.AwayFromZero);
-
-                            await _events.PublishAsync(new ProgressiveScenarioReportedEventArgs(endpoint, TimeSpan.FromSeconds(duration)));
-                        }
-                    }
-
-                    // Note: on endpoints that don't support dimming, a "SCENARIO ACTION", "SCENARIO ACTION IN TIME" or
-                    // "SCENARIO ACTION FOR TIME" BUS COMMAND always results in the associated unit being switched on.
-                    //
-                    // For endpoints that support dimming, the actual brightness level is retrieved asynchronously
-                    // by a dedicated event handler to ensure the exact brightness level is correctly reported.
-                    if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState) &&
-                       !endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) &&
-                       !endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
-                    {
-                        tasks.Add(ReportOnStateAsync(endpoint, CancellationToken.None).AsTask());
-                    }
-
-                    if (endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit.Definition.AssociatedUnitId: byte unit })
-                    {
-                        tasks.Add(Task.Run(async () =>
-                        {
-                            var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(
-                                OpenNettyAddress.ToNitooAddress(address).Identifier, unit));
-
-                            if (endpoint is null || !endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
+                            if (!endpoint.HasCapability(OpenNettyCapabilities.ProgressiveScenarioState))
                             {
                                 return;
                             }
 
-                            // Note: on endpoints that don't support dimming, a "SCENARIO ACTION", "SCENARIO ACTION IN TIME" or
-                            // "SCENARIO ACTION FOR TIME" BUS COMMAND always results in the associated unit being switched on.
-                            //
-                            // For endpoints that support dimming, the actual brightness level is retrieved asynchronously
-                            // by a dedicated event handler to ensure the exact brightness level is correctly reported.
-                            if (!endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) &&
-                                !endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
+                            if (notification is OpenNettyNotifications.MessageReceived && mode is OpenNettyMode.Broadcast)
                             {
-                                await ReportOnStateAsync(endpoint, CancellationToken.None);
-                            }
-                        }));
-                    }
+                                var duration = Math.Round(double.Parse(command.Parameters[0], CultureInfo.InvariantCulture) / 5, MidpointRounding.AwayFromZero);
 
-                    if (endpoint is { Unit.Scenarios: [_, ..] scenarios })
-                    {
-                        tasks.Add(Parallel.ForEachAsync(scenarios, async (scenario, cancellationToken) =>
+                                await _events.PublishAsync(new ProgressiveScenarioReportedEventArgs(endpoint, TimeSpan.FromSeconds(duration)), cancellationToken);
+                            }
+                        }
+
+                        // Note: on endpoints that don't support dimming, a "SCENARIO ACTION", "SCENARIO ACTION IN TIME" or
+                        // "SCENARIO ACTION FOR TIME" BUS COMMAND always results in the associated unit being switched on.
+                        //
+                        // For endpoints that support dimming, the actual brightness level is retrieved asynchronously
+                        // by a dedicated event handler to ensure the exact brightness level is correctly reported.
+                        if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState) &&
+                           !endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) &&
+                           !endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
                         {
-                            var endpoint = await _manager.FindEndpointByNameAsync(scenario.EndpointName, cancellationToken);
-                            if (endpoint is null ||
-                                endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Lighting))
-                            {
-                                return;
-                            }
+                            tasks.Add(ReportOnStateAsync(endpoint, cancellationToken).AsTask());
+                        }
 
-                            if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
+                        if (endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit.Definition.AssociatedUnitId: byte unit })
+                        {
+                            tasks.Add(Task.Run(async () =>
                             {
-                                if (scenario.FunctionCode is 101 or 103 or (>= 0 and <= 100))
+                                var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(
+                                    OpenNettyAddress.ToNitooAddress(address).Identifier, unit));
+
+                                if (endpoint is null || !endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
+                                {
+                                    return;
+                                }
+
+                                // Note: on endpoints that don't support dimming, a "SCENARIO ACTION", "SCENARIO ACTION IN TIME" or
+                                // "SCENARIO ACTION FOR TIME" BUS COMMAND always results in the associated unit being switched on.
+                                //
+                                // For endpoints that support dimming, the actual brightness level is retrieved asynchronously
+                                // by a dedicated event handler to ensure the exact brightness level is correctly reported.
+                                if (!endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) &&
+                                    !endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
                                 {
                                     await ReportOnStateAsync(endpoint, cancellationToken);
                                 }
+                            }, cancellationToken));
+                        }
 
-                                else if (scenario.FunctionCode is 102 or 104)
-                                {
-                                    await _events.PublishAsync(new SwitchStateReportedEventArgs(endpoint,
-                                        OpenNettyModels.Lighting.SwitchState.Off), cancellationToken);
-                                }
-                            }
-
-                            if (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) ||
-                                endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
+                        if (endpoint is { Unit.Scenarios: [_, ..] scenarios })
+                        {
+                            tasks.Add(Parallel.ForEachAsync(scenarios, async (scenario, cancellationToken) =>
                             {
-                                // Note: for Nitoo devices supporting dimming, an ON scenario always changes the brightness to 100%.
-                                if (scenario.FunctionCode is 101 or 103)
+                                var endpoint = await _manager.FindEndpointByNameAsync(scenario.EndpointName, cancellationToken);
+                                if (endpoint is null)
                                 {
-                                    await _events.PublishAsync(new BrightnessReportedEventArgs(endpoint, 100), cancellationToken);
+                                    return;
                                 }
 
-                                // Note: the special brightness level "0" always indicates that the output is switched off.
-                                // While Nitoo devices normally don't restore the last known brightness level, the brightness
-                                // level is only reported if it's higher than zero for consistency with MyHome/SCS devices.
-                                else if (scenario.FunctionCode is >= 1 and <= 100)
+                                if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
                                 {
-                                    await _events.PublishAsync(new BrightnessReportedEventArgs(endpoint, scenario.FunctionCode), cancellationToken);
-                                }
-                            }
-                        }));
-                    }
+                                    if (scenario.FunctionCode is 101 or 103 or (>= 0 and <= 100))
+                                    {
+                                        await ReportOnStateAsync(endpoint, cancellationToken);
+                                    }
 
-                    await Task.WhenAll(tasks);
+                                    else if (scenario.FunctionCode is 102 or 104)
+                                    {
+                                        await _events.PublishAsync(new SwitchStateReportedEventArgs(endpoint,
+                                            OpenNettyModels.Lighting.SwitchState.Off), cancellationToken);
+                                    }
+                                }
+
+                                if (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) ||
+                                    endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
+                                {
+                                    // Note: for Nitoo devices supporting dimming, an ON scenario always changes the brightness to 100%.
+                                    if (scenario.FunctionCode is 101 or 103)
+                                    {
+                                        await _events.PublishAsync(new BrightnessReportedEventArgs(endpoint, 100), cancellationToken);
+                                    }
+
+                                    // Note: the special brightness level "0" always indicates that the output is switched off.
+                                    // To avoid overriding the last known level (which is typically restored by SCS devices when
+                                    // receiving an ON command), the brightness level is only reported if it's higher than zero.
+                                    // 
+                                    // Note: while Nitoo devices normally don't restore the last known brightness level when
+                                    // receiving an ON command, the same rule applies for consistency with MyHome/SCS devices.
+                                    else if (scenario.FunctionCode is >= 1 and <= 100)
+                                    {
+                                        await _events.PublishAsync(new BrightnessReportedEventArgs(endpoint, scenario.FunctionCode), cancellationToken);
+                                    }
+                                }
+                            }));
+                        }
+
+                        await Task.WhenAll(tasks);
+                    });
 
                     async ValueTask ReportOnStateAsync(OpenNettyEndpoint endpoint, CancellationToken cancellationToken)
                     {
@@ -1550,7 +1544,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 }
             }
         })
-        .Do((Exception exception) => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
+        .Do(exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
         .Retry()
         .SubscribeAsync(static message => ValueTask.CompletedTask),
 
@@ -1608,9 +1602,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     Address : not null,
                     Mode    : OpenNettyMode.Broadcast } message }
                 // Note: timed scenarios are reported using parameterized BUS COMMAND frames.
-                when command.Category   == OpenNettyCategories.Scenarios                  &&
-                     command.Value      == OpenNettyCommands.Scenario.ActionForTime.Value &&
-                     command.Parameters is [{ Length: > 0 }]
+                when command.WithParameters([]) == OpenNettyCommands.Scenario.ActionForTime
                     => AsyncObservable.Return<(OpenNettyNotification Notification, OpenNettyMessage Message)>((notification, message)),
 
             OpenNettyNotifications.MessageReceived {
@@ -1622,9 +1614,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     Address : not null,
                     Mode    : OpenNettyMode.Broadcast } message }
                 // Note: progressive scenarios are reported using parameterized BUS COMMAND frames.
-                when command.Category   == OpenNettyCategories.Scenarios                 &&
-                     command.Value      == OpenNettyCommands.Scenario.ActionInTime.Value &&
-                     command.Parameters is [{ Length: > 0 }]
+                when command.WithParameters([]) == OpenNettyCommands.Scenario.ActionInTime
                     => AsyncObservable.Return<(OpenNettyNotification Notification, OpenNettyMessage Message)>((notification, message)),
 
             // Nitoo devices allow changing the brightness level of a local unit (and of associated
@@ -1650,15 +1640,17 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
         .SelectMany(static group => group.Throttle(TimeSpan.FromSeconds(group.Key.Type is OpenNettyAddressType.Nitoo ? 0.5 : 1)))
         .Do(async arguments =>
         {
-            await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(arguments.Message.Address!.Value), async (endpoint, cancellationToken) =>
+            var (notification, message) = arguments;
+
+            await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address!.Value), async (endpoint, cancellationToken) =>
             {
                 // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                if (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway)
+                if (endpoint.Gateway != notification.Gateway)
                 {
                     return;
                 }
 
-                switch (arguments.Message)
+                switch (message)
                 {
                     case { Type: OpenNettyMessageType.BusCommand, Command: OpenNettyCommand command }
                         when command == OpenNettyCommands.Scenario.Action && !endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioState):
@@ -1685,14 +1677,12 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         break;
 
                     case { Type: OpenNettyMessageType.BusCommand, Command: OpenNettyCommand command }
-                        when command.Category == OpenNettyCategories.Scenarios                  &&
-                             command.Value    == OpenNettyCommands.Scenario.ActionForTime.Value &&
+                        when command.WithParameters([]) == OpenNettyCommands.Scenario.ActionForTime &&
                             !endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioState):
                         return;
 
                     case { Type: OpenNettyMessageType.BusCommand, Command: OpenNettyCommand command }
-                        when command.Category == OpenNettyCategories.Scenarios                 &&
-                             command.Value    == OpenNettyCommands.Scenario.ActionInTime.Value &&
+                        when command.WithParameters([]) == OpenNettyCommands.Scenario.ActionInTime &&
                             !endpoint.HasCapability(OpenNettyCapabilities.ProgressiveScenarioState):
                         return;
 
@@ -1715,7 +1705,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     tasks.Add(Task.Run(async () =>
                     {
                         var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(
-                            OpenNettyAddress.ToNitooAddress(arguments.Message.Address!.Value).Identifier, unit));
+                            OpenNettyAddress.ToNitooAddress(message.Address!.Value).Identifier, unit));
 
                         if (endpoint is null)
                         {
@@ -1734,9 +1724,9 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     }, cancellationToken));
                 }
 
-                if (arguments.Message.Protocol  is OpenNettyProtocol.Nitoo                 &&
-                    arguments.Message.Type      is OpenNettyMessageType.DimensionSet       &&
-                    arguments.Message.Dimension == OpenNettyDimensions.Lighting.DimmerStep &&
+                if (message.Protocol  is OpenNettyProtocol.Nitoo                 &&
+                    message.Type      is OpenNettyMessageType.DimensionSet       &&
+                    message.Dimension == OpenNettyDimensions.Lighting.DimmerStep &&
                     endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit.Scenarios: [_, ..] scenarios })
                 {
                     var endpoints = scenarios.ToAsyncEnumerable()
@@ -1755,7 +1745,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 await Task.WhenAll(tasks);
             });
         })
-        .Do((Exception exception) => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
+        .Do(exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
         .Retry()
         .SubscribeAsync(static notification => ValueTask.CompletedTask),
 
@@ -1772,78 +1762,70 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     Address : not null,
                     Mode    : OpenNettyMode.Broadcast } message }
                 // Note: timed scenarios are reported using parameterized BUS COMMAND frames.
-                when command.Category   == OpenNettyCategories.Scenarios                  &&
-                     command.Value      == OpenNettyCommands.Scenario.ActionForTime.Value &&
-                     command.Parameters is [{ Length: > 0 } value]                        &&
-                     Math.Round(double.Parse(value, CultureInfo.InvariantCulture) / 5, MidpointRounding.AwayFromZero) is double duration
+                when command.WithParameters([]) == OpenNettyCommands.Scenario.ActionForTime &&
+                     Math.Round(double.Parse(command.Parameters[0], CultureInfo.InvariantCulture) / 5, MidpointRounding.AwayFromZero) is double duration
                      => AsyncObservable.Timer(TimeSpan.FromSeconds(duration)).Select(_ => (Notification: notification, Message: message)),
 
             _ => AsyncObservable.Empty<(OpenNettyNotification Notification, OpenNettyMessage Message)>()
         })
         .Do(async arguments =>
         {
-            // Ignore the message if no endpoint matching the associated address could be resolved.
-            var endpoint = await _manager.FindEndpointByAddressAsync(arguments.Message.Address!.Value);
-            if (endpoint is null)
-            {
-                return;
-            }
+            var (notification, message) = arguments;
 
-            // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-            if (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway)
+            await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address!.Value), async (endpoint, cancellationToken) =>
             {
-                return;
-            }
-
-            if (!endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioState))
-            {
-                return;
-            }
-
-            List<Task> tasks = [];
-
-            if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState) &&
-                endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is null or OpenNettySettings.ActuatorTypes.Lighting)
-            {
-                tasks.Add(ReportOffStateAsync(endpoint, CancellationToken.None).AsTask());
-            }
-
-            if (endpoint is { Unit.Definition.AssociatedUnitId: byte unit })
-            {
-                tasks.Add(Task.Run(async () =>
+                // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
+                if (endpoint.Gateway != notification.Gateway)
                 {
-                    var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(
-                        OpenNettyAddress.ToNitooAddress(arguments.Message.Address!.Value).Identifier, unit));
+                    return;
+                }
 
-                    if (endpoint is not null &&
-                        endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState) &&
-                        endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is null or OpenNettySettings.ActuatorTypes.Lighting)
+                if (!endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioState))
+                {
+                    return;
+                }
+
+                List<Task> tasks = [];
+
+                if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
+                {
+                    tasks.Add(ReportOffStateAsync(endpoint, cancellationToken).AsTask());
+                }
+
+                if (endpoint is { Unit.Definition.AssociatedUnitId: byte unit })
+                {
+                    tasks.Add(Task.Run(async () =>
                     {
-                        await ReportOffStateAsync(endpoint, CancellationToken.None);
-                    }
-                }));
-            }
+                        var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(
+                            OpenNettyAddress.ToNitooAddress(message.Address!.Value).Identifier, unit));
 
-            if (endpoint is { Unit.Scenarios: [_, ..] scenarios })
-            {
-                var endpoints = scenarios.ToAsyncEnumerable()
-                    .Where(static scenario => scenario.FunctionCode is < 105)
-                    .SelectAwait(scenario => _manager.FindEndpointByNameAsync(scenario.EndpointName))
-                    .Where(static endpoint => endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit: OpenNettyUnit })
-                    .OfType<OpenNettyEndpoint>()
-                    .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
-                    .Where(static endpoint => endpoint.GetStringSetting(OpenNettySettings.ActuatorType)
-                        is null or OpenNettySettings.ActuatorTypes.Lighting);
+                        if (endpoint is not null &&
+                            endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
+                        {
+                            await ReportOffStateAsync(endpoint, cancellationToken);
+                        }
+                    }, cancellationToken));
+                }
 
-                tasks.Add(Parallel.ForEachAsync(endpoints, ReportOffStateAsync));
-            }
+                if (endpoint is { Unit.Scenarios: [_, ..] scenarios })
+                {
+                    var endpoints = scenarios.ToAsyncEnumerable()
+                        .Where(static scenario => scenario.FunctionCode is < 105)
+                        .SelectAwait(scenario => _manager.FindEndpointByNameAsync(scenario.EndpointName))
+                        .Where(static endpoint => endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit: OpenNettyUnit })
+                        .OfType<OpenNettyEndpoint>()
+                        .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState));
 
-            await Task.WhenAll(tasks);
+                    tasks.Add(Parallel.ForEachAsync(endpoints, ReportOffStateAsync));
+                }
+
+                await Task.WhenAll(tasks);
+            });
 
             ValueTask ReportOffStateAsync(OpenNettyEndpoint endpoint, CancellationToken cancellationToken)
                 => _events.PublishAsync(new SwitchStateReportedEventArgs(endpoint, OpenNettyModels.Lighting.SwitchState.Off), cancellationToken);
         })
-        .Do((Exception exception) => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
+        .Do(exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
         .Retry()
         .SubscribeAsync(static notification => ValueTask.CompletedTask),
 
@@ -1860,9 +1842,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     Address : not null,
                     Mode    : OpenNettyMode.Broadcast } message }
                 // Note: pilot wire mode changes are reported using parameterized BUS COMMAND frames.
-                when command.Category   == OpenNettyCategories.TemperatureControl                           &&
-                     command.Value      == OpenNettyCommands.TemperatureControl.WirePilotSetpointMode.Value &&
-                     command.Parameters is [{ Length: > 0 }]
+                when command.WithParameters([]) == OpenNettyCommands.TemperatureControl.WirePilotSetpointMode
                     => AsyncObservable.Return<(OpenNettyNotification Notification, OpenNettyMessage Message)>((notification, message)),
 
             OpenNettyNotifications.MessageReceived {
@@ -1884,9 +1864,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     Command : OpenNettyCommand command,
                     Address : not null } message }
                 // Note: pilot wire mode changes are emitted using parameterized BUS COMMAND frames.
-                when command.Category   == OpenNettyCategories.TemperatureControl                           &&
-                     command.Value      == OpenNettyCommands.TemperatureControl.WirePilotSetpointMode.Value &&
-                     command.Parameters is [{ Length: > 0 }]
+                when command.WithParameters([]) == OpenNettyCommands.TemperatureControl.WirePilotSetpointMode
                      => AsyncObservable.Return<(OpenNettyNotification Notification, OpenNettyMessage Message)>((notification, message)),
 
             OpenNettyNotifications.MessageSent {
@@ -1905,25 +1883,23 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
         .SelectMany(static group => group.Throttle(TimeSpan.FromSeconds(0.5)))
         .Do(async arguments =>
         {
-            // Ignore the message if no endpoint matching the associated address could be resolved.
-            var endpoint = await _manager.FindEndpointByAddressAsync(arguments.Message.Address!.Value);
-            if (endpoint is null)
-            {
-                return;
-            }
+            var (notification, message) = arguments;
 
-            // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-            if (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway)
+            await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address!.Value), async (endpoint, cancellationToken) =>
             {
-                return;
-            }
+                // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
+                if (endpoint.Gateway != notification.Gateway)
+                {
+                    return;
+                }
 
-            if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
-            {
-                _ = await _controller.GetPilotWireConfigurationAsync(endpoint);
-            }
+                if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
+                {
+                    _ = await _controller.GetPilotWireConfigurationAsync(endpoint, cancellationToken);
+                }
+            });
         })
-        .Do((Exception exception) => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
+        .Do(exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
         .Retry()
         .SubscribeAsync(static notification => ValueTask.CompletedTask),
 
@@ -1949,55 +1925,53 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
         .SelectMany(static group => group.Throttle(TimeSpan.FromSeconds(2.5)))
         .Do(async arguments =>
         {
-            // Ignore the message if no endpoint matching the associated address could be resolved.
-            var endpoint = await _manager.FindEndpointByAddressAsync(arguments.Message.Address!.Value);
-            if (endpoint is null)
-            {
-                return;
-            }
+            var (notification, message) = arguments;
 
-            // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-            if (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway)
+            await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address!.Value), async (endpoint, cancellationToken) =>
             {
-                return;
-            }
-
-            if (!endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))
-            {
-                return;
-            }
-
-            var endpoints = _manager.EnumerateEndpointsAsync()
-                .Where(static endpoint => endpoint.Protocol is OpenNettyProtocol.Nitoo)
-                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
-                .Where(endpoint => endpoint.Address is OpenNettyAddress address &&
-                    OpenNettyAddress.ToNitooAddress(address) is { Identifier: uint identifier } &&
-                    identifier == OpenNettyAddress.ToNitooAddress(arguments.Message.Address!.Value).Identifier);
-
-            await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
-            {
-                switch (arguments.Message.Values, await _controller.GetUnitDescriptionAsync(endpoint, cancellationToken))
+                // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
+                if (endpoint.Gateway != notification.Gateway)
                 {
-                    // If the unit description indicates water is not heating when an "off-peak" signal
-                    // is received, this means that production of hot water was turned off by the user.
-                    case (["2"], { FunctionCode: 133, Values: ["0" or "32"] }):
-                        await _events.PublishAsync(new WaterHeaterSetpointModeReportedEventArgs(endpoint,
-                            OpenNettyModels.TemperatureControl.WaterHeaterMode.ForcedOff), cancellationToken);
-                        break;
-
-                    case (["2"], { FunctionCode: 133, Values: ["1" or "33"] }):
-                        await _events.PublishAsync(new WaterHeaterSetpointModeReportedEventArgs(endpoint,
-                            OpenNettyModels.TemperatureControl.WaterHeaterMode.Automatic), cancellationToken);
-                        break;
-
-                    case (["2"], { FunctionCode: 133, Values: ["17"] }):
-                        await _events.PublishAsync(new WaterHeaterSetpointModeReportedEventArgs(endpoint,
-                            OpenNettyModels.TemperatureControl.WaterHeaterMode.ForcedOn), cancellationToken);
-                        break;
+                    return;
                 }
+
+                if (!endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))
+                {
+                    return;
+                }
+
+                var endpoints = _manager.EnumerateEndpointsAsync(cancellationToken)
+                    .Where(static endpoint => endpoint.Protocol is OpenNettyProtocol.Nitoo)
+                    .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
+                    .Where(endpoint => endpoint.Address is OpenNettyAddress address &&
+                        OpenNettyAddress.ToNitooAddress(address) is { Identifier: uint identifier } &&
+                        identifier == OpenNettyAddress.ToNitooAddress(message.Address!.Value).Identifier);
+
+                await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                {
+                    switch (message.Values, await _controller.GetUnitDescriptionAsync(endpoint, cancellationToken))
+                    {
+                        // If the unit description indicates water is not heating when an "off-peak" signal
+                        // is received, this means that production of hot water was turned off by the user.
+                        case (["2"], { FunctionCode: 133, Values: ["0" or "32"] }):
+                            await _events.PublishAsync(new WaterHeaterSetpointModeReportedEventArgs(endpoint,
+                                OpenNettyModels.TemperatureControl.WaterHeaterMode.ForcedOff), cancellationToken);
+                            break;
+
+                        case (["2"], { FunctionCode: 133, Values: ["1" or "33"] }):
+                            await _events.PublishAsync(new WaterHeaterSetpointModeReportedEventArgs(endpoint,
+                                OpenNettyModels.TemperatureControl.WaterHeaterMode.Automatic), cancellationToken);
+                            break;
+
+                        case (["2"], { FunctionCode: 133, Values: ["17"] }):
+                            await _events.PublishAsync(new WaterHeaterSetpointModeReportedEventArgs(endpoint,
+                                OpenNettyModels.TemperatureControl.WaterHeaterMode.ForcedOn), cancellationToken);
+                            break;
+                    }
+                });
             });
         })
-        .Do((Exception exception) => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
+        .Do(exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
         .Retry()
         .SubscribeAsync(static notification => ValueTask.CompletedTask),
 
@@ -2022,25 +1996,23 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
         .SelectMany(static group => group.Throttle(TimeSpan.FromSeconds(0.5)))
         .Do(async arguments =>
         {
-            // Ignore the message if no endpoint matching the associated address could be resolved.
-            var endpoint = await _manager.FindEndpointByAddressAsync(arguments.Message.Address!.Value);
-            if (endpoint is null)
-            {
-                return;
-            }
+            var (notification, message) = arguments;
 
-            // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-            if (endpoint.Gateway is not null && arguments.Notification.Gateway != endpoint.Gateway)
+            await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address!.Value), async (endpoint, cancellationToken) =>
             {
-                return;
-            }
+                // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
+                if (endpoint.Gateway != notification.Gateway)
+                {
+                    return;
+                }
 
-            if (endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
-            {
-                _ = await _controller.GetWaterHeaterStateAsync(endpoint);
-            }
+                if (endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
+                {
+                    _ = await _controller.GetWaterHeaterStateAsync(endpoint, cancellationToken);
+                }
+            });
         })
-        .Do((Exception exception) => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
+        .Do(exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
         .Retry()
         .SubscribeAsync(static notification => ValueTask.CompletedTask)
     ]);

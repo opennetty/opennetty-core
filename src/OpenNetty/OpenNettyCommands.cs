@@ -141,6 +141,31 @@ public static class OpenNettyCommands
         public static readonly OpenNettyCommand BatteryWeak = new(OpenNettyCategories.Management, "24");
 
         /// <summary>
+        /// Create Zigbee network (WHAT = 30).
+        /// </summary>
+        public static readonly OpenNettyCommand CreateZigbeeNetwork = new(OpenNettyCategories.Management, "30");
+
+        /// <summary>
+        /// Close Zigbee network (WHAT = 31).
+        /// </summary>
+        public static readonly OpenNettyCommand CloseZigbeeNetwork = new(OpenNettyCategories.Management, "31");
+
+        /// <summary>
+        /// Open Zigbee network (WHAT = 32).
+        /// </summary>
+        public static readonly OpenNettyCommand OpenZigbeeNetwork = new(OpenNettyCategories.Management, "32");
+
+        /// <summary>
+        /// Join Zigbee network (WHAT = 33).
+        /// </summary>
+        public static readonly OpenNettyCommand JoinZigbeeNetwork = new(OpenNettyCategories.Management, "33");
+
+        /// <summary>
+        /// Leave Zigbee network (WHAT = 34).
+        /// </summary>
+        public static readonly OpenNettyCommand LeaveZigbeeNetwork = new(OpenNettyCategories.Management, "34");
+
+        /// <summary>
         /// Supervisor (WHAT = 66).
         /// </summary>
         public static readonly OpenNettyCommand Supervisor = new(OpenNettyCategories.Management, "66");

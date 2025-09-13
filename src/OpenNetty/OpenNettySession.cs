@@ -132,7 +132,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
     /// <exception cref="OpenNettyException">An error occurred while sending the message.</exception>
     public async ValueTask SendAsync(
         OpenNettyMessage message,
-        OpenNettyTransmissionOptions options = default,
+        OpenNettyTransmissionOptions? options = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(message, nameof(message));
@@ -147,28 +147,8 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0010));
         }
 
-        if (options.HasFlag(OpenNettyTransmissionOptions.RequireActionValidation))
-        {
-            if (message.Protocol is not OpenNettyProtocol.Nitoo)
-            {
-                throw new InvalidOperationException(SR.GetResourceString(SR.ID0011));
-            }
-
-            if (message.Address is null)
-            {
-                throw new InvalidOperationException(SR.GetResourceString(SR.ID0014));
-            }
-
-            if (message.Type is not (OpenNettyMessageType.BusCommand or OpenNettyMessageType.DimensionSet))
-            {
-                throw new InvalidOperationException(SR.GetResourceString(SR.ID0012));
-            }
-
-            if (message.Mode is OpenNettyMode.Broadcast or OpenNettyMode.Multicast)
-            {
-                throw new InvalidOperationException(SR.GetResourceString(SR.ID0013));
-            }
-        }
+        // If no explicit transmissions options were specified, resolve them from the gateway options.
+        options ??= _gateway.Options.DefaultTransmissionOptions;
 
         if (!await _semaphore.WaitAsync(TimeSpan.Zero, cancellationToken))
         {
@@ -184,19 +164,19 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                 {
                     { Protocol: OpenNettyProtocol.Nitoo or OpenNettyProtocol.Scs,
                       Type    : OpenNettyMessageType.Acknowledgement or OpenNettyMessageType.NegativeAcknowledgement }
-                        when !options.HasFlag(OpenNettyTransmissionOptions.IgnoreAcknowledgementValidation) => true,
+                        when !options.IgnoreAcknowledgementValidation => true,
 
                     { Protocol: OpenNettyProtocol.Zigbee,
                       Type    : OpenNettyMessageType.Acknowledgement             or
                                 OpenNettyMessageType.BusyNegativeAcknowledgement or
                                 OpenNettyMessageType.NegativeAcknowledgement }
-                        when !options.HasFlag(OpenNettyTransmissionOptions.IgnoreAcknowledgementValidation) => true,
+                        when !options.IgnoreAcknowledgementValidation => true,
 
                     { Protocol: OpenNettyProtocol.Nitoo, 
                       Type    : OpenNettyMessageType.BusCommand,
                       Command : OpenNettyCommand command,
                       Address : OpenNettyAddress }
-                        when options.HasFlag(OpenNettyTransmissionOptions.RequireActionValidation) &&
+                        when !options.IgnoreActionValidation && IsActionValidationSupported(message) &&
                             (command == OpenNettyCommands.Diagnostics.ValidAction ||
                              command == OpenNettyCommands.Diagnostics.InvalidAction) &&
                              message.Address == address => true,
@@ -211,13 +191,13 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
             {
                 await connection.SendAsync(message.Frame, cancellationToken);
 
-                if (!options.HasFlag(OpenNettyTransmissionOptions.IgnoreAcknowledgementValidation))
+                if (!options.IgnoreAcknowledgementValidation)
                 {
                     switch (await messages
                         .FirstOrDefault(static message => message.Type is OpenNettyMessageType.Acknowledgement             or
                                                                           OpenNettyMessageType.BusyNegativeAcknowledgement or
                                                                           OpenNettyMessageType.NegativeAcknowledgement)
-                        .Timeout(_gateway.Options.FrameAcknowledgementTimeout, AsyncObservable.Return<OpenNettyMessage?>(null))
+                        .Timeout(options.FrameAcknowledgementTimeout, AsyncObservable.Return<OpenNettyMessage?>(null))
                         .RunAsync(cancellationToken))
                     {
                         case null:
@@ -231,14 +211,14 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                     }
                 }
 
-                if (options.HasFlag(OpenNettyTransmissionOptions.RequireActionValidation))
+                if (!options.IgnoreActionValidation && IsActionValidationSupported(message))
                 {
                     switch (await messages
                         .FirstOrDefault(static message =>
                             message.Type is OpenNettyMessageType.BusCommand &&
                            (message.Command == OpenNettyCommands.Diagnostics.ValidAction ||
                             message.Command == OpenNettyCommands.Diagnostics.InvalidAction))
-                        .Timeout(_gateway.Options.ActionValidationTimeout, AsyncObservable.Return<OpenNettyMessage?>(null))
+                        .Timeout(options.ActionValidationTimeout, AsyncObservable.Return<OpenNettyMessage?>(null))
                         .RunAsync(cancellationToken))
                     {
                         case null:
@@ -251,10 +231,9 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
             }
 
             // If the gateway options indicate that a post-sending delay must be enforced, apply it immediately.
-            if (_gateway.Options.PostSendingDelay != TimeSpan.Zero &&
-                !options.HasFlag(OpenNettyTransmissionOptions.DisablePostSendingDelay))
+            if (options.PostSendingDelay != TimeSpan.Zero)
             {
-                await Task.Delay(_gateway.Options.PostSendingDelay, cancellationToken);
+                await Task.Delay(options.PostSendingDelay, cancellationToken);
             }
         }
 
@@ -262,6 +241,13 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
         {
             _semaphore.Release();
         }
+
+        [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
+        static bool IsActionValidationSupported(OpenNettyMessage message) => message is {
+            Protocol: OpenNettyProtocol.Nitoo,
+            Address : not null,
+            Mode    : OpenNettyMode.Unicast,
+            Type    : OpenNettyMessageType.BusCommand or OpenNettyMessageType.DimensionSet };
     }
 
     /// <summary>
@@ -269,6 +255,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
     /// </summary>
     /// <param name="gateway">The gateway.</param>
     /// <param name="type">The session type.</param>
+    /// <param name="options">The session options.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>
     /// A <see cref="ValueTask{TResult}"/> that can be used to monitor the
@@ -278,7 +265,8 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
     /// <exception cref="ArgumentOutOfRangeException">The session type is invalid.</exception>
     /// <exception cref="OpenNettyException">An error occurred while establishing the session.</exception>
     public static async ValueTask<OpenNettySession> CreateAsync(
-        OpenNettyGateway gateway, OpenNettySessionType type, CancellationToken cancellationToken = default)
+        OpenNettyGateway gateway, OpenNettySessionType type,
+        OpenNettySessionOptions? options = null, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(gateway);
 
@@ -295,9 +283,11 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
 
         using var source = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
 
-        if (gateway.Options.ConnectionNegotiationTimeout != Timeout.InfiniteTimeSpan)
+        options ??= gateway.Options.DefaultSessionOptions;
+
+        if (options.ConnectionNegotiationTimeout != Timeout.InfiniteTimeSpan)
         {
-            source.CancelAfter(gateway.Options.ConnectionNegotiationTimeout);
+            source.CancelAfter(options.ConnectionNegotiationTimeout);
         }
 
         // Create a new connection that will be managed by the returned object.
@@ -305,96 +295,63 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
 
         try
         {
+            // Ask the gateway to return its firmware version to ensure the connection is working properly.
             if (type is OpenNettySessionType.Generic)
             {
-                // If the supervision mode was enabled, enforce it when creating the session to ensure the
-                // connection is working properly and receive all the state changes sent by the devices.
-                if (gateway.Options.EnableSupervisionMode)
+                await connection.SendAsync(new OpenNettyFrame(
+                    new OpenNettyField(OpenNettyParameter.Empty, new OpenNettyParameter("13")),
+                    new OpenNettyField(OpenNettyParameter.Empty),
+                    new OpenNettyField(new OpenNettyParameter("16"))), source.Token);
+
+                try
                 {
-                    await connection.SendAsync(new OpenNettyFrame(
-                        new OpenNettyField(new OpenNettyParameter("13")),
-                        new OpenNettyField(new OpenNettyParameter("66")),
-                        new OpenNettyField(OpenNettyParameter.Empty)), source.Token);
-
-                    try
+                    if (gateway.Protocol is OpenNettyProtocol.Nitoo)
                     {
-                        // Ensure the server acknowledged the supervision mode request.
-                        var frame = await WaitFrameAsync(connection, static frame =>
-                            frame == OpenNettyFrames.Acknowledgement ||
-                            frame == OpenNettyFrames.NegativeAcknowledgement ||
-                            frame == OpenNettyFrames.BusyNegativeAcknowledgement, source.Token)
-                            ?? throw new OpenNettyException(OpenNettyErrorCode.ConnectionClosed, SR.GetResourceString(SR.ID0113));
-
-                        if (frame != OpenNettyFrames.Acknowledgement)
+                        // Note: Nitoo gateways do not return acknowledgement frames for firmware version requests.
+                        if (await WaitFrameAsync(connection, IsFirmwareVersion, source.Token) is null)
                         {
-                            throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0109));
+                            throw new OpenNettyException(OpenNettyErrorCode.ConnectionClosed, SR.GetResourceString(SR.ID0113));
                         }
                     }
 
-                    catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+                    else
                     {
-                        throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0109));
+                        // Note: unlike Nitoo gateways, Zigbee gateways always acknowledge firmware version requests.
+                        switch (await WaitFrameAsync(connection, static frame =>
+                            frame == OpenNettyFrames.Acknowledgement ||
+                            frame == OpenNettyFrames.BusyNegativeAcknowledgement ||
+                            frame == OpenNettyFrames.NegativeAcknowledgement || IsFirmwareVersion(frame), source.Token))
+                        {
+                            case null:
+                                throw new OpenNettyException(OpenNettyErrorCode.ConnectionClosed, SR.GetResourceString(SR.ID0113));
+
+                            case OpenNettyFrame frame when frame == OpenNettyFrames.BusyNegativeAcknowledgement ||
+                                                           frame == OpenNettyFrames.NegativeAcknowledgement:
+                                throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0114));
+
+                            case OpenNettyFrame frame when frame == OpenNettyFrames.Acknowledgement:
+                                if (await WaitFrameAsync(connection, IsFirmwareVersion, source.Token) is null)
+                                {
+                                    throw new OpenNettyException(OpenNettyErrorCode.ConnectionClosed, SR.GetResourceString(SR.ID0113));
+                                }
+                                break;
+
+                            case OpenNettyFrame frame when IsFirmwareVersion(frame):
+                                if (await WaitFrameAsync(connection, static frame =>
+                                    frame == OpenNettyFrames.Acknowledgement ||
+                                    frame == OpenNettyFrames.BusyNegativeAcknowledgement ||
+                                    frame == OpenNettyFrames.NegativeAcknowledgement, source.Token) != OpenNettyFrames.Acknowledgement)
+                                {
+                                    throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0114));
+                                }
+                                break;
+                        }
                     }
                 }
 
-                // Otherwise, ask the gateway to return its firmware version to ensure the connection is working properly.
-                else
+                catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
                 {
-                    await connection.SendAsync(new OpenNettyFrame(
-                        new OpenNettyField(OpenNettyParameter.Empty, new OpenNettyParameter("13")),
-                        new OpenNettyField(OpenNettyParameter.Empty),
-                        new OpenNettyField(new OpenNettyParameter("16"))), source.Token);
-
-                    try
-                    {
-                        if (gateway.Protocol is OpenNettyProtocol.Nitoo)
-                        {
-                            // Note: Nitoo gateways do not return acknowledgement frames for firmware version requests.
-                            if (await WaitFrameAsync(connection, IsFirmwareVersion, source.Token) is null)
-                            {
-                                throw new OpenNettyException(OpenNettyErrorCode.ConnectionClosed, SR.GetResourceString(SR.ID0113));
-                            }
-                        }
-
-                        else
-                        {
-                            // Note: unlike Nitoo gateways, Zigbee gateways always acknowledge firmware version requests.
-                            switch (await WaitFrameAsync(connection, static frame =>
-                                frame == OpenNettyFrames.Acknowledgement ||
-                                frame == OpenNettyFrames.BusyNegativeAcknowledgement ||
-                                frame == OpenNettyFrames.NegativeAcknowledgement || IsFirmwareVersion(frame), source.Token))
-                            {
-                                case null:
-                                    throw new OpenNettyException(OpenNettyErrorCode.ConnectionClosed, SR.GetResourceString(SR.ID0113));
-
-                                case OpenNettyFrame frame when frame == OpenNettyFrames.BusyNegativeAcknowledgement ||
-                                                               frame == OpenNettyFrames.NegativeAcknowledgement:
-                                    throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0114));
-
-                                case OpenNettyFrame frame when frame == OpenNettyFrames.Acknowledgement:
-                                    if (await WaitFrameAsync(connection, IsFirmwareVersion, source.Token) is null)
-                                    {
-                                        throw new OpenNettyException(OpenNettyErrorCode.ConnectionClosed, SR.GetResourceString(SR.ID0113));
-                                    }
-                                    break;
-
-                                case OpenNettyFrame frame when IsFirmwareVersion(frame):
-                                    if (await WaitFrameAsync(connection, static frame =>
-                                        frame == OpenNettyFrames.Acknowledgement ||
-                                        frame == OpenNettyFrames.BusyNegativeAcknowledgement ||
-                                        frame == OpenNettyFrames.NegativeAcknowledgement, source.Token) != OpenNettyFrames.Acknowledgement)
-                                    {
-                                        throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0114));
-                                    }
-                                    break;
-                            }
-                        }
-                    }
-
-                    catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
-                    {
-                        throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0114));
-                    }
+                    throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0114));
                 }
             }
 

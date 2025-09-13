@@ -147,18 +147,6 @@
   <data name="ID0010" xml:space="preserve">
     <value>The protocol attached to the message isn't valid.</value>
   </data>
-  <data name="ID0011" xml:space="preserve">
-    <value>Action validation is only supported by Nitoo devices.</value>
-  </data>
-  <data name="ID0012" xml:space="preserve">
-    <value>Action validation is only supported for BUS COMMAND and DIMENSION SET messages.</value>
-  </data>
-  <data name="ID0013" xml:space="preserve">
-    <value>Action validation is only supported for unicast transmissions.</value>
-  </data>
-  <data name="ID0014" xml:space="preserve">
-    <value>Action validation is only supported when specifying a destination address.</value>
-  </data>
   <data name="ID0015" xml:space="preserve">
     <value>A message is already being sent by this session.</value>
   </data>
@@ -450,6 +438,9 @@
   <data name="ID0119" xml:space="preserve">
     <value>An endpoint name must be explicitly attached to SCS light point endpoints.</value>
   </data>
+  <data name="ID0120" xml:space="preserve">
+    <value>No gateway compatible with the '{0}' protocol could be found in the options.</value>
+  </data>
   <data name="ID2000" xml:space="preserve">
     <value>The endpoint name '{0}' is not valid. Endpoint names cannot contain the '+' or '*' characters.</value>
   </data>
@@ -479,6 +470,12 @@
   </data>
   <data name="ID2009" xml:space="preserve">
     <value>The MQTT root and Home Assistant discovery topics cannot be set to the same value.</value>
+  </data>
+  <data name="ID2010" xml:space="preserve">
+    <value>Action validation is only supported by Nitoo devices.</value>
+  </data>
+  <data name="ID2011" xml:space="preserve">
+    <value>Action validation is only supported for endpoints that have an address attached.</value>
   </data>
   <data name="ID6000" xml:space="preserve">
     <value>The OpenNetty hosted service is starting.</value>
