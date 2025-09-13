@@ -44,7 +44,7 @@ public sealed class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
     /// Note: incoming frames that point to this endpoint but are not
     /// received by the specified gateway will be automatically ignored.
     /// </remarks>
-    public OpenNettyGateway? Gateway { get; init; }
+    public required OpenNettyGateway Gateway { get; init; }
 
     /// <summary>
     /// Gets or sets the medium associated with the endpoint.

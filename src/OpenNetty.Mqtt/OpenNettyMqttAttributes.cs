@@ -95,4 +95,14 @@ public static class OpenNettyMqttAttributes
     /// Zigbee binding.
     /// </summary>
     public const string ZigbeeBinding = "zigbee_binding";
+
+    /// <summary>
+    /// Zigbee network.
+    /// </summary>
+    public const string ZigbeeNetwork = "zigbee_network";
+
+    /// <summary>
+    /// Zigbee supervision.
+    /// </summary>
+    public const string ZigbeeSupervision = "zigbee_supervision";
 }

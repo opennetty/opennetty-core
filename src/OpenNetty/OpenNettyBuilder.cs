@@ -352,8 +352,10 @@ public sealed class OpenNettyBuilder
                 null => (OpenNettyAddress?) null,
 
                 OpenNettyAddressType.Nitoo => OpenNettyAddress.FromNitooAddress(
-                    identifier: uint.Parse(device?.SerialNumber ?? throw new InvalidOperationException(SR.FormatID0089("SerialNumber")), CultureInfo.InvariantCulture),
-                    unit      : (byte?) (uint?) endpoint.Parent?.Attribute("Id") ?? 0),
+                    identifier: uint.Parse(
+                        (string?) endpoint.Attribute("Id") ?? device?.SerialNumber ??
+                        throw new InvalidOperationException(SR.FormatID0089("SerialNumber")), CultureInfo.InvariantCulture),
+                    unit      : (byte?) (uint?) endpoint.Attribute("Unit") ?? unit?.Definition.Id ?? 0),
 
                 OpenNettyAddressType.ScsLightPoint => OpenNettyAddress.FromScsLightPointAddress(
                     extension: (byte?) (uint?) endpoint.Attribute("Extension") ?? 0,
@@ -363,8 +365,9 @@ public sealed class OpenNettyBuilder
                     point    : (byte?) (uint?) endpoint.Attribute("Point")),
 
                 OpenNettyAddressType.Zigbee => OpenNettyAddress.FromHexadecimalZigbeeAddress(
-                    identifier: device?.SerialNumber ?? throw new InvalidOperationException(SR.FormatID0094("SerialNumber")),
-                    unit      : (byte?) (uint?) endpoint.Parent?.Attribute("Id") ?? 0),
+                    identifier: (string?) endpoint.Attribute("Id") ?? device?.SerialNumber ??
+                        throw new InvalidOperationException(SR.FormatID0094("SerialNumber")),
+                    unit      : (byte?) (uint?) endpoint.Attribute("Unit") ?? unit?.Definition.Id ?? 0),
 
                 _ => throw new InvalidOperationException(SR.FormatID0088(name, "Type"))
             };
@@ -375,7 +378,10 @@ public sealed class OpenNettyBuilder
                 Capabilities = device is null && unit is null ? GetCapabilities(endpoint) : [],
                 Description = (string?) endpoint.Attribute("Description"),
                 Device = device,
-                Gateway = (string?) endpoint.Attribute("Gateway") is string gateway ? FindGatewayByName(gateways, gateway) : null,
+                Gateway = (string?) endpoint.Attribute("Gateway") is string gateway ?
+                    FindGatewayByName(gateways, gateway) :
+                    gateways.FirstOrDefault(gateway => gateway.Protocol == protocol)
+                    ?? throw new InvalidOperationException(SR.FormatID0120(protocol)),
                 Medium = device?.Definition.Medium,
                 Name = name ?? ComputeDefaultEndpointName(protocol, address, device, unit),
                 Protocol = protocol,

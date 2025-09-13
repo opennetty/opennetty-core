@@ -29,6 +29,7 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
     /// <inheritdoc/>
     public Task ProcessNotificationsAsync(
         OpenNettyGateway gateway,
+        OpenNettyWorkerOptions options,
         ChannelReader<OpenNettyNotification> reader,
         ChannelWriter<OpenNettyNotification> writer,
         CancellationToken cancellationToken)
@@ -43,20 +44,19 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
 
         if (gateway.Device.Definition.Capabilities.Contains(OpenNettyCapabilities.OpenWebNetGenericSession))
         {
-            tasks.Add(CreateSharedSessionWorkerAsync(gateway, OpenNettySessionType.Generic, cancellationToken));
+            tasks.Add(CreateSharedSessionWorkerAsync(OpenNettySessionType.Generic, cancellationToken));
         }
 
         if (gateway.Device.Definition.Capabilities.Contains(OpenNettyCapabilities.OpenWebNetEventSession))
         {
-            tasks.Add(CreateSharedSessionWorkerAsync(gateway, OpenNettySessionType.Event, cancellationToken));
+            tasks.Add(CreateSharedSessionWorkerAsync(OpenNettySessionType.Event, cancellationToken));
         }
 
         if (gateway.Device.Definition.Capabilities.Contains(OpenNettyCapabilities.OpenWebNetCommandSession))
         {
-            for (var index = 0; index < gateway.Options.MaximumConcurrentCommandSessions; index++)
+            for (var index = 0; index < options.MaximumConcurrentCommandSessions; index++)
             {
-                tasks.Add(CreateAdHocSessionWorkerAsync(gateway, OpenNettySessionType.Command,
-                    gateway.Options.CommandSessionMaximumLifetime, cancellationToken));
+                tasks.Add(CreateAdHocSessionWorkerAsync(OpenNettySessionType.Command, cancellationToken));
             }
         }
 
@@ -64,7 +64,7 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
 
         return Task.WhenAll(tasks);
 
-        async Task CreateSharedSessionWorkerAsync(OpenNettyGateway gateway, OpenNettySessionType type, CancellationToken cancellationToken)
+        async Task CreateSharedSessionWorkerAsync(OpenNettySessionType type, CancellationToken cancellationToken)
         {
             var context = ResilienceContextPool.Shared.Get(cancellationToken);
             context.Properties.Set(new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)), gateway);
@@ -73,10 +73,10 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
 
             _logger.LogInformation(6006, SR.GetResourceString(SR.ID6006), gateway, type);
 
-            await gateway.Options.SessionResiliencePipeline.ExecuteAsync(async context =>
+            await gateway.Options.DefaultSessionOptions.SessionResiliencePipeline.ExecuteAsync(async context =>
             {
                 using var source = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
-                await using var session = await OpenNettySession.CreateAsync(gateway, type, source.Token);
+                await using var session = await OpenNettySession.CreateAsync(gateway, type, null, source.Token);
 
                 _logger.LogDebug(6007, SR.GetResourceString(SR.ID6007), type, gateway, session);
 
@@ -131,8 +131,7 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
             }, context);
         }
 
-        async Task CreateAdHocSessionWorkerAsync(
-            OpenNettyGateway gateway, OpenNettySessionType type, TimeSpan timeout, CancellationToken cancellationToken)
+        async Task CreateAdHocSessionWorkerAsync(OpenNettySessionType type, CancellationToken cancellationToken)
         {
             var context = ResilienceContextPool.Shared.Get(cancellationToken);
             context.Properties.Set(new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)), gateway);
@@ -141,7 +140,7 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
 
             _logger.LogInformation(6006, SR.GetResourceString(SR.ID6006), gateway, type);
 
-            await gateway.Options.SessionResiliencePipeline.ExecuteAsync(async context =>
+            await gateway.Options.DefaultSessionOptions.SessionResiliencePipeline.ExecuteAsync(async context =>
             {
                 // Wait until a new notification is ready to be processed.
                 while (await reader.WaitToReadAsync(context.CancellationToken))
@@ -153,7 +152,7 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
                     }
 
                     using var source = CancellationTokenSource.CreateLinkedTokenSource(context.CancellationToken);
-                    await using var session = await OpenNettySession.CreateAsync(gateway, type, source.Token);
+                    await using var session = await OpenNettySession.CreateAsync(gateway, type, null, source.Token);
 
                     _logger.LogDebug(6007, SR.GetResourceString(SR.ID6007), type, gateway, session);
 
@@ -207,7 +206,7 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
 
                         // If an additional message is ready to be sent, re-use the current session
                         // to send it. Otherwise, stop iterating so that the session can be closed.
-                        while (reader.TryRead(out notification) || stopwatch.Elapsed < timeout);
+                        while (reader.TryRead(out notification) || stopwatch.Elapsed < options.CommandSessionMaximumLifetime);
 
                         _logger.LogDebug(6008, SR.GetResourceString(SR.ID6008), session);
                     }

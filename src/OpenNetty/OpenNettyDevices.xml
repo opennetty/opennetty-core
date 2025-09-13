@@ -959,6 +959,7 @@
     <Capability Name="Hardware version" />
     <Capability Name="OpenWebNet gateway" />
     <Capability Name="OpenWebNet generic session" />
+    <Capability Name="Zigbee network management" />
     <Capability Name="Zigbee supervision" />
 
     <Setting Name="Serial port baud rate" Value="19200" />

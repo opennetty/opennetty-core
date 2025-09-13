@@ -70,11 +70,9 @@ public class OpenNettyController
             ],
             address          : endpoint.Address,
             medium           : endpoint.Medium,
-            mode             : OpenNettyMode.Unicast,
+            mode             : null,
             gateway          : endpoint.Gateway,
-            options          : endpoint.GetBooleanSetting(OpenNettySettings.ActionValidation) is not false ?
-                OpenNettyTransmissionOptions.RequireActionValidation :
-                OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
     }
 
@@ -102,7 +100,7 @@ public class OpenNettyController
             medium           : endpoint.Medium,
             mode             : null,
             gateway          : endpoint.Gateway,
-            options          : OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
     }
 
@@ -130,7 +128,7 @@ public class OpenNettyController
             medium           : endpoint.Medium,
             mode             : null,
             gateway          : endpoint.Gateway,
-            options          : OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
     }
 
@@ -158,7 +156,7 @@ public class OpenNettyController
             medium           : endpoint.Medium,
             mode             : null,
             gateway          : endpoint.Gateway,
-            options          : OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
     }
 
@@ -186,7 +184,77 @@ public class OpenNettyController
             medium           : endpoint.Medium,
             mode             : OpenNettyMode.Multicast,
             gateway          : endpoint.Gateway,
-            options          : OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
+            cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
+    /// Asks the specified endpoint to close a Zigbee network.
+    /// </summary>
+    /// <param name="endpoint">The endpoint.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
+    public virtual ValueTask CloseNetworkAsync(
+        OpenNettyEndpoint endpoint,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
+
+        if (!endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+        }
+
+        return _service.ExecuteCommandAsync(
+            protocol         : endpoint.Protocol,
+            command          : OpenNettyCommands.Management.CloseZigbeeNetwork,
+            address          : endpoint.Address,
+            medium           : endpoint.Medium,
+            mode             : null,
+            gateway          : endpoint.Gateway,
+            options          : GetTransmissionOptions(endpoint),
+            cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
+    /// Asks the specified endpoint to create a Zigbee network.
+    /// </summary>
+    /// <param name="endpoint">The endpoint.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
+    public virtual ValueTask CreateNetworkAsync(
+        OpenNettyEndpoint endpoint,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
+
+        if (!endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+        }
+
+        // Note: creating a Zigbee network can take a while and the gateway only returns an
+        // acknowledgment frame after the operation is complete. To ensure the gateway is
+        // given enough time to create the network, the timeouts are increased if necessary.
+        var options = GetTransmissionOptions(endpoint);
+        if (options.FrameAcknowledgementTimeout < TimeSpan.FromSeconds(20))
+        {
+            options = options with { FrameAcknowledgementTimeout = TimeSpan.FromSeconds(20) };
+        }
+
+        if (options.OutgoingMessageProcessingTimeout < TimeSpan.FromSeconds(30))
+        {
+            options = options with { OutgoingMessageProcessingTimeout = TimeSpan.FromSeconds(30) };
+        }
+
+        return _service.ExecuteCommandAsync(
+            protocol         : endpoint.Protocol,
+            command          : OpenNettyCommands.Management.CreateZigbeeNetwork,
+            address          : endpoint.Address,
+            medium           : endpoint.Medium,
+            mode             : null,
+            gateway          : endpoint.Gateway,
+            options          : options,
             cancellationToken: cancellationToken);
     }
 
@@ -214,7 +282,7 @@ public class OpenNettyController
             medium           : endpoint.Medium,
             mode             : OpenNettyMode.Broadcast,
             gateway          : endpoint.Gateway,
-            options          : OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
     }
 
@@ -242,7 +310,7 @@ public class OpenNettyController
             medium           : endpoint.Medium,
             mode             : OpenNettyMode.Broadcast,
             gateway          : endpoint.Gateway,
-            options          : OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
     }
 
@@ -270,7 +338,7 @@ public class OpenNettyController
             medium           : endpoint.Medium,
             mode             : OpenNettyMode.Broadcast,
             gateway          : endpoint.Gateway,
-            options          : OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
     }
 
@@ -301,7 +369,7 @@ public class OpenNettyController
             medium           : endpoint.Medium,
             mode             : OpenNettyMode.Broadcast,
             gateway          : endpoint.Gateway,
-            options          : OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
     }
 
@@ -329,7 +397,7 @@ public class OpenNettyController
             medium           : endpoint.Medium,
             mode             : OpenNettyMode.Broadcast,
             gateway          : endpoint.Gateway,
-            options          : OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
     }
 
@@ -357,7 +425,7 @@ public class OpenNettyController
             medium           : endpoint.Medium,
             mode             : OpenNettyMode.Broadcast,
             gateway          : endpoint.Gateway,
-            options          : OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
     }
 
@@ -385,7 +453,7 @@ public class OpenNettyController
             medium           : endpoint.Medium,
             mode             : OpenNettyMode.Broadcast,
             gateway          : endpoint.Gateway,
-            options          : OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
     }
 
@@ -413,7 +481,7 @@ public class OpenNettyController
             medium           : endpoint.Medium,
             mode             : OpenNettyMode.Broadcast,
             gateway          : endpoint.Gateway,
-            options          : OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
     }
 
@@ -444,7 +512,7 @@ public class OpenNettyController
             medium           : endpoint.Medium,
             mode             : OpenNettyMode.Broadcast,
             gateway          : endpoint.Gateway,
-            options          : OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
     }
 
@@ -515,7 +583,7 @@ public class OpenNettyController
                         medium   : endpoint.Medium,
                         mode     : null),
                     gateway          : endpoint.Gateway,
-                    options          : OpenNettyTransmissionOptions.None,
+                    options          : GetTransmissionOptions(endpoint),
                     cancellationToken: cancellationToken);
 
                 await foreach (var result in messages
@@ -560,7 +628,7 @@ public class OpenNettyController
                         command == OpenNettyCommands.Lighting.On90 ||
                         command == OpenNettyCommands.Lighting.On100),
                     gateway          : endpoint.Gateway,
-                    options          : OpenNettyTransmissionOptions.None,
+                    options          : GetTransmissionOptions(endpoint),
                     cancellationToken: cancellationToken);
 
                 await foreach (var result in results
@@ -631,7 +699,7 @@ public class OpenNettyController
                     protocol         : endpoint.Protocol,
                     dimension        : OpenNettyDimensions.Automation.ShutterStatus,
                     gateway          : endpoint.Gateway,
-                    options          : OpenNettyTransmissionOptions.None,
+                    options          : GetTransmissionOptions(endpoint),
                     cancellationToken: cancellationToken);
 
                 return dimensions
@@ -710,7 +778,7 @@ public class OpenNettyController
                     protocol         : endpoint.Protocol,
                     dimension        : OpenNettyDimensions.Automation.ShutterStatus,
                     gateway          : endpoint.Gateway,
-                    options          : OpenNettyTransmissionOptions.None,
+                    options          : GetTransmissionOptions(endpoint),
                     cancellationToken: cancellationToken);
 
                 await foreach (var result in dimensions
@@ -754,7 +822,7 @@ public class OpenNettyController
                         command == OpenNettyCommands.Automation.Up   ||
                         command == OpenNettyCommands.Automation.Down),
                     gateway          : endpoint.Gateway,
-                    options          : OpenNettyTransmissionOptions.None,
+                    options          : GetTransmissionOptions(endpoint),
                     cancellationToken: cancellationToken);
 
                 await foreach (var result in results
@@ -834,7 +902,7 @@ public class OpenNettyController
                         command == OpenNettyCommands.Lighting.On90 ||
                         command == OpenNettyCommands.Lighting.On100),
                     gateway          : endpoint.Gateway,
-                    options          : OpenNettyTransmissionOptions.None,
+                    options          : GetTransmissionOptions(endpoint),
                     cancellationToken: cancellationToken);
 
                 return results
@@ -873,7 +941,7 @@ public class OpenNettyController
             medium           : endpoint.Medium,
             mode             : OpenNettyMode.Broadcast,
             gateway          : endpoint.Gateway,
-            options          : OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
     }
 
@@ -928,12 +996,12 @@ public class OpenNettyController
                     medium   : endpoint.Medium,
                     mode     : null),
                 gateway          : endpoint.Gateway,
-                options          : OpenNettyTransmissionOptions.None,
+                options          : GetTransmissionOptions(endpoint),
                 cancellationToken: cancellationToken);
 
             return await messages
                 .Where(static message => message.Dimension == OpenNettyDimensions.Lighting.DimmerLevelSpeed ||
-                                            message.Dimension == OpenNettyDimensions.Lighting.DimmerStatus)
+                                         message.Dimension == OpenNettyDimensions.Lighting.DimmerStatus)
                 .Where(message => message.Address == endpoint.Address)
                 .Select(static arguments => (byte) (byte.Parse(arguments.Values[0], CultureInfo.InvariantCulture) - 100))
                 .FirstOrDefault()
@@ -962,7 +1030,7 @@ public class OpenNettyController
                     command == OpenNettyCommands.Lighting.On90 ||
                     command == OpenNettyCommands.Lighting.On100),
                 gateway          : endpoint.Gateway,
-                options          : OpenNettyTransmissionOptions.None,
+                options          : GetTransmissionOptions(endpoint),
                 cancellationToken: cancellationToken) switch
                 {
                     var command when command == OpenNettyCommands.Lighting.Off   => 0,
@@ -1009,7 +1077,7 @@ public class OpenNettyController
             medium           : endpoint.Medium,
             mode             : null,
             gateway          : endpoint.Gateway,
-            options          : OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
 
         return new DateTimeOffset(
@@ -1053,9 +1121,9 @@ public class OpenNettyController
             dimension        : OpenNettyDimensions.Diagnostics.DeviceDescription,
             address          : endpoint.Address,
             medium           : endpoint.Medium,
-            mode             : OpenNettyMode.Unicast,
+            mode             : null,
             gateway          : endpoint.Gateway,
-            options          : OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
 
         return OpenNettyModels.Diagnostics.DeviceDescription.CreateFromDeviceDescription(values);
@@ -1085,7 +1153,7 @@ public class OpenNettyController
                 medium           : endpoint.Medium,
                 mode             : null,
                 gateway          : endpoint.Gateway,
-                options          : OpenNettyTransmissionOptions.None,
+                options          : GetTransmissionOptions(endpoint),
                 cancellationToken: cancellationToken);
 
             return new Version(
@@ -1130,7 +1198,7 @@ public class OpenNettyController
             medium           : endpoint.Medium,
             mode             : null,
             gateway          : endpoint.Gateway,
-            options          : OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
 
         return new Version(
@@ -1165,9 +1233,9 @@ public class OpenNettyController
                 command : OpenNettyCommands.Diagnostics.MemoryRead,
                 address : endpoint.Address,
                 medium  : endpoint.Medium,
-                mode    : OpenNettyMode.Unicast),
+                mode    : null),
             gateway          : endpoint.Gateway,
-            options          : OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken).Replay();
 
         await using var connection = await messages.ConnectAsync();
@@ -1230,9 +1298,9 @@ public class OpenNettyController
                 command : OpenNettyCommands.Diagnostics.MemoryRead,
                 address : endpoint.Address,
                 medium  : endpoint.Medium,
-                mode    : OpenNettyMode.Unicast),
+                mode    : null),
             gateway          : endpoint.Gateway,
-            options          : OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
 
         return await messages
@@ -1306,7 +1374,7 @@ public class OpenNettyController
             medium           : endpoint.Medium,
             mode             : null,
             gateway          : endpoint.Gateway,
-            options          : OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken) switch
             {
                 [_, { Length: > 0 } value, ..] => byte.Parse(value, CultureInfo.InvariantCulture) switch
@@ -1372,7 +1440,7 @@ public class OpenNettyController
                 medium           : endpoint.Medium,
                 mode             : null,
                 gateway          : endpoint.Gateway,
-                options          : OpenNettyTransmissionOptions.None,
+                options          : GetTransmissionOptions(endpoint),
                 cancellationToken: cancellationToken) switch
             {
                 ["10", string position, ..] => byte.Parse(position, CultureInfo.InvariantCulture) switch
@@ -1404,7 +1472,7 @@ public class OpenNettyController
                     command == OpenNettyCommands.Automation.Up   ||
                     command == OpenNettyCommands.Automation.Down),
                 gateway          : endpoint.Gateway,
-                options          : OpenNettyTransmissionOptions.None,
+                options          : GetTransmissionOptions(endpoint),
                 cancellationToken: cancellationToken) switch
             {
                 OpenNettyCommand command when command == OpenNettyCommands.Automation.Stop
@@ -1446,9 +1514,9 @@ public class OpenNettyController
             dimension        : OpenNettyDimensions.TemperatureControl.SmartMeterIndexes,
             address          : endpoint.Address,
             medium           : endpoint.Medium,
-            mode             : OpenNettyMode.Unicast,
+            mode             : null,
             gateway          : endpoint.Gateway,
-            options          : OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
 
         return OpenNettyModels.TemperatureControl.SmartMeterIndexes.CreateFromDimensionValues(values);
@@ -1543,7 +1611,7 @@ public class OpenNettyController
                     command == OpenNettyCommands.Lighting.On90 ||
                     command == OpenNettyCommands.Lighting.On100),
                 gateway          : endpoint.Gateway,
-                options          : OpenNettyTransmissionOptions.None,
+                options          : GetTransmissionOptions(endpoint),
                 cancellationToken: cancellationToken) != OpenNettyCommands.Lighting.Off ?
                     OpenNettyModels.Lighting.SwitchState.On :
                     OpenNettyModels.Lighting.SwitchState.Off
@@ -1575,9 +1643,9 @@ public class OpenNettyController
             dimension        : OpenNettyDimensions.Diagnostics.UnitDescription,
             address          : endpoint.Address,
             medium           : endpoint.Medium,
-            mode             : OpenNettyMode.Unicast,
+            mode             : null,
             gateway          : endpoint.Gateway,
-            options          : OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
 
         return OpenNettyModels.Diagnostics.UnitDescription.CreateFromUnitDescription(values);
@@ -1610,7 +1678,7 @@ public class OpenNettyController
             medium           : endpoint.Medium,
             mode             : null,
             gateway          : endpoint.Gateway,
-            options          : OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
 
         return new TimeSpan(
@@ -1656,6 +1724,90 @@ public class OpenNettyController
     }
 
     /// <summary>
+    /// Asks the specified endpoint to join a Zigbee network.
+    /// </summary>
+    /// <param name="endpoint">The endpoint.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
+    public virtual ValueTask JoinNetworkAsync(
+        OpenNettyEndpoint endpoint,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
+
+        if (!endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+        }
+
+        // Note: joining a Zigbee network can take a while and the gateway only returns an
+        // acknowledgment frame after the operation is complete. To ensure the gateway is
+        // given enough time to join the network, the timeouts are increased if necessary.
+        var options = GetTransmissionOptions(endpoint);
+        if (options.FrameAcknowledgementTimeout < TimeSpan.FromSeconds(20))
+        {
+            options = options with { FrameAcknowledgementTimeout = TimeSpan.FromSeconds(20) };
+        }
+
+        if (options.OutgoingMessageProcessingTimeout < TimeSpan.FromSeconds(30))
+        {
+            options = options with { OutgoingMessageProcessingTimeout = TimeSpan.FromSeconds(30) };
+        }
+
+        return _service.ExecuteCommandAsync(
+            protocol         : endpoint.Protocol,
+            command          : OpenNettyCommands.Management.JoinZigbeeNetwork,
+            address          : endpoint.Address,
+            medium           : endpoint.Medium,
+            mode             : null,
+            gateway          : endpoint.Gateway,
+            options          : options,
+            cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
+    /// Asks the specified endpoint to leave a Zigbee network.
+    /// </summary>
+    /// <param name="endpoint">The endpoint.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
+    public virtual ValueTask LeaveNetworkAsync(
+        OpenNettyEndpoint endpoint,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
+
+        if (!endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+        }
+
+        // Note: leaving a Zigbee network can take a while and the gateway only returns an
+        // acknowledgment frame after the operation is complete. To ensure the gateway is
+        // given enough time to leave the network, the timeouts are increased if necessary.
+        var options = GetTransmissionOptions(endpoint);
+        if (options.FrameAcknowledgementTimeout < TimeSpan.FromSeconds(20))
+        {
+            options = options with { FrameAcknowledgementTimeout = TimeSpan.FromSeconds(20) };
+        }
+
+        if (options.OutgoingMessageProcessingTimeout < TimeSpan.FromSeconds(30))
+        {
+            options = options with { OutgoingMessageProcessingTimeout = TimeSpan.FromSeconds(30) };
+        }
+
+        return _service.ExecuteCommandAsync(
+            protocol         : endpoint.Protocol,
+            command          : OpenNettyCommands.Management.LeaveZigbeeNetwork,
+            address          : endpoint.Address,
+            medium           : endpoint.Medium,
+            mode             : null,
+            gateway          : endpoint.Gateway,
+            options          : options,
+            cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
     /// Moves the specified shutter endpoint down.
     /// </summary>
     /// <param name="endpoint">The endpoint.</param>
@@ -1685,10 +1837,7 @@ public class OpenNettyController
             medium           : endpoint.Medium,
             mode             : null,
             gateway          : endpoint.Gateway,
-            options          : endpoint.Protocol is OpenNettyProtocol.Nitoo &&
-                endpoint.GetBooleanSetting(OpenNettySettings.ActionValidation) is not false ?
-                OpenNettyTransmissionOptions.RequireActionValidation :
-                OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
     }
 
@@ -1722,10 +1871,35 @@ public class OpenNettyController
             medium           : endpoint.Medium,
             mode             : null,
             gateway          : endpoint.Gateway,
-            options          : endpoint.Protocol is OpenNettyProtocol.Nitoo &&
-                endpoint.GetBooleanSetting(OpenNettySettings.ActionValidation) is not false ?
-                OpenNettyTransmissionOptions.RequireActionValidation :
-                OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
+            cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
+    /// Asks the specified endpoint to open a Zigbee network.
+    /// </summary>
+    /// <param name="endpoint">The endpoint.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
+    public virtual ValueTask OpenNetworkAsync(
+        OpenNettyEndpoint endpoint,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
+
+        if (!endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+        }
+
+        return _service.ExecuteCommandAsync(
+            protocol         : endpoint.Protocol,
+            command          : OpenNettyCommands.Management.OpenZigbeeNetwork,
+            address          : endpoint.Address,
+            medium           : endpoint.Medium,
+            mode             : null,
+            gateway          : endpoint.Gateway,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
     }
 
@@ -1751,11 +1925,9 @@ public class OpenNettyController
             command          : OpenNettyCommands.Diagnostics.MemoryReset,
             address          : endpoint.Address,
             medium           : endpoint.Medium,
-            mode             : OpenNettyMode.Unicast,
+            mode             : null,
             gateway          : endpoint.Gateway,
-            options          : endpoint.GetBooleanSetting(OpenNettySettings.ActionValidation) is not false ?
-                OpenNettyTransmissionOptions.RequireActionValidation :
-                OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
     }
 
@@ -1781,7 +1953,7 @@ public class OpenNettyController
         }
 
         // Note: for unknown reasons, specifying a SPEED parameter that is less than 10 (2 seconds * 5)
-        // results in an immediumte - rather than progressive - brightness change on Nitoo devices when
+        // results in an immediate - rather than progressive - brightness change on Nitoo devices when
         // the requested level is higher than 50%. To discourage users of this API to set values that
         // may exhibit this issue, a sanity check is performed here to require an adequate duration.
         if (endpoint.Protocol is OpenNettyProtocol.Nitoo && level is > 50 &&
@@ -1818,7 +1990,7 @@ public class OpenNettyController
                     medium           : endpoint.Medium,
                     mode             : null,
                     gateway          : endpoint.Gateway,
-                    options          : OpenNettyTransmissionOptions.None,
+                    options          : GetTransmissionOptions(endpoint),
                     cancellationToken: cancellationToken);
             }
 
@@ -1836,11 +2008,9 @@ public class OpenNettyController
                     ],
                     address          : endpoint.Address,
                     medium           : endpoint.Medium,
-                    mode             : OpenNettyMode.Unicast,
+                    mode             : null,
                     gateway          : endpoint.Gateway,
-                    options          : endpoint.GetBooleanSetting(OpenNettySettings.ActionValidation) is not false ?
-                        OpenNettyTransmissionOptions.RequireActionValidation :
-                        OpenNettyTransmissionOptions.None,
+                    options          : GetTransmissionOptions(endpoint),
                     cancellationToken: cancellationToken);
             }
 
@@ -1857,7 +2027,7 @@ public class OpenNettyController
                 medium           : endpoint.Medium,
                 mode             : null,
                 gateway          : endpoint.Gateway,
-                options          : OpenNettyTransmissionOptions.None,
+                options          : GetTransmissionOptions(endpoint),
                 cancellationToken: cancellationToken);
         }
 
@@ -1880,12 +2050,9 @@ public class OpenNettyController
                 },
                 address          : endpoint.Address,
                 medium           : endpoint.Medium,
-                mode             : endpoint.Protocol is OpenNettyProtocol.Nitoo ? OpenNettyMode.Unicast : null,
+                mode             : null,
                 gateway          : endpoint.Gateway,
-                options          : endpoint.Protocol is OpenNettyProtocol.Nitoo &&
-                    endpoint.GetBooleanSetting(OpenNettySettings.ActionValidation) is not false ?
-                    OpenNettyTransmissionOptions.RequireActionValidation :
-                    OpenNettyTransmissionOptions.None,
+                options          : GetTransmissionOptions(endpoint),
                 cancellationToken: cancellationToken);
         }
 
@@ -1936,7 +2103,7 @@ public class OpenNettyController
             medium           : endpoint.Medium,
             mode             : null,
             gateway          : endpoint.Gateway,
-            options          : OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
     }
 
@@ -2000,7 +2167,7 @@ public class OpenNettyController
             medium           : endpoint.Medium,
             mode             : OpenNettyMode.Multicast,
             gateway          : endpoint.Gateway,
-            options          : OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
     }
 
@@ -2047,7 +2214,7 @@ public class OpenNettyController
             medium           : endpoint.Medium,
             mode             : OpenNettyMode.Multicast,
             gateway          : endpoint.Gateway,
-            options          : OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
     }
 
@@ -2087,7 +2254,7 @@ public class OpenNettyController
             medium           : endpoint.Medium,
             mode             : null,
             gateway          : endpoint.Gateway,
-            options          : OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
     }
 
@@ -2128,11 +2295,9 @@ public class OpenNettyController
             }],
             address          : endpoint.Address,
             medium           : endpoint.Medium,
-            mode             : OpenNettyMode.Unicast,
+            mode             : null,
             gateway          : endpoint.Gateway,
-            options          : endpoint.GetBooleanSetting(OpenNettySettings.ActionValidation) is not false ?
-                OpenNettyTransmissionOptions.RequireActionValidation :
-                OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
     }
 
@@ -2166,10 +2331,7 @@ public class OpenNettyController
             medium           : endpoint.Medium,
             mode             : null,
             gateway          : endpoint.Gateway,
-            options          : endpoint.Protocol is OpenNettyProtocol.Nitoo &&
-                endpoint.GetBooleanSetting(OpenNettySettings.ActionValidation) is not false ?
-                OpenNettyTransmissionOptions.RequireActionValidation :
-                OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
     }
 
@@ -2209,10 +2371,7 @@ public class OpenNettyController
             medium           : endpoint.Medium,
             mode             : null,
             gateway          : endpoint.Gateway,
-            options          : endpoint.Protocol is OpenNettyProtocol.Nitoo &&
-                endpoint.GetBooleanSetting(OpenNettySettings.ActionValidation) is not false ?
-                OpenNettyTransmissionOptions.RequireActionValidation :
-                OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
     }
 
@@ -2239,21 +2398,6 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
         }
 
-        var options = OpenNettyTransmissionOptions.None;
-
-        if (endpoint.Protocol is OpenNettyProtocol.Nitoo &&
-            endpoint.GetBooleanSetting(OpenNettySettings.ActionValidation) is not false)
-        {
-            options |= OpenNettyTransmissionOptions.RequireActionValidation;
-        }
-
-        // If the endpoint was configured to use the push-button mode, always disable retransmissions
-        // as ON commands are not idempotent when using this mode, which may result in unwanted results.
-        if (endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
-        {
-            options |= OpenNettyTransmissionOptions.DisallowRetransmissions;
-        }
-
         return _service.ExecuteCommandAsync(
             protocol         : endpoint.Protocol,
             command          : OpenNettyCommands.Lighting.On,
@@ -2261,7 +2405,13 @@ public class OpenNettyController
             medium           : endpoint.Medium,
             mode             : null,
             gateway          : endpoint.Gateway,
-            options          : options,
+            options          : GetTransmissionOptions(endpoint) with
+            {
+                // If the endpoint was configured to use the push-button mode, always disable retransmissions
+                // as ON commands are not idempotent when using this mode, which may result in unwanted results.
+                DisallowRetransmissions = endpoint.GetStringSetting(OpenNettySettings.SwitchMode)
+                    is OpenNettySettings.SwitchModes.PushButton
+            },
             cancellationToken: cancellationToken);
     }
 
@@ -2312,12 +2462,9 @@ public class OpenNettyController
                     OpenNettyCommands.Lighting.On,
                 address          : endpoint.Address,
                 medium           : endpoint.Medium,
-                mode             : endpoint.Protocol is OpenNettyProtocol.Nitoo ? OpenNettyMode.Unicast : null,
+                mode             : null,
                 gateway          : endpoint.Gateway,
-                options          : endpoint.Protocol is OpenNettyProtocol.Nitoo &&
-                    endpoint.GetBooleanSetting(OpenNettySettings.ActionValidation) is not false ?
-                    OpenNettyTransmissionOptions.RequireActionValidation :
-                    OpenNettyTransmissionOptions.None,
+                options          : GetTransmissionOptions(endpoint),
                 cancellationToken: cancellationToken);
         }
 
@@ -2330,7 +2477,7 @@ public class OpenNettyController
                 medium           : endpoint.Medium,
                 mode             : null,
                 gateway          : endpoint.Gateway,
-                options          : OpenNettyTransmissionOptions.None,
+                options          : GetTransmissionOptions(endpoint),
                 cancellationToken: cancellationToken);
         }
     }
@@ -2359,7 +2506,26 @@ public class OpenNettyController
             medium           : endpoint.Medium,
             mode             : null,
             gateway          : endpoint.Gateway,
-            options          : OpenNettyTransmissionOptions.None,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
     }
+
+    /// <summary>
+    /// Gets the transmission options that will be used to communicate with the specified endpoint.
+    /// </summary>
+    /// <param name="endpoint">The endpoint.</param>
+    /// <returns>The transmission options that will be used to communicate with the specified endpoint.</returns>
+    protected virtual OpenNettyTransmissionOptions GetTransmissionOptions(OpenNettyEndpoint endpoint)
+        => endpoint.GetBooleanSetting(OpenNettySettings.ActionValidation) switch
+        {
+            null => endpoint.Gateway.Options.DefaultTransmissionOptions,
+            true => endpoint.Gateway.Options.DefaultTransmissionOptions with
+            {
+                IgnoreActionValidation = true
+            },
+            false => endpoint.Gateway.Options.DefaultTransmissionOptions with
+            {
+                IgnoreActionValidation = false
+            }
+        };
 }

@@ -417,6 +417,44 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                         break;
                                 }
                                 break;
+
+                            case OpenNettyMqttAttributes.ZigbeeNetwork when operation is OpenNettyMqttOperation.Set:
+                                switch (message.ConvertPayloadToString()?.ToLowerInvariant())
+                                {
+                                    case "close":
+                                        await _controller.CloseNetworkAsync(endpoint);
+                                        break;
+
+                                    case "create":
+                                        await _controller.CreateNetworkAsync(endpoint);
+                                        break;
+
+                                    case "join":
+                                        await _controller.JoinNetworkAsync(endpoint);
+                                        break;
+
+                                    case "leave":
+                                        await _controller.LeaveNetworkAsync(endpoint);
+                                        break;
+
+                                    case "open":
+                                        await _controller.OpenNetworkAsync(endpoint);
+                                        break;
+                                }
+                                break;
+
+                            case OpenNettyMqttAttributes.ZigbeeSupervision when operation is OpenNettyMqttOperation.Set:
+                                switch (message.ConvertPayloadToString()?.ToLowerInvariant())
+                                {
+                                    case "disable":
+                                        await _controller.DisableSupervisionAsync(endpoint);
+                                        break;
+
+                                    case "enable":
+                                        await _controller.EnableSupervisionAsync(endpoint);
+                                        break;
+                                }
+                                break;
                         }
 
                         if (!string.IsNullOrEmpty(message.ResponseTopic))
@@ -1539,6 +1577,131 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .CountAsync(cancellationToken)),
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeBinding}/set",
                         ["payload_press"] = "unbind"
+                    });
+                }
+
+                if (endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+                {
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "button",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "f366a06c-6d7f-4741-a99a-490fedeabf9f"u8),
+                        ["icon"] = "mdi:new-box",
+                        ["name"] = ComputeEntityName(
+                            name    : "Create and open Zigbee network",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeNetwork}/set",
+                        ["payload_press"] = "create"
+                    });
+
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "button",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "1c56979a-3ad2-4b9b-9116-cd7321416b6a"u8),
+                        ["icon"] = "mdi:download-network",
+                        ["name"] = ComputeEntityName(
+                            name    : "Join Zigbee network",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeNetwork}/set",
+                        ["payload_press"] = "join"
+                    });
+
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "button",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "63096c5c-3fba-4ea7-a30d-3568b0680e18"u8),
+                        ["icon"] = "mdi:upload-network",
+                        ["name"] = ComputeEntityName(
+                            name    : "Leave Zigbee network",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeNetwork}/set",
+                        ["payload_press"] = "leave"
+                    });
+
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "button",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "09953b7d-0e18-4fc9-9b8c-2a11b52a15c5"u8),
+                        ["icon"] = "mdi:lock-open",
+                        ["name"] = ComputeEntityName(
+                            name    : "Open Zigbee network",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeNetwork}/set",
+                        ["payload_press"] = "open"
+                    });
+
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "button",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "7e344b36-199e-4a43-987f-59fccacc859b"u8),
+                        ["icon"] = "mdi:lock",
+                        ["name"] = ComputeEntityName(
+                            name    : "Close Zigbee network",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeNetwork}/set",
+                        ["payload_press"] = "close"
+                    });
+                }
+
+                if (endpoint.HasCapability(OpenNettyCapabilities.ZigbeeSupervision))
+                {
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "button",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "f6a3d89f-a3a4-4776-a6b0-a0e3328183ee"u8),
+                        ["icon"] = "mdi:eye-check",
+                        ["name"] = ComputeEntityName(
+                            name    : "Enable supervisor mode",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeSupervision))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeSupervision}/set",
+                        ["payload_press"] = "enable"
+                    });
+
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "button",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "35f91e70-674d-4977-9475-ba231553051d"u8),
+                        ["icon"] = "mdi:eye-remove",
+                        ["name"] = ComputeEntityName(
+                            name    : "Disable supervisor mode",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeSupervision))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeSupervision}/set",
+                        ["payload_press"] = "disable"
                     });
                 }
             }
