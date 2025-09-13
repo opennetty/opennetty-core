@@ -167,6 +167,11 @@ public static class OpenNettyCapabilities
     public static readonly OpenNettyCapability ProgressiveScenarioState = new("Progressive scenario state");
 
     /// <summary>
+    /// Short pressure scenario state.
+    /// </summary>
+    public static readonly OpenNettyCapability ShortPressureScenarioState = new("Short pressure scenario state");
+
+    /// <summary>
     /// Smart meter indexes.
     /// </summary>
     public static readonly OpenNettyCapability SmartMeterIndexes = new("Smart meter indexes");

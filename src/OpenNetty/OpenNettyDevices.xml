@@ -952,6 +952,54 @@
   </Device>
 
   <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
+    <Identity Brand="Legrand" Collection="Céliane" Model="67266" Description="Multifunction scenario switch" />
+
+    <Capability Name="Battery level" />
+    <Capability Name="Firmware version" />
+    <Capability Name="Hardware version" />
+
+    <Unit Id="1" Description="Multifunction scenario 1">
+      <Capability Name="Short pressure scenario state" />
+      <Capability Name="Zigbee binding" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Button 1" />
+    </Unit>
+
+    <Unit Id="2" Description="Multifunction scenario 2">
+      <Capability Name="Short pressure scenario state" />
+      <Capability Name="Zigbee binding" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Button 2" />
+    </Unit>
+
+    <!-- Note: the physical switch labelled "4" is bound to unit 3 -->
+
+    <Unit Id="3" Description="Multifunction scenario 4">
+      <Capability Name="Short pressure scenario state" />
+      <Capability Name="Zigbee binding" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Button 4" />
+    </Unit>
+
+    <!-- Note: the physical switch labelled "3" is bound to unit 4 -->
+
+    <Unit Id="4" Description="Multifunction scenario 3">
+      <Capability Name="Short pressure scenario state" />
+      <Capability Name="Zigbee binding" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Button 3" />
+    </Unit>
+  </Device>
+
+  <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
     <Identity Brand="BTicino" Model="3578"  Description="Zigbee/USB gateway" />
     <Identity Brand="Legrand" Model="88328" Description="Zigbee/USB gateway" />
 

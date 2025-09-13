@@ -155,6 +155,12 @@ public sealed class OpenNettyEvents : IDisposable
         => _observable.OfType<EventArgs, ProgressiveScenarioReportedEventArgs>();
 
     /// <summary>
+    /// Gets an event triggered when a short pressure scenario is reported.
+    /// </summary>
+    public IAsyncObservable<ShortPressureScenarioReportedEventArgs> ShortPressureScenarioReported
+        => _observable.OfType<EventArgs, ShortPressureScenarioReportedEventArgs>();
+
+    /// <summary>
     /// Gets an event triggered when a shutter position is reported.
     /// </summary>
     public IAsyncObservable<ShutterPositionReportedEventArgs> ShutterPositionReported
@@ -165,24 +171,6 @@ public sealed class OpenNettyEvents : IDisposable
     /// </summary>
     public IAsyncObservable<ShutterStateReportedEventArgs> ShutterStateReported
         => _observable.OfType<EventArgs, ShutterStateReportedEventArgs>();
-
-    /// <summary>
-    /// Gets an event triggered when smart meter indexes are reported.
-    /// </summary>
-    public IAsyncObservable<SmartMeterIndexesReportedEventArgs> SmartMeterIndexesReported
-        => _observable.OfType<EventArgs, SmartMeterIndexesReportedEventArgs>();
-
-    /// <summary>
-    /// Gets an event triggered when a smart meter power cut mode is reported.
-    /// </summary>
-    public IAsyncObservable<SmartMeterPowerCutModeReportedEventArgs> SmartMeterPowerCutModeReported
-        => _observable.OfType<EventArgs, SmartMeterPowerCutModeReportedEventArgs>();
-
-    /// <summary>
-    /// Gets an event triggered when a smart meter rate type is reported.
-    /// </summary>
-    public IAsyncObservable<SmartMeterRateTypeReportedEventArgs> SmartMeterRateTypeReported
-        => _observable.OfType<EventArgs, SmartMeterRateTypeReportedEventArgs>();
 
     /// <summary>
     /// Gets an event triggered when a shutter DOWN scenario is reported.
@@ -201,6 +189,24 @@ public sealed class OpenNettyEvents : IDisposable
     /// </summary>
     public IAsyncObservable<ShutterUpScenarioReportedEventArgs> ShutterUpScenarioReported
         => _observable.OfType<EventArgs, ShutterUpScenarioReportedEventArgs>();
+
+    /// <summary>
+    /// Gets an event triggered when smart meter indexes are reported.
+    /// </summary>
+    public IAsyncObservable<SmartMeterIndexesReportedEventArgs> SmartMeterIndexesReported
+        => _observable.OfType<EventArgs, SmartMeterIndexesReportedEventArgs>();
+
+    /// <summary>
+    /// Gets an event triggered when a smart meter power cut mode is reported.
+    /// </summary>
+    public IAsyncObservable<SmartMeterPowerCutModeReportedEventArgs> SmartMeterPowerCutModeReported
+        => _observable.OfType<EventArgs, SmartMeterPowerCutModeReportedEventArgs>();
+
+    /// <summary>
+    /// Gets an event triggered when a smart meter rate type is reported.
+    /// </summary>
+    public IAsyncObservable<SmartMeterRateTypeReportedEventArgs> SmartMeterRateTypeReported
+        => _observable.OfType<EventArgs, SmartMeterRateTypeReportedEventArgs>();
 
     /// <summary>
     /// Gets an event triggered when a switch state is reported.
@@ -373,6 +379,12 @@ public sealed class OpenNettyEvents : IDisposable
     public sealed record class ProgressiveScenarioReportedEventArgs(OpenNettyEndpoint Endpoint, TimeSpan Duration) : EventArgs(Endpoint);
 
     /// <summary>
+    /// Represents event arguments used when a short pressure scenario is reported.
+    /// </summary>
+    /// <param name="Endpoint">The endpoint.</param>
+    public sealed record class ShortPressureScenarioReportedEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
+
+    /// <summary>
     /// Represents event arguments used when a shutter position is reported.
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
@@ -386,6 +398,24 @@ public sealed class OpenNettyEvents : IDisposable
     /// <param name="State">The shutter state.</param>
     public sealed record class ShutterStateReportedEventArgs(OpenNettyEndpoint Endpoint,
         OpenNettyModels.Automation.ShutterState State) : EventArgs(Endpoint);
+
+    /// <summary>
+    /// Represents event arguments used when a shutter DOWN scenario is reported.
+    /// </summary>
+    /// <param name="Endpoint">The endpoint.</param>
+    public sealed record class ShutterDownScenarioReportedEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
+
+    /// <summary>
+    /// Represents event arguments used when a shutter STOP scenario is reported.
+    /// </summary>
+    /// <param name="Endpoint">The endpoint.</param>
+    public sealed record class ShutterStopScenarioReportedEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
+
+    /// <summary>
+    /// Represents event arguments used when a shutter UP scenario is reported.
+    /// </summary>
+    /// <param name="Endpoint">The endpoint.</param>
+    public sealed record class ShutterUpScenarioReportedEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when smart meter indexes are reported.
@@ -417,24 +447,6 @@ public sealed class OpenNettyEvents : IDisposable
     /// <param name="State">The switch state.</param>
     public sealed record class SwitchStateReportedEventArgs(OpenNettyEndpoint Endpoint,
         OpenNettyModels.Lighting.SwitchState State) : EventArgs(Endpoint);
-
-    /// <summary>
-    /// Represents event arguments used when a shutter DOWN scenario is reported.
-    /// </summary>
-    /// <param name="Endpoint">The endpoint.</param>
-    public sealed record class ShutterDownScenarioReportedEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
-
-    /// <summary>
-    /// Represents event arguments used when a shutter STOP scenario is reported.
-    /// </summary>
-    /// <param name="Endpoint">The endpoint.</param>
-    public sealed record class ShutterStopScenarioReportedEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
-
-    /// <summary>
-    /// Represents event arguments used when a shutter UP scenario is reported.
-    /// </summary>
-    /// <param name="Endpoint">The endpoint.</param>
-    public sealed record class ShutterUpScenarioReportedEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when a timed scenario is reported.
