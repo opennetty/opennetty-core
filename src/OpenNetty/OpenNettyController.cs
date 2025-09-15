@@ -8,7 +8,6 @@ using System.Collections.Immutable;
 using System.Globalization;
 using System.Reactive.Linq;
 using System.Runtime.CompilerServices;
-using System.Text;
 
 namespace OpenNetty;
 
@@ -1152,7 +1151,7 @@ public class OpenNettyController
             // has a chance to respond, the timeouts are manually increased here.
             var options = GetTransmissionOptions(endpoint);
 
-            if (endpoint.Protocol is OpenNettyProtocol.Zigbee && endpoint.Address is not null)
+            if (endpoint.Address is not null && endpoint.HasCapability(OpenNettyCapabilities.BatteryLevel))
             {
                 if (options.FrameAcknowledgementTimeout < TimeSpan.FromSeconds(45))
                 {
@@ -1220,7 +1219,7 @@ public class OpenNettyController
         // has a chance to respond, the timeouts are manually increased here.
         var options = GetTransmissionOptions(endpoint);
 
-        if (endpoint.Protocol is OpenNettyProtocol.Zigbee && endpoint.Address is not null)
+        if (endpoint.Address is not null && endpoint.HasCapability(OpenNettyCapabilities.BatteryLevel))
         {
             if (options.FrameAcknowledgementTimeout < TimeSpan.FromSeconds(45))
             {
@@ -1274,29 +1273,6 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
-        // Note: retrieving the MAC address of a battery-powered Zigbee endpoint can
-        // take a while. To ensure the operation is not aborted before the endpoint
-        // has a chance to respond, the timeouts are manually increased here.
-        var options = GetTransmissionOptions(endpoint);
-
-        if (endpoint.Protocol is OpenNettyProtocol.Zigbee && endpoint.Address is not null)
-        {
-            if (options.FrameAcknowledgementTimeout < TimeSpan.FromSeconds(45))
-            {
-                options = options with { FrameAcknowledgementTimeout = TimeSpan.FromSeconds(45) };
-            }
-
-            if (options.OutgoingMessageProcessingTimeout < TimeSpan.FromSeconds(45))
-            {
-                options = options with { OutgoingMessageProcessingTimeout = TimeSpan.FromSeconds(45) };
-            }
-
-            if (options.UniqueDimensionReplyTimeout < TimeSpan.FromSeconds(45))
-            {
-                options = options with { UniqueDimensionReplyTimeout = TimeSpan.FromSeconds(45) };
-            }
-        }
-
         var values = await _service.GetDimensionAsync(
             protocol         : endpoint.Protocol,
             dimension        : OpenNettyDimensions.Management.MacAddress,
@@ -1304,7 +1280,7 @@ public class OpenNettyController
             medium           : endpoint.Medium,
             mode             : null,
             gateway          : endpoint.Gateway,
-            options          : options,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
 
         return string.Join(":", values.Select(static value => uint.Parse(value,
