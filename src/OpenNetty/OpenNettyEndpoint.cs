@@ -22,9 +22,6 @@ public sealed class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
     /// <summary>
     /// Gets or sets the capabilities associated with the endpoint.
     /// </summary>
-    /// <remarks>
-    /// Note: this property is only used for endpoints that don't have a device or unit attached.
-    /// </remarks>
     public ImmutableHashSet<OpenNettyCapability> Capabilities { get; init; } = [];
 
     /// <summary>
@@ -90,7 +87,7 @@ public sealed class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
     public string? GetStringSetting(OpenNettySetting setting) => TryGetSetting(setting, out string? value) ? value : null;
 
     /// <summary>
-    /// Determines whether the endpoint has the specified capability.
+    /// Determines whether the endpoint - or the attached device or unit - has the specified capability.
     /// </summary>
     /// <param name="capability">The capability name.</param>
     /// <returns>
@@ -98,6 +95,11 @@ public sealed class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
     /// </returns>
     public bool HasCapability(OpenNettyCapability capability)
     {
+        if (Capabilities.Contains(capability))
+        {
+            return true;
+        }
+
         if (Unit is OpenNettyUnit unit)
         {
             return unit.HasCapability(capability);
@@ -108,7 +110,7 @@ public sealed class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
             return device.HasCapability(capability);
         }
 
-        return Capabilities.Contains(capability);
+        return false;
     }
 
     /// <summary>

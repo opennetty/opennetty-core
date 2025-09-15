@@ -95,6 +95,11 @@ public static class OpenNettyDimensions
         public static readonly OpenNettyDimension Netmask = new(OpenNettyCategories.Management, "11");
 
         /// <summary>
+        /// MAC address (DIMENSION = 12).
+        /// </summary>
+        public static readonly OpenNettyDimension MacAddress = new(OpenNettyCategories.Management, "12");
+
+        /// <summary>
         /// Firmware version (DIMENSION = 16).
         /// </summary>
         public static readonly OpenNettyDimension FirmwareVersion = new(OpenNettyCategories.Management, "16");

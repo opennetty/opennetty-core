@@ -41,11 +41,6 @@ public readonly struct OpenNettyField : IEquatable<OpenNettyField>
     public ImmutableArray<OpenNettyParameter> Parameters { get; } = [];
 
     /// <summary>
-    /// Represents an empty field.
-    /// </summary>
-    public static readonly OpenNettyField Empty = new([]);
-
-    /// <summary>
     /// Parses an OpenNetty field from the specified <paramref name="value"/>.
     /// </summary>
     /// <param name="value">The UTF-16 string containing the raw field.</param>

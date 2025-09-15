@@ -69,12 +69,12 @@ public abstract class OpenNettyConnection : IAsyncDisposable
         return gateway.ConnectionType switch
         {
             OpenNettyConnectionType.Serial => CreateSerialConnectionAsync(gateway.SerialPort ??
-                throw new InvalidOperationException(SR.GetResourceString(SR.ID0070)), cancellationToken),
+                throw new InvalidOperationException(SR.GetResourceString(SR.ID0063)), cancellationToken),
 
             OpenNettyConnectionType.Tcp => CreateTcpConnectionAsync(gateway.IPEndpoint ??
-                throw new InvalidOperationException(SR.GetResourceString(SR.ID0071)), cancellationToken),
+                throw new InvalidOperationException(SR.GetResourceString(SR.ID0064)), cancellationToken),
 
-            _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0072))
+            _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0065))
         };
     }
 
@@ -93,7 +93,7 @@ public abstract class OpenNettyConnection : IAsyncDisposable
 
         if (port.IsOpen)
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0105));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0092));
         }
 
         var connection = new SerialConnection(new SerialPort(port.PortName, port.BaudRate, port.Parity, port.DataBits, port.StopBits));
@@ -249,7 +249,7 @@ public abstract class OpenNettyConnection : IAsyncDisposable
                 return socket.ProtocolType switch
                 {
                     ProtocolType.Tcp  => OpenNettyConnectionType.Tcp,
-                    ProtocolType type => throw new InvalidOperationException(SR.FormatID0108(Enum.GetName(type)))
+                    ProtocolType type => throw new InvalidOperationException(SR.FormatID0095(Enum.GetName(type)))
                 };
             }
         }

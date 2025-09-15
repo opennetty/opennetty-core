@@ -8,6 +8,7 @@ using System.Collections.Immutable;
 using System.Globalization;
 using System.Reactive.Linq;
 using System.Runtime.CompilerServices;
+using System.Text;
 
 namespace OpenNetty;
 
@@ -49,7 +50,7 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.MemoryWriting))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         return _service.SetDimensionAsync(
@@ -63,7 +64,7 @@ public class OpenNettyController
                     OpenNettyMedium.Powerline => "96",
                     OpenNettyMedium.Infrared  => "128",
 
-                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                 },
                 data.Address.ToString(),
                 data.FunctionCode.ToString(CultureInfo.InvariantCulture)
@@ -90,7 +91,7 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.ZigbeeBinding))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         return _service.ExecuteCommandAsync(
@@ -118,7 +119,7 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.ZigbeeSupervision))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         return _service.ExecuteCommandAsync(
@@ -146,7 +147,7 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.ZigbeeSupervision))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         return _service.ExecuteCommandAsync(
@@ -174,7 +175,7 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
         
         return _service.ExecuteCommandAsync(
@@ -202,7 +203,7 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         return _service.ExecuteCommandAsync(
@@ -230,7 +231,7 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         // Note: creating a Zigbee network can take a while and the gateway only returns an
@@ -272,7 +273,7 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioControl))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         await _service.ExecuteCommandAsync(
@@ -300,7 +301,7 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioControl))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         return _service.ExecuteCommandAsync(
@@ -328,7 +329,7 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioControl))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         return _service.ExecuteCommandAsync(
@@ -358,7 +359,7 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.ProgressiveScenarioControl))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         return _service.ExecuteCommandAsync(
@@ -387,7 +388,7 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioControl))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         return _service.ExecuteCommandAsync(
@@ -415,7 +416,7 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioControl))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         return _service.ExecuteCommandAsync(
@@ -443,7 +444,7 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioControl))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         return _service.ExecuteCommandAsync(
@@ -471,7 +472,7 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.StopActionScenarioControl))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         return _service.ExecuteCommandAsync(
@@ -501,7 +502,7 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioControl))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         return _service.ExecuteCommandAsync(
@@ -534,13 +535,13 @@ public class OpenNettyController
         if (!endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) &&
             !endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
         if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Lighting))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
 
         switch (endpoint.Protocol)
@@ -596,7 +597,7 @@ public class OpenNettyController
                     .ToAsyncEnumerable()
                     .SelectAwaitWithCancellation(async (message, cancellationToken) => (
                         Values  : message.Values,
-                        Endpoint: await _manager.FindEndpointByAddressAsync(message.Address!.Value, cancellationToken)))
+                        Endpoint: await _manager.FindEndpointByAddressAsync(endpoint.Gateway, message.Address!.Value, cancellationToken)))
                     .Where(static arguments => arguments.Endpoint is not null)
                     .Where(static arguments => arguments.Endpoint!.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
                     .Where(arguments => set.Add(arguments.Endpoint!))
@@ -634,7 +635,7 @@ public class OpenNettyController
                 await foreach (var result in results
                     .SelectAwaitWithCancellation(async (arguments, cancellationToken) => (
                         Command : arguments.Command,
-                        Endpoint: await _manager.FindEndpointByAddressAsync(arguments.Address, cancellationToken)))
+                        Endpoint: await _manager.FindEndpointByAddressAsync(endpoint.Gateway, arguments.Address, cancellationToken)))
                     .Where(static arguments => arguments.Endpoint is not null)
                     .Where(static arguments => arguments.Endpoint!.HasCapability(OpenNettyCapabilities.BasicDimmingState))
                     .Where(arguments => set.Add(arguments.Endpoint!))
@@ -673,13 +674,13 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
         if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Automation))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
 
         switch (endpoint.Protocol)
@@ -705,7 +706,7 @@ public class OpenNettyController
                 return dimensions
                     .SelectAwaitWithCancellation(async (message, cancellationToken) => (
                         Values  : message.Values,
-                        Endpoint: await _manager.FindEndpointByAddressAsync(message.Address, cancellationToken)))
+                        Endpoint: await _manager.FindEndpointByAddressAsync(endpoint.Gateway, message.Address, cancellationToken)))
                     .Where(static arguments => arguments.Endpoint is not null)
                     .Where(static arguments => arguments.Endpoint!.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
                     .Select(static arguments => (arguments.Endpoint!, byte.Parse(arguments.Values[1], CultureInfo.InvariantCulture) switch
@@ -736,13 +737,13 @@ public class OpenNettyController
         if (!endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState) &&
             !endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
         if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Automation))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
 
         switch (endpoint.Protocol)
@@ -784,7 +785,7 @@ public class OpenNettyController
                 await foreach (var result in dimensions
                     .SelectAwaitWithCancellation(async (message, cancellationToken) => (
                         Values  : message.Values,
-                        Endpoint: await _manager.FindEndpointByAddressAsync(message.Address, cancellationToken)))
+                        Endpoint: await _manager.FindEndpointByAddressAsync(endpoint.Gateway, message.Address, cancellationToken)))
                     .Where(static arguments => arguments.Endpoint is not null)
                     .Where(static arguments => arguments.Endpoint!.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
                     .Where(arguments => set.Add(arguments.Endpoint!))
@@ -796,13 +797,13 @@ public class OpenNettyController
                             >= 1 and <= 100 => OpenNettyModels.Automation.ShutterState.Open,
                                   255       => OpenNettyModels.Automation.ShutterState.Stopped,
 
-                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                         },
 
                         ["11" or "13", ..] => OpenNettyModels.Automation.ShutterState.Opening,
                         ["12" or "14", ..] => OpenNettyModels.Automation.ShutterState.Closing,
 
-                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                     })))
                 {
                     yield return result;
@@ -828,7 +829,7 @@ public class OpenNettyController
                 await foreach (var result in results
                     .SelectAwaitWithCancellation(async (arguments, cancellationToken) => (
                         Command : arguments.Command,
-                        Endpoint: await _manager.FindEndpointByAddressAsync(arguments.Address, cancellationToken)))
+                        Endpoint: await _manager.FindEndpointByAddressAsync(endpoint.Gateway, arguments.Address, cancellationToken)))
                     .Where(static arguments => arguments.Endpoint is not null)
                     .Where(static arguments => arguments.Endpoint!.HasCapability(OpenNettyCapabilities.BasicShutterState))
                     .Where(arguments => set.Add(arguments.Endpoint!))
@@ -836,7 +837,7 @@ public class OpenNettyController
                         arguments.Command == OpenNettyCommands.Automation.Stop ? OpenNettyModels.Automation.ShutterState.Stopped :
                         arguments.Command == OpenNettyCommands.Automation.Up   ? OpenNettyModels.Automation.ShutterState.Opening :
                         arguments.Command == OpenNettyCommands.Automation.Down ? OpenNettyModels.Automation.ShutterState.Closing :
-                        throw new InvalidDataException(SR.GetResourceString(SR.ID0075)))))
+                        throw new InvalidDataException(SR.GetResourceString(SR.ID0068)))))
                 {
                     yield return result;
                 }
@@ -861,13 +862,13 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
         if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Lighting))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
 
         switch (endpoint.Protocol)
@@ -908,7 +909,7 @@ public class OpenNettyController
                 return results
                     .SelectAwaitWithCancellation(async (arguments, cancellationToken) => (
                         Command : arguments.Command,
-                        Endpoint: await _manager.FindEndpointByAddressAsync(arguments.Address, cancellationToken)))
+                        Endpoint: await _manager.FindEndpointByAddressAsync(endpoint.Gateway, arguments.Address, cancellationToken)))
                     .Where(static arguments => arguments.Endpoint is not null)
                     .Where(static arguments => arguments.Endpoint!.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
                     .Select(static arguments => (arguments.Endpoint!, arguments.Command != OpenNettyCommands.Lighting.Off ?
@@ -931,7 +932,7 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.MemoryWriting))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         return _service.ExecuteCommandAsync(
@@ -963,13 +964,13 @@ public class OpenNettyController
         if (!endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) &&
             !endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
         if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Lighting))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
 
         if (endpoint.Protocol is OpenNettyProtocol.Nitoo)
@@ -979,7 +980,7 @@ public class OpenNettyController
                 { FunctionCode: 143, Values: [{ Length: > 0 } value, ..] }
                     => (byte) Math.Round(decimal.Parse(value, CultureInfo.InvariantCulture)),
 
-                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
             };
         }
 
@@ -1045,7 +1046,7 @@ public class OpenNettyController
                     var command when command == OpenNettyCommands.Lighting.On90  => 90,
                     var command when command == OpenNettyCommands.Lighting.On100 => 100,
 
-                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                 };
         }
     }
@@ -1067,7 +1068,7 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.DateTime))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         var values = await _service.GetDimensionAsync(
@@ -1092,7 +1093,7 @@ public class OpenNettyController
                 ['0', .. { Length: > 0 } value] => +TimeSpan.FromHours(int.Parse(value, CultureInfo.InvariantCulture)),
                 ['1', .. { Length: > 0 } value] => -TimeSpan.FromHours(int.Parse(value, CultureInfo.InvariantCulture)),
 
-                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
             });
     }
 
@@ -1113,7 +1114,7 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.DeviceDescription))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         var values = await _service.GetDimensionAsync(
@@ -1146,6 +1147,29 @@ public class OpenNettyController
 
         if (endpoint.HasCapability(OpenNettyCapabilities.FirmwareVersion))
         {
+            // Note: retrieving the firmware version of a battery-powered Zigbee endpoint
+            // can take a while. To ensure the operation is not aborted before the endpoint
+            // has a chance to respond, the timeouts are manually increased here.
+            var options = GetTransmissionOptions(endpoint);
+
+            if (endpoint.Protocol is OpenNettyProtocol.Zigbee && endpoint.Address is not null)
+            {
+                if (options.FrameAcknowledgementTimeout < TimeSpan.FromSeconds(45))
+                {
+                    options = options with { FrameAcknowledgementTimeout = TimeSpan.FromSeconds(45) };
+                }
+
+                if (options.OutgoingMessageProcessingTimeout < TimeSpan.FromSeconds(45))
+                {
+                    options = options with { OutgoingMessageProcessingTimeout = TimeSpan.FromSeconds(45) };
+                }
+
+                if (options.UniqueDimensionReplyTimeout < TimeSpan.FromSeconds(45))
+                {
+                    options = options with { UniqueDimensionReplyTimeout = TimeSpan.FromSeconds(45) };
+                }
+            }
+
             var values = await _service.GetDimensionAsync(
                 protocol         : endpoint.Protocol,
                 dimension        : OpenNettyDimensions.Management.FirmwareVersion,
@@ -1153,7 +1177,7 @@ public class OpenNettyController
                 medium           : endpoint.Medium,
                 mode             : null,
                 gateway          : endpoint.Gateway,
-                options          : GetTransmissionOptions(endpoint),
+                options          : options,
                 cancellationToken: cancellationToken);
 
             return new Version(
@@ -1168,7 +1192,7 @@ public class OpenNettyController
             return description.Version;
         }
 
-        throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+        throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
     }
 
     /// <summary>
@@ -1188,7 +1212,30 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.HardwareVersion))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
+        }
+
+        // Note: retrieving the hardware version of a battery-powered Zigbee endpoint
+        // can take a while. To ensure the operation is not aborted before the endpoint
+        // has a chance to respond, the timeouts are manually increased here.
+        var options = GetTransmissionOptions(endpoint);
+
+        if (endpoint.Protocol is OpenNettyProtocol.Zigbee && endpoint.Address is not null)
+        {
+            if (options.FrameAcknowledgementTimeout < TimeSpan.FromSeconds(45))
+            {
+                options = options with { FrameAcknowledgementTimeout = TimeSpan.FromSeconds(45) };
+            }
+
+            if (options.OutgoingMessageProcessingTimeout < TimeSpan.FromSeconds(45))
+            {
+                options = options with { OutgoingMessageProcessingTimeout = TimeSpan.FromSeconds(45) };
+            }
+
+            if (options.UniqueDimensionReplyTimeout < TimeSpan.FromSeconds(45))
+            {
+                options = options with { UniqueDimensionReplyTimeout = TimeSpan.FromSeconds(45) };
+            }
         }
 
         var values = await _service.GetDimensionAsync(
@@ -1198,13 +1245,70 @@ public class OpenNettyController
             medium           : endpoint.Medium,
             mode             : null,
             gateway          : endpoint.Gateway,
-            options          : GetTransmissionOptions(endpoint),
+            options          : options,
             cancellationToken: cancellationToken);
 
         return new Version(
             major: int.Parse(values[0], CultureInfo.InvariantCulture),
             minor: int.Parse(values[1], CultureInfo.InvariantCulture),
             build: int.Parse(values[2], CultureInfo.InvariantCulture));
+    }
+
+    /// <summary>
+    /// Resolves the MAC address of the specified endpoint.
+    /// </summary>
+    /// <param name="endpoint">The endpoint.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>
+    /// A <see cref="ValueTask{TResult}"/> that can be used to monitor the asynchronous
+    /// operation and whose result returns the MAC address of the specified endpoint.
+    /// </returns>
+    public virtual async ValueTask<string> GetMacAddressAsync(
+        OpenNettyEndpoint endpoint,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
+
+        if (!endpoint.HasCapability(OpenNettyCapabilities.MacAddress))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
+        }
+
+        // Note: retrieving the MAC address of a battery-powered Zigbee endpoint can
+        // take a while. To ensure the operation is not aborted before the endpoint
+        // has a chance to respond, the timeouts are manually increased here.
+        var options = GetTransmissionOptions(endpoint);
+
+        if (endpoint.Protocol is OpenNettyProtocol.Zigbee && endpoint.Address is not null)
+        {
+            if (options.FrameAcknowledgementTimeout < TimeSpan.FromSeconds(45))
+            {
+                options = options with { FrameAcknowledgementTimeout = TimeSpan.FromSeconds(45) };
+            }
+
+            if (options.OutgoingMessageProcessingTimeout < TimeSpan.FromSeconds(45))
+            {
+                options = options with { OutgoingMessageProcessingTimeout = TimeSpan.FromSeconds(45) };
+            }
+
+            if (options.UniqueDimensionReplyTimeout < TimeSpan.FromSeconds(45))
+            {
+                options = options with { UniqueDimensionReplyTimeout = TimeSpan.FromSeconds(45) };
+            }
+        }
+
+        var values = await _service.GetDimensionAsync(
+            protocol         : endpoint.Protocol,
+            dimension        : OpenNettyDimensions.Management.MacAddress,
+            address          : endpoint.Address,
+            medium           : endpoint.Medium,
+            mode             : null,
+            gateway          : endpoint.Gateway,
+            options          : options,
+            cancellationToken: cancellationToken);
+
+        return string.Join(":", values.Select(static value => uint.Parse(value,
+            CultureInfo.InvariantCulture).ToString("X2", CultureInfo.InvariantCulture)));
     }
 
     /// <summary>
@@ -1224,7 +1328,7 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.MemoryReading))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         var messages = _service.ObserveMessagesAsync(
@@ -1287,7 +1391,7 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.MemoryReading))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         // Note: while the memory depth is requested using a BUS COMMAND, it is returned asynchronously by
@@ -1329,13 +1433,13 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         var description = await GetUnitDescriptionAsync(endpoint, cancellationToken);
         if (description is not { FunctionCode: 6 or 132, Values: [{ Length: > 0 }] values })
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0075));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0068));
         }
 
         return OpenNettyModels.TemperatureControl.PilotWireConfiguration.CreateFromUnitDescription(values);
@@ -1358,13 +1462,13 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
         if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Automation))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
 
         return await _service.GetDimensionAsync(
@@ -1385,7 +1489,7 @@ public class OpenNettyController
                     byte position => position
                 },
 
-                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
             };
     }
 
@@ -1407,13 +1511,13 @@ public class OpenNettyController
         if (!endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState) &&
             !endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
         if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Automation))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
 
         if (endpoint.Protocol is OpenNettyProtocol.Nitoo)
@@ -1427,7 +1531,7 @@ public class OpenNettyController
                            _       => OpenNettyModels.Automation.ShutterState.Stopped
                 },
 
-                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
             };
         }
 
@@ -1449,13 +1553,13 @@ public class OpenNettyController
                     >= 1 and <= 100 => OpenNettyModels.Automation.ShutterState.Open,
                           255       => OpenNettyModels.Automation.ShutterState.Stopped,
 
-                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                 },
 
                 ["11" or "13", ..] => OpenNettyModels.Automation.ShutterState.Opening,
                 ["12" or "14", ..] => OpenNettyModels.Automation.ShutterState.Closing,
 
-                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
             };
         }
 
@@ -1484,7 +1588,7 @@ public class OpenNettyController
                 OpenNettyCommand command when command == OpenNettyCommands.Automation.Down
                     => OpenNettyModels.Automation.ShutterState.Closing,
 
-                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
             };
         }
     }
@@ -1506,7 +1610,7 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         var values = await _service.GetDimensionAsync(
@@ -1539,13 +1643,13 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         var description = await GetUnitDescriptionAsync(endpoint, cancellationToken);
         if (description is not { FunctionCode: 7, Values: [{ Length: > 0 }] values })
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0075));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0068));
         }
 
         return OpenNettyModels.TemperatureControl.SmartMeterInformation.CreateFromUnitDescription(values);
@@ -1568,13 +1672,13 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
         if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Lighting))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
 
         return endpoint.Protocol switch
@@ -1589,7 +1693,7 @@ public class OpenNettyController
                     OpenNettyModels.Lighting.SwitchState.On :
                     OpenNettyModels.Lighting.SwitchState.Off,
 
-                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
             },
 
             _ => await _service.GetStatusAsync(
@@ -1635,7 +1739,7 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.UnitDescription))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         var values = await _service.GetDimensionAsync(
@@ -1668,7 +1772,7 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.Uptime))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         var values = await _service.GetDimensionAsync(
@@ -1705,13 +1809,13 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         var description = await GetUnitDescriptionAsync(endpoint, cancellationToken);
         if (description is not { FunctionCode: 133, Values: [{ Length: > 0 }] values })
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0075));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0068));
         }
 
         return values[0] switch
@@ -1719,7 +1823,7 @@ public class OpenNettyController
             "0" or "32"         => OpenNettyModels.TemperatureControl.WaterHeaterState.Idle,
             "1" or "17" or "33" => OpenNettyModels.TemperatureControl.WaterHeaterState.Heating,
 
-            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
         };
     }
 
@@ -1737,7 +1841,7 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         // Note: joining a Zigbee network can take a while and the gateway only returns an
@@ -1779,7 +1883,7 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         // Note: leaving a Zigbee network can take a while and the gateway only returns an
@@ -1821,13 +1925,13 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.BasicShutterControl))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
         if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Automation))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
 
         return _service.ExecuteCommandAsync(
@@ -1855,13 +1959,13 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.BasicShutterControl))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
         if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Automation))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
 
         return _service.ExecuteCommandAsync(
@@ -1889,7 +1993,7 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         return _service.ExecuteCommandAsync(
@@ -1917,7 +2021,7 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.MemoryWriting))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         return _service.ExecuteCommandAsync(
@@ -2056,7 +2160,7 @@ public class OpenNettyController
                 cancellationToken: cancellationToken);
         }
 
-        throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+        throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
     }
 
     /// <summary>
@@ -2075,7 +2179,7 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.DateTime))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         return _service.SetDimensionAsync(
@@ -2092,7 +2196,7 @@ public class OpenNettyController
                     TimeSpan offset when offset == TimeSpan.Zero => "000",
                     TimeSpan offset when offset  < TimeSpan.Zero => "1" + offset.TotalHours.ToString("00", CultureInfo.InvariantCulture),
 
-                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                 },
                 ((int) date.DayOfWeek).ToString("00", CultureInfo.InvariantCulture),
                 date.Day.ToString("00", CultureInfo.InvariantCulture),
@@ -2125,17 +2229,17 @@ public class OpenNettyController
 
         if (!Enum.IsDefined(mode))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         if (!Enum.IsDefined(duration))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         var value = mode switch
@@ -2146,7 +2250,7 @@ public class OpenNettyController
             OpenNettyModels.TemperatureControl.PilotWireMode.Eco             => 3,
             OpenNettyModels.TemperatureControl.PilotWireMode.FrostProtection => 4,
 
-            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
         };
 
         if (duration is OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours)
@@ -2187,12 +2291,12 @@ public class OpenNettyController
 
         if (!Enum.IsDefined(mode))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         var value = mode switch
@@ -2203,7 +2307,7 @@ public class OpenNettyController
             OpenNettyModels.TemperatureControl.PilotWireMode.Eco             => 3,
             OpenNettyModels.TemperatureControl.PilotWireMode.FrostProtection => 4,
 
-            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
         };
 
         return _service.ExecuteCommandAsync(
@@ -2239,7 +2343,7 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         return _service.SetDimensionAsync(
@@ -2274,12 +2378,12 @@ public class OpenNettyController
 
         if (!Enum.IsDefined(mode))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         return _service.SetDimensionAsync(
@@ -2291,7 +2395,7 @@ public class OpenNettyController
                 OpenNettyModels.TemperatureControl.WaterHeaterMode.ForcedOn  => "1",
                 OpenNettyModels.TemperatureControl.WaterHeaterMode.Automatic => "2",
 
-                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
             }],
             address          : endpoint.Address,
             medium           : endpoint.Medium,
@@ -2315,13 +2419,13 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.BasicShutterControl))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
         if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Automation))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
 
         return _service.ExecuteCommandAsync(
@@ -2349,19 +2453,19 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchControl))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
         if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Lighting))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
 
         // If the endpoint was configured to use the special switch mode, OFF commands are not valid.
         if (endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         return _service.ExecuteCommandAsync(
@@ -2389,13 +2493,13 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchControl))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
         if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Lighting))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
 
         return _service.ExecuteCommandAsync(
@@ -2429,13 +2533,13 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchControl))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
         if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Lighting))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
 
         // Nitoo and SCS gateways don't natively support toggle BUS COMMANDS (unlike Zigbee
@@ -2445,12 +2549,12 @@ public class OpenNettyController
         {
             if (!endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
             {
-                throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+                throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
             }
 
             if (endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
             {
-                throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+                throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
             }
 
             var state = await GetSwitchStateAsync(endpoint, cancellationToken);
@@ -2496,7 +2600,7 @@ public class OpenNettyController
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.ZigbeeBinding))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0076));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         return _service.ExecuteCommandAsync(

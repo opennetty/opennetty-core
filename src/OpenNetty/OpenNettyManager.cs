@@ -102,7 +102,7 @@ public class OpenNettyManager
                 if (endpoint is not null)
                 {
                     return ValueTask.FromException<OpenNettyEndpoint?>(
-                        new InvalidOperationException(SR.GetResourceString(SR.ID0116)));
+                        new InvalidOperationException(SR.GetResourceString(SR.ID0102)));
                 }
 
                 endpoint = _options.CurrentValue.Endpoints[index];
@@ -140,7 +140,7 @@ public class OpenNettyManager
                 if (endpoint is not null)
                 {
                     return ValueTask.FromException<OpenNettyEndpoint?>(
-                        new InvalidOperationException(SR.GetResourceString(SR.ID0116)));
+                        new InvalidOperationException(SR.GetResourceString(SR.ID0102)));
                 }
 
                 endpoint = _options.CurrentValue.Endpoints[index];
@@ -151,8 +151,9 @@ public class OpenNettyManager
     }
 
     /// <summary>
-    /// Resolves an endpoint using the specified address.
+    /// Resolves an endpoint using the specified gateway and address.
     /// </summary>
+    /// <param name="gateway">The gateway used to communicate with the endpoint.</param>
     /// <param name="address">The endpoint address.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>
@@ -160,7 +161,7 @@ public class OpenNettyManager
     /// contains the resolved endpoint, or <see langword="null"/> if no matching endpoint could be resolved.
     /// </returns>
     public virtual ValueTask<OpenNettyEndpoint?> FindEndpointByAddressAsync(
-        OpenNettyAddress address, CancellationToken cancellationToken = default)
+        OpenNettyGateway gateway, OpenNettyAddress address, CancellationToken cancellationToken = default)
     {
         OpenNettyEndpoint? endpoint = null;
 
@@ -171,12 +172,13 @@ public class OpenNettyManager
                 return ValueTask.FromCanceled<OpenNettyEndpoint?>(cancellationToken);
             }
 
-            if (_options.CurrentValue.Endpoints[index].Address == address)
+            if (_options.CurrentValue.Endpoints[index].Address == address &&
+                _options.CurrentValue.Endpoints[index].Gateway == gateway)
             {
                 if (endpoint is not null)
                 {
                     return ValueTask.FromException<OpenNettyEndpoint?>(
-                        new InvalidOperationException(SR.GetResourceString(SR.ID0116)));
+                        new InvalidOperationException(SR.GetResourceString(SR.ID0102)));
                 }
 
                 endpoint = _options.CurrentValue.Endpoints[index];
@@ -187,21 +189,24 @@ public class OpenNettyManager
     }
 
     /// <summary>
-    /// Resolves all the endpoints matching the specified address.
+    /// Resolves all the endpoints matching the specified gateway and address.
     /// </summary>
+    /// <param name="gateway">The gateway used to communicate with the endpoint.</param>
     /// <param name="address">The endpoint address.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>
     /// An <see cref="IAsyncEnumerable{T}"/> that can be used to iterate the endpoints associated with the address.
     /// </returns>
     public virtual async IAsyncEnumerable<OpenNettyEndpoint> FindEndpointsByAddressAsync(
-        OpenNettyAddress address, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        OpenNettyGateway gateway, OpenNettyAddress address,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
         if (address.Type is OpenNettyAddressType.Nitoo)
         {
             await foreach (var endpoint in EnumerateEndpointsAsync(cancellationToken))
             {
                 if (endpoint.Protocol is OpenNettyProtocol.Nitoo &&
+                    endpoint.Gateway == gateway &&
                     endpoint.Address is not null && endpoint.Address == address)
                 {
                     yield return endpoint;
@@ -215,7 +220,7 @@ public class OpenNettyManager
 
             await foreach (var endpoint in EnumerateEndpointsAsync(cancellationToken))
             {
-                if (endpoint.Protocol is not OpenNettyProtocol.Scs || endpoint.Address is null)
+                if (endpoint.Protocol is not OpenNettyProtocol.Scs || endpoint.Gateway != gateway || endpoint.Address is null)
                 {
                     continue;
                 }
@@ -256,7 +261,7 @@ public class OpenNettyManager
         {
             await foreach (var endpoint in EnumerateEndpointsAsync(cancellationToken))
             {
-                if (endpoint.Protocol is not OpenNettyProtocol.Zigbee || endpoint.Address is null)
+                if (endpoint.Protocol is not OpenNettyProtocol.Zigbee || endpoint.Gateway != gateway || endpoint.Address is null)
                 {
                     continue;
                 }
@@ -321,7 +326,7 @@ public class OpenNettyManager
                 if (gateway is not null)
                 {
                     return ValueTask.FromException<OpenNettyGateway?>(
-                        new InvalidOperationException(SR.GetResourceString(SR.ID0116)));
+                        new InvalidOperationException(SR.GetResourceString(SR.ID0102)));
                 }
 
                 gateway = _options.CurrentValue.Gateways[index];

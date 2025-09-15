@@ -36,12 +36,12 @@ public static class OpenNettyDevices
         }
 
         using var stream = Assembly.GetAssembly(typeof(OpenNettyDevices))?.GetManifestResourceStream(
-            "OpenNetty.OpenNettyDevices.xml") ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0073));
+            "OpenNetty.OpenNettyDevices.xml") ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0066));
 
         var document = XDocument.Load(stream);
         if (document.Root is null)
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0073));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0066));
         }
 
         foreach (var device in document.Root.Elements("Device"))
@@ -85,12 +85,12 @@ public static class OpenNettyDevices
         }
 
         using var stream = Assembly.GetAssembly(typeof(OpenNettyDevices))?.GetManifestResourceStream(
-            "OpenNetty.OpenNettyDevices.xml") ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0073));
+            "OpenNetty.OpenNettyDevices.xml") ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0066));
 
         var document = XDocument.Load(stream);
         if (document.Root is null)
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0073));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0066));
         }
 
         foreach (var device in document.Root.Elements("Device"))
@@ -121,7 +121,7 @@ public static class OpenNettyDevices
     private static OpenNettyDeviceDefinition CreateDeviceDefinition(XElement node)
     {
         HashSet<OpenNettyCapability> capabilities = [];
-        List<OpenNettyIdentity> identities = [];
+        List<OpenNettyDeviceIdentity> identities = [];
         Dictionary<OpenNettySetting, string> settings = [];
         List<OpenNettyUnitDefinition> units = [];
 
@@ -132,7 +132,7 @@ public static class OpenNettyDevices
 
         foreach (var identity in node.Elements("Identity"))
         {
-            identities.Add(new OpenNettyIdentity
+            identities.Add(new OpenNettyDeviceIdentity
             {
                 Brand = Enum.Parse<OpenNettyBrand>((string) identity.Attribute("Brand")!),
                 Collection = (string?) identity.Attribute("Collection"),

@@ -27,6 +27,21 @@ public static class OpenNettyMqttAttributes
     public const string Brightness = "brightness";
 
     /// <summary>
+    /// Firmware version.
+    /// </summary>
+    public const string FirmwareVersion = "firmware_version";
+
+    /// <summary>
+    /// Hardware version.
+    /// </summary>
+    public const string HardwareVersion = "hardware_version";
+
+    /// <summary>
+    /// MAC address.
+    /// </summary>
+    public const string MacAddress = "mac_address";
+
+    /// <summary>
     /// Pilot wire derogation mode.
     /// </summary>
     public const string PilotWireDerogationMode = "pilot_wire_derogation_mode";

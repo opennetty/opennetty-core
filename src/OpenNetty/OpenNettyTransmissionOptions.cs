@@ -119,28 +119,28 @@ public sealed record OpenNettyTransmissionOptions
                         key  : new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)),
                         value: out OpenNettyGateway? gateway))
                     {
-                        throw new InvalidOperationException(SR.GetResourceString(SR.ID0074));
+                        throw new InvalidOperationException(SR.GetResourceString(SR.ID0067));
                     }
 
                     if (!arguments.Context.Properties.TryGetValue(
                         key  : new ResiliencePropertyKey<ILogger<OpenNettyService>>(nameof(ILogger<>)),
                         value: out ILogger<OpenNettyService>? logger))
                     {
-                        throw new InvalidOperationException(SR.GetResourceString(SR.ID0074));
+                        throw new InvalidOperationException(SR.GetResourceString(SR.ID0067));
                     }
 
                     if (!arguments.Context.Properties.TryGetValue(
                         key  : new ResiliencePropertyKey<OpenNettyMessage>(nameof(OpenNettyMessage)),
                         value: out OpenNettyMessage? message))
                     {
-                        throw new InvalidOperationException(SR.GetResourceString(SR.ID0074));
+                        throw new InvalidOperationException(SR.GetResourceString(SR.ID0067));
                     }
 
                     if (!arguments.Context.Properties.TryGetValue(
                         key  : new ResiliencePropertyKey<OpenNettyTransmissionOptions>(nameof(OpenNettyTransmissionOptions)),
                         value: out OpenNettyTransmissionOptions? options))
                     {
-                        throw new InvalidOperationException(SR.GetResourceString(SR.ID0074));
+                        throw new InvalidOperationException(SR.GetResourceString(SR.ID0067));
                     }
 
                     // Never retransmit a message if no exception was thrown.
@@ -193,21 +193,21 @@ public sealed record OpenNettyTransmissionOptions
                         key  : new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)),
                         value: out OpenNettyGateway? gateway))
                     {
-                        throw new InvalidOperationException(SR.GetResourceString(SR.ID0074));
+                        throw new InvalidOperationException(SR.GetResourceString(SR.ID0067));
                     }
 
                     if (!arguments.Context.Properties.TryGetValue(
                         key  : new ResiliencePropertyKey<ILogger<OpenNettyService>>(nameof(ILogger<>)),
                         value: out ILogger<OpenNettyService>? logger))
                     {
-                        throw new InvalidOperationException(SR.GetResourceString(SR.ID0074));
+                        throw new InvalidOperationException(SR.GetResourceString(SR.ID0067));
                     }
 
                     if (!arguments.Context.Properties.TryGetValue(
                         key  : new ResiliencePropertyKey<OpenNettyMessage>(nameof(OpenNettyMessage)),
                         value: out OpenNettyMessage? message))
                     {
-                        throw new InvalidOperationException(SR.GetResourceString(SR.ID0074));
+                        throw new InvalidOperationException(SR.GetResourceString(SR.ID0067));
                     }
 
                     logger.LogInformation(6017, SR.GetResourceString(SR.ID6017),

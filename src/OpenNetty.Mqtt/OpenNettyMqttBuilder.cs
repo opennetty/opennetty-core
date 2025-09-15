@@ -84,7 +84,7 @@ public sealed class OpenNettyMqttBuilder
 
         if (!file.Exists)
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0077));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0070));
         }
 
         using var stream = file.CreateReadStream();
@@ -102,7 +102,7 @@ public sealed class OpenNettyMqttBuilder
 
         if (!File.Exists(path))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0077));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0070));
         }
 
         return ImportFromXmlConfiguration(XDocument.Load(path));
@@ -131,14 +131,14 @@ public sealed class OpenNettyMqttBuilder
 
         if (document.Root?.Name != "Configuration")
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0078));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0071));
         }
 
-        var element = document.Root.Element("Mqtt") ?? throw new InvalidOperationException(SR.FormatID0103("Mqtt"));
+        var element = document.Root.Element("Mqtt") ?? throw new InvalidOperationException(SR.FormatID0090("Mqtt"));
         var builder = new MqttClientOptionsBuilder();
 
         builder.WithTcpServer(
-            host: (string?) element.Attribute("Server") ?? throw new InvalidOperationException(SR.FormatID0104("Server")),
+            host: (string?) element.Attribute("Server") ?? throw new InvalidOperationException(SR.FormatID0091("Server")),
             port: (int?) element.Attribute("Port"));
 
         builder.WithProtocolVersion(MqttProtocolVersion.V500);
@@ -226,7 +226,7 @@ public sealed class OpenNettyMqttBuilder
 
             if (string.IsNullOrEmpty(paths.TlsClientCertificatePrivateKeyFile))
             {
-                throw new InvalidOperationException(SR.GetResourceString(SR.ID0111));
+                throw new InvalidOperationException(SR.GetResourceString(SR.ID0098));
             }
 
             var certificate = X509Certificate2.CreateFromPemFile(

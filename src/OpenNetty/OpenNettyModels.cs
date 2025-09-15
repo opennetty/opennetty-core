@@ -159,7 +159,7 @@ public static class OpenNettyModels
                     "3" or "11" or "75" or "139" => PilotWireMode.Eco,
                     "4" or "12" or "76" or "140" => PilotWireMode.FrostProtection,
 
-                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                 }
             };
         }
@@ -237,7 +237,7 @@ public static class OpenNettyModels
                     "2"               => SmartMeterSubscriptionType.OffPeak,
                     "3" or "4" or "5" => SmartMeterSubscriptionType.Tempo,
 
-                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                 },
                 WhiteIndex       = values[0] is "4" ? ulong.Parse(values[2], CultureInfo.InvariantCulture) : null,
             };
@@ -271,7 +271,7 @@ public static class OpenNettyModels
                     "32" or "33" => SmartMeterRateType.OffPeak,
                     "48" or "49" => SmartMeterRateType.Peak,
 
-                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                 }
             };
         }
@@ -472,7 +472,7 @@ public static class OpenNettyModels
                     "96"  => OpenNettyMedium.Powerline,
                     "128" => OpenNettyMedium.Infrared,
 
-                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                 }
             };
         }

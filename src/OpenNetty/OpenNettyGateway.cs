@@ -180,6 +180,7 @@ public sealed class OpenNettyGateway
     /// <param name="name">The gateway name.</param>
     /// <param name="brand">The gateway brand.</param>
     /// <param name="model">The gateway model.</param>
+    /// <param name="identifier">The gateway identifier.</param>
     /// <param name="endpoint">The Internet Protocol endpoint.</param>
     /// <param name="password">The authentication password, if applicable.</param>
     /// <param name="options">The gateway options.</param>
@@ -188,6 +189,7 @@ public sealed class OpenNettyGateway
         string name,
         OpenNettyBrand brand,
         string model,
+        OpenNettyDeviceIdentifier identifier,
         IPEndPoint endpoint,
         string? password = null,
         OpenNettyGatewayOptions? options = null)
@@ -197,11 +199,13 @@ public sealed class OpenNettyGateway
         ArgumentException.ThrowIfNullOrEmpty(model);
 
         var definition = OpenNettyDevices.GetDeviceByModel(brand, model)
-            ?? throw new InvalidOperationException(SR.FormatID0098(brand, model));
+            ?? throw new InvalidOperationException(SR.FormatID0085(brand, model));
 
         var device = new OpenNettyDevice
         {
             Definition = definition,
+            Gateway = null,
+            Identifier = identifier,
             Identity = definition.Identities.Single(identity => identity.Brand == brand && identity.Model == model)
         };
 
@@ -214,6 +218,7 @@ public sealed class OpenNettyGateway
     /// <param name="name">The gateway name.</param>
     /// <param name="brand">The gateway brand.</param>
     /// <param name="model">The gateway model.</param>
+    /// <param name="identifier">The gateway identifier.</param>
     /// <param name="port">The serial port.</param>
     /// <param name="options">The gateway options.</param>
     /// <returns>A new instance of the <see cref="OpenNettyGateway"/> class.</returns>
@@ -221,6 +226,7 @@ public sealed class OpenNettyGateway
         string name,
         OpenNettyBrand brand,
         string model,
+        OpenNettyDeviceIdentifier identifier,
         SerialPort port,
         OpenNettyGatewayOptions? options = null)
     {
@@ -229,11 +235,13 @@ public sealed class OpenNettyGateway
         ArgumentException.ThrowIfNullOrEmpty(model);
 
         var definition = OpenNettyDevices.GetDeviceByModel(brand, model)
-            ?? throw new InvalidOperationException(SR.FormatID0098(brand, model));
+            ?? throw new InvalidOperationException(SR.FormatID0085(brand, model));
 
         var device = new OpenNettyDevice
         {
             Definition = definition,
+            Gateway = null,
+            Identifier = identifier,
             Identity = definition.Identities.Single(identity => identity.Brand == brand && identity.Model == model)
         };
 

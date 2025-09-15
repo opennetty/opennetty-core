@@ -6,7 +6,6 @@
 
 using System.Collections.Immutable;
 using System.ComponentModel;
-using System.Globalization;
 using System.Text;
 using Microsoft.Extensions.Options;
 
@@ -24,12 +23,6 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
 
         foreach (var device in options.Devices)
         {
-            if (device.Definition.Protocol is not (OpenNettyProtocol.Nitoo or OpenNettyProtocol.Zigbee) ||
-                string.IsNullOrEmpty(device.SerialNumber))
-            {
-                continue;
-            }
-
             // If an endpoint targeting the device was configured by the user, do not override it.
             if (!options.Endpoints.Exists(endpoint => endpoint.Device == device && endpoint.Unit is null))
             {
@@ -37,19 +30,15 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
                 {
                     Address = device.Definition.Protocol switch
                     {
-                        OpenNettyProtocol.Nitoo => OpenNettyAddress.FromNitooAddress(
-                            identifier: uint.Parse(device.SerialNumber ?? throw new InvalidOperationException(SR.FormatID0089("SerialNumber")), CultureInfo.InvariantCulture),
-                            unit      : 0),
-
-                        OpenNettyProtocol.Zigbee => OpenNettyAddress.FromHexadecimalZigbeeAddress(
-                            identifier: device.SerialNumber ?? throw new InvalidOperationException(SR.FormatID0094("SerialNumber")),
-                            unit      : 0),
+                        OpenNettyProtocol.Nitoo  => OpenNettyAddress.FromNitooAddress(device.Identifier,  unit: 0),
+                        OpenNettyProtocol.Zigbee => OpenNettyAddress.FromZigbeeAddress(device.Identifier, unit: 0),
 
                         _ => null
                     },
                     Capabilities = [],
                     Device = device,
-                    Gateway = options.Gateways.First(gateway => gateway.Protocol == device.Definition.Protocol),
+                    Gateway = device.Gateway ?? options.Gateways.FirstOrDefault(gateway => gateway.Device == device)
+                        ?? throw new InvalidOperationException(SR.FormatID0107("Gateway")),
                     Medium = device.Definition.Medium,
                     Name = ComputeDefaultEndpointName(device),
                     Protocol = device.Definition.Protocol,
@@ -59,13 +48,12 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
                 static string ComputeDefaultEndpointName(OpenNettyDevice device)
                     => new StringBuilder(Enum.GetName(device.Definition.Protocol))
                         .Append('/')
-                        .Append(device.SerialNumber)
+                        .Append(new string(device.Identifier.ToString().Where(char.IsAsciiHexDigit).ToArray()))
                         .ToString();
             }
 
-            // For Nitoo and Zigbee devices, add implicit endpoints for all the units present
-            // in the device definition but that have not been explicitly added by the user.
-            if (device.Definition.Units.Length is not 0)
+            // Add implicit endpoints for all the units that have not been explicitly added by the user.
+            if (device.Definition.Units.Length is not 0 && device.Definition.Protocol is not OpenNettyProtocol.Scs)
             {
                 foreach (var definition in device.Definition.Units)
                 {
@@ -79,20 +67,15 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
                     {
                         Address = device.Definition.Protocol switch
                         {
-                            OpenNettyProtocol.Nitoo => OpenNettyAddress.FromNitooAddress(
-                                identifier: uint.Parse(device.SerialNumber ?? throw new InvalidOperationException(SR.FormatID0089("SerialNumber")), CultureInfo.InvariantCulture),
-                                unit      : definition.Id),
-
-                            OpenNettyProtocol.Zigbee => OpenNettyAddress.FromHexadecimalZigbeeAddress(
-                                identifier: device.SerialNumber ?? throw new InvalidOperationException(SR.FormatID0094("SerialNumber")),
-                                unit      : definition.Id),
+                            OpenNettyProtocol.Nitoo  => OpenNettyAddress.FromNitooAddress(device.Identifier,  unit: definition.Id),
+                            OpenNettyProtocol.Zigbee => OpenNettyAddress.FromZigbeeAddress(device.Identifier, unit: definition.Id),
 
                             _ => null
                         },
                         Capabilities = [],
                         Device = device,
-                        Gateway = options.Gateways.FirstOrDefault(gateway => gateway.Protocol == device.Definition.Protocol)
-                            ?? throw new InvalidOperationException(SR.FormatID0120(device.Definition.Protocol)),
+                        Gateway = device.Gateway ?? options.Gateways.FirstOrDefault(gateway => gateway.Device == device)
+                            ?? throw new InvalidOperationException(SR.FormatID0107("Gateway")),
                         Medium = device.Definition.Medium,
                         Name = ComputeDefaultEndpointName(device, definition),
                         Protocol = device.Definition.Protocol,
@@ -108,7 +91,7 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
                     static string ComputeDefaultEndpointName(OpenNettyDevice device, OpenNettyUnitDefinition unit)
                         => new StringBuilder(Enum.GetName(device.Definition.Protocol))
                             .Append('/')
-                            .Append(device.SerialNumber)
+                            .Append(new string(device.Identifier.ToString().Where(char.IsAsciiHexDigit).ToArray()))
                             .Append('/')
                             .Append(unit.Id)
                             .ToString();
@@ -122,15 +105,22 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
     {
         ArgumentNullException.ThrowIfNull(options);
 
-        foreach (var device in options.Devices)
+        if (options.Devices.GroupBy(static device => device.Identifier)
+            .Where(static group => group.Count() is > 1)
+            .Select(static group => group.Key)
+            .OfType<OpenNettyDeviceIdentifier?>()
+            .FirstOrDefault() is OpenNettyDeviceIdentifier identifier)
         {
-            if (!string.IsNullOrEmpty(device.SerialNumber) && device.SerialNumber.Any(static character =>
-                character is not ((>= '0' and <= '9') or
-                                  (>= 'a' and <= 'f') or
-                                  (>= 'A' and <= 'F'))))
-            {
-                return ValidateOptionsResult.Fail(SR.FormatID2006(device.SerialNumber));
-            }
+            return ValidateOptionsResult.Fail(SR.FormatID2012(identifier.ToString()));
+        }
+
+        if (options.Endpoints.GroupBy(static endpoint => endpoint.Name)
+            .Where(static endpoint => endpoint.Count() is > 1)
+            .Select(static endpoint => endpoint.Key)
+            .OfType<string?>()
+            .FirstOrDefault() is string value)
+        {
+            return ValidateOptionsResult.Fail(SR.FormatID2013(value));
         }
 
         foreach (var endpoint in options.Endpoints)

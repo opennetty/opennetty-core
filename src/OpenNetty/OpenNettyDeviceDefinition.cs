@@ -26,7 +26,7 @@ public sealed class OpenNettyDeviceDefinition : IEquatable<OpenNettyDeviceDefini
     /// <summary>
     /// Gets or sets the identities associated with the device definition.
     /// </summary>
-    public required ImmutableArray<OpenNettyIdentity> Identities { get; init; }
+    public required ImmutableArray<OpenNettyDeviceIdentity> Identities { get; init; }
 
     /// <summary>
     /// Gets or sets the medium associated with the device definition.
