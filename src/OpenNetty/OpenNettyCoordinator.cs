@@ -8,7 +8,6 @@ using System.Globalization;
 using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
-using System.Text;
 using Microsoft.Extensions.Logging;
 using static OpenNetty.OpenNettyEvents;
 

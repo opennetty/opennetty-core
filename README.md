@@ -540,8 +540,8 @@ await app.StopAsync();
   - In most cases, an endpoint has a device definition attached from which it resolves the supported functions (like switching on or
   off a connected load or controlling the brightness level), but it's possible to create endpoints that don't have a device
   attached, which allows supporting non-device-specific addresses like SCS point-of-light area or group addresses.
-  - Nitoo and Zigbee endpoints often have a unit definition attached, but non-unit-specific endpoints can also
-  be created to perform actions that don't target a specific Nitoo or Zigbee unit (e.g Nitoo device descriptions).
+  - Endpoints often have a unit definition attached, but non-unit-specific endpoints can also
+  be created to perform actions that don't target a specific unit (e.g Nitoo device descriptions).
   - When no unit or device definition is attached, a list of capabilities must be attached
   to the endpoint before being able to perform actions using the `OpenNettyController` class.
 
