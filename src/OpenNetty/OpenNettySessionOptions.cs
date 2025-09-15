@@ -63,21 +63,21 @@ public sealed record class OpenNettySessionOptions
                             key  : new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)),
                             value: out OpenNettyGateway? gateway))
                         {
-                            throw new InvalidOperationException(SR.GetResourceString(SR.ID0074));
+                            throw new InvalidOperationException(SR.GetResourceString(SR.ID0067));
                         }
 
                         if (!arguments.Context.Properties.TryGetValue(
                             key  : new ResiliencePropertyKey<ILogger<OpenNettyWorker>>(nameof(ILogger<>)),
                             value: out ILogger<OpenNettyWorker>? logger))
                         {
-                            throw new InvalidOperationException(SR.GetResourceString(SR.ID0074));
+                            throw new InvalidOperationException(SR.GetResourceString(SR.ID0067));
                         }
 
                         if (!arguments.Context.Properties.TryGetValue(
                             key  : new ResiliencePropertyKey<OpenNettySessionType>(nameof(OpenNettySessionType)),
                             value: out OpenNettySessionType type))
                         {
-                            throw new InvalidOperationException(SR.GetResourceString(SR.ID0074));
+                            throw new InvalidOperationException(SR.GetResourceString(SR.ID0067));
                         }
 
                         if (arguments.Outcome.Exception is not Exception exception)

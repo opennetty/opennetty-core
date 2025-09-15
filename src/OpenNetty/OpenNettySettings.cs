@@ -22,6 +22,11 @@ public static class OpenNettySettings
     public static readonly OpenNettySetting ActuatorType = new("Actuator type");
 
     /// <summary>
+    /// Clock synchronization.
+    /// </summary>
+    public static readonly OpenNettySetting ClockSynchronization = new("Clock synchronization");
+
+    /// <summary>
     /// Home Assistant light/switch device class.
     /// </summary>
     public static readonly OpenNettySetting HomeAssistantCoverDeviceClass = new("Home Assistant cover device class");

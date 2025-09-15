@@ -53,22 +53,22 @@ public class OpenNettyService : IOpenNettyService
     {
         if (!Enum.IsDefined(protocol))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0064));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0057));
         }
 
         if (protocol is OpenNettyProtocol.Nitoo)
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0030));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0026));
         }
 
         if (gateway is not null && gateway.Protocol != protocol)
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0031));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0027));
         }
 
         // If no gateway was explicitly specified, try to resolve it from the options.
         gateway ??= _options.CurrentValue.Gateways.Find(gateway => gateway.Protocol == protocol) ??
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0032));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0028));
         options ??= gateway.Options.DefaultTransmissionOptions;
 
         var message = OpenNettyMessage.CreateDimensionRequest(protocol, dimension, address, medium, mode);
@@ -151,10 +151,10 @@ public class OpenNettyService : IOpenNettyService
                     yield break;
 
                 case OpenNettyMessageType.BusyNegativeAcknowledgement:
-                    throw new OpenNettyException(OpenNettyErrorCode.GatewayBusy, SR.GetResourceString(SR.ID0017));
+                    throw new OpenNettyException(OpenNettyErrorCode.GatewayBusy, SR.GetResourceString(SR.ID0013));
 
                 case OpenNettyMessageType.NegativeAcknowledgement:
-                    throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0018));
+                    throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0014));
             }
 
             yield return (notification.Value.Message.Address!.Value, notification.Value.Message.Values);
@@ -175,22 +175,22 @@ public class OpenNettyService : IOpenNettyService
     {
         if (!Enum.IsDefined(protocol))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0064));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0057));
         }
 
         if (protocol is OpenNettyProtocol.Nitoo)
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0030));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0026));
         }
 
         if (gateway is not null && gateway.Protocol != protocol)
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0031));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0027));
         }
 
         // If no gateway was explicitly specified, try to resolve it from the options.
         gateway ??= _options.CurrentValue.Gateways.Find(gateway => gateway.Protocol == protocol) ??
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0032));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0028));
         options ??= gateway.Options.DefaultTransmissionOptions;
 
         var message = OpenNettyMessage.CreateStatusRequest(protocol, category, address, medium, mode);
@@ -277,10 +277,10 @@ public class OpenNettyService : IOpenNettyService
                     yield break;
 
                 case OpenNettyMessageType.BusyNegativeAcknowledgement:
-                    throw new OpenNettyException(OpenNettyErrorCode.GatewayBusy, SR.GetResourceString(SR.ID0017));
+                    throw new OpenNettyException(OpenNettyErrorCode.GatewayBusy, SR.GetResourceString(SR.ID0013));
 
                 case OpenNettyMessageType.NegativeAcknowledgement:
-                    throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0018));
+                    throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0014));
             }
 
             yield return (notification.Value.Message.Address!.Value, notification.Value.Message.Command!.Value);
@@ -300,17 +300,17 @@ public class OpenNettyService : IOpenNettyService
     {
         if (!Enum.IsDefined(protocol))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0064));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0057));
         }
 
         if (gateway is not null && gateway.Protocol != protocol)
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0031));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0027));
         }
 
         // If no gateway was explicitly specified, try to resolve it from the options.
         gateway ??= _options.CurrentValue.Gateways.Find(gateway => gateway.Protocol == protocol) ??
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0032));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0028));
         options ??= gateway.Options.DefaultTransmissionOptions;
 
         var message = OpenNettyMessage.CreateCommand(protocol, command, address, medium, mode);
@@ -346,17 +346,17 @@ public class OpenNettyService : IOpenNettyService
     {
         if (!Enum.IsDefined(protocol))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0064));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0057));
         }
 
         if (gateway is not null && gateway.Protocol != protocol)
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0031));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0027));
         }
 
         // If no gateway was explicitly specified, try to resolve it from the options.
         gateway ??= _options.CurrentValue.Gateways.Find(gateway => gateway.Protocol == protocol) ??
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0032));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0028));
         options ??= gateway.Options.DefaultTransmissionOptions;
 
         var message = OpenNettyMessage.CreateDimensionRequest(protocol, dimension, address, medium, mode);
@@ -405,7 +405,7 @@ public class OpenNettyService : IOpenNettyService
                     .OfType<(OpenNettySession Session, OpenNettyMessage Message), (OpenNettySession Session, OpenNettyMessage Message)?>()
                     .Timeout(options.UniqueDimensionReplyTimeout, AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)?>(null))
                     .RunAsync(cancellationToken))?.Message.Values ?? throw new OpenNettyException(
-                        OpenNettyErrorCode.NoDimensionReceived, SR.GetResourceString(SR.ID0033));
+                        OpenNettyErrorCode.NoDimensionReceived, SR.GetResourceString(SR.ID0029));
             }, context);
         }
 
@@ -429,17 +429,17 @@ public class OpenNettyService : IOpenNettyService
     {
         if (!Enum.IsDefined(protocol))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0064));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0057));
         }
 
         if (gateway is not null && gateway.Protocol != protocol)
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0031));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0027));
         }
 
         // If no gateway was explicitly specified, try to resolve it from the options.
         gateway ??= _options.CurrentValue.Gateways.Find(gateway => gateway.Protocol == protocol) ??
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0032));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0028));
         options ??= gateway.Options.DefaultTransmissionOptions;
 
         var message = OpenNettyMessage.CreateStatusRequest(protocol, category, address, medium, mode);
@@ -492,7 +492,7 @@ public class OpenNettyService : IOpenNettyService
                     .OfType<(OpenNettySession Session, OpenNettyMessage Message), (OpenNettySession Session, OpenNettyMessage Message)?>()
                     .Timeout(options.UniqueStatusReplyTimeout, AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)?>(null))
                     .RunAsync(cancellationToken))?.Message.Command ?? throw new OpenNettyException(
-                        OpenNettyErrorCode.NoStatusReceived, SR.GetResourceString(SR.ID0034));
+                        OpenNettyErrorCode.NoStatusReceived, SR.GetResourceString(SR.ID0030));
             }, context);
         }
 
@@ -514,12 +514,12 @@ public class OpenNettyService : IOpenNettyService
 
         if (gateway is not null && gateway.Protocol != message.Protocol)
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0031));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0027));
         }
 
         // If no gateway was explicitly specified, try to resolve it from the options.
         gateway ??= _options.CurrentValue.Gateways.Find(gateway => gateway.Protocol == message.Protocol) ??
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0032));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0028));
         options ??= gateway.Options.DefaultTransmissionOptions;
 
         return AsyncObservable.Create<OpenNettyMessage>(async observer =>
@@ -578,12 +578,12 @@ public class OpenNettyService : IOpenNettyService
 
         if (gateway is not null && gateway.Protocol != message.Protocol)
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0031));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0027));
         }
 
         // If no gateway was explicitly specified, try to resolve it from the options.
         gateway ??= _options.CurrentValue.Gateways.Find(gateway => gateway.Protocol == message.Protocol) ??
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0032));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0028));
         options ??= gateway.Options.DefaultTransmissionOptions;
 
         var context = ResilienceContextPool.Shared.Get(cancellationToken);
@@ -618,17 +618,17 @@ public class OpenNettyService : IOpenNettyService
     {
         if (!Enum.IsDefined(protocol))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0064));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0057));
         }
 
         if (gateway is not null && gateway.Protocol != protocol)
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0031));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0027));
         }
 
         // If no gateway was explicitly specified, try to resolve it from the options.
         gateway ??= _options.CurrentValue.Gateways.Find(gateway => gateway.Protocol == protocol) ??
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0032));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0028));
         options ??= gateway.Options.DefaultTransmissionOptions;
 
         var message = OpenNettyMessage.CreateDimensionSet(protocol, dimension, values, address, medium, mode);
@@ -737,22 +737,22 @@ public class OpenNettyService : IOpenNettyService
                 return session;
 
             case OpenNettyNotifications.GatewayBusy:
-                throw new OpenNettyException(OpenNettyErrorCode.GatewayBusy, SR.GetResourceString(SR.ID0017));
+                throw new OpenNettyException(OpenNettyErrorCode.GatewayBusy, SR.GetResourceString(SR.ID0013));
 
             case OpenNettyNotifications.InvalidAction:
-                throw new OpenNettyException(OpenNettyErrorCode.InvalidAction, SR.GetResourceString(SR.ID0035));
+                throw new OpenNettyException(OpenNettyErrorCode.InvalidAction, SR.GetResourceString(SR.ID0031));
 
             case OpenNettyNotifications.InvalidFrame:
-                throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0018));
+                throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0014));
 
             case OpenNettyNotifications.NoAcknowledgmentReceived:
-                throw new OpenNettyException(OpenNettyErrorCode.NoAcknowledgementReceived, SR.GetResourceString(SR.ID0016));
+                throw new OpenNettyException(OpenNettyErrorCode.NoAcknowledgementReceived, SR.GetResourceString(SR.ID0012));
 
             case OpenNettyNotifications.NoActionReceived:
-                throw new OpenNettyException(OpenNettyErrorCode.NoActionReceived, SR.GetResourceString(SR.ID0036));
+                throw new OpenNettyException(OpenNettyErrorCode.NoActionReceived, SR.GetResourceString(SR.ID0032));
 
             case null or _:
-                throw new OpenNettyException(OpenNettyErrorCode.NoWorkerAvailable, SR.GetResourceString(SR.ID0037));
+                throw new OpenNettyException(OpenNettyErrorCode.NoWorkerAvailable, SR.GetResourceString(SR.ID0033));
         }
     }
 }

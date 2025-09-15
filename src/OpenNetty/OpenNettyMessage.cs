@@ -94,7 +94,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
     {
         if (!Enum.IsDefined(protocol))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0064));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0057));
         }
 
         var message = new OpenNettyMessage
@@ -124,7 +124,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
                     { Parameters: [{           Value: "6"             }] }
                 ] => protocol is OpenNettyProtocol.Zigbee ?
                     OpenNettyMessageType.BusyNegativeAcknowledgement :
-                    throw new InvalidOperationException(SR.GetResourceString(SR.ID0065)),
+                    throw new InvalidOperationException(SR.GetResourceString(SR.ID0058)),
 
                 // Status request messages MUST have exactly 2 fields:
                 //
@@ -294,7 +294,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
                     [{ IsEmpty: true }, { Value: var address }, { Value: "9" }] => (OpenNettyMode.Multicast, CreateAddress(address), OpenNettyMedium.Radio),
                     [{    Value: var address    }, {        Value: "9"       }] => (OpenNettyMode.Unicast,   CreateAddress(address), OpenNettyMedium.Radio),
 
-                    _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0066))
+                    _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0059))
                 };
 
                 static OpenNettyAddress? CreateAddress(string? address) => address switch
@@ -313,7 +313,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
                         byte.TryParse(value[^2..],  CultureInfo.InvariantCulture, out byte unit)
                         => OpenNettyAddress.FromDecimalZigbeeAddress(identifier, unit),
 
-                    _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0066))
+                    _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0059))
                 };
             }
 
@@ -346,7 +346,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
                     [{    Value: var address    }, {        Value: "1"       }] => (OpenNettyMode.Unicast, CreateAddress(address), OpenNettyMedium.Radio),
                     [{    Value: var address    }, {        Value: "2"       }] => (OpenNettyMode.Unicast, CreateAddress(address), OpenNettyMedium.Infrared),
 
-                    _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0066))
+                    _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0059))
                 };
 
                 static OpenNettyAddress? CreateAddress(string? address) => address switch
@@ -356,13 +356,13 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
                     string value when uint.TryParse(value, CultureInfo.InvariantCulture, out uint result)
                         => OpenNettyAddress.FromNitooAddress(result / 16, (byte) (result % 16)),
 
-                    _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0066))
+                    _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0059))
                 };
             }
 
             else
             {
-                throw new InvalidOperationException(SR.GetResourceString(SR.ID0064));
+                throw new InvalidOperationException(SR.GetResourceString(SR.ID0057));
             }
         }
 
@@ -445,7 +445,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
     {
         if (!Enum.IsDefined(protocol))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0064));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0057));
         }
 
         return CreateFromFrame(protocol, new OpenNettyFrame(
@@ -469,7 +469,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
     {
         if (!Enum.IsDefined(protocol))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0064));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0057));
         }
 
         return CreateFromFrame(protocol, new OpenNettyFrame(
@@ -492,7 +492,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
     {
         if (!Enum.IsDefined(protocol))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0064));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0057));
         }
 
         return CreateFromFrame(protocol, new OpenNettyFrame(
@@ -518,12 +518,12 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
     {
         if (!Enum.IsDefined(protocol))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0064));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0057));
         }
 
         if (values.Length is 0)
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0067));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0060));
         }
 
         var fields = new List<OpenNettyField>(capacity: 3 + values.Length)
@@ -558,12 +558,12 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
     {
         if (!Enum.IsDefined(protocol))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0064));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0057));
         }
 
         if (values.IsDefaultOrEmpty)
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0068));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0061));
         }
 
         var fields = new List<OpenNettyField>(capacity: 3 + values.Length)
@@ -630,7 +630,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
     {
         if (address is null)
         {
-            return OpenNettyField.Empty;
+            return new OpenNettyField([OpenNettyParameter.Empty]);
         }
 
         if (protocol is OpenNettyProtocol.Scs)
@@ -665,7 +665,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
                     OpenNettyMedium.Radio    => "1",
                     OpenNettyMedium.Infrared => "2",
 
-                    _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0069))
+                    _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0062))
                 }));
             }
 
@@ -696,13 +696,13 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
             {
                 OpenNettyMedium.Radio or null => "9",
 
-                _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0069))
+                _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0062))
             }));
 
             return new OpenNettyField(parameters);
         }
 
-        throw new InvalidOperationException(SR.GetResourceString(SR.ID0064));
+        throw new InvalidOperationException(SR.GetResourceString(SR.ID0057));
     }
 
     private static OpenNettyField CreateDimensionField(OpenNettyMessageType type, OpenNettyDimension dimension)

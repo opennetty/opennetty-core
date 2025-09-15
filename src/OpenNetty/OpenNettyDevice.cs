@@ -20,15 +20,31 @@ public sealed class OpenNettyDevice : IEquatable<OpenNettyDevice>
     public required OpenNettyDeviceDefinition Definition { get; init; }
 
     /// <summary>
-    /// Gets or sets the identity associated with the device.
+    /// Gets or sets the gateway that will process messages pointing to this device.
     /// </summary>
-    public required OpenNettyIdentity Identity { get; init; }
+    /// <remarks>
+    /// <list type="bullet">
+    /// <item>
+    /// Note: incoming frames that point to this device but are not
+    /// received by the specified gateway will be automatically ignored.
+    /// </item>
+    /// <item>
+    /// This property must be set to <see langword="null"/> for gateway devices.
+    /// </item>
+    /// </list>
+    /// </remarks>
+    public OpenNettyGateway? Gateway { get; init; }
 
     /// <summary>
-    /// Gets or sets the serial number associated with the device,
-    /// if applicable (required for Nitoo and Zigbee devices).
+    /// Gets or sets the unique identifier associated with the
+    /// device (typically, a serial number or a MAC address).
     /// </summary>
-    public string? SerialNumber { get; init; }
+    public required OpenNettyDeviceIdentifier Identifier { get; init; }
+
+    /// <summary>
+    /// Gets or sets the identity associated with the device.
+    /// </summary>
+    public required OpenNettyDeviceIdentity Identity { get; init; }
 
     /// <summary>
     /// Gets or sets the user-defined settings associated with the device, if applicable.
@@ -84,8 +100,9 @@ public sealed class OpenNettyDevice : IEquatable<OpenNettyDevice>
 
         return other is not null &&
             Definition == other.Definition &&
+            Gateway == other.Gateway &&
+            Identifier == other.Identifier &&
             Identity == other.Identity &&
-            string.Equals(SerialNumber, other.SerialNumber, StringComparison.OrdinalIgnoreCase) &&
             Settings.Count == other.Settings.Count && !Settings.Except(other.Settings).Any() &&
             Units.Length == other.Units.Length && !Units.Except(other.Units).Any();
     }
@@ -98,8 +115,9 @@ public sealed class OpenNettyDevice : IEquatable<OpenNettyDevice>
     {
         var hash = new HashCode();
         hash.Add(Definition);
+        hash.Add(Gateway);
+        hash.Add(Identifier);
         hash.Add(Identity);
-        hash.Add(SerialNumber);
 
         hash.Add(Settings.Count);
         foreach (var (name, value) in Settings)
@@ -121,7 +139,7 @@ public sealed class OpenNettyDevice : IEquatable<OpenNettyDevice>
     /// Computes the <see cref="string"/> representation of the current device.
     /// </summary>
     /// <returns>The <see cref="string"/> representation of the current device.</returns>
-    public override string ToString() => SerialNumber ?? string.Empty;
+    public override string ToString() => Identifier.ToString();
 
     /// <summary>
     /// Determines whether two <see cref="OpenNettyDevice"/> instances are equal.

@@ -125,6 +125,24 @@ public sealed class OpenNettyEvents : IDisposable
         => _observable.OfType<EventArgs, DimmingStepReportedEventArgs>();
 
     /// <summary>
+    /// Gets an event triggered when a firmware version is reported.
+    /// </summary>
+    public IAsyncObservable<FirmwareVersionReportedEventArgs> FirmwareVersionReported
+        => _observable.OfType<EventArgs, FirmwareVersionReportedEventArgs>();
+
+    /// <summary>
+    /// Gets an event triggered when a hardware version is reported.
+    /// </summary>
+    public IAsyncObservable<HardwareVersionReportedEventArgs> HardwareVersionReported
+        => _observable.OfType<EventArgs, HardwareVersionReportedEventArgs>();
+
+    /// <summary>
+    /// Gets an event triggered when a MAC address is reported.
+    /// </summary>
+    public IAsyncObservable<MacAddressReportedEventArgs> MacAddressReported
+        => _observable.OfType<EventArgs, MacAddressReportedEventArgs>();
+
+    /// <summary>
     /// Gets an event triggered when an OFF scenario is reported.
     /// </summary>
     public IAsyncObservable<OffScenarioReportedEventArgs> OffScenarioReported
@@ -339,6 +357,27 @@ public sealed class OpenNettyEvents : IDisposable
     /// <param name="Endpoint">The endpoint.</param>
     /// <param name="Delta">The delta (positive or negative).</param>
     public sealed record class DimmingStepReportedEventArgs(OpenNettyEndpoint Endpoint, int Delta) : EventArgs(Endpoint);
+
+    /// <summary>
+    /// Represents event arguments used when a firmware version is reported.
+    /// </summary>
+    /// <param name="Endpoint">The endpoint.</param>
+    /// <param name="Version">The firmware version.</param>
+    public sealed record class FirmwareVersionReportedEventArgs(OpenNettyEndpoint Endpoint, Version Version) : EventArgs(Endpoint);
+
+    /// <summary>
+    /// Represents event arguments used when a hardware version is reported.
+    /// </summary>
+    /// <param name="Endpoint">The endpoint.</param>
+    /// <param name="Version">The hardware version.</param>
+    public sealed record class HardwareVersionReportedEventArgs(OpenNettyEndpoint Endpoint, Version Version) : EventArgs(Endpoint);
+
+    /// <summary>
+    /// Represents event arguments used when a MAC address is reported.
+    /// </summary>
+    /// <param name="Endpoint">The endpoint.</param>
+    /// <param name="Address">The MAC address.</param>
+    public sealed record class MacAddressReportedEventArgs(OpenNettyEndpoint Endpoint, string Address) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when an OFF scenario is reported.

@@ -214,24 +214,30 @@ socket to initiate OpenWebNet sessions:
 
   <!-- In One by Legrand gateway -->
 
-  <Device Brand="Legrand" Model="88213">
-    <Gateway Name="OPEN-Nitoo gateway" Type="Serial" Port="/dev/serial/by-id/usb-Btcino_Terraneo_Mod._SFERA_Tele_Loop-if00" />
+  <Device Brand="Legrand" Model="88213" SerialNumber="148366">
+    <Gateway Name="OPEN-Nitoo gateway" Type="Serial"
+             Port="/dev/serial/by-id/usb-Btcino_Terraneo_Mod._SFERA_Tele_Loop-if00" />
   </Device>
 
   <!-- MyHome Play gateway -->
 
-  <Device Brand="Legrand" Model="88328">
-    <Gateway Name="OPEN-Zigbee gateway" Type="Serial" Port="/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0" />
+  <Device Brand="Legrand" Model="88328" SerialNumber="0026BD26">
+    <Gateway Name="OPEN-Zigbee gateway" Type="Serial"
+             Port="/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0" />
   </Device>
 
   <!-- MyHome Up gateway -->
 
-  <Device Brand="BTicino" Model="F454">
+  <Device Brand="BTicino" Model="F454" MacAddress="00:03:50:A2:27:1B">
     <Gateway Name="OPEN-SCS gateway" Type="Tcp" Server="192.168.5.10" Password="aJhYiBHk8" />
   </Device>
 
 </Configuration>
 ```
+
+> [!TIP]
+> If you don't know the serial number of your MyHome Play gateway, you can temporarily specify a fake one and request the MAC
+> address via MQTT. For instance, if the EUI-64 MAC address is `00:04:74:00:00:26:BD:26`, its serial number will be `0026BD26`.
 
 > [!IMPORTANT]
 > OpenNetty natively supports both the legacy "OPEN authentication" method and the newer – and safer –
@@ -271,19 +277,21 @@ For that, you need to add a `Device` node with the correct brand/model attribute
 
   <!-- In One by Legrand gateway -->
 
-  <Device Brand="Legrand" Model="88213">
-    <Gateway Name="OPEN-Nitoo gateway" Type="Serial" Port="/dev/serial/by-id/usb-Btcino_Terraneo_Mod._SFERA_Tele_Loop-if00" />
+  <Device Brand="Legrand" Model="88213" SerialNumber="148366">
+    <Gateway Name="OPEN-Nitoo gateway" Type="Serial"
+             Port="/dev/serial/by-id/usb-Btcino_Terraneo_Mod._SFERA_Tele_Loop-if00" />
   </Device>
 
   <!-- MyHome Play gateway -->
 
-  <Device Brand="Legrand" Model="88328">
-    <Gateway Name="OPEN-Zigbee gateway" Type="Serial" Port="/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0" />
+  <Device Brand="Legrand" Model="88328" SerialNumber="0026BD26">
+    <Gateway Name="OPEN-Zigbee gateway" Type="Serial"
+             Port="/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0" />
   </Device>
 
   <!-- MyHome Up gateway -->
 
-  <Device Brand="BTicino" Model="F454">
+  <Device Brand="BTicino" Model="F454" MacAddress="00:03:50:A2:27:1B">
     <Gateway Name="OPEN-SCS gateway" Type="Tcp" Server="192.168.5.10" Password="aJhYiBHk8" />
   </Device>
 
@@ -465,11 +473,12 @@ observe the messages sent by the OpenWebNet gateway.
 
 ```csharp
 var gateway = OpenNettyGateway.Create(
-    name    : "SCS-Ethernet gateway",
-    brand   : OpenNettyBrand.BTicino,
-    model   : "F454",
-    endpoint: IPEndPoint.Parse("192.168.5.10:20000"),
-    password: "aJhYiBHk8");
+    name      : "SCS-Ethernet gateway",
+    brand     : OpenNettyBrand.BTicino,
+    model     : "F454",
+    identifier: OpenNettyDeviceIdentifier.FromMacAddress("00:03:50:A2:27:1B"),
+    endpoint  : IPEndPoint.Parse("192.168.5.10:20000"),
+    password  : "aJhYiBHk8");
 
 await using var session = await OpenNettySession.CreateAsync(gateway, OpenNettySessionType.Event);
 
@@ -478,38 +487,6 @@ await using var connection = await session.ConnectAsync();
 
 await Task.Delay(-1);
 ```
-
-> [!TIP]
-> For advanced scenarios that only involve sequential processing, the `OpenNettyConnection` class can also be directly
-> used to send and/or receive OpenWebNet frames from a gateway using either a TCP connection or a serial port:
-> 
-> ```csharp
-> using var port = new SerialPort(
->     portName: "/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0",
->     baudRate: 19_200,
->     parity  : Parity.None,
->     dataBits: 8,
->     stopBits: StopBits.One);
->
-> using var source = new CancellationTokenSource();
-> source.CancelAfter(TimeSpan.FromSeconds(10));
-> 
-> await using var connection = await OpenNettyConnection.CreateSerialConnectionAsync(port, source.Token);
-> 
-> var message = OpenNettyMessage.CreateCommand(
->     protocol: OpenNettyProtocol.Zigbee,
->     command : OpenNettyCommands.Lighting.On,
->     address : OpenNettyAddress.FromHexadecimalZigbeeAddress(identifier: "0065ACAC", unit: 1),
->     medium  : OpenNettyMedium.Radio,
->     mode    : OpenNettyMode.Unicast);
-> 
-> await connection.SendAsync(message.Frame, source.Token);
-> 
-> if (await connection.ReceiveAsync(source.Token) != OpenNettyFrames.Acknowledgement)
-> {
->     throw new ApplicationException("The frame was not acknowledged by the gateway.");
-> }
-> ```
 
 ### .NET Generic Host integration
 
@@ -530,11 +507,12 @@ builder.Services.AddOpenNetty(options =>
 {
     // Register the SCS gateway used to communicate with MyHome devices.
     options.AddGateway(OpenNettyGateway.Create(
-        name    : "F454 gateway",
-        brand   : OpenNettyBrand.BTicino,
-        model   : "F454",
-        endpoint: IPEndPoint.Parse("192.168.5.10:20000"),
-        password: "aJhYiBHk8"));
+        name      : "F454 gateway",
+        brand     : OpenNettyBrand.BTicino,
+        model     : "F454",
+        identifier: OpenNettyDeviceIdentifier.FromMacAddress("00:03:50:A2:27:1B"),
+        endpoint  : IPEndPoint.Parse("192.168.5.10:20000"),
+        password  : "aJhYiBHk8"));
 });
 
 var app = builder.Build();
@@ -570,11 +548,12 @@ var builder = Host.CreateApplicationBuilder();
 builder.Services.AddOpenNetty(options =>
 {
     var gateway = OpenNettyGateway.Create(
-        name    : "F454 gateway",
-        brand   : OpenNettyBrand.BTicino,
-        model   : "F454",
-        endpoint: IPEndPoint.Parse("192.168.5.10:20000"),
-        password: "aJhYiBHk8");
+        name      : "F454 gateway",
+        brand     : OpenNettyBrand.BTicino,
+        model     : "F454",
+        identifier: OpenNettyDeviceIdentifier.FromMacAddress("00:03:50:A2:27:1B"),
+        endpoint  : IPEndPoint.Parse("192.168.5.10:20000"),
+        password  : "aJhYiBHk8");
 
     options.AddGateway(gateway);
 
@@ -591,7 +570,7 @@ builder.Services.AddOpenNetty(options =>
         {
             Definition = OpenNettyDevices.GetDeviceByModel(OpenNettyBrand.BTicino, "F418U2")
                 ?? throw new InvalidOperationException("The specified product is not supported."),
-            Identity = new OpenNettyIdentity
+            Identity = new OpenNettyDeviceIdentity
             {
                 Brand = OpenNettyBrand.BTicino,
                 Collection = null,
@@ -705,14 +684,14 @@ options.AddEndpoint(new OpenNettyEndpoint
     Device = new OpenNettyDevice
     {
         Definition = OpenNettyDevices.GetDeviceByModel(OpenNettyBrand.Legrand, "67222")!,
-        Identity = new OpenNettyIdentity
+        Identifier = OpenNettyDeviceIdentifier.FromNitooSerialNumber(487932),
+        Identity = new OpenNettyDeviceIdentity
         {
             Brand = OpenNettyBrand.Legrand,
             Collection = "Céliane",
             Description = "Dimmable switched outlet",
             Model = "67222"
         },
-        SerialNumber = "487932",
         Settings = ImmutableDictionary.Create<OpenNettySetting, string>()
             .Add(OpenNettySettings.ActionValidation, bool.FalseString)
     },

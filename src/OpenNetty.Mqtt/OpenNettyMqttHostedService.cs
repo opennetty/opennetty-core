@@ -122,6 +122,36 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
+            await _events.FirmwareVersionReported
+                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.FirmwareVersion, builder =>
+                {
+                    builder.WithPayload(arguments.Version.ToString());
+                    builder.WithRetainFlag();
+                }))
+                .Retry()
+                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
+
+            await _events.HardwareVersionReported
+                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.HardwareVersion, builder =>
+                {
+                    builder.WithPayload(arguments.Version.ToString());
+                    builder.WithRetainFlag();
+                }))
+                .Retry()
+                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
+
+            await _events.MacAddressReported
+                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.MacAddress, builder =>
+                {
+                    builder.WithPayload(arguments.Address.ToString());
+                    builder.WithRetainFlag();
+                }))
+                .Retry()
+                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
+
             await _events.OffScenarioReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
@@ -164,7 +194,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                             OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours  => "comfort:4h",
                             OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours => "comfort:8h",
 
-                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                         },
 
                         OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusOne => arguments.Duration switch
@@ -173,7 +203,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                             OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours  => "comfort-1:4h",
                             OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours => "comfort-1:8h",
 
-                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                         },
 
                         OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusTwo => arguments.Duration switch
@@ -182,7 +212,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                             OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours  => "comfort-2:4h",
                             OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours => "comfort-2:8h",
 
-                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                         },
 
                         OpenNettyModels.TemperatureControl.PilotWireMode.Eco => arguments.Duration switch
@@ -191,7 +221,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                             OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours  => "eco:4h",
                             OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours => "eco:8h",
 
-                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                         },
 
                         OpenNettyModels.TemperatureControl.PilotWireMode.FrostProtection => arguments.Duration switch
@@ -200,7 +230,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                             OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours  => "frost_protection:4h",
                             OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours => "frost_protection:8h",
 
-                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                         },
 
                         _ => "none"
@@ -223,7 +253,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                         OpenNettyModels.TemperatureControl.PilotWireMode.Eco             => "eco",
                         OpenNettyModels.TemperatureControl.PilotWireMode.FrostProtection => "frost_protection",
 
-                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                     });
 
                     builder.WithRetainFlag();
@@ -299,7 +329,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                         OpenNettyModels.Automation.ShutterState.Open    => "open",
                         OpenNettyModels.Automation.ShutterState.Closed  => "closed",
 
-                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                     });
 
                     builder.WithRetainFlag();
@@ -354,7 +384,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                             OpenNettyModels.TemperatureControl.SmartMeterSubscriptionType.OffPeak => "off_peak",
                             OpenNettyModels.TemperatureControl.SmartMeterSubscriptionType.Tempo   => "tempo",
 
-                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                         }
                     };
 
@@ -384,7 +414,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                         OpenNettyModels.TemperatureControl.SmartMeterRateType.Peak    => "peak",
                         OpenNettyModels.TemperatureControl.SmartMeterRateType.OffPeak => "off_peak",
 
-                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                     });
 
                     builder.WithRetainFlag();
@@ -441,6 +471,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.StartupDate, builder =>
                 {
                     builder.WithPayload((TimeProvider.System.GetUtcNow() - arguments.Duration).ToString("o", CultureInfo.InvariantCulture));
+                    builder.WithRetainFlag();
                 }))
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
@@ -455,7 +486,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                         OpenNettyModels.TemperatureControl.WaterHeaterMode.ForcedOff => "forced_off",
                         OpenNettyModels.TemperatureControl.WaterHeaterMode.ForcedOn  => "forced_on",
 
-                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                     });
 
                     builder.WithRetainFlag();
@@ -472,7 +503,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                         OpenNettyModels.TemperatureControl.WaterHeaterState.Idle    => "idle",
                         OpenNettyModels.TemperatureControl.WaterHeaterState.Heating => "heating",
 
-                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                     });
 
                     builder.WithRetainFlag();
@@ -493,7 +524,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                         OpenNettyModels.Alarm.WirelessBurglarAlarmState.Triggered        => "triggered",
                         OpenNettyModels.Alarm.WirelessBurglarAlarmState.EventDetected    => "event_detected",
 
-                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                     });
 
                     builder.WithRetainFlag();

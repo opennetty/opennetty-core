@@ -59,12 +59,12 @@ public sealed class OpenNettyPipe : IDisposable
 
         if (!stream.CanRead)
         {
-            throw new ArgumentException(SR.GetResourceString(SR.ID0038), nameof(stream));
+            throw new ArgumentException(SR.GetResourceString(SR.ID0034), nameof(stream));
         }
 
         if (!stream.CanWrite)
         {
-            throw new ArgumentException(SR.GetResourceString(SR.ID0039), nameof(stream));
+            throw new ArgumentException(SR.GetResourceString(SR.ID0035), nameof(stream));
         }
 
         return new OpenNettyPipe(
@@ -104,12 +104,12 @@ public sealed class OpenNettyPipe : IDisposable
     {
         if (_readLock is not SemaphoreSlim semaphore)
         {
-            throw new ObjectDisposedException(SR.GetResourceString(SR.ID0040));
+            throw new ObjectDisposedException(SR.GetResourceString(SR.ID0036));
         }
 
         if (!await semaphore.WaitAsync(TimeSpan.Zero, cancellationToken))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0041));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0037));
         }
 
         try
@@ -198,12 +198,12 @@ public sealed class OpenNettyPipe : IDisposable
     {
         if (_writeLock is not SemaphoreSlim semaphore)
         {
-            throw new ObjectDisposedException(SR.GetResourceString(SR.ID0040));
+            throw new ObjectDisposedException(SR.GetResourceString(SR.ID0036));
         }
 
         if (!await semaphore.WaitAsync(TimeSpan.Zero, cancellationToken))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0042));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0038));
         }
 
         try

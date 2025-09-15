@@ -5,8 +5,10 @@
  */
 
 using System.Globalization;
+using System.Reactive.Concurrency;
 using System.Reactive.Disposables;
 using System.Reactive.Linq;
+using System.Text;
 using Microsoft.Extensions.Logging;
 using static OpenNetty.OpenNettyEvents;
 
@@ -59,8 +61,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     Protocol: OpenNettyProtocol.Nitoo,
                     Type    : OpenNettyMessageType.BusCommand    or
                               OpenNettyMessageType.DimensionRead or
-                              OpenNettyMessageType.DimensionSet,
-                    Mode    : OpenNettyMode.Broadcast } message }
+                              OpenNettyMessageType.DimensionSet } message }
                 => AsyncObservable.Return<(OpenNettyNotification Notification, OpenNettyMessage Message)>((notification, message)),
 
             OpenNettyNotifications.MessageReceived {
@@ -108,7 +109,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
 
             _ => AsyncObservable.Empty<(OpenNettyNotification Notification, OpenNettyMessage Message)>()
         })
-        .Do(async arguments =>
+        .Do(onNext: async arguments =>
         {
             var (notification, message) = arguments;
 
@@ -146,14 +147,10 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     when message.Command?.WithParameters([]) == OpenNettyCommands.Lighting.On ||
                          message.Command?.WithParameters([]) == OpenNettyCommands.Lighting.Off:
                 {
-                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
-                    {
-                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                        if (endpoint.Gateway != notification.Gateway)
-                        {
-                            return;
-                        }
+                    var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
 
+                    await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                    {
                         List<Task> tasks = [];
 
                         switch (endpoint.Protocol)
@@ -179,8 +176,9 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         {
                             tasks.Add(Task.Run(async () =>
                             {
-                                var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(
-                                    OpenNettyAddress.ToNitooAddress(message.Address.Value).Identifier, unit));
+                                var endpoint = await _manager.FindEndpointByAddressAsync(notification.Gateway,
+                                    OpenNettyAddress.FromNitooAddress(
+                                        OpenNettyAddress.ToNitooAddress(message.Address.Value).Identifier, unit));
 
                                 if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
                                 {
@@ -280,14 +278,10 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                          message.Command == OpenNettyCommands.Lighting.On90 ||
                          message.Command == OpenNettyCommands.Lighting.On100:
                 {
-                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
-                    {
-                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                        if (endpoint.Gateway != notification.Gateway)
-                        {
-                            return;
-                        }
+                    var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
 
+                    await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                    {
                         // SCS devices configured to use the PUL mode never react to area and general commands.
                         if (message.Address.Value.Type is OpenNettyAddressType.ScsLightPoint &&
                             (OpenNettyAddress.IsScsLightPointAreaAddress(message.Address.Value) ||
@@ -337,14 +331,10 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     when dimension == OpenNettyDimensions.Lighting.DimmerLevelSpeed ||
                          dimension == OpenNettyDimensions.Lighting.DimmerStatus:
                 {
-                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(address), async (endpoint, cancellationToken) =>
-                    {
-                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                        if (endpoint.Gateway != notification.Gateway)
-                        {
-                            return;
-                        }
+                    var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
 
+                    await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                    {
                         // SCS devices configured to use the PUL mode never react to area and general commands.
                         if (address.Type is OpenNettyAddressType.ScsLightPoint &&
                             (OpenNettyAddress.IsScsLightPointAreaAddress(address) ||
@@ -386,14 +376,10 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Values   : [{ Length: > 0 } value, ..] })
                     when dimension == OpenNettyDimensions.Lighting.DimmerLevelSpeed:
                 {
-                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(address), async (endpoint, cancellationToken) =>
-                    {
-                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                        if (endpoint.Gateway != notification.Gateway)
-                        {
-                            return;
-                        }
+                    var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
 
+                    await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                    {
                         // Note: for Nitoo devices, the brightness level is expressed differently.
                         var level = message.Protocol is OpenNettyProtocol.Nitoo ?
                             (byte) (byte.Parse(value, CultureInfo.InvariantCulture) - 100) :
@@ -439,14 +425,10 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Values   : ["129", { Length: > 0 } value] })
                     when dimension == OpenNettyDimensions.Diagnostics.UnitDescription:
                 {
-                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(address), async (endpoint, cancellationToken) =>
-                    {
-                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                        if (endpoint.Gateway != notification.Gateway)
-                        {
-                            return;
-                        }
+                    var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
 
+                    await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                    {
                         if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
                         {
                             await _events.PublishAsync(new SwitchStateReportedEventArgs(endpoint, value is "128" or "129" or "130" ?
@@ -465,14 +447,10 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Values   : ["143", { Length: > 0 } value, ..] })
                     when dimension == OpenNettyDimensions.Diagnostics.UnitDescription:
                 {
-                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
-                    {
-                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                        if (endpoint.Gateway != notification.Gateway)
-                        {
-                            return;
-                        }
+                    var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
 
+                    await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                    {
                         var level = byte.Parse(value, CultureInfo.InvariantCulture);
 
                         if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
@@ -520,14 +498,10 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                          message.Command == OpenNettyCommands.Automation.Up   ||
                          message.Command == OpenNettyCommands.Automation.Down:
                 {
-                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
-                    {
-                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                        if (endpoint.Gateway != notification.Gateway)
-                        {
-                            return;
-                        }
+                    var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
 
+                    await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                    {
                         List<Task> tasks = [];
 
                         switch (endpoint.Protocol)
@@ -553,8 +527,9 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         {
                             tasks.Add(Task.Run(async () =>
                             {
-                                var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(
-                                    OpenNettyAddress.ToNitooAddress(message.Address.Value).Identifier, unit));
+                                var endpoint = await _manager.FindEndpointByAddressAsync(notification.Gateway,
+                                    OpenNettyAddress.FromNitooAddress(
+                                        OpenNettyAddress.ToNitooAddress(message.Address.Value).Identifier, unit));
 
                                 if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState))
                                 {
@@ -610,7 +585,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                             message.Command == OpenNettyCommands.Automation.Stop ? OpenNettyModels.Automation.ShutterState.Stopped :
                             message.Command == OpenNettyCommands.Automation.Up   ? OpenNettyModels.Automation.ShutterState.Opening :
                             message.Command == OpenNettyCommands.Automation.Down ? OpenNettyModels.Automation.ShutterState.Closing :
-                            throw new InvalidDataException(SR.GetResourceString(SR.ID0075))), cancellationToken);
+                            throw new InvalidDataException(SR.GetResourceString(SR.ID0068))), cancellationToken);
                     break;
                 }
 
@@ -622,14 +597,10 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Values   : [{ Length: > 0 } status, { Length: > 0 } position, ..] })
                     when dimension == OpenNettyDimensions.Automation.ShutterStatus:
                 {
-                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(address), async (endpoint, cancellationToken) =>
-                    {
-                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                        if (endpoint.Gateway != notification.Gateway)
-                        {
-                            return;
-                        }
+                    var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
 
+                    await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                    {
                         if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState) &&
                             endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Automation))
                         {
@@ -643,7 +614,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                     ("11" or "13", _) => OpenNettyModels.Automation.ShutterState.Opening,
                                     ("12" or "14", _) => OpenNettyModels.Automation.ShutterState.Closing,
 
-                                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                                 }), cancellationToken);
 
                             await _events.PublishAsync(new ShutterPositionReportedEventArgs(endpoint,
@@ -661,14 +632,10 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Values   : ["139", { Length: > 0 } value, ..] })
                     when dimension == OpenNettyDimensions.Diagnostics.UnitDescription:
                 {
-                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
-                    {
-                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                        if (endpoint.Gateway != notification.Gateway)
-                        {
-                            return;
-                        }
+                    var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
 
+                    await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                    {
                         if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState))
                         {
                             await _events.PublishAsync(new ShutterStateReportedEventArgs(endpoint, value switch
@@ -690,14 +657,10 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Values   : [{ Length: > 0 }, { Length: > 0 }, { Length: > 0 }] values })
                     when dimension == OpenNettyDimensions.TemperatureControl.SmartMeterIndexes:
                 {
-                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
-                    {
-                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                        if (endpoint.Gateway != notification.Gateway)
-                        {
-                            return;
-                        }
+                    var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
 
+                    await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                    {
                         if (endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
                         {
                             await _events.PublishAsync(new SmartMeterIndexesReportedEventArgs(endpoint,
@@ -715,14 +678,10 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Values   : [{ Length: > 0 } value] })
                     when dimension == OpenNettyDimensions.TemperatureControl.SmartMeterRateType:
                 {
-                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
-                    {
-                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                        if (endpoint.Gateway != notification.Gateway)
-                        {
-                            return;
-                        }
+                    var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
 
+                    await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                    {
                         if (endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))
                         {
                             await _events.PublishAsync(new SmartMeterRateTypeReportedEventArgs(endpoint, value switch
@@ -730,7 +689,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                 "2" => OpenNettyModels.TemperatureControl.SmartMeterRateType.OffPeak,
                                 "3" => OpenNettyModels.TemperatureControl.SmartMeterRateType.Peak,
 
-                                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                             }), cancellationToken);
                         }
                     });
@@ -745,14 +704,10 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Values   : ["7", { Length: > 0 } value] })
                     when dimension == OpenNettyDimensions.Diagnostics.UnitDescription:
                 {
-                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
-                    {
-                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                        if (endpoint.Gateway != notification.Gateway)
-                        {
-                            return;
-                        }
+                    var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
 
+                    await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                    {
                         if (endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))
                         {
                             await _events.PublishAsync(new SmartMeterRateTypeReportedEventArgs(endpoint, value switch
@@ -760,7 +715,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                 "32" or "33" => OpenNettyModels.TemperatureControl.SmartMeterRateType.OffPeak,
                                 "48" or "49" => OpenNettyModels.TemperatureControl.SmartMeterRateType.Peak,
 
-                                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                             }), cancellationToken);
 
                             await _events.PublishAsync(new SmartMeterPowerCutModeReportedEventArgs(endpoint, value is "33" or "49"), cancellationToken);
@@ -777,14 +732,10 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Values   : ["133", { Length: > 0 } value] })
                     when dimension == OpenNettyDimensions.Diagnostics.UnitDescription:
                 {
-                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
-                    {
-                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                        if (endpoint.Gateway != notification.Gateway)
-                        {
-                            return;
-                        }
+                    var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
 
+                    await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                    {
                         if (endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
                         {
                             switch (value)
@@ -842,14 +793,10 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Values   : [{ Length: > 0 } value, ..] })
                     when dimension == OpenNettyDimensions.TemperatureControl.WaterHeatingMode:
                 {
-                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
-                    {
-                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                        if (endpoint.Gateway != notification.Gateway)
-                        {
-                            return;
-                        }
+                    var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
 
+                    await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                    {
                         List<Task> tasks = [];
 
                         if (endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
@@ -861,8 +808,9 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         {
                             tasks.Add(Task.Run(async () =>
                             {
-                                var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(
-                                    OpenNettyAddress.ToNitooAddress(address).Identifier, unit));
+                                var endpoint = await _manager.FindEndpointByAddressAsync(notification.Gateway,
+                                    OpenNettyAddress.FromNitooAddress(
+                                        OpenNettyAddress.ToNitooAddress(address).Identifier, unit));
 
                                 if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
                                 {
@@ -893,7 +841,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                             "1" => OpenNettyModels.TemperatureControl.WaterHeaterMode.ForcedOn,
                             "2" => OpenNettyModels.TemperatureControl.WaterHeaterMode.Automatic,
 
-                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                         }), cancellationToken);
                     break;
                 }
@@ -913,14 +861,10 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Values   : ["6" or "132", { Length: > 0 } value] })
                     when dimension == OpenNettyDimensions.Diagnostics.UnitDescription:
                 {
-                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
-                    {
-                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                        if (endpoint.Gateway != notification.Gateway)
-                        {
-                            return;
-                        }
+                    var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
 
+                    await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                    {
                         if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
                         {
                             var configuration = OpenNettyModels.TemperatureControl.PilotWireConfiguration.CreateFromUnitDescription([value]);
@@ -948,14 +892,10 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     when command.WithParameters([]) == OpenNettyCommands.TemperatureControl.WirePilotSetpointMode &&
                          command.Parameters is [{ Length: > 0 } value]:
                 {
-                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
-                    {
-                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                        if (endpoint.Gateway != notification.Gateway)
-                        {
-                            return;
-                        }
+                    var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
 
+                    await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                    {
                         List<Task> tasks = [];
 
                         if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
@@ -967,8 +907,9 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         {
                             tasks.Add(Task.Run(async () =>
                             {
-                                var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(
-                                    OpenNettyAddress.ToNitooAddress(address).Identifier, unit));
+                                var endpoint = await _manager.FindEndpointByAddressAsync(notification.Gateway,
+                                    OpenNettyAddress.FromNitooAddress(
+                                        OpenNettyAddress.ToNitooAddress(address).Identifier, unit));
 
                                 if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
                                 {
@@ -1005,7 +946,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                             "3" => OpenNettyModels.TemperatureControl.PilotWireMode.Eco,
                             "4" => OpenNettyModels.TemperatureControl.PilotWireMode.FrostProtection,
 
-                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                         }), cancellationToken);
                     break;
                 }
@@ -1019,14 +960,10 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     when command.WithParameters([]) == OpenNettyCommands.TemperatureControl.WirePilotDerogationMode &&
                          command.Parameters is [{ Length: > 0 } value]:
                 {
-                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
-                    {
-                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                        if (endpoint.Gateway != notification.Gateway)
-                        {
-                            return;
-                        }
+                    var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
 
+                    await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                    {
                         List<Task> tasks = [];
 
                         if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
@@ -1038,8 +975,9 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         {
                             tasks.Add(Task.Run(async () =>
                             {
-                                var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(
-                                    OpenNettyAddress.ToNitooAddress(address).Identifier, unit));
+                                var endpoint = await _manager.FindEndpointByAddressAsync(notification.Gateway,
+                                    OpenNettyAddress.FromNitooAddress(
+                                        OpenNettyAddress.ToNitooAddress(address).Identifier, unit));
 
                                 if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
                                 {
@@ -1073,7 +1011,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                 "3" or "35" or "131" => OpenNettyModels.TemperatureControl.PilotWireMode.Eco,
                                 "4" or "36" or "132" => OpenNettyModels.TemperatureControl.PilotWireMode.FrostProtection,
 
-                                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                             },
                             byte.Parse(value, CultureInfo.InvariantCulture) switch
                             {
@@ -1092,14 +1030,10 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Mode     : OpenNettyMode mode })
                     when command == OpenNettyCommands.TemperatureControl.CancelWirePilotDerogationMode:
                 {
-                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
-                    {
-                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                        if (endpoint.Gateway != notification.Gateway)
-                        {
-                            return;
-                        }
+                    var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
 
+                    await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                    {
                         List<Task> tasks = [];
 
                         if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
@@ -1111,8 +1045,9 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         {
                             tasks.Add(Task.Run(async () =>
                             {
-                                var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(
-                                    OpenNettyAddress.ToNitooAddress(address).Identifier, unit));
+                                var endpoint = await _manager.FindEndpointByAddressAsync(notification.Gateway,
+                                    OpenNettyAddress.FromNitooAddress(
+                                        OpenNettyAddress.ToNitooAddress(address).Identifier, unit));
 
                                 if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
                                 {
@@ -1154,16 +1089,13 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 {
                     // Note: while the battery level is reported using a unit-specific address, it applies to the entire
                     // device: this task retrieves the device endpoint and, if available, report its battery level.
-                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(OpenNettyAddress.FromDecimalZigbeeAddress(
-                        identifier: OpenNettyAddress.ToZigbeeAddress(address).Identifier,
-                        unit      : 0)), async (endpoint, cancellationToken) =>
-                    {
-                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                        if (endpoint.Gateway != notification.Gateway)
-                        {
-                            return;
-                        }
+                    var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway,
+                        OpenNettyAddress.FromDecimalZigbeeAddress(
+                            identifier: OpenNettyAddress.ToZigbeeAddress(address).Identifier,
+                            unit      : 0));
 
+                    await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                    {
                         if (endpoint.HasCapability(OpenNettyCapabilities.BatteryLevel))
                         {
                             await _events.PublishAsync(new BatteryLevelReportedEventArgs(endpoint, value switch
@@ -1173,7 +1105,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                 "2" => 66,
                                 "3" => 100,
 
-                                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                             }), cancellationToken);
                         }
                     });
@@ -1187,19 +1119,137 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Address : OpenNettyAddress address })
                     when command == OpenNettyCommands.Management.BatteryWeak:
                 {
-                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
-                    {
-                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                        if (endpoint.Gateway != notification.Gateway)
-                        {
-                            return;
-                        }
+                    var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
 
+                    await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                    {
                         if (endpoint.HasCapability(OpenNettyCapabilities.BatteryAlert))
                         {
                             await _events.PublishAsync(new BatteryAlertReportedEventArgs(endpoint), cancellationToken);
                         }
                     });
+                    break;
+                }
+
+                case (OpenNettyNotifications.MessageReceived,
+                      OpenNettyMessage { Protocol : OpenNettyProtocol.Nitoo or OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee,
+                                         Type     : OpenNettyMessageType.DimensionRead,
+                                         Dimension: OpenNettyDimension dimension,
+                                         Values   : [{ Length: > 0 }, { Length: > 0 }, { Length: > 0 }] values })
+                    when dimension == OpenNettyDimensions.Management.FirmwareVersion:
+                {
+                    // Note: firmware version DIMENSION READ messages may be sent by the gateway itself or by a remote device.
+                    if (message.Address is OpenNettyAddress address)
+                    {
+                        var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
+
+                        await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                        {
+                            if (endpoint.HasCapability(OpenNettyCapabilities.FirmwareVersion))
+                            {
+                                await ReportFirmwareVersionAsync(endpoint, cancellationToken);
+                            }
+                        });
+                    }
+
+                    else
+                    {
+                        // Resolve the endpoint associated with the gateway that received the DIMENSION READ message.
+                        var endpoint = await _manager.FindEndpointAsync(endpoint =>
+                            endpoint.Device == notification.Gateway.Device && endpoint.Unit is null);
+
+                        if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.FirmwareVersion))
+                        {
+                            await ReportFirmwareVersionAsync(endpoint, CancellationToken.None);
+                        }
+                    }
+
+                    async ValueTask ReportFirmwareVersionAsync(OpenNettyEndpoint endpoint, CancellationToken cancellationToken) =>
+                        await _events.PublishAsync(new FirmwareVersionReportedEventArgs(endpoint, new Version(
+                            major: int.Parse(values[0], CultureInfo.InvariantCulture),
+                            minor: int.Parse(values[1], CultureInfo.InvariantCulture),
+                            build: int.Parse(values[2], CultureInfo.InvariantCulture))));
+                    break;
+                }
+
+                case (OpenNettyNotifications.MessageReceived,
+                      OpenNettyMessage { Protocol : OpenNettyProtocol.Nitoo or OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee,
+                                         Type     : OpenNettyMessageType.DimensionRead,
+                                         Dimension: OpenNettyDimension dimension,
+                                         Values   : [{ Length: > 0 }, { Length: > 0 }, { Length: > 0 }] values })
+                    when dimension == OpenNettyDimensions.Management.HardwareVersion:
+                {
+                    // Note: hardware version DIMENSION READ messages may be sent by the gateway itself or by a remote device.
+                    if (message.Address is OpenNettyAddress address)
+                    {
+                        var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
+
+                        await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                        {
+                            if (endpoint.HasCapability(OpenNettyCapabilities.HardwareVersion))
+                            {
+                                await ReportHardwareVersionAsync(endpoint, cancellationToken);
+                            }
+                        });
+                    }
+
+                    else
+                    {
+                        // Resolve the endpoint associated with the gateway that received the DIMENSION READ message.
+                        var endpoint = await _manager.FindEndpointAsync(endpoint =>
+                            endpoint.Device == notification.Gateway.Device && endpoint.Unit is null);
+
+                        if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.HardwareVersion))
+                        {
+                            await ReportHardwareVersionAsync(endpoint, CancellationToken.None);
+                        }
+                    }
+
+                    async ValueTask ReportHardwareVersionAsync(OpenNettyEndpoint endpoint, CancellationToken cancellationToken) =>
+                        await _events.PublishAsync(new HardwareVersionReportedEventArgs(endpoint, new Version(
+                            major: int.Parse(values[0], CultureInfo.InvariantCulture),
+                            minor: int.Parse(values[1], CultureInfo.InvariantCulture),
+                            build: int.Parse(values[2], CultureInfo.InvariantCulture))));
+                    break;
+                }
+
+                case (OpenNettyNotifications.MessageReceived,
+                      OpenNettyMessage { Protocol : OpenNettyProtocol.Nitoo or OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee,
+                                         Type     : OpenNettyMessageType.DimensionRead,
+                                         Dimension: OpenNettyDimension dimension,
+                                         Values   : { Length: >= 6 } values })
+                    when dimension == OpenNettyDimensions.Management.MacAddress:
+                {
+                    // Note: MAC address DIMENSION READ messages may be sent by the gateway itself or by a remote device.
+                    if (message.Address is OpenNettyAddress address)
+                    {
+                        var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
+
+                        await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                        {
+                            if (endpoint.HasCapability(OpenNettyCapabilities.MacAddress))
+                            {
+                                await ReportMacAddressAsync(endpoint, cancellationToken);
+                            }
+                        });
+                    }
+
+                    else
+                    {
+                        // Resolve the endpoint associated with the gateway that received the DIMENSION READ message.
+                        var endpoint = await _manager.FindEndpointAsync(endpoint =>
+                            endpoint.Device == notification.Gateway.Device && endpoint.Unit is null);
+
+                        if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.MacAddress))
+                        {
+                            await ReportMacAddressAsync(endpoint, CancellationToken.None);
+                        }
+                    }
+
+                    async ValueTask ReportMacAddressAsync(OpenNettyEndpoint endpoint, CancellationToken cancellationToken)
+                        => await _events.PublishAsync(new MacAddressReportedEventArgs(endpoint, string.Join(":",
+                            values.Select(static value => uint.Parse(value, CultureInfo.InvariantCulture)
+                                .ToString("X2", CultureInfo.InvariantCulture)))), cancellationToken);
                     break;
                 }
 
@@ -1216,12 +1266,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     var endpoint = await _manager.FindEndpointAsync(endpoint =>
                         endpoint.Device == notification.Gateway.Device && endpoint.Unit is null);
 
-                    if (endpoint is null)
-                    {
-                        return;
-                    }
-
-                    if (endpoint.HasCapability(OpenNettyCapabilities.Uptime))
+                    if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.Uptime))
                     {
                         await _events.PublishAsync(new UptimeReportedEventArgs(endpoint, new TimeSpan(
                             days   : int.Parse(values[0], CultureInfo.InvariantCulture),
@@ -1241,14 +1286,10 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                          command == OpenNettyCommands.Scenario.CloseBinding ||
                          command == OpenNettyCommands.Scenario.CancelBinding:
                 {
-                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
-                    {
-                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                        if (endpoint.Gateway != notification.Gateway)
-                        {
-                            return;
-                        }
+                    var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
 
+                    await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                    {
                         if (endpoint.HasCapability(OpenNettyCapabilities.ZigbeeBinding))
                         {
                             if (command == OpenNettyCommands.Scenario.OpenBinding)
@@ -1278,16 +1319,15 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Values   : [{ Length: > 0 }, { Length: > 0 }, { Length: > 0 }, { Length: > 0 }] values })
                     when dimension == OpenNettyDimensions.Diagnostics.DeviceDescription:
                 {
-                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
-                    {
-                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                        if (endpoint.Gateway != notification.Gateway)
-                        {
-                            return;
-                        }
+                    var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
 
-                        await _events.PublishAsync(new DeviceDescriptionReportedEventArgs(endpoint,
-                            OpenNettyModels.Diagnostics.DeviceDescription.CreateFromDeviceDescription(values)), cancellationToken);
+                    await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                    {
+                        var description = OpenNettyModels.Diagnostics.DeviceDescription.CreateFromDeviceDescription(values);
+
+                        await Task.WhenAll(
+                            _events.PublishAsync(new DeviceDescriptionReportedEventArgs(endpoint, description), cancellationToken).AsTask(),
+                            _events.PublishAsync(new FirmwareVersionReportedEventArgs(endpoint, description.Version), cancellationToken).AsTask());
                     });
                     break;
                 }
@@ -1301,14 +1341,10 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Values   : [{ Length: > 0 } value, ..] })
                     when dimension == OpenNettyDimensions.Lighting.DimmerStep:
                 {
-                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
-                    {
-                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                        if (endpoint.Gateway != notification.Gateway)
-                        {
-                            return;
-                        }
+                    var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
 
+                    await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                    {
                         if (endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioState))
                         {
                             var step = int.Parse(value, CultureInfo.InvariantCulture);
@@ -1330,14 +1366,10 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Address : OpenNettyAddress address })
                     when command == OpenNettyCommands.Lighting.Toggle:
                 {
-                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
-                    {
-                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                        if (endpoint.Gateway != notification.Gateway)
-                        {
-                            return;
-                        }
+                    var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
 
+                    await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                    {
                         if (endpoint.HasCapability(OpenNettyCapabilities.ToggleScenarioState))
                         {
                             await _events.PublishAsync(new ToggleScenarioReportedEventArgs(endpoint), cancellationToken);
@@ -1353,14 +1385,10 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Address : OpenNettyAddress address })
                     when command == OpenNettyCommands.Scenario.ShortPressure:
                 {
-                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
-                    {
-                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                        if (endpoint.Gateway != notification.Gateway)
-                        {
-                            return;
-                        }
+                    var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
 
+                    await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                    {
                         if (endpoint.HasCapability(OpenNettyCapabilities.ShortPressureScenarioState))
                         {
                             await _events.PublishAsync(new ShortPressureScenarioReportedEventArgs(endpoint), cancellationToken);
@@ -1380,14 +1408,10 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                          command.WithParameters([]) == OpenNettyCommands.Scenario.ActionForTime ||
                          command.WithParameters([]) == OpenNettyCommands.Scenario.ActionInTime:
                 {
-                    await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address.Value), async (endpoint, cancellationToken) =>
-                    {
-                        // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                        if (endpoint.Gateway != notification.Gateway)
-                        {
-                            return;
-                        }
+                    var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
 
+                    await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                    {
                         List<Task> tasks = [];
 
                         if (command == OpenNettyCommands.Scenario.Action)
@@ -1413,7 +1437,9 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                     return;
                                 }
 
-                                var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(identifier, 0));
+                                var endpoint = await _manager.FindEndpointByAddressAsync(notification.Gateway,
+                                    OpenNettyAddress.FromNitooAddress(identifier, 0));
+
                                 if (endpoint is null || !endpoint.HasCapability(OpenNettyCapabilities.WirelessBurglarAlarmState))
                                 {
                                     return;
@@ -1428,7 +1454,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                     8 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.ExitDelayElapsed,
                                     9 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.EventDetected,
 
-                                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0075))
+                                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                                 }));
                             }, cancellationToken));
                         }
@@ -1479,8 +1505,9 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         {
                             tasks.Add(Task.Run(async () =>
                             {
-                                var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(
-                                    OpenNettyAddress.ToNitooAddress(address).Identifier, unit));
+                                var endpoint = await _manager.FindEndpointByAddressAsync(notification.Gateway,
+                                    OpenNettyAddress.FromNitooAddress(
+                                        OpenNettyAddress.ToNitooAddress(address).Identifier, unit));
 
                                 if (endpoint is null || !endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
                                 {
@@ -1567,7 +1594,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 }
             }
         })
-        .Do(exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
+        .Do(onError: exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
         .Retry()
         .SubscribeAsync(static message => ValueTask.CompletedTask),
 
@@ -1661,18 +1688,14 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
         })
         .GroupBy(static arguments => arguments.Message.Address!.Value)
         .SelectMany(static group => group.Throttle(TimeSpan.FromSeconds(group.Key.Type is OpenNettyAddressType.Nitoo ? 0.5 : 1)))
-        .Do(async arguments =>
+        .Do(onNext: async arguments =>
         {
             var (notification, message) = arguments;
 
-            await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address!.Value), async (endpoint, cancellationToken) =>
-            {
-                // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                if (endpoint.Gateway != notification.Gateway)
-                {
-                    return;
-                }
+            var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address!.Value);
 
+            await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+            {
                 switch (message)
                 {
                     case { Type: OpenNettyMessageType.BusCommand, Command: OpenNettyCommand command }
@@ -1727,8 +1750,9 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 {
                     tasks.Add(Task.Run(async () =>
                     {
-                        var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(
-                            OpenNettyAddress.ToNitooAddress(message.Address!.Value).Identifier, unit));
+                        var endpoint = await _manager.FindEndpointByAddressAsync(notification.Gateway,
+                            OpenNettyAddress.FromNitooAddress(
+                                OpenNettyAddress.ToNitooAddress(message.Address!.Value).Identifier, unit));
 
                         if (endpoint is null)
                         {
@@ -1768,7 +1792,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 await Task.WhenAll(tasks);
             });
         })
-        .Do(exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
+        .Do(onError: exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
         .Retry()
         .SubscribeAsync(static notification => ValueTask.CompletedTask),
 
@@ -1791,18 +1815,14 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
 
             _ => AsyncObservable.Empty<(OpenNettyNotification Notification, OpenNettyMessage Message)>()
         })
-        .Do(async arguments =>
+        .Do(onNext: async arguments =>
         {
             var (notification, message) = arguments;
 
-            await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address!.Value), async (endpoint, cancellationToken) =>
-            {
-                // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                if (endpoint.Gateway != notification.Gateway)
-                {
-                    return;
-                }
+            var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address!.Value);
 
+            await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+            {
                 if (!endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioState))
                 {
                     return;
@@ -1819,8 +1839,9 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 {
                     tasks.Add(Task.Run(async () =>
                     {
-                        var endpoint = await _manager.FindEndpointByAddressAsync(OpenNettyAddress.FromNitooAddress(
-                            OpenNettyAddress.ToNitooAddress(message.Address!.Value).Identifier, unit));
+                        var endpoint = await _manager.FindEndpointByAddressAsync(notification.Gateway,
+                            OpenNettyAddress.FromNitooAddress(
+                                OpenNettyAddress.ToNitooAddress(message.Address!.Value).Identifier, unit));
 
                         if (endpoint is not null &&
                             endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
@@ -1848,7 +1869,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
             ValueTask ReportOffStateAsync(OpenNettyEndpoint endpoint, CancellationToken cancellationToken)
                 => _events.PublishAsync(new SwitchStateReportedEventArgs(endpoint, OpenNettyModels.Lighting.SwitchState.Off), cancellationToken);
         })
-        .Do(exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
+        .Do(onError: exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
         .Retry()
         .SubscribeAsync(static notification => ValueTask.CompletedTask),
 
@@ -1904,25 +1925,21 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
         })
         .GroupBy(static arguments => arguments.Message.Address)
         .SelectMany(static group => group.Throttle(TimeSpan.FromSeconds(0.5)))
-        .Do(async arguments =>
+        .Do(onNext: async arguments =>
         {
             var (notification, message) = arguments;
 
-            await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address!.Value), async (endpoint, cancellationToken) =>
-            {
-                // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                if (endpoint.Gateway != notification.Gateway)
-                {
-                    return;
-                }
+            var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address!.Value);
 
+            await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+            {
                 if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
                 {
                     _ = await _controller.GetPilotWireConfigurationAsync(endpoint, cancellationToken);
                 }
             });
         })
-        .Do(exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
+        .Do(onError: exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
         .Retry()
         .SubscribeAsync(static notification => ValueTask.CompletedTask),
 
@@ -1946,18 +1963,14 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
         })
         .GroupBy(static arguments => arguments.Message.Address)
         .SelectMany(static group => group.Throttle(TimeSpan.FromSeconds(2.5)))
-        .Do(async arguments =>
+        .Do(onNext: async arguments =>
         {
             var (notification, message) = arguments;
 
-            await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address!.Value), async (endpoint, cancellationToken) =>
-            {
-                // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                if (endpoint.Gateway != notification.Gateway)
-                {
-                    return;
-                }
+            var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address!.Value);
 
+            await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+            {
                 if (!endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))
                 {
                     return;
@@ -1994,7 +2007,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 });
             });
         })
-        .Do(exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
+        .Do(onError: exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
         .Retry()
         .SubscribeAsync(static notification => ValueTask.CompletedTask),
 
@@ -2017,26 +2030,38 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
         })
         .GroupBy(static arguments => arguments.Message.Address)
         .SelectMany(static group => group.Throttle(TimeSpan.FromSeconds(0.5)))
-        .Do(async arguments =>
+        .Do(onNext: async arguments =>
         {
             var (notification, message) = arguments;
 
-            await Parallel.ForEachAsync(_manager.FindEndpointsByAddressAsync(message.Address!.Value), async (endpoint, cancellationToken) =>
-            {
-                // Ignore the message if it was received by a different gateway than the one associated with the endpoint.
-                if (endpoint.Gateway != notification.Gateway)
-                {
-                    return;
-                }
+            var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address!.Value);
 
+            await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+            {
                 if (endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
                 {
                     _ = await _controller.GetWaterHeaterStateAsync(endpoint, cancellationToken);
                 }
             });
         })
-        .Do(exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
+        .Do(onError: exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
         .Retry()
-        .SubscribeAsync(static notification => ValueTask.CompletedTask)
+        .SubscribeAsync(static notification => ValueTask.CompletedTask),
+
+        // Note: this event is responsible for synchronizing the date/time of compatible OpenWebNet gateways at regular intervals.
+        await AsyncObservable.Interval(TimeSpan.FromMinutes(10))
+        .ObserveOn(TaskPoolAsyncScheduler.Default)
+        .Do(onNext: async _ => await Parallel.ForEachAsync(_manager.EnumerateGatewaysAsync(), async (gateway, cancellationToken) =>
+        {
+            var endpoint = await _manager.FindEndpointAsync(endpoint => endpoint.Device == gateway.Device && endpoint.Unit is null);
+            if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.DateTime) &&
+                endpoint.GetBooleanSetting(OpenNettySettings.ClockSynchronization) is not false)
+            {
+                await _controller.SetDateTimeAsync(endpoint, DateTimeOffset.Now);
+            }
+        }))
+        .Do(onError: exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
+        .Retry()
+        .SubscribeAsync(static message => ValueTask.CompletedTask)
     ]);
 }

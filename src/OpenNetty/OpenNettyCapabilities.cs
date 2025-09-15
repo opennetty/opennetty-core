@@ -102,6 +102,11 @@ public static class OpenNettyCapabilities
     public static readonly OpenNettyCapability HardwareVersion = new("Hardware version");
 
     /// <summary>
+    /// MAC address.
+    /// </summary>
+    public static readonly OpenNettyCapability MacAddress = new("MAC address");
+
+    /// <summary>
     /// Memory reading.
     /// </summary>
     public static readonly OpenNettyCapability MemoryReading = new("Memory reading");

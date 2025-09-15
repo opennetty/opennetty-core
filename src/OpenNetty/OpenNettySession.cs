@@ -152,7 +152,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
 
         if (!await _semaphore.WaitAsync(TimeSpan.Zero, cancellationToken))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0015));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0011));
         }
 
         try
@@ -201,13 +201,13 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                         .RunAsync(cancellationToken))
                     {
                         case null:
-                            throw new OpenNettyException(OpenNettyErrorCode.NoAcknowledgementReceived, SR.GetResourceString(SR.ID0016));
+                            throw new OpenNettyException(OpenNettyErrorCode.NoAcknowledgementReceived, SR.GetResourceString(SR.ID0012));
 
                         case { Type: OpenNettyMessageType.BusyNegativeAcknowledgement }:
-                            throw new OpenNettyException(OpenNettyErrorCode.GatewayBusy, SR.GetResourceString(SR.ID0017));
+                            throw new OpenNettyException(OpenNettyErrorCode.GatewayBusy, SR.GetResourceString(SR.ID0013));
 
                         case { Type: OpenNettyMessageType.NegativeAcknowledgement }:
-                            throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0018));
+                            throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0014));
                     }
                 }
 
@@ -222,10 +222,10 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                         .RunAsync(cancellationToken))
                     {
                         case null:
-                            throw new OpenNettyException(OpenNettyErrorCode.NoActionReceived, SR.GetResourceString(SR.ID0019));
+                            throw new OpenNettyException(OpenNettyErrorCode.NoActionReceived, SR.GetResourceString(SR.ID0015));
 
                         case { Command: OpenNettyCommand command } when command == OpenNettyCommands.Diagnostics.InvalidAction:
-                            throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0018));
+                            throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0014));
                     }
                 }
             }
@@ -273,12 +273,12 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
         switch (type)
         {
             case not (OpenNettySessionType.Command or OpenNettySessionType.Generic or OpenNettySessionType.Event):
-                throw new ArgumentOutOfRangeException(nameof(type), SR.GetResourceString(SR.ID0020));
+                throw new ArgumentOutOfRangeException(nameof(type), SR.GetResourceString(SR.ID0016));
 
             case OpenNettySessionType.Command when !gateway.Device.Definition.Capabilities.Contains(OpenNettyCapabilities.OpenWebNetCommandSession):
             case OpenNettySessionType.Generic when !gateway.Device.Definition.Capabilities.Contains(OpenNettyCapabilities.OpenWebNetGenericSession):
             case OpenNettySessionType.Event   when !gateway.Device.Definition.Capabilities.Contains(OpenNettyCapabilities.OpenWebNetEventSession):
-                throw new InvalidOperationException(SR.GetResourceString(SR.ID0021));
+                throw new InvalidOperationException(SR.GetResourceString(SR.ID0017));
         }
 
         using var source = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
@@ -310,7 +310,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                         // Note: Nitoo gateways do not return acknowledgement frames for firmware version requests.
                         if (await WaitFrameAsync(connection, IsFirmwareVersion, source.Token) is null)
                         {
-                            throw new OpenNettyException(OpenNettyErrorCode.ConnectionClosed, SR.GetResourceString(SR.ID0113));
+                            throw new OpenNettyException(OpenNettyErrorCode.ConnectionClosed, SR.GetResourceString(SR.ID0100));
                         }
                     }
 
@@ -323,16 +323,16 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                             frame == OpenNettyFrames.NegativeAcknowledgement || IsFirmwareVersion(frame), source.Token))
                         {
                             case null:
-                                throw new OpenNettyException(OpenNettyErrorCode.ConnectionClosed, SR.GetResourceString(SR.ID0113));
+                                throw new OpenNettyException(OpenNettyErrorCode.ConnectionClosed, SR.GetResourceString(SR.ID0100));
 
                             case OpenNettyFrame frame when frame == OpenNettyFrames.BusyNegativeAcknowledgement ||
                                                            frame == OpenNettyFrames.NegativeAcknowledgement:
-                                throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0114));
+                                throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0101));
 
                             case OpenNettyFrame frame when frame == OpenNettyFrames.Acknowledgement:
                                 if (await WaitFrameAsync(connection, IsFirmwareVersion, source.Token) is null)
                                 {
-                                    throw new OpenNettyException(OpenNettyErrorCode.ConnectionClosed, SR.GetResourceString(SR.ID0113));
+                                    throw new OpenNettyException(OpenNettyErrorCode.ConnectionClosed, SR.GetResourceString(SR.ID0100));
                                 }
                                 break;
 
@@ -342,7 +342,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                                     frame == OpenNettyFrames.BusyNegativeAcknowledgement ||
                                     frame == OpenNettyFrames.NegativeAcknowledgement, source.Token) != OpenNettyFrames.Acknowledgement)
                                 {
-                                    throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0114));
+                                    throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0101));
                                 }
                                 break;
                         }
@@ -351,7 +351,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
 
                 catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
                 {
-                    throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0114));
+                    throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0101));
                 }
             }
 
@@ -361,10 +361,10 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                 switch (await connection.ReceiveAsync(source.Token))
                 {
                     case null:
-                        throw new OpenNettyException(OpenNettyErrorCode.ConnectionClosed, SR.GetResourceString(SR.ID0113));
+                        throw new OpenNettyException(OpenNettyErrorCode.ConnectionClosed, SR.GetResourceString(SR.ID0100));
 
                     case OpenNettyFrame frame when frame != OpenNettyFrames.Acknowledgement:
-                        throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0022));
+                        throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0018));
                 }
 
                 // Negotiate the requested session type.
@@ -380,7 +380,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                 switch (await connection.ReceiveAsync(source.Token))
                 {
                     case null:
-                        throw new OpenNettyException(OpenNettyErrorCode.ConnectionClosed, SR.GetResourceString(SR.ID0113));
+                        throw new OpenNettyException(OpenNettyErrorCode.ConnectionClosed, SR.GetResourceString(SR.ID0100));
 
                     // If the client IP address was whitelisted, authentication is not required and
                     // an ACK frame is directly returned by the OpenWebNet gateway to reflect that.
@@ -396,13 +396,13 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                         {
                             "1" => SHA1.Create(),
                             "2" => SHA256.Create(),
-                             _  => throw new OpenNettyException(OpenNettyErrorCode.AuthenticationMethodUnsupported, SR.GetResourceString(SR.ID0023))
+                             _  => throw new OpenNettyException(OpenNettyErrorCode.AuthenticationMethodUnsupported, SR.GetResourceString(SR.ID0019))
                         };
 
                         // Ensure a password was attached to the gateway instance.
                         if (string.IsNullOrEmpty(gateway.Password))
                         {
-                            throw new OpenNettyException(OpenNettyErrorCode.AuthenticationRequired, SR.GetResourceString(SR.ID0024));
+                            throw new OpenNettyException(OpenNettyErrorCode.AuthenticationRequired, SR.GetResourceString(SR.ID0020));
                         }
 
                         // Acknowledge the negotiated authentication algorithm.
@@ -411,11 +411,11 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                         // Extract the server authentication nonce returned by the gateway.
                         var nonce = await connection.ReceiveAsync(source.Token) switch
                         {
-                            null => throw new OpenNettyException(OpenNettyErrorCode.ConnectionClosed, SR.GetResourceString(SR.ID0113)),
+                            null => throw new OpenNettyException(OpenNettyErrorCode.ConnectionClosed, SR.GetResourceString(SR.ID0100)),
 
                             { Fields: [{ Parameters: [{ IsEmpty: true }, { Value: { Length: > 0 } value }] }] } => value,
 
-                            _ => throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0025)),
+                            _ => throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0021)),
                         };
 
                         // Ensure the returned nonce has a correct size and generate a random client nonce using a CSP.
@@ -424,7 +424,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                             {
                                 { Length: int length } result when length * 4 == algorithm.HashSize => result,
 
-                                _ => throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0025)),
+                                _ => throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0021)),
                             },
                             ClientNonce: RandomNumberGenerator.GetBytes(algorithm.HashSize / 8));
 
@@ -447,7 +447,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                         switch (await connection.ReceiveAsync(source.Token))
                         {
                             case null:
-                                throw new OpenNettyException(OpenNettyErrorCode.ConnectionClosed, SR.GetResourceString(SR.ID0113));
+                                throw new OpenNettyException(OpenNettyErrorCode.ConnectionClosed, SR.GetResourceString(SR.ID0100));
 
                             case { Fields: [{ Parameters: [{ IsEmpty: true }, { Value: { Length: > 0 } digest }] }] }
                                 when CryptographicOperations.FixedTimeEquals(
@@ -462,9 +462,9 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                                 break;
 
                             case OpenNettyFrame frame when frame == OpenNettyFrames.NegativeAcknowledgement:
-                                throw new OpenNettyException(OpenNettyErrorCode.AuthenticationInvalid, SR.GetResourceString(SR.ID0026));
+                                throw new OpenNettyException(OpenNettyErrorCode.AuthenticationInvalid, SR.GetResourceString(SR.ID0022));
 
-                            default: throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0027));
+                            default: throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0023));
                         }
                         break;
                     }
@@ -476,7 +476,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                         // Ensure a password was attached to the gateway instance.
                         if (string.IsNullOrEmpty(gateway.Password))
                         {
-                            throw new OpenNettyException(OpenNettyErrorCode.AuthenticationRequired, SR.GetResourceString(SR.ID0024));
+                            throw new OpenNettyException(OpenNettyErrorCode.AuthenticationRequired, SR.GetResourceString(SR.ID0020));
                         }
 
                         // Ensure the password only includes at most 9 ASCII digit characters as non-digit
@@ -485,7 +485,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                             gateway.Password.Length > 9 ||
                             !uint.TryParse(gateway.Password, CultureInfo.InvariantCulture, out uint password))
                         {
-                            throw new OpenNettyException(OpenNettyErrorCode.AuthenticationInvalid, SR.GetResourceString(SR.ID0110));
+                            throw new OpenNettyException(OpenNettyErrorCode.AuthenticationInvalid, SR.GetResourceString(SR.ID0097));
                         }
 
                         // Compute and send the obfuscated password used to authenticate the client.
@@ -510,20 +510,20 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                         switch (await connection.ReceiveAsync(source.Token))
                         {
                             case null:
-                                throw new OpenNettyException(OpenNettyErrorCode.ConnectionClosed, SR.GetResourceString(SR.ID0113));
+                                throw new OpenNettyException(OpenNettyErrorCode.ConnectionClosed, SR.GetResourceString(SR.ID0100));
 
                             case OpenNettyFrame frame when frame == OpenNettyFrames.Acknowledgement:
                                 break;
 
                             case OpenNettyFrame frame when frame == OpenNettyFrames.NegativeAcknowledgement:
-                                throw new OpenNettyException(OpenNettyErrorCode.AuthenticationInvalid, SR.GetResourceString(SR.ID0026));
+                                throw new OpenNettyException(OpenNettyErrorCode.AuthenticationInvalid, SR.GetResourceString(SR.ID0022));
 
-                            default: throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0027));
+                            default: throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0023));
                         }
                         break;
                     }
 
-                    default: throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0022));
+                    default: throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0018));
                 }
             }
 
@@ -534,7 +534,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
         {
             await connection.DisposeAsync();
 
-            throw new OpenNettyException(OpenNettyErrorCode.NegotiationTimeout, SR.GetResourceString(SR.ID0028));
+            throw new OpenNettyException(OpenNettyErrorCode.NegotiationTimeout, SR.GetResourceString(SR.ID0024));
         }
 
         catch (Exception)
@@ -548,7 +548,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
         {
             if (value.Length % 4 is not 0)
             {
-                throw new ArgumentException(SR.GetResourceString(SR.ID0029), nameof(value));
+                throw new ArgumentException(SR.GetResourceString(SR.ID0025), nameof(value));
             }
 
             var builder = new StringBuilder();
@@ -557,7 +557,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
             {
                 if (!int.TryParse(value.Slice(index, 2), CultureInfo.InvariantCulture, out int result))
                 {
-                    throw new ArgumentException(SR.GetResourceString(SR.ID0029), nameof(value));
+                    throw new ArgumentException(SR.GetResourceString(SR.ID0025), nameof(value));
                 }
 
                 builder.Append(result.ToString("x", CultureInfo.InvariantCulture));

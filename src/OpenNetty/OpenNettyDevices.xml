@@ -871,6 +871,8 @@
 
     <Capability Name="Date/time" />
     <Capability Name="Firmware version" />
+    <Capability Name="Hardware version" />
+    <Capability Name="MAC address" />
     <Capability Name="OpenWebNet command session" />
     <Capability Name="OpenWebNet event session" />
     <Capability Name="OpenWebNet gateway" />
@@ -883,6 +885,7 @@
 
     <Capability Name="Date/time" />
     <Capability Name="Firmware version" />
+    <Capability Name="MAC address" />
     <Capability Name="OpenWebNet command session" />
     <Capability Name="OpenWebNet event session" />
     <Capability Name="OpenWebNet gateway" />
@@ -1005,6 +1008,7 @@
 
     <Capability Name="Firmware version" />
     <Capability Name="Hardware version" />
+    <Capability Name="MAC address" />
     <Capability Name="OpenWebNet gateway" />
     <Capability Name="OpenWebNet generic session" />
     <Capability Name="Zigbee network management" />

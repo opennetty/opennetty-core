@@ -13,6 +13,7 @@ using System.Reactive.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
+using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
@@ -140,10 +141,22 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             case OpenNettyMqttAttributes.Brightness when operation is OpenNettyMqttOperation.Set:
                                 if (!byte.TryParse(message.PayloadSegment, CultureInfo.InvariantCulture, out var level))
                                 {
-                                    throw new InvalidDataException(SR.GetResourceString(SR.ID0075));
+                                    throw new InvalidDataException(SR.GetResourceString(SR.ID0068));
                                 }
 
                                 await _controller.SetBrightnessAsync(endpoint, level);
+                                break;
+
+                            case OpenNettyMqttAttributes.FirmwareVersion when operation is OpenNettyMqttOperation.Get:
+                                _ = await _controller.GetFirmwareVersionAsync(endpoint);
+                                break;
+
+                            case OpenNettyMqttAttributes.HardwareVersion when operation is OpenNettyMqttOperation.Get:
+                                _ = await _controller.GetHardwareVersionAsync(endpoint);
+                                break;
+
+                            case OpenNettyMqttAttributes.MacAddress when operation is OpenNettyMqttOperation.Get:
+                                _ = await _controller.GetMacAddressAsync(endpoint);
                                 break;
 
                             case OpenNettyMqttAttributes.PilotWireDerogationMode when operation is OpenNettyMqttOperation.Get:
@@ -320,7 +333,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             case OpenNettyMqttAttributes.ShutterPosition when operation is OpenNettyMqttOperation.Set:
                                 if (!byte.TryParse(message.PayloadSegment, CultureInfo.InvariantCulture, out var position))
                                 {
-                                    throw new InvalidDataException(SR.GetResourceString(SR.ID0075));
+                                    throw new InvalidDataException(SR.GetResourceString(SR.ID0068));
                                 }
 
                                 await _controller.SetShutterPositionAsync(endpoint, position);
@@ -500,13 +513,10 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
         await foreach (var device in _manager.EnumerateDevicesAsync(cancellationToken))
         {
-            if (device.GetBooleanSetting(OpenNettySettings.HomeAssistantDiscovery) is false ||
-                device.SerialNumber is null or { Length: 0 })
+            if (device.GetBooleanSetting(OpenNettySettings.HomeAssistantDiscovery) is false)
             {
                 continue;
             }
-
-            var identifier = ComputeDeviceUniqueId(device);
 
             var components = new JsonObject();
 
@@ -520,7 +530,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                        ?.InformationalVersion,
                     ["support_url"] = "https://github.com/opennetty/opennetty-core"
                 },
-                ["device"] = CreateDeviceNode(device, identifier),
+                ["device"] = CreateDeviceNode(device),
                 ["components"] = components,
                 ["qos"] = 2
             };
@@ -985,6 +995,114 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.BatteryLevel))
                                 .CountAsync(cancellationToken)),
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.BatteryLevel}"
+                    });
+                }
+
+                if (endpoint.HasCapability(OpenNettyCapabilities.FirmwareVersion) ||
+                    endpoint.HasCapability(OpenNettyCapabilities.DeviceDescription))
+                {
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "sensor",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "3a92e77f-3910-4a20-9d19-caa1961dc33d"u8),
+                        ["name"] = ComputeEntityName(
+                            name    : "Firmware version",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.FirmwareVersion) ||
+                                                   endpoint.HasCapability(OpenNettyCapabilities.DeviceDescription))
+                                .CountAsync(cancellationToken)),
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.FirmwareVersion}"
+                    });
+
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "button",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "e4fa32b3-9e9f-43b5-810a-cdb75acf44e5"u8),
+                        ["icon"] = "mdi:help",
+                        ["name"] = ComputeEntityName(
+                            name    : "Get firmware version",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.FirmwareVersion) ||
+                                                   endpoint.HasCapability(OpenNettyCapabilities.DeviceDescription))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.FirmwareVersion}/get",
+                        ["payload_press"] = string.Empty
+                    });
+                }
+
+                if (endpoint.HasCapability(OpenNettyCapabilities.HardwareVersion))
+                {
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "sensor",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "1091f326-0c22-4c59-af04-d0a6ee429a0c"u8),
+                        ["name"] = ComputeEntityName(
+                            name    : "Hardware version",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.HardwareVersion))
+                                .CountAsync(cancellationToken)),
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.HardwareVersion}"
+                    });
+
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "button",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "0371ccbb-52fd-4288-a943-b2f04a7b1e8b"u8),
+                        ["icon"] = "mdi:help",
+                        ["name"] = ComputeEntityName(
+                            name    : "Get hardware version",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.HardwareVersion))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.HardwareVersion}/get",
+                        ["payload_press"] = string.Empty
+                    });
+                }
+
+                if (endpoint.HasCapability(OpenNettyCapabilities.MacAddress))
+                {
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "sensor",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "a8de45b2-0bb5-4375-b33b-0869623e40a7"u8),
+                        ["name"] = ComputeEntityName(
+                            name    : "MAC address",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.MacAddress))
+                                .CountAsync(cancellationToken)),
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.MacAddress}"
+                    });
+
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "button",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "aa1968e6-f232-4b96-a29f-0e64de093bb0"u8),
+                        ["icon"] = "mdi:help",
+                        ["name"] = ComputeEntityName(
+                            name    : "Get MAC address",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.MacAddress))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.MacAddress}/get",
+                        ["payload_press"] = string.Empty
                     });
                 }
 
@@ -1721,22 +1839,42 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     .WithPayloadFormatIndicator(MqttPayloadFormatIndicator.CharacterData)
                     .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
                     .WithRetainFlag()
-                    .WithTopic($"{options.HomeAssistantDiscoveryRootTopic}/device/opennetty/{identifier}/config")
+                    .WithTopic(new StringBuilder(options.HomeAssistantDiscoveryRootTopic)
+                        .Append('/')
+                        .Append("device")
+                        .Append('/')
+                        .Append("opennetty-").Append(Enum.GetName(device.Definition.Protocol)!.ToLowerInvariant())
+                        .Append('/')
+                        .Append([.. device.Identifier.ToString().Where(char.IsAsciiHexDigit)])
+                        .Append('/')
+                        .Append("config")
+                        .ToString())
                     .Build());
             }
         }
 
-        static JsonObject CreateDeviceNode(OpenNettyDevice device, string identifier)
+        static JsonObject CreateDeviceNode(OpenNettyDevice device)
         {
             var node = new JsonObject
             {
-                ["identifiers"] = new JsonArray([identifier]),
+                ["identifiers"] = new JsonArray([ComputeDeviceUniqueId(device)]),
                 ["manufacturer"] = Enum.GetName(device.Identity.Brand),
                 ["model"] = device.Identity.Description,
                 ["model_id"] = device.Identity.Model,
-                ["serial_number"] = device.SerialNumber,
-                ["name"] = $"{Enum.GetName(device.Identity.Brand)} {device.Identity.Model} ({device.SerialNumber})"
+                ["serial_number"] = device.Identifier.ToString(),
+                ["name"] = $"{Enum.GetName(device.Identity.Brand)} {device.Identity.Model} ({device.Identifier})"
             };
+
+            if (device.Identifier.Type is OpenNettyDeviceIdentifierType.MacAddress)
+            {
+                var address = OpenNettyDeviceIdentifier.ToMacAddress(device.Identifier);
+                node["connections"] = new JsonArray([new JsonArray(["mac", address.ToString()])]);
+            }
+
+            if (device.Gateway is not null)
+            {
+                node["via_device"] = ComputeDeviceUniqueId(device.Gateway.Device);
+            }
 
             if (device.GetStringSetting(OpenNettySettings.HomeAssistantSuggestedArea) is { Length: > 0 } area)
             {
@@ -1750,7 +1888,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
         {
             var hash = new XxHash128();
             hash.Append(MemoryMarshal.AsBytes<char>(Enum.GetName(device.Definition.Protocol)));
-            hash.Append(MemoryMarshal.AsBytes<char>(device.SerialNumber));
+            hash.Append(MemoryMarshal.AsBytes<char>(Enum.GetName(device.Identifier.Type)));
+            hash.Append(MemoryMarshal.AsBytes<char>(device.Identifier.ToString()));
 
             return Base64Url.EncodeToString(hash.GetCurrentHash());
         }
@@ -1810,7 +1949,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 var type = endpoint.GetStringSetting(OpenNettySettings.ActuatorType);
                 if (string.IsNullOrEmpty(type))
                 {
-                    throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
+                    throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
                 }
 
                 return type is OpenNettySettings.ActuatorTypes.Automation;
@@ -1838,7 +1977,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 var type = endpoint.GetStringSetting(OpenNettySettings.ActuatorType);
                 if (string.IsNullOrEmpty(type))
                 {
-                    throw new InvalidOperationException(SR.GetResourceString(SR.ID0112));
+                    throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
                 }
 
                 return type is OpenNettySettings.ActuatorTypes.Lighting;
