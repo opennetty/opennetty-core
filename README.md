@@ -252,14 +252,21 @@ socket to initiate OpenWebNet sessions:
 To be able to communicate with "In One by Legrand", "MyHome Play" and "MyHome Up" devices, OpenNetty requires listing them in the configuration file.
 
 For that, you need to add a `Device` node with the correct brand/model attributes for each device present in the installation:
-  - The serial number is required for In One by Legrand and MyHome Play devices and optional for MyHome Up devices.
-  - The unit node - also known as a "module" in MyHome Suite - is generally required,
-  except when targeting a feature exposed by the device itself and not one of its units.
-  - The unit must match one of the unit identifiers offered by the specific device. If you're unsure what identifier should be used,
+  - The serial number (or MAC address for Ethernet gateways) is required for all devices.
+
+  - The unit node - also known as a "module" in MyHome Suite - is generally required for an endpoint, except when targeting a feature exposed by the device
+  itself and not one of its units: in this case, the endpoint must appear directly under the `Device` node and not under a `Unit` node.
+
+  - The unit MUST match one of the unit identifiers offered by the specific device. If you're unsure what identifier should be used,
   you can see [`OpenNettyDevices.xml`](src/OpenNetty/OpenNettyDevices.xml) for a list of all the supported devices and the units they expose.
-  - For MyHome Up devices, the area/point attributes must match the values assigned via [MyHome Suite](https://www.homesystems-legrandgroup.com/home?p_p_id=it_smc_bticino_homesystems_search_AutocompletesearchPortlet&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_it_smc_bticino_homesystems_search_AutocompletesearchPortlet_journalArticleId=2493426&_it_smc_bticino_homesystems_search_AutocompletesearchPortlet_mvcPath=%2Fview_journal_article_content.jsp).
-  - The endpoint name must be chosen carefully as it will be used to infer the MQTT topic used for the endpoint (e.g state changes dispatched
-  by an endpoint named `Bedroom/Wall light` will be posted under the `opennetty/bedroom/wall light` MQTT topic).
+
+  - For In One by Legrand and MyHome Play devices, units that are not explicitly listed are
+  automatically added by OpenNetty and corresponding endpoints are generated using default names.
+
+  - For MyHome Up devices, the area/point attributes MUST match the values assigned via [MyHome Suite](https://www.homesystems-legrandgroup.com/home?p_p_id=it_smc_bticino_homesystems_search_AutocompletesearchPortlet&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_it_smc_bticino_homesystems_search_AutocompletesearchPortlet_journalArticleId=2493426&_it_smc_bticino_homesystems_search_AutocompletesearchPortlet_mvcPath=%2Fview_journal_article_content.jsp).
+
+  - The endpoint name can be either set explicitly or generated implicitly. In both cases, it will be used to infer the MQTT topic used for the
+  endpoint (e.g state changes dispatched by an endpoint named `Bedroom/Wall light` will be posted under the `opennetty/bedroom/wall light` MQTT topic).
 
 > [!TIP]
 > You can also add MyHome Up SCS light point area or group endpoints that are not attached to a specific device, which is the most efficient
@@ -317,11 +324,7 @@ For that, you need to add a `Device` node with the correct brand/model attribute
 
   <!-- MyHome Play one-gang wireless command -->
 
-  <Device Brand="Legrand" Model="67223" SerialNumber="0014AC87">
-    <Unit Id="1">
-      <Endpoint Name="Bedroom/Wireless command/Short press" />
-    </Unit>
-  </Device>
+  <Device Brand="Legrand" Model="67223" SerialNumber="0014AC87" />
 
   <!-- MyHome Up two-way light actuator -->
 
@@ -461,7 +464,7 @@ var message = OpenNettyMessage.CreateFromFrame(OpenNettyProtocol.Nitoo, "*1*1*78
 var (identifier, unit) = OpenNettyAddress.ToNitooAddress(message.Address!.Value);
 ```
 
-### Sessions and connections
+### Sessions
 
 The `OpenNettySession` class is the main entry point for **manually communicating** with an OpenWebNet gateway: it takes care
 of initializing the connection and negotiates the desired OpenWebNet session type automatically. If authentication is
@@ -490,11 +493,11 @@ await Task.Delay(-1);
 
 ### .NET Generic Host integration
 
-While **sessions and connections can be directly used to communicate with an OpenWebNet gateway, it is not the recommended approach**.
+While **sessions can be directly used to communicate with an OpenWebNet gateway, it is not the recommended approach**.
 
 Instead, **users are strongly encouraged to leverage OpenNetty's .NET Generic Host integration**: it will register a worker
 for each configured gateway and will dynamically manage sessions, process incoming messages and dispatch outgoing messages.
-It also automatically retransmit failed outgoing messages using a retry policy defined by OpenNetty based on the type of gateway.
+It also automatically retransmit failed outgoing messages using a retry policy defined by OpenNetty depending on the type of gateway.
 
 Once the OpenNetty services are registered using the dedicated `.AddOpenNetty()` extension, the low-level `IOpenNettyService`
 interface can be leveraged to execute any arbitrary bus command, dimension request, dimension set or status request
