@@ -112,6 +112,11 @@ public static class OpenNettyMqttAttributes
     public const string ZigbeeBinding = "zigbee_binding";
 
     /// <summary>
+    /// Zigbee channel.
+    /// </summary>
+    public const string ZigbeeChannel = "zigbee_channel";
+
+    /// <summary>
     /// Zigbee network.
     /// </summary>
     public const string ZigbeeNetwork = "zigbee_network";
