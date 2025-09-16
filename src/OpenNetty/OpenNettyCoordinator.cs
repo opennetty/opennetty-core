@@ -324,7 +324,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 case (OpenNettyNotifications.MessageReceived,
                       OpenNettyMessage { Protocol : OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee,
                                          Type     : OpenNettyMessageType.DimensionRead,
-                                         Address  : OpenNettyAddress address,
+                                         Address  : not null,
                                          Dimension: OpenNettyDimension dimension,
                                          Values   : [{ Length: > 0 } value, ..] })
                     when dimension == OpenNettyDimensions.Lighting.DimmerLevelSpeed ||
@@ -335,9 +335,9 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
                     {
                         // SCS devices configured to use the PUL mode never react to area and general commands.
-                        if (address.Type is OpenNettyAddressType.ScsLightPoint &&
-                            (OpenNettyAddress.IsScsLightPointAreaAddress(address) ||
-                             OpenNettyAddress.IsScsLightPointGeneralAddress(address)) &&
+                        if (message.Address.Value.Type is OpenNettyAddressType.ScsLightPoint &&
+                            (OpenNettyAddress.IsScsLightPointAreaAddress(message.Address.Value) ||
+                             OpenNettyAddress.IsScsLightPointGeneralAddress(message.Address.Value)) &&
                             endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
                         {
                             return;
@@ -370,7 +370,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 case (OpenNettyNotifications.MessageSent,
                       OpenNettyMessage { Protocol : OpenNettyProtocol.Nitoo or OpenNettyProtocol.Zigbee,
                                          Type     : OpenNettyMessageType.DimensionSet,
-                                         Address  : OpenNettyAddress address,
+                                         Address  : not null,
                                          Dimension: OpenNettyDimension dimension,
                                          Values   : [{ Length: > 0 } value, ..] })
                     when dimension == OpenNettyDimensions.Lighting.DimmerLevelSpeed:
@@ -419,7 +419,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 case (OpenNettyNotifications.MessageReceived,
                       OpenNettyMessage { Protocol : OpenNettyProtocol.Nitoo,
                                          Type     : OpenNettyMessageType.DimensionRead,
-                                         Address  : OpenNettyAddress address,
+                                         Address  : not null,
                                          Dimension: OpenNettyDimension dimension,
                                          Values   : ["129", { Length: > 0 } value] })
                     when dimension == OpenNettyDimensions.Diagnostics.UnitDescription:
@@ -441,7 +441,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 case (OpenNettyNotifications.MessageReceived,
                       OpenNettyMessage { Protocol : OpenNettyProtocol.Nitoo,
                                          Type     : OpenNettyMessageType.DimensionRead,
-                                         Address  : OpenNettyAddress address,
+                                         Address  : not null,
                                          Dimension: OpenNettyDimension dimension,
                                          Values   : ["143", { Length: > 0 } value, ..] })
                     when dimension == OpenNettyDimensions.Diagnostics.UnitDescription:
@@ -591,7 +591,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 case (OpenNettyNotifications.MessageReceived,
                       OpenNettyMessage { Protocol : OpenNettyProtocol.Zigbee,
                                          Type     : OpenNettyMessageType.DimensionSet,
-                                         Address  : OpenNettyAddress address,
+                                         Address  : not null,
                                          Dimension: OpenNettyDimension dimension,
                                          Values   : [{ Length: > 0 } status, { Length: > 0 } position, ..] })
                     when dimension == OpenNettyDimensions.Automation.ShutterStatus:
@@ -626,7 +626,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 case (OpenNettyNotifications.MessageReceived,
                       OpenNettyMessage { Protocol : OpenNettyProtocol.Nitoo,
                                          Type     : OpenNettyMessageType.DimensionRead,
-                                         Address  : OpenNettyAddress address,
+                                         Address  : not null,
                                          Dimension: OpenNettyDimension dimension,
                                          Values   : ["139", { Length: > 0 } value, ..] })
                     when dimension == OpenNettyDimensions.Diagnostics.UnitDescription:
@@ -651,7 +651,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 case (OpenNettyNotifications.MessageReceived,
                       OpenNettyMessage { Protocol : OpenNettyProtocol.Nitoo,
                                          Type     : OpenNettyMessageType.DimensionRead,
-                                         Address  : OpenNettyAddress address,
+                                         Address  : not null,
                                          Dimension: OpenNettyDimension dimension,
                                          Values   : [{ Length: > 0 }, { Length: > 0 }, { Length: > 0 }] values })
                     when dimension == OpenNettyDimensions.TemperatureControl.SmartMeterIndexes:
@@ -672,7 +672,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 case (OpenNettyNotifications.MessageReceived,
                       OpenNettyMessage { Protocol : OpenNettyProtocol.Nitoo,
                                          Type     : OpenNettyMessageType.DimensionRead,
-                                         Address  : OpenNettyAddress address,
+                                         Address  : not null,
                                          Dimension: OpenNettyDimension dimension,
                                          Values   : [{ Length: > 0 } value] })
                     when dimension == OpenNettyDimensions.TemperatureControl.SmartMeterRateType:
@@ -698,7 +698,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 case (OpenNettyNotifications.MessageReceived,
                       OpenNettyMessage { Protocol : OpenNettyProtocol.Nitoo,
                                          Type     : OpenNettyMessageType.DimensionRead,
-                                         Address  : OpenNettyAddress address,
+                                         Address  : not null,
                                          Dimension: OpenNettyDimension dimension,
                                          Values   : ["7", { Length: > 0 } value] })
                     when dimension == OpenNettyDimensions.Diagnostics.UnitDescription:
@@ -726,7 +726,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 case (OpenNettyNotifications.MessageReceived,
                       OpenNettyMessage { Protocol : OpenNettyProtocol.Nitoo,
                                          Type     : OpenNettyMessageType.DimensionRead,
-                                         Address  : OpenNettyAddress address,
+                                         Address  : not null,
                                          Dimension: OpenNettyDimension dimension,
                                          Values   : ["133", { Length: > 0 } value] })
                     when dimension == OpenNettyDimensions.Diagnostics.UnitDescription:
@@ -786,7 +786,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 case (OpenNettyNotifications.MessageSent,
                       OpenNettyMessage { Protocol : OpenNettyProtocol.Nitoo,
                                          Type     : OpenNettyMessageType.DimensionSet,
-                                         Address  : OpenNettyAddress address,
+                                         Address  : not null,
                                          Mode     : OpenNettyMode mode,
                                          Dimension: OpenNettyDimension dimension,
                                          Values   : [{ Length: > 0 } value, ..] })
@@ -809,7 +809,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                             {
                                 var endpoint = await _manager.FindEndpointByAddressAsync(notification.Gateway,
                                     OpenNettyAddress.FromNitooAddress(
-                                        OpenNettyAddress.ToNitooAddress(address).Identifier, unit));
+                                        OpenNettyAddress.ToNitooAddress(message.Address.Value).Identifier, unit));
 
                                 if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
                                 {
@@ -855,7 +855,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 case (OpenNettyNotifications.MessageReceived,
                       OpenNettyMessage { Protocol : OpenNettyProtocol.Nitoo,
                                          Type     : OpenNettyMessageType.DimensionRead,
-                                         Address  : OpenNettyAddress address,
+                                         Address  : not null,
                                          Dimension: OpenNettyDimension dimension,
                                          Values   : ["6" or "132", { Length: > 0 } value] })
                     when dimension == OpenNettyDimensions.Diagnostics.UnitDescription:
@@ -886,7 +886,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                       OpenNettyMessage { Protocol : OpenNettyProtocol.Nitoo,
                                          Type     : OpenNettyMessageType.BusCommand,
                                          Command  : OpenNettyCommand command,
-                                         Address  : OpenNettyAddress address,
+                                         Address  : not null,
                                          Mode     : OpenNettyMode mode })
                     when command.WithParameters([]) == OpenNettyCommands.TemperatureControl.WirePilotSetpointMode &&
                          command.Parameters is [{ Length: > 0 } value]:
@@ -908,7 +908,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                             {
                                 var endpoint = await _manager.FindEndpointByAddressAsync(notification.Gateway,
                                     OpenNettyAddress.FromNitooAddress(
-                                        OpenNettyAddress.ToNitooAddress(address).Identifier, unit));
+                                        OpenNettyAddress.ToNitooAddress(message.Address.Value).Identifier, unit));
 
                                 if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
                                 {
@@ -954,7 +954,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                       OpenNettyMessage { Protocol : OpenNettyProtocol.Nitoo,
                                          Type     : OpenNettyMessageType.BusCommand,
                                          Command  : OpenNettyCommand command,
-                                         Address  : OpenNettyAddress address,
+                                         Address  : not null,
                                          Mode     : OpenNettyMode mode })
                     when command.WithParameters([]) == OpenNettyCommands.TemperatureControl.WirePilotDerogationMode &&
                          command.Parameters is [{ Length: > 0 } value]:
@@ -976,7 +976,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                             {
                                 var endpoint = await _manager.FindEndpointByAddressAsync(notification.Gateway,
                                     OpenNettyAddress.FromNitooAddress(
-                                        OpenNettyAddress.ToNitooAddress(address).Identifier, unit));
+                                        OpenNettyAddress.ToNitooAddress(message.Address.Value).Identifier, unit));
 
                                 if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
                                 {
@@ -1025,7 +1025,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                       OpenNettyMessage { Protocol : OpenNettyProtocol.Nitoo,
                                          Type     : OpenNettyMessageType.BusCommand,
                                          Command  : OpenNettyCommand command,
-                                         Address  : OpenNettyAddress address,
+                                         Address  : not null,
                                          Mode     : OpenNettyMode mode })
                     when command == OpenNettyCommands.TemperatureControl.CancelWirePilotDerogationMode:
                 {
@@ -1046,7 +1046,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                             {
                                 var endpoint = await _manager.FindEndpointByAddressAsync(notification.Gateway,
                                     OpenNettyAddress.FromNitooAddress(
-                                        OpenNettyAddress.ToNitooAddress(address).Identifier, unit));
+                                        OpenNettyAddress.ToNitooAddress(message.Address.Value).Identifier, unit));
 
                                 if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
                                 {
@@ -1081,7 +1081,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 case (OpenNettyNotifications.MessageReceived,
                       OpenNettyMessage { Protocol : OpenNettyProtocol.Zigbee,
                                          Type     : OpenNettyMessageType.DimensionRead,
-                                         Address  : OpenNettyAddress address,
+                                         Address  : not null,
                                          Dimension: OpenNettyDimension dimension,
                                          Values   : [{ Length: > 0 } value] })
                     when dimension == OpenNettyDimensions.Management.BatteryInformation:
@@ -1090,7 +1090,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     // device: this task retrieves the device endpoint and, if available, report its battery level.
                     var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway,
                         OpenNettyAddress.FromDecimalZigbeeAddress(
-                            identifier: OpenNettyAddress.ToZigbeeAddress(address).Identifier,
+                            identifier: OpenNettyAddress.ToZigbeeAddress(message.Address.Value).Identifier,
                             unit      : 0));
 
                     await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
@@ -1115,7 +1115,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                       OpenNettyMessage { Protocol: OpenNettyProtocol.Nitoo,
                                          Type    : OpenNettyMessageType.BusCommand,
                                          Command : OpenNettyCommand command,
-                                         Address : OpenNettyAddress address })
+                                         Address : not null })
                     when command == OpenNettyCommands.Management.BatteryWeak:
                 {
                     var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
@@ -1138,7 +1138,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     when dimension == OpenNettyDimensions.Management.FirmwareVersion:
                 {
                     // Note: firmware version DIMENSION READ messages may be sent by the gateway itself or by a remote device.
-                    if (message.Address is OpenNettyAddress address)
+                    if (message.Address is not null)
                     {
                         var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
 
@@ -1167,7 +1167,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         await _events.PublishAsync(new FirmwareVersionReportedEventArgs(endpoint, new Version(
                             major: int.Parse(values[0], CultureInfo.InvariantCulture),
                             minor: int.Parse(values[1], CultureInfo.InvariantCulture),
-                            build: int.Parse(values[2], CultureInfo.InvariantCulture))));
+                            build: int.Parse(values[2], CultureInfo.InvariantCulture))), cancellationToken);
                     break;
                 }
 
@@ -1179,7 +1179,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     when dimension == OpenNettyDimensions.Management.HardwareVersion:
                 {
                     // Note: hardware version DIMENSION READ messages may be sent by the gateway itself or by a remote device.
-                    if (message.Address is OpenNettyAddress address)
+                    if (message.Address is not null)
                     {
                         var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
 
@@ -1208,7 +1208,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         await _events.PublishAsync(new HardwareVersionReportedEventArgs(endpoint, new Version(
                             major: int.Parse(values[0], CultureInfo.InvariantCulture),
                             minor: int.Parse(values[1], CultureInfo.InvariantCulture),
-                            build: int.Parse(values[2], CultureInfo.InvariantCulture))));
+                            build: int.Parse(values[2], CultureInfo.InvariantCulture))), cancellationToken);
                     break;
                 }
 
@@ -1220,7 +1220,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     when dimension == OpenNettyDimensions.Management.MacAddress:
                 {
                     // Note: MAC address DIMENSION READ messages may be sent by the gateway itself or by a remote device.
-                    if (message.Address is OpenNettyAddress address)
+                    if (message.Address is not null)
                     {
                         var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
 
@@ -1276,11 +1276,31 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     break;
                 }
 
+                // Note: Zigbee channel DIMENSION READ messages never include an address, as they are sent by the gateway itself.
+                case (OpenNettyNotifications.MessageReceived,
+                      OpenNettyMessage { Protocol : OpenNettyProtocol.Zigbee,
+                                         Type     : OpenNettyMessageType.DimensionRead,
+                                         Address  : null,
+                                         Dimension: OpenNettyDimension dimension,
+                                         Values   : [{ Length: > 0 } value] })
+                    when dimension == OpenNettyDimensions.Management.ZigbeeChannel:
+                {
+                    // Resolve the endpoint associated with the gateway that received the DIMENSION READ message.
+                    var endpoint = await _manager.FindEndpointAsync(endpoint =>
+                        endpoint.Device == notification.Gateway.Device && endpoint.Unit is null);
+
+                    if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+                    {
+                        await _events.PublishAsync(new ZigbeeChannelReportedEventArgs(endpoint, byte.Parse(value, CultureInfo.InvariantCulture)));
+                    }
+                    break;
+                }
+
                 case (OpenNettyNotifications.MessageReceived,
                       OpenNettyMessage { Protocol: OpenNettyProtocol.Zigbee,
                                          Type    : OpenNettyMessageType.BusCommand,
                                          Command : OpenNettyCommand command,
-                                         Address : OpenNettyAddress address })
+                                         Address : not null })
                     when command == OpenNettyCommands.Scenario.OpenBinding ||
                          command == OpenNettyCommands.Scenario.CloseBinding ||
                          command == OpenNettyCommands.Scenario.CancelBinding:
@@ -1313,7 +1333,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 case (OpenNettyNotifications.MessageReceived,
                       OpenNettyMessage { Protocol : OpenNettyProtocol.Nitoo,
                                          Type     : OpenNettyMessageType.DimensionRead,
-                                         Address  : OpenNettyAddress address,
+                                         Address  : not null,
                                          Dimension: OpenNettyDimension dimension,
                                          Values   : [{ Length: > 0 }, { Length: > 0 }, { Length: > 0 }, { Length: > 0 }] values })
                     when dimension == OpenNettyDimensions.Diagnostics.DeviceDescription:
@@ -1334,7 +1354,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 case (OpenNettyNotifications.MessageReceived or OpenNettyNotifications.MessageSent,
                       OpenNettyMessage { Protocol : OpenNettyProtocol.Nitoo,
                                          Type     : OpenNettyMessageType.DimensionSet,
-                                         Address  : OpenNettyAddress address,
+                                         Address  : not null,
                                          Mode     : OpenNettyMode.Broadcast,
                                          Dimension: OpenNettyDimension dimension,
                                          Values   : [{ Length: > 0 } value, ..] })
@@ -1362,7 +1382,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                       OpenNettyMessage { Protocol: OpenNettyProtocol.Zigbee,
                                          Type    : OpenNettyMessageType.BusCommand,
                                          Command : OpenNettyCommand command,
-                                         Address : OpenNettyAddress address })
+                                         Address : not null })
                     when command == OpenNettyCommands.Lighting.Toggle:
                 {
                     var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
@@ -1381,7 +1401,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                       OpenNettyMessage { Protocol: OpenNettyProtocol.Zigbee,
                                          Type    : OpenNettyMessageType.BusCommand,
                                          Command : OpenNettyCommand command,
-                                         Address : OpenNettyAddress address })
+                                         Address : not null })
                     when command == OpenNettyCommands.Scenario.ShortPressure:
                 {
                     var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
@@ -1400,7 +1420,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                       OpenNettyMessage { Protocol: OpenNettyProtocol.Nitoo,
                                          Type    : OpenNettyMessageType.BusCommand,
                                          Command : OpenNettyCommand command,
-                                         Address : OpenNettyAddress address,
+                                         Address : not null,
                                          Mode    : OpenNettyMode mode })
                     // Note: timed and progressive scenarios are parameterized.
                     when command == OpenNettyCommands.Scenario.Action ||
@@ -1430,7 +1450,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                             // PnL scenario of a state change, Nitoo alarms broadcast it using unit-specific ACTION scenarios.
                             tasks.Add(Task.Run(async () =>
                             {
-                                var (identifier, unit) = OpenNettyAddress.ToNitooAddress(address);
+                                var (identifier, unit) = OpenNettyAddress.ToNitooAddress(message.Address.Value);
                                 if (unit is not (>= 4 and <= 9))
                                 {
                                     return;
@@ -1506,7 +1526,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                             {
                                 var endpoint = await _manager.FindEndpointByAddressAsync(notification.Gateway,
                                     OpenNettyAddress.FromNitooAddress(
-                                        OpenNettyAddress.ToNitooAddress(address).Identifier, unit));
+                                        OpenNettyAddress.ToNitooAddress(message.Address.Value).Identifier, unit));
 
                                 if (endpoint is null || !endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
                                 {
@@ -2052,11 +2072,11 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
         .ObserveOn(TaskPoolAsyncScheduler.Default)
         .Do(onNext: async _ => await Parallel.ForEachAsync(_manager.EnumerateGatewaysAsync(), async (gateway, cancellationToken) =>
         {
-            var endpoint = await _manager.FindEndpointAsync(endpoint => endpoint.Device == gateway.Device && endpoint.Unit is null);
+            var endpoint = await _manager.FindEndpointAsync(endpoint => endpoint.Device == gateway.Device && endpoint.Unit is null, cancellationToken);
             if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.DateTime) &&
                 endpoint.GetBooleanSetting(OpenNettySettings.ClockSynchronization) is not false)
             {
-                await _controller.SetDateTimeAsync(endpoint, DateTimeOffset.Now);
+                await _controller.SetDateTimeAsync(endpoint, DateTimeOffset.Now, cancellationToken);
             }
         }))
         .Do(onError: exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))

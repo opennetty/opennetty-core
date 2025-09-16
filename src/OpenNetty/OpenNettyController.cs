@@ -194,7 +194,7 @@ public class OpenNettyController
     /// <param name="endpoint">The endpoint.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
-    public virtual ValueTask CloseNetworkAsync(
+    public virtual ValueTask CloseZigbeeNetworkAsync(
         OpenNettyEndpoint endpoint,
         CancellationToken cancellationToken = default)
     {
@@ -222,7 +222,7 @@ public class OpenNettyController
     /// <param name="endpoint">The endpoint.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
-    public virtual ValueTask CreateNetworkAsync(
+    public virtual ValueTask CreateZigbeeNetworkAsync(
         OpenNettyEndpoint endpoint,
         CancellationToken cancellationToken = default)
     {
@@ -1804,12 +1804,45 @@ public class OpenNettyController
     }
 
     /// <summary>
+    /// Asks the specified endpoint the Zigbee channel it uses.
+    /// </summary>
+    /// <param name="endpoint">The endpoint.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>
+    /// A <see cref="ValueTask{TResult}"/> that can be used to monitor the asynchronous
+    /// operation and whose result returns the Zigbee channel of the specified endpoint.
+    /// </returns>
+    public virtual async ValueTask<byte> GetZigbeeChannelAsync(
+        OpenNettyEndpoint endpoint,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
+
+        if (!endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
+        }
+
+        var values = await _service.GetDimensionAsync(
+            protocol         : endpoint.Protocol,
+            dimension        : OpenNettyDimensions.Management.ZigbeeChannel,
+            address          : endpoint.Address,
+            medium           : endpoint.Medium,
+            mode             : null,
+            gateway          : endpoint.Gateway,
+            options          : GetTransmissionOptions(endpoint),
+            cancellationToken: cancellationToken);
+
+        return byte.Parse(values[0], CultureInfo.InvariantCulture);
+    }
+
+    /// <summary>
     /// Asks the specified endpoint to join a Zigbee network.
     /// </summary>
     /// <param name="endpoint">The endpoint.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
-    public virtual ValueTask JoinNetworkAsync(
+    public virtual ValueTask JoinZigbeeNetworkAsync(
         OpenNettyEndpoint endpoint,
         CancellationToken cancellationToken = default)
     {
@@ -1851,7 +1884,7 @@ public class OpenNettyController
     /// <param name="endpoint">The endpoint.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
-    public virtual ValueTask LeaveNetworkAsync(
+    public virtual ValueTask LeaveZigbeeNetworkAsync(
         OpenNettyEndpoint endpoint,
         CancellationToken cancellationToken = default)
     {
@@ -1961,7 +1994,7 @@ public class OpenNettyController
     /// <param name="endpoint">The endpoint.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
-    public virtual ValueTask OpenNetworkAsync(
+    public virtual ValueTask OpenZigbeeNetworkAsync(
         OpenNettyEndpoint endpoint,
         CancellationToken cancellationToken = default)
     {

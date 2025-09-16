@@ -269,6 +269,12 @@ public sealed class OpenNettyEvents : IDisposable
         => _observable.OfType<EventArgs, WirelessBurglarAlarmStateReportedEventArgs>();
 
     /// <summary>
+    /// Gets an event triggered when a Zigbee channel is reported.
+    /// </summary>
+    public IAsyncObservable<ZigbeeChannelReportedEventArgs> ZigbeeChannelReported
+        => _observable.OfType<EventArgs, ZigbeeChannelReportedEventArgs>();
+
+    /// <summary>
     /// Connects the <see cref="IAsyncObservable{T}"/> so that events can start being processed.
     /// </summary>
     /// <returns>
@@ -530,4 +536,11 @@ public sealed class OpenNettyEvents : IDisposable
     /// <param name="State">The state.</param>
     public sealed record class WirelessBurglarAlarmStateReportedEventArgs(OpenNettyEndpoint Endpoint,
         OpenNettyModels.Alarm.WirelessBurglarAlarmState State) : EventArgs(Endpoint);
+
+    /// <summary>
+    /// Represents event arguments used when a Zigbee channel is reported.
+    /// </summary>
+    /// <param name="Endpoint">The endpoint.</param>
+    /// <param name="Channel">The channel.</param>
+    public sealed record class ZigbeeChannelReportedEventArgs(OpenNettyEndpoint Endpoint, byte Channel) : EventArgs(Endpoint);
 }

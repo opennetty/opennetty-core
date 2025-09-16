@@ -431,27 +431,31 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 }
                                 break;
 
+                            case OpenNettyMqttAttributes.ZigbeeChannel when operation is OpenNettyMqttOperation.Get:
+                                _ = await _controller.GetZigbeeChannelAsync(endpoint);
+                                break;
+
                             case OpenNettyMqttAttributes.ZigbeeNetwork when operation is OpenNettyMqttOperation.Set:
                                 switch (message.ConvertPayloadToString()?.ToLowerInvariant())
                                 {
                                     case "close":
-                                        await _controller.CloseNetworkAsync(endpoint);
+                                        await _controller.CloseZigbeeNetworkAsync(endpoint);
                                         break;
 
                                     case "create":
-                                        await _controller.CreateNetworkAsync(endpoint);
+                                        await _controller.CreateZigbeeNetworkAsync(endpoint);
                                         break;
 
                                     case "join":
-                                        await _controller.JoinNetworkAsync(endpoint);
+                                        await _controller.JoinZigbeeNetworkAsync(endpoint);
                                         break;
 
                                     case "leave":
-                                        await _controller.LeaveNetworkAsync(endpoint);
+                                        await _controller.LeaveZigbeeNetworkAsync(endpoint);
                                         break;
 
                                     case "open":
-                                        await _controller.OpenNetworkAsync(endpoint);
+                                        await _controller.OpenZigbeeNetworkAsync(endpoint);
                                         break;
                                 }
                                 break;
@@ -1707,6 +1711,39 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
                 {
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "sensor",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "5ea35f24-9a6c-4d62-b000-85e6a9ef5380"u8),
+                        ["icon"] = "mdi:sine-wave",
+                        ["name"] = ComputeEntityName(
+                            name    : "Zigbee channel",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+                                .CountAsync(cancellationToken)),
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeChannel}",
+                    });
+
+                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    {
+                        ["platform"] = "button",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "b7355e3d-0137-41e7-90fa-8b81b9530466"u8),
+                        ["icon"] = "mdi:sine-wave",
+                        ["name"] = ComputeEntityName(
+                            name    : "Get Zigbee channel",
+                            endpoint: endpoint,
+                            setting : null,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeChannel}/get",
+                        ["payload_press"] = string.Empty
+                    });
+
                     components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
                     {
                         ["platform"] = "button",
