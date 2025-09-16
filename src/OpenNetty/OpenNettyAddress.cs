@@ -498,7 +498,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
             throw new ArgumentException(SR.GetResourceString(SR.ID0048), nameof(address));
         }
 
-        if (!uint.TryParse(address.Value, CultureInfo.InvariantCulture, out uint value) || value > Math.Pow(2, 20))
+        if (!uint.TryParse(address.Value, CultureInfo.InvariantCulture, out uint value) || value > Math.Pow(2, 24))
         {
             throw new ArgumentException(SR.GetResourceString(SR.ID0049), nameof(address));
         }
