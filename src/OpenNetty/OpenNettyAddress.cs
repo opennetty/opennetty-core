@@ -439,6 +439,22 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
     }
 
     /// <summary>
+    /// Creates a SCS scenario plus address based on the specified parameters.
+    /// </summary>
+    /// <param name="identifier">The scenario identifier.</param>
+    /// <returns>A SCS scenario plus address based on the specified parameters.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">One of the parameters is not valid.</exception>
+    public static OpenNettyAddress FromScsScenarioPlusAddress(ushort identifier)
+    {
+        if (identifier is > 2047)
+        {
+            throw new ArgumentOutOfRangeException(nameof(identifier), SR.GetResourceString(SR.ID1116));
+        }
+
+        return new OpenNettyAddress(OpenNettyAddressType.ScsScenarioPlus, $"2{identifier.ToString(CultureInfo.InvariantCulture)}");
+    }
+
+    /// <summary>
     /// Creates a Zigbee address based on the specified device identifier and unit.
     /// </summary>
     /// <param name="identifier">The device identifier.</param>
@@ -611,6 +627,29 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
 
             _ => throw new ArgumentException(SR.GetResourceString(SR.ID0051), nameof(address))
         };
+    }
+
+    /// <summary>
+    /// Converts the specified address to a SCS scenario plus address.
+    /// </summary>
+    /// <param name="address">The address.</param>
+    /// <returns>A SCS scenario plus address based on the specified address.</returns>
+    /// <exception cref="ArgumentException">The address doesn't represent a valid SCS scenario plus address.</exception>
+    public static ushort ToScsScenarioPlusAddress(OpenNettyAddress address)
+    {
+        if (address.Type is not OpenNettyAddressType.ScsScenarioPlus)
+        {
+            throw new ArgumentException(SR.GetResourceString(SR.ID0114), nameof(address));
+        }
+
+        if (!address.Value.StartsWith('2') ||
+            !ushort.TryParse(address.Value.AsSpan()[1..], CultureInfo.InvariantCulture, out ushort identifier) ||
+            identifier is > 2047)
+        {
+            throw new ArgumentException(SR.GetResourceString(SR.ID0115), nameof(address));
+        }
+
+        return identifier;
     }
 
     /// <summary>

@@ -14,10 +14,10 @@
     <Capability Name="Device description" />
 
     <Unit Id="1" AssociatedUnitId="3" Description="Local control for output 1 and lighting scenario">
-      <Capability Name="Dimming scenario control" />
-      <Capability Name="Dimming scenario state" />
-      <Capability Name="On/off scenario control" />
-      <Capability Name="On/off scenario state" />
+      <Capability Name="Dimming scenario activation" />
+      <Capability Name="Dimming scenario event" />
+      <Capability Name="On/off scenario activation" />
+      <Capability Name="On/off scenario event" />
       <Capability Name="Unit description" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
@@ -26,10 +26,10 @@
     </Unit>
 
     <Unit Id="2" AssociatedUnitId="4" Description="Local control for output 2 and lighting scenario">
-      <Capability Name="Dimming scenario control" />
-      <Capability Name="Dimming scenario state" />
-      <Capability Name="On/off scenario control" />
-      <Capability Name="On/off scenario state" />
+      <Capability Name="Dimming scenario activation" />
+      <Capability Name="Dimming scenario event" />
+      <Capability Name="On/off scenario activation" />
+      <Capability Name="On/off scenario event" />
       <Capability Name="Unit description" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
@@ -64,10 +64,10 @@
     <Capability Name="Device description" />
 
     <Unit Id="1" Description="Doorbell call scenario">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
 
       <Setting Name="Home Assistant scenario device class" Value="doorbell" />
@@ -76,82 +76,82 @@
     </Unit>
 
     <Unit Id="2">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
     </Unit>
 
     <Unit Id="3">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
     </Unit>
 
     <Unit Id="4">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
     </Unit>
 
     <Unit Id="5">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
     </Unit>
 
     <Unit Id="6">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
     </Unit>
 
     <Unit Id="7">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
     </Unit>
 
     <Unit Id="8">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
     </Unit>
 
     <Unit Id="9">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
     </Unit>
 
     <Unit Id="10">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
     </Unit>
 
     <Unit Id="11">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
     </Unit>
 
@@ -195,81 +195,81 @@
     <Capability Name="Wireless burglar alarm state" />
 
     <Unit Id="1">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
     </Unit>
 
     <Unit Id="2">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
     </Unit>
 
     <Unit Id="3">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
     </Unit>
 
     <Unit Id="4" Description="Alarm armed scenario">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
 
       <Setting Name="Home Assistant scenario icon" Value="mdi:security" />
       <Setting Name="Home Assistant scenario name" Value="Alarm armed" />
     </Unit>
 
     <Unit Id="5" Description="Alarm disarmed scenario">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
 
       <Setting Name="Home Assistant scenario icon" Value="mdi:security" />
       <Setting Name="Home Assistant scenario name" Value="Alarm disarmed" />
     </Unit>
 
     <Unit Id="6" Description="Alarm partially armed scenario">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
 
       <Setting Name="Home Assistant scenario icon" Value="mdi:security" />
       <Setting Name="Home Assistant scenario name" Value="Alarm partially armed" />
     </Unit>
 
     <Unit Id="7" Description="Alarm triggered scenario">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
 
       <Setting Name="Home Assistant scenario icon" Value="mdi:security" />
       <Setting Name="Home Assistant scenario name" Value="Alarm triggered" />
     </Unit>
 
     <Unit Id="8" Description="Exit delay elapsed scenario">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
 
       <Setting Name="Home Assistant scenario icon" Value="mdi:security" />
       <Setting Name="Home Assistant scenario name" Value="Exit delay elapsed" />
     </Unit>
 
     <Unit Id="9" Description="Event detected scenario">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
 
       <Setting Name="Home Assistant scenario icon" Value="mdi:security" />
       <Setting Name="Home Assistant scenario name" Value="Event detected" />
@@ -284,10 +284,10 @@
     <Capability Name="Device description" />
 
     <Unit Id="1" AssociatedUnitId="2" Description="Local control and lighting scenario">
-      <Capability Name="Dimming scenario control" />
-      <Capability Name="Dimming scenario state" />
-      <Capability Name="On/off scenario control" />
-      <Capability Name="On/off scenario state" />
+      <Capability Name="Dimming scenario activation" />
+      <Capability Name="Dimming scenario event" />
+      <Capability Name="On/off scenario activation" />
+      <Capability Name="On/off scenario event" />
       <Capability Name="Unit description" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
@@ -314,10 +314,10 @@
     <Capability Name="Device description" />
 
     <Unit Id="1" AssociatedUnitId="3" Description="Local control for output 1 and lighting scenario">
-      <Capability Name="Dimming scenario control" />
-      <Capability Name="Dimming scenario state" />
-      <Capability Name="On/off scenario control" />
-      <Capability Name="On/off scenario state" />
+      <Capability Name="Dimming scenario activation" />
+      <Capability Name="Dimming scenario event" />
+      <Capability Name="On/off scenario activation" />
+      <Capability Name="On/off scenario event" />
       <Capability Name="Unit description" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
@@ -326,10 +326,10 @@
     </Unit>
 
     <Unit Id="2" AssociatedUnitId="4" Description="Local control for output 2 and lighting scenario">
-      <Capability Name="Dimming scenario control" />
-      <Capability Name="Dimming scenario state" />
-      <Capability Name="On/off scenario control" />
-      <Capability Name="On/off scenario state" />
+      <Capability Name="Dimming scenario activation" />
+      <Capability Name="Dimming scenario event" />
+      <Capability Name="On/off scenario activation" />
+      <Capability Name="On/off scenario event" />
       <Capability Name="Unit description" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
@@ -364,10 +364,10 @@
     <Capability Name="Device description" />
 
     <Unit Id="1" Description="Lighting scenario">
-      <Capability Name="Dimming scenario control" />
-      <Capability Name="Dimming scenario state" />
-      <Capability Name="On/off scenario control" />
-      <Capability Name="On/off scenario state" />
+      <Capability Name="Dimming scenario activation" />
+      <Capability Name="Dimming scenario event" />
+      <Capability Name="On/off scenario activation" />
+      <Capability Name="On/off scenario event" />
       <Capability Name="Unit description" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
@@ -376,12 +376,12 @@
     </Unit>
 
     <Unit Id="2" Description="Multifunction scenario 1">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Dimming scenario control" />
-      <Capability Name="Dimming scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Dimming scenario activation" />
+      <Capability Name="Dimming scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
@@ -390,12 +390,12 @@
     </Unit>
 
     <Unit Id="3" Description="Multifunction scenario 2">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Dimming scenario control" />
-      <Capability Name="Dimming scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Dimming scenario activation" />
+      <Capability Name="Dimming scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
@@ -412,10 +412,10 @@
     <Capability Name="Device description" />
 
     <Unit Id="1" AssociatedUnitId="4" Description="Local control and lighting scenario">
-      <Capability Name="Dimming scenario control" />
-      <Capability Name="Dimming scenario state" />
-      <Capability Name="On/off scenario control" />
-      <Capability Name="On/off scenario state" />
+      <Capability Name="Dimming scenario activation" />
+      <Capability Name="Dimming scenario event" />
+      <Capability Name="On/off scenario activation" />
+      <Capability Name="On/off scenario event" />
       <Capability Name="Unit description" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
@@ -424,12 +424,12 @@
     </Unit>
 
     <Unit Id="2" AssociatedUnitId="4" Description="Local preset+ control and lighting scenario">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Dimming scenario control" />
-      <Capability Name="Dimming scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Dimming scenario activation" />
+      <Capability Name="Dimming scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
@@ -438,12 +438,12 @@
     </Unit>
 
     <Unit Id="3" AssociatedUnitId="4" Description="Local preset- control and lighting scenario">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Dimming scenario control" />
-      <Capability Name="Dimming scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Dimming scenario activation" />
+      <Capability Name="Dimming scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
@@ -471,14 +471,14 @@
     <Capability Name="Device description" />
 
     <Unit Id="1" AssociatedUnitId="3" Description="Local control and motion detection scenario">
-      <Capability Name="Timed scenario control" />
-      <Capability Name="Timed scenario state" />
+      <Capability Name="Timed scenario activation" />
+      <Capability Name="Timed scenario event" />
       <Capability Name="Unit description" />
     </Unit>
 
     <Unit Id="2" AssociatedUnitId="3" Description="Local control and lighting scenario">
-      <Capability Name="On/off scenario control" />
-      <Capability Name="On/off scenario state" />
+      <Capability Name="On/off scenario activation" />
+      <Capability Name="On/off scenario event" />
       <Capability Name="Unit description" />
     </Unit>
 
@@ -500,10 +500,10 @@
     <Capability Name="Device description" />
 
     <Unit Id="1" AssociatedUnitId="2" Description="Local control and lighting scenario">
-      <Capability Name="Dimming scenario control" />
-      <Capability Name="Dimming scenario state" />
-      <Capability Name="On/off scenario control" />
-      <Capability Name="On/off scenario state" />
+      <Capability Name="Dimming scenario activation" />
+      <Capability Name="Dimming scenario event" />
+      <Capability Name="On/off scenario activation" />
+      <Capability Name="On/off scenario event" />
       <Capability Name="Unit description" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
@@ -527,10 +527,10 @@
     <Capability Name="Device description" />
 
     <Unit Id="1" AssociatedUnitId="4" Description="Local control and lighting scenario">
-      <Capability Name="Dimming scenario control" />
-      <Capability Name="Dimming scenario state" />
-      <Capability Name="On/off scenario control" />
-      <Capability Name="On/off scenario state" />
+      <Capability Name="Dimming scenario activation" />
+      <Capability Name="Dimming scenario event" />
+      <Capability Name="On/off scenario activation" />
+      <Capability Name="On/off scenario event" />
       <Capability Name="Unit description" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
@@ -539,12 +539,12 @@
     </Unit>
 
     <Unit Id="2" AssociatedUnitId="4" Description="Local preset+ control and lighting scenario">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Dimming scenario control" />
-      <Capability Name="Dimming scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Dimming scenario activation" />
+      <Capability Name="Dimming scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
@@ -553,12 +553,12 @@
     </Unit>
 
     <Unit Id="3" AssociatedUnitId="4" Description="Local preset- control and lighting scenario">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Dimming scenario control" />
-      <Capability Name="Dimming scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Dimming scenario activation" />
+      <Capability Name="Dimming scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
@@ -586,12 +586,12 @@
     <Capability Name="Device description" />
 
     <Unit Id="1" Description="Multifunction scenario 1">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Dimming scenario control" />
-      <Capability Name="Dimming scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Dimming scenario activation" />
+      <Capability Name="Dimming scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
@@ -600,12 +600,12 @@
     </Unit>
 
     <Unit Id="2" Description="Multifunction scenario 2">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Dimming scenario control" />
-      <Capability Name="Dimming scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Dimming scenario activation" />
+      <Capability Name="Dimming scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
@@ -614,12 +614,12 @@
     </Unit>
 
     <Unit Id="3" Description="Multifunction scenario 3">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Dimming scenario control" />
-      <Capability Name="Dimming scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Dimming scenario activation" />
+      <Capability Name="Dimming scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
@@ -628,12 +628,12 @@
     </Unit>
 
     <Unit Id="4" Description="Multifunction scenario 4">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Dimming scenario control" />
-      <Capability Name="Dimming scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Dimming scenario activation" />
+      <Capability Name="Dimming scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
@@ -649,10 +649,10 @@
     <Capability Name="Battery alert" />
 
     <Unit Id="1" Description="Multifunction scenario 1">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -660,10 +660,10 @@
     </Unit>
 
     <Unit Id="2" Description="Multifunction scenario 2">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -671,10 +671,10 @@
     </Unit>
 
     <Unit Id="3" Description="Multifunction scenario 3">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -682,10 +682,10 @@
     </Unit>
 
     <Unit Id="4" Description="Multifunction scenario 4">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -738,10 +738,10 @@
     <Capability Name="Battery alert" />
 
     <Unit Id="1" Description="Multifunction scenario 1">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -749,10 +749,10 @@
     </Unit>
 
     <Unit Id="2" Description="Multifunction scenario 2">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -760,10 +760,10 @@
     </Unit>
 
     <Unit Id="3" Description="Multifunction scenario 3">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -771,10 +771,10 @@
     </Unit>
 
     <Unit Id="4" Description="Multifunction scenario 4">
-      <Capability Name="Action scenario control" />
-      <Capability Name="Action scenario state" />
-      <Capability Name="Stop action scenario control" />
-      <Capability Name="Stop action scenario state" />
+      <Capability Name="Action scenario activation" />
+      <Capability Name="Action scenario event" />
+      <Capability Name="Stop action scenario activation" />
+      <Capability Name="Stop action scenario event" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -866,6 +866,35 @@
   </Device>
 
   <Device Series="MyHome" Protocol="Scs" Medium="Bus">
+    <Identity Brand="BTicino" Model="F428"  Description="DIN rail contacts interface" />
+    <Identity Brand="Legrand" Model="03553" Description="DIN rail contacts interface" />
+
+    <Unit Id="1" Description="Input 1">
+      <Capability Name="Configurable push button numbers" />
+      <Capability Name="Pressure scenario activation" />
+      <Capability Name="Pressure scenario event" />
+      <Capability Name="Pressure scenario plus event" />
+      <Capability Name="Pressure scenario plus activation" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Input 1" />
+    </Unit>
+
+    <Unit Id="2" Description="Input 2">
+      <Capability Name="Configurable push button numbers" />
+      <Capability Name="Pressure scenario activation" />
+      <Capability Name="Pressure scenario event" />
+      <Capability Name="Pressure scenario plus event" />
+      <Capability Name="Pressure scenario plus activation" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Input 2" />
+    </Unit>
+  </Device>
+
+  <Device Series="MyHome" Protocol="Scs" Medium="Bus">
     <Identity Brand="BTicino" Model="F454"  Description="SCS/Ethernet gateway" />
     <Identity Brand="Legrand" Model="03598" Description="SCS/Ethernet gateway" />
 
@@ -945,7 +974,7 @@
     <Capability Name="Hardware version" />
 
     <Unit Id="1" Description="Toggle scenario">
-      <Capability Name="Toggle scenario state" />
+      <Capability Name="Toggle scenario event" />
       <Capability Name="Zigbee binding" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
@@ -962,7 +991,7 @@
     <Capability Name="Hardware version" />
 
     <Unit Id="1" Description="Multifunction scenario 1">
-      <Capability Name="Short pressure scenario state" />
+      <Capability Name="Pressure scenario event" />
       <Capability Name="Zigbee binding" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
@@ -971,7 +1000,7 @@
     </Unit>
 
     <Unit Id="2" Description="Multifunction scenario 2">
-      <Capability Name="Short pressure scenario state" />
+      <Capability Name="Pressure scenario event" />
       <Capability Name="Zigbee binding" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
@@ -982,7 +1011,7 @@
     <!-- Note: the physical switch labelled "4" is bound to unit 3 -->
 
     <Unit Id="3" Description="Multifunction scenario 4">
-      <Capability Name="Short pressure scenario state" />
+      <Capability Name="Pressure scenario event" />
       <Capability Name="Zigbee binding" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
@@ -993,7 +1022,7 @@
     <!-- Note: the physical switch labelled "3" is bound to unit 4 -->
 
     <Unit Id="4" Description="Multifunction scenario 3">
-      <Capability Name="Short pressure scenario state" />
+      <Capability Name="Pressure scenario event" />
       <Capability Name="Zigbee binding" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
@@ -1029,7 +1058,7 @@
     <Unit Id="1" Description="Local control and toggle scenario">
       <Capability Name="On/off switch state" />
       <Capability Name="On/off switch control" />
-      <Capability Name="Toggle scenario state" />
+      <Capability Name="Toggle scenario event" />
       <Capability Name="Zigbee binding" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />

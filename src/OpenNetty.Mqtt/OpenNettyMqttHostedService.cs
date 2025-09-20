@@ -261,14 +261,23 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
-            await _events.ProgressiveScenarioReported
+            await _events.PressureScenarioReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
                 {
                     var node = new JsonObject
                     {
-                        ["event_type"] = "progressive_action",
-                        ["duration"] = arguments.Duration.TotalSeconds
+                        ["event_type"] = arguments.Type switch
+                        {
+                            OpenNettyModels.Scenarios.PressureScenarioType.Pressure                     => "pressure",
+                            OpenNettyModels.Scenarios.PressureScenarioType.ReleaseAfterShortPressure    => "release_after_short_pressure",
+                            OpenNettyModels.Scenarios.PressureScenarioType.ReleaseAfterExtendedPressure => "release_after_extended_pressure",
+                            OpenNettyModels.Scenarios.PressureScenarioType.ExtendedPressure             => "extended_pressure",
+
+                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+                        },
+                        ["scenario_type"] = "evolved",
+                        ["button"] = arguments.Button
                     };
 
                     builder.WithContentType(MediaTypeNames.Application.Json);
@@ -277,13 +286,39 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
-            await _events.ShortPressureScenarioReported
+            await _events.PressureScenarioPlusReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
                 {
                     var node = new JsonObject
                     {
-                        ["event_type"] = "short_pressure"
+                        ["event_type"] = arguments.Type switch
+                        {
+                            OpenNettyModels.ScenariosPlus.PressureScenarioType.ShortPressure           => "short_pressure",
+                            OpenNettyModels.ScenariosPlus.PressureScenarioType.StartOfExtendedPressure => "start_of_extended_pressure",
+                            OpenNettyModels.ScenariosPlus.PressureScenarioType.ExtendedPressure        => "extended_pressure",
+                            OpenNettyModels.ScenariosPlus.PressureScenarioType.EndOfExtendedPressure   => "end_of_extended_pressure",
+
+                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+                        },
+                        ["scenario_type"] = "plus",
+                        ["button"] = arguments.Button
+                    };
+
+                    builder.WithContentType(MediaTypeNames.Application.Json);
+                    builder.WithPayload(node.ToJsonString());
+                }))
+                .Retry()
+                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
+
+            await _events.ProgressiveScenarioReported
+                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
+                {
+                    var node = new JsonObject
+                    {
+                        ["event_type"] = "progressive_action",
+                        ["duration"] = arguments.Duration.TotalSeconds
                     };
 
                     builder.WithContentType(MediaTypeNames.Application.Json);

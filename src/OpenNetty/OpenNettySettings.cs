@@ -17,14 +17,14 @@ public static class OpenNettySettings
     public static readonly OpenNettySetting ActionValidation = new("Action validation");
 
     /// <summary>
-    /// Actuator type (SCS only).
-    /// </summary>
-    public static readonly OpenNettySetting ActuatorType = new("Actuator type");
-
-    /// <summary>
     /// Clock synchronization.
     /// </summary>
     public static readonly OpenNettySetting ClockSynchronization = new("Clock synchronization");
+
+    /// <summary>
+    /// Function type (SCS only).
+    /// </summary>
+    public static readonly OpenNettySetting FunctionType = new("Function type");
 
     /// <summary>
     /// Home Assistant light/switch device class.
@@ -92,6 +92,11 @@ public static class OpenNettySettings
     public static readonly OpenNettySetting MqttTopic = new("MQTT topic");
 
     /// <summary>
+    /// Push button numbers.
+    /// </summary>
+    public static readonly OpenNettySetting PushButtonNumbers = new("Push button numbers");
+
+    /// <summary>
     /// Serial port baud rate.
     /// </summary>
     public static readonly OpenNettySetting SerialPortBaudRate = new("Serial port baud rate");
@@ -117,19 +122,29 @@ public static class OpenNettySettings
     public static readonly OpenNettySetting SwitchMode = new("Switch mode");
 
     /// <summary>
-    /// Exposes common actuator types.
+    /// Exposes common function types.
     /// </summary>
-    public static class ActuatorTypes
+    public static class FunctionTypes
     {
         /// <summary>
         /// Automation actuator.
         /// </summary>
-        public const string Automation = "Automation";
+        public const string AutomationActuator = "Automation actuator";
 
         /// <summary>
-        /// Lighting actuator.
+        /// Light actuator.
         /// </summary>
-        public const string Lighting = "Lighting";
+        public const string LightActuator = "Light actuator";
+
+        /// <summary>
+        /// Scheduled scenario.
+        /// </summary>
+        public const string ScheduledScenario = "Scheduled scenario";
+
+        /// <summary>
+        /// Scheduled scenario plus.
+        /// </summary>
+        public const string ScheduledScenarioPlus = "Scheduled scenario plus";
     }
 
     /// <summary>

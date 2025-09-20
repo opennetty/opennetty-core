@@ -167,16 +167,22 @@ public sealed class OpenNettyEvents : IDisposable
         => _observable.OfType<EventArgs, PilotWireSetpointModeReportedEventArgs>();
 
     /// <summary>
+    /// Gets an event triggered when a pressure scenario is reported.
+    /// </summary>
+    public IAsyncObservable<PressureScenarioReportedEventArgs> PressureScenarioReported
+        => _observable.OfType<EventArgs, PressureScenarioReportedEventArgs>();
+
+    /// <summary>
+    /// Gets an event triggered when a pressure scenario plus is reported.
+    /// </summary>
+    public IAsyncObservable<PressureScenarioPlusReportedEventArgs> PressureScenarioPlusReported
+        => _observable.OfType<EventArgs, PressureScenarioPlusReportedEventArgs>();
+
+    /// <summary>
     /// Gets an event triggered when a progressive scenario is reported.
     /// </summary>
     public IAsyncObservable<ProgressiveScenarioReportedEventArgs> ProgressiveScenarioReported
         => _observable.OfType<EventArgs, ProgressiveScenarioReportedEventArgs>();
-
-    /// <summary>
-    /// Gets an event triggered when a short pressure scenario is reported.
-    /// </summary>
-    public IAsyncObservable<ShortPressureScenarioReportedEventArgs> ShortPressureScenarioReported
-        => _observable.OfType<EventArgs, ShortPressureScenarioReportedEventArgs>();
 
     /// <summary>
     /// Gets an event triggered when a shutter position is reported.
@@ -417,17 +423,29 @@ public sealed class OpenNettyEvents : IDisposable
         OpenNettyEndpoint Endpoint, OpenNettyModels.TemperatureControl.PilotWireMode Mode) : EventArgs(Endpoint);
 
     /// <summary>
+    /// Represents event arguments used when a pressure scenario is reported.
+    /// </summary>
+    /// <param name="Endpoint">The endpoint.</param>
+    /// <param name="Type">The pressure scenario type.</param>
+    /// <param name="Button">The button identifier.</param>
+    public sealed record class PressureScenarioReportedEventArgs(OpenNettyEndpoint Endpoint,
+        OpenNettyModels.Scenarios.PressureScenarioType Type, byte Button) : EventArgs(Endpoint);
+
+    /// <summary>
+    /// Represents event arguments used when a pressure scenario plus is reported.
+    /// </summary>
+    /// <param name="Endpoint">The endpoint.</param>
+    /// <param name="Type">The pressure scenario type.</param>
+    /// <param name="Button">The button identifier, if applicable.</param>
+    public sealed record class PressureScenarioPlusReportedEventArgs(OpenNettyEndpoint Endpoint,
+        OpenNettyModels.ScenariosPlus.PressureScenarioType Type, byte? Button) : EventArgs(Endpoint);
+
+    /// <summary>
     /// Represents event arguments used when a progressive scenario is reported.
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
     /// <param name="Duration">The scenario duration.</param>
     public sealed record class ProgressiveScenarioReportedEventArgs(OpenNettyEndpoint Endpoint, TimeSpan Duration) : EventArgs(Endpoint);
-
-    /// <summary>
-    /// Represents event arguments used when a short pressure scenario is reported.
-    /// </summary>
-    /// <param name="Endpoint">The endpoint.</param>
-    public sealed record class ShortPressureScenarioReportedEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when a shutter position is reported.

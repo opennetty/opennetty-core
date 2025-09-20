@@ -295,9 +295,10 @@ public sealed class OpenNettyBuilder
 
             var type = (string?) endpoint.Attribute("Type") switch
             {
-                "Nitoo"           => OpenNettyAddressType.Nitoo,
-                "SCS light point" => OpenNettyAddressType.ScsLightPoint,
-                "Zigbee"          => OpenNettyAddressType.Zigbee,
+                "Nitoo"             => OpenNettyAddressType.Nitoo,
+                "SCS light point"   => OpenNettyAddressType.ScsLightPoint,
+                "SCS scenario plus" => OpenNettyAddressType.ScsScenarioPlus,
+                "Zigbee"            => OpenNettyAddressType.Zigbee,
 
                 // Try to infer common address types if no explicit type was specified.
                 null => device?.Definition.Protocol switch
@@ -325,9 +326,9 @@ public sealed class OpenNettyBuilder
 
             var protocol = type switch
             {
-                OpenNettyAddressType.Nitoo         => OpenNettyProtocol.Nitoo,
-                OpenNettyAddressType.ScsLightPoint => OpenNettyProtocol.Scs,
-                OpenNettyAddressType.Zigbee        => OpenNettyProtocol.Zigbee,
+                OpenNettyAddressType.Nitoo                                                 => OpenNettyProtocol.Nitoo,
+                OpenNettyAddressType.ScsLightPoint or OpenNettyAddressType.ScsScenarioPlus => OpenNettyProtocol.Scs,
+                OpenNettyAddressType.Zigbee                                                => OpenNettyProtocol.Zigbee,
 
                 null => device?.Definition.Protocol ?? throw new InvalidOperationException(SR.FormatID0080(name, "Type")),
 
@@ -352,6 +353,9 @@ public sealed class OpenNettyBuilder
                     group    : (byte?) (uint?) endpoint.Attribute("Group"),
                     area     : (byte?) (uint?) endpoint.Attribute("Area"),
                     point    : (byte?) (uint?) endpoint.Attribute("Point")),
+
+                OpenNettyAddressType.ScsScenarioPlus when (ushort?) (uint?) endpoint.Attribute("Id") is ushort identifier
+                    => OpenNettyAddress.FromScsScenarioPlusAddress(identifier),
 
                 OpenNettyAddressType.Zigbee when (string?) endpoint.Attribute("Id") is string identifier
                     => OpenNettyAddress.FromHexadecimalZigbeeAddress(
@@ -409,12 +413,7 @@ public sealed class OpenNettyBuilder
                         }
                         break;
 
-                    case OpenNettyProtocol.Scs:
-                        if (address is null)
-                        {
-                            throw new InvalidOperationException(SR.GetResourceString(SR.ID0105));
-                        }
-
+                    case OpenNettyProtocol.Scs when address?.Type is OpenNettyAddressType.ScsLightPoint:
                         var (extension, general, group, area, point) = OpenNettyAddress.ToScsLightPointAddress(address.Value);
 
                         if (OpenNettyAddress.IsScsLightPointAreaAddress(address.Value))
@@ -455,6 +454,15 @@ public sealed class OpenNettyBuilder
 
                         builder.Append(address.Value.ToString());
                         break;
+
+                    case OpenNettyProtocol.Scs when address?.Type is OpenNettyAddressType.ScsScenarioPlus:
+                        builder.Append("scs-scenario-plus");
+                        builder.Append('/');
+                        builder.Append(OpenNettyAddress.ToScsScenarioPlusAddress(address.Value));
+                        break;
+
+                    case OpenNettyProtocol.Scs:
+                        throw new InvalidOperationException(SR.GetResourceString(SR.ID0105));
                 }
 
                 return builder.ToString();

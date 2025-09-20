@@ -32,9 +32,14 @@ public static class OpenNettyCategories
     public static readonly OpenNettyCategory Management = new("13");
 
     /// <summary>
-    /// Scenarios (WHO = 25).
+    /// Scenarios (WHO = 15).
     /// </summary>
-    public static readonly OpenNettyCategory Scenarios = new("25");
+    public static readonly OpenNettyCategory Scenarios = new("15");
+
+    /// <summary>
+    /// Scenarios plus (WHO = 25).
+    /// </summary>
+    public static readonly OpenNettyCategory ScenariosPlus = new("25");
 
     /// <summary>
     /// Diagnostics (WHO = 1000).

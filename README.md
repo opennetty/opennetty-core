@@ -73,6 +73,7 @@ The following Legrand and BTicino products are partially or fully supported by O
 | In One by Legrand |                    | 88213             |                   | PLC/USB gateway                        |
 |                   |                    |                   |                   |                                        |
 | MyHome Up         |                    | 03535             | MH202             | SCS scenario scheduler                 |
+| MyHome Up         |                    | 03553             | F428              | DIN rail contacts interface            |
 | MyHome Up         |                    | 03598             | F454              | SCS/Ethernet gateway                   |
 | MyHome Up         |                    | 03651             | F418U2            | 2-gang DIN rail dimmer switch          |
 | MyHome Up         |                    | 03847             | F411U1            | 1-gang DIN rail switch                 |
@@ -331,13 +332,13 @@ For that, you need to add a `Device` node with the correct brand/model attribute
   <Device Brand="BTicino" Model="F411U2" SerialNumber="00B582A5">
     <Unit Id="1">
       <Endpoint Name="Garage/Recessed light 1" Area="4" Point="1">
-        <Setting Name="Actuator type" Value="Lighting" />
+        <Setting Name="Function type" Value="Light actuator" />
       </Endpoint>
     </Unit>
 
     <Unit Id="2">
       <Endpoint Name="Garage/Recessed light 2" Area="4" Point="2">
-        <Setting Name="Actuator type" Value="Lighting" />
+        <Setting Name="Function type" Value="Light actuator" />
       </Endpoint>
     </Unit>
   </Device>
@@ -347,7 +348,7 @@ For that, you need to add a `Device` node with the correct brand/model attribute
   <Device Brand="BTicino" Model="F411U2" SerialNumber="00A472A9">
     <Unit Id="1">
       <Endpoint Name="Living room/Shutter" Area="1" Point="3">
-        <Setting Name="Actuator type" Value="Automation" />
+        <Setting Name="Function type" Value="Automation actuator" />
       </Endpoint>
     </Unit>
   </Device>
@@ -361,6 +362,22 @@ For that, you need to add a `Device` node with the correct brand/model attribute
 
     <Unit Id="2">
       <Endpoint Name="Living room/Wall light 2" Area="1" Point="2" />
+    </Unit>
+  </Device>
+
+  <!-- MyHome Up two-way contacts interface -->
+
+  <Device Brand="BTicino" Model="F428" SerialNumber="000A2E88">
+    <Unit Id="1">
+      <Endpoint Type="SCS light point" Area="8" Point="1">
+        <Setting Name="Function type" Value="Scheduled scenario" />
+      </Endpoint>
+    </Unit>
+
+    <Unit Id="2">
+      <Endpoint Type="SCS scenario plus" Id="1000">
+        <Setting Name="Function type" Value="Scheduled scenario plus" />
+      </Endpoint>
     </Unit>
   </Device>
 
@@ -708,16 +725,16 @@ options.AddEndpoint(new OpenNettyEndpoint
 });
 ```
 
-### Actuator type (SCS-only)
+### Function type (SCS-only)
 
-Many MyHome/MyHome Up devices can be configured to either act as lighting or automation (i.e shutter/cover) devices.
-To avoid ambiguities, OpenNetty requires that the actual type be specified for SCS products that support both modes:
+Many MyHome/MyHome Up devices can be configured to implement different features, such as shutter control or scenario activation.
+In some cases (e.g when an actuator is known to support both light and automation modes), OpenNetty requires that the function type be specified:
 
 ```xml
 <Device Brand="BTicino" Model="F411U2" SerialNumber="00B582A5">
   <Unit Id="1">
     <Endpoint Name="Garage/Recessed light 1" Area="4" Point="1">
-      <Setting Name="Actuator type" Value="Lighting" />
+      <Setting Name="Function type" Value="Light actuator" />
     </Endpoint>
   </Unit>
 </Device>
@@ -725,7 +742,7 @@ To avoid ambiguities, OpenNetty requires that the actual type be specified for S
 <Device Brand="BTicino" Model="F411U2" SerialNumber="00A472A9">
   <Unit Id="1">
     <Endpoint Name="Living room/Shutter" Area="1" Point="3">
-      <Setting Name="Actuator type" Value="Automation" />
+      <Setting Name="Function type" Value="Automation actuator" />
     </Endpoint>
   </Unit>
 </Device>
@@ -733,9 +750,9 @@ To avoid ambiguities, OpenNetty requires that the actual type be specified for S
 
 ### Action validation (Nitoo-only, powerline-only)
 
-As they operate over an unreliable medium (i.e power lines), Nitoo PLC devices may not always receive some of the messages
-sent by the OpenWebNet gateway. To mitigate that, these devices automatically report back whether a bus command or dimension set
-demand was successfully applied or not using special VALID ACTION or INVALID ACTION diagnostic frames: OpenNetty monitors these
+As they operate over an unreliable medium (i.e power lines), Nitoo PLC devices may not always receive the messages sent by the
+OpenWebNet gateway. To mitigate that, these devices automatically report back whether a bus command or dimension set demand
+was successfully applied or not using special VALID ACTION or INVALID ACTION diagnostic frames: OpenNetty monitors these
 frames to determine whether the requested action was actually performed: when no confirmation is received, the initial message
 is automatically retransmitted by OpenNetty until the maximum number of allowed retransmissions is reached (2 by default) or
 the demand is confirmed by the remote device. If no positive confirmation is received, the command is assumed to be unsuccessful

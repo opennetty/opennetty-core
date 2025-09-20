@@ -257,6 +257,19 @@ public class OpenNettyManager
             }
         }
 
+        else if (address.Type is OpenNettyAddressType.ScsScenarioPlus)
+        {
+            await foreach (var endpoint in EnumerateEndpointsAsync(cancellationToken))
+            {
+                if (endpoint.Protocol is OpenNettyProtocol.Scs &&
+                    endpoint.Gateway == gateway &&
+                    endpoint.Address is not null && endpoint.Address == address)
+                {
+                    yield return endpoint;
+                }
+            }
+        }
+
         else if (address.Type is OpenNettyAddressType.Zigbee)
         {
             await foreach (var endpoint in EnumerateEndpointsAsync(cancellationToken))
