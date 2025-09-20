@@ -12,14 +12,14 @@ namespace OpenNetty;
 public static class OpenNettyCapabilities
 {
     /// <summary>
-    /// Action scenario control.
+    /// Action scenario activation.
     /// </summary>
-    public static readonly OpenNettyCapability ActionScenarioControl = new("Action scenario control");
+    public static readonly OpenNettyCapability ActionScenarioActivation = new("Action scenario activation");
 
     /// <summary>
-    /// Action scenario state.
+    /// Action scenario event.
     /// </summary>
-    public static readonly OpenNettyCapability ActionScenarioState = new("Action scenario state");
+    public static readonly OpenNettyCapability ActionScenarioEvent = new("Action scenario event");
 
     /// <summary>
     /// Advanced dimming control.
@@ -72,6 +72,11 @@ public static class OpenNettyCapabilities
     public static readonly OpenNettyCapability BatteryLevel = new("Battery level");
 
     /// <summary>
+    /// Configurable push button numbers.
+    /// </summary>
+    public static readonly OpenNettyCapability ConfigurablePushButtonNumbers = new("Configurable push button numbers");
+
+    /// <summary>
     /// Date/time.
     /// </summary>
     public static readonly OpenNettyCapability DateTime = new("Date/time");
@@ -82,14 +87,34 @@ public static class OpenNettyCapabilities
     public static readonly OpenNettyCapability DeviceDescription = new("Device description");
 
     /// <summary>
-    /// Dimming scenario control.
+    /// Dimming scenario activation.
     /// </summary>
-    public static readonly OpenNettyCapability DimmingScenarioControl = new("Dimming scenario control");
+    public static readonly OpenNettyCapability DimmingScenarioActivation = new("Dimming scenario activation");
 
     /// <summary>
-    /// Dimming scenario state.
+    /// Dimming scenario event.
     /// </summary>
-    public static readonly OpenNettyCapability DimmingScenarioState = new("Dimming scenario state");
+    public static readonly OpenNettyCapability DimmingScenarioEvent = new("Dimming scenario event");
+
+    /// <summary>
+    /// Pressure scenario activation.
+    /// </summary>
+    public static readonly OpenNettyCapability PressureScenarioActivation = new("Pressure scenario activation");
+
+    /// <summary>
+    /// Pressure scenario event.
+    /// </summary>
+    public static readonly OpenNettyCapability PressureScenarioEvent = new("Pressure scenario event");
+
+    /// <summary>
+    /// Pressure scenario plus activation.
+    /// </summary>
+    public static readonly OpenNettyCapability PressureScenarioPlusActivation = new("Pressure scenario plus activation");
+
+    /// <summary>
+    /// Pressure scenario plus event.
+    /// </summary>
+    public static readonly OpenNettyCapability PressureScenarioPlusEvent = new("Pressure scenario plus event");
 
     /// <summary>
     /// Firmware version.
@@ -117,14 +142,14 @@ public static class OpenNettyCapabilities
     public static readonly OpenNettyCapability MemoryWriting = new("Memory writing");
 
     /// <summary>
-    /// On/off scenario control.
+    /// On/off scenario activation.
     /// </summary>
-    public static readonly OpenNettyCapability OnOffScenarioControl = new("On/off scenario control");
+    public static readonly OpenNettyCapability OnOffScenarioActivation = new("On/off scenario activation");
 
     /// <summary>
-    /// On/off scenario state.
+    /// On/off scenario event.
     /// </summary>
-    public static readonly OpenNettyCapability OnOffScenarioState = new("On/off scenario state");
+    public static readonly OpenNettyCapability OnOffScenarioEvent = new("On/off scenario event");
 
     /// <summary>
     /// On/off switch control.
@@ -162,19 +187,14 @@ public static class OpenNettyCapabilities
     public static readonly OpenNettyCapability PilotWireHeating = new("Pilot wire heating");
 
     /// <summary>
-    /// Progressive scenario control.
+    /// Progressive scenario activation.
     /// </summary>
-    public static readonly OpenNettyCapability ProgressiveScenarioControl = new("Progressive scenario control");
+    public static readonly OpenNettyCapability ProgressiveScenarioActivation = new("Progressive scenario activation");
 
     /// <summary>
-    /// Progressive scenario state.
+    /// Progressive scenario event.
     /// </summary>
-    public static readonly OpenNettyCapability ProgressiveScenarioState = new("Progressive scenario state");
-
-    /// <summary>
-    /// Short pressure scenario state.
-    /// </summary>
-    public static readonly OpenNettyCapability ShortPressureScenarioState = new("Short pressure scenario state");
+    public static readonly OpenNettyCapability ProgressiveScenarioEvent = new("Progressive scenario event");
 
     /// <summary>
     /// Smart meter indexes.
@@ -187,39 +207,39 @@ public static class OpenNettyCapabilities
     public static readonly OpenNettyCapability SmartMeterInformation = new("Smart meter information");
 
     /// <summary>
-    /// Action scenario control.
+    /// Action scenario activation.
     /// </summary>
-    public static readonly OpenNettyCapability StopActionScenarioControl = new("Stop action scenario control");
+    public static readonly OpenNettyCapability StopActionScenarioActivation = new("Stop action scenario activation");
 
     /// <summary>
-    /// Action scenario state.
+    /// Action scenario event.
     /// </summary>
-    public static readonly OpenNettyCapability StopActionScenarioState = new("Stop action scenario state");
+    public static readonly OpenNettyCapability StopActionScenarioEvent = new("Stop action scenario event");
 
     /// <summary>
-    /// Stop/up/down scenario control.
+    /// Stop/up/down scenario activation.
     /// </summary>
-    public static readonly OpenNettyCapability StopUpDownScenarioControl = new("Stop/up/down scenario control");
+    public static readonly OpenNettyCapability StopUpDownScenarioActivation = new("Stop/up/down scenario activation");
 
     /// <summary>
-    /// Stop/up/down scenario state.
+    /// Stop/up/down scenario event.
     /// </summary>
-    public static readonly OpenNettyCapability StopUpDownScenarioState = new("Stop/up/down scenario state");
+    public static readonly OpenNettyCapability StopUpDownScenarioEvent = new("Stop/up/down scenario event");
 
     /// <summary>
-    /// Timed scenario control.
+    /// Timed scenario activation.
     /// </summary>
-    public static readonly OpenNettyCapability TimedScenarioControl = new("Timed scenario control");
+    public static readonly OpenNettyCapability TimedScenarioActivation = new("Timed scenario activation");
 
     /// <summary>
-    /// Timed scenario state.
+    /// Timed scenario event.
     /// </summary>
-    public static readonly OpenNettyCapability TimedScenarioState = new("Timed scenario state");
+    public static readonly OpenNettyCapability TimedScenarioEvent = new("Timed scenario event");
 
     /// <summary>
-    /// Toggle scenario state.
+    /// Toggle scenario event.
     /// </summary>
-    public static readonly OpenNettyCapability ToggleScenarioState = new("Toggle scenario state");
+    public static readonly OpenNettyCapability ToggleScenarioEvent = new("Toggle scenario event");
 
     /// <summary>
     /// Unit description.

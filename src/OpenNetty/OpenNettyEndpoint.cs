@@ -6,6 +6,7 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 
 namespace OpenNetty;
 
@@ -77,6 +78,15 @@ public sealed class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
     /// <returns>The boolean setting if it could be found, <see langword="null"/> otherwise.</returns>
     public bool? GetBooleanSetting(OpenNettySetting setting)
         => TryGetSetting(setting, out string? value) && bool.TryParse(value, out bool result) ? result : null;
+
+    /// <summary>
+    /// Resolves the specified integer setting from the settings attached
+    /// to the endpoint (if set) or from the device or unit device objects.
+    /// </summary>
+    /// <param name="setting">The setting name.</param>
+    /// <returns>The integer setting if it could be found, <see langword="null"/> otherwise.</returns>
+    public long? GetIntegerSetting(OpenNettySetting setting)
+        => TryGetSetting(setting, out string? value) && long.TryParse(value, CultureInfo.InvariantCulture, out long result) ? result : null;
 
     /// <summary>
     /// Resolves the specified string setting from the settings attached

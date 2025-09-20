@@ -29,5 +29,10 @@ public enum OpenNettyAddressType
     /// <summary>
     /// SCS light point address.
     /// </summary>
-    ScsLightPoint = 3
+    ScsLightPoint = 3,
+
+    /// <summary>
+    /// SCS scenario plus address.
+    /// </summary>
+    ScsScenarioPlus = 4
 }

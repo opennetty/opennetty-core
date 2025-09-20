@@ -95,7 +95,7 @@ public class OpenNettyController
 
         return _service.ExecuteCommandAsync(
             protocol         : endpoint.Protocol,
-            command          : OpenNettyCommands.Scenario.BindingRequest,
+            command          : OpenNettyCommands.ScenariosPlus.BindingRequest,
             address          : endpoint.Address,
             medium           : endpoint.Medium,
             mode             : null,
@@ -270,17 +270,17 @@ public class OpenNettyController
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 
-        if (!endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioControl))
+        if (!endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioActivation))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         await _service.ExecuteCommandAsync(
             protocol         : endpoint.Protocol,
-            command          : OpenNettyCommands.Scenario.Action,
+            command          : OpenNettyCommands.ScenariosPlus.Action,
             address          : endpoint.Address,
             medium           : endpoint.Medium,
-            mode             : OpenNettyMode.Broadcast,
+            mode             : null,
             gateway          : endpoint.Gateway,
             options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
@@ -298,7 +298,7 @@ public class OpenNettyController
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 
-        if (!endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioControl))
+        if (!endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioActivation))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
@@ -326,7 +326,7 @@ public class OpenNettyController
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 
-        if (!endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioControl))
+        if (!endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioActivation))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
@@ -337,6 +337,112 @@ public class OpenNettyController
             address          : endpoint.Address,
             medium           : endpoint.Medium,
             mode             : OpenNettyMode.Broadcast,
+            gateway          : endpoint.Gateway,
+            options          : GetTransmissionOptions(endpoint),
+            cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
+    /// Dispatches a virtual pressure scenario for the specified endpoint.
+    /// </summary>
+    /// <param name="endpoint">The endpoint.</param>
+    /// <param name="type">The type of scenario to dispatch.</param>
+    /// <param name="button">The button number.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
+    public virtual ValueTask DispatchPressureScenarioAsync(
+        OpenNettyEndpoint endpoint,
+        OpenNettyModels.Scenarios.PressureScenarioType type,
+        byte button,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
+
+        if (!endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
+        }
+
+        var command = type switch
+        {
+            OpenNettyModels.Scenarios.PressureScenarioType.Pressure
+                => new OpenNettyCommand(OpenNettyCategories.Scenarios, button.ToString(CultureInfo.InvariantCulture)),
+
+            OpenNettyModels.Scenarios.PressureScenarioType.ReleaseAfterShortPressure
+                => new OpenNettyCommand(OpenNettyCategories.Scenarios, button.ToString(CultureInfo.InvariantCulture), ["1"]),
+
+            OpenNettyModels.Scenarios.PressureScenarioType.ReleaseAfterExtendedPressure
+                => new OpenNettyCommand(OpenNettyCategories.Scenarios, button.ToString(CultureInfo.InvariantCulture), ["2"]),
+
+            OpenNettyModels.Scenarios.PressureScenarioType.ExtendedPressure
+                => new OpenNettyCommand(OpenNettyCategories.Scenarios, button.ToString(CultureInfo.InvariantCulture), ["3"]),
+
+            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+        };
+
+        return _service.ExecuteCommandAsync(
+            protocol         : endpoint.Protocol,
+            command          : command,
+            address          : endpoint.Address,
+            medium           : endpoint.Medium,
+            mode             : null,
+            gateway          : endpoint.Gateway,
+            options          : GetTransmissionOptions(endpoint),
+            cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
+    /// Dispatches a virtual short pressure scenario plus for the specified endpoint.
+    /// </summary>
+    /// <param name="endpoint">The endpoint.</param>
+    /// <param name="type">The type of scenario to dispatch.</param>
+    /// <param name="button">The button number, if applicable.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
+    public virtual ValueTask DispatchPressureScenarioPlusAsync(
+        OpenNettyEndpoint endpoint,
+        OpenNettyModels.ScenariosPlus.PressureScenarioType type,
+        byte? button = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
+
+        if (button is null && endpoint.HasCapability(OpenNettyCapabilities.ConfigurablePushButtonNumbers))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID1117));
+        }
+
+        if (button is not null && !endpoint.HasCapability(OpenNettyCapabilities.ConfigurablePushButtonNumbers))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID1118));
+        }
+
+        if (!endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioPlusActivation))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
+        }
+
+        var command = type switch
+        {
+            OpenNettyModels.ScenariosPlus.PressureScenarioType.ShortPressure           => OpenNettyCommands.ScenariosPlus.ShortPressure,
+            OpenNettyModels.ScenariosPlus.PressureScenarioType.StartOfExtendedPressure => OpenNettyCommands.ScenariosPlus.StartOfExtendedPressure,
+            OpenNettyModels.ScenariosPlus.PressureScenarioType.ExtendedPressure        => OpenNettyCommands.ScenariosPlus.ExtendedPressure,
+            OpenNettyModels.ScenariosPlus.PressureScenarioType.EndOfExtendedPressure   => OpenNettyCommands.ScenariosPlus.EndOfExtendedPressure,
+
+            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+        };
+
+        if (button is not null)
+        {
+            command = command.WithParameters(button.Value.ToString(CultureInfo.InvariantCulture));
+        }
+
+        return _service.ExecuteCommandAsync(
+            protocol         : endpoint.Protocol,
+            command          : command,
+            address          : endpoint.Address,
+            medium           : endpoint.Medium,
+            mode             : null,
             gateway          : endpoint.Gateway,
             options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
@@ -356,18 +462,18 @@ public class OpenNettyController
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 
-        if (!endpoint.HasCapability(OpenNettyCapabilities.ProgressiveScenarioControl))
+        if (!endpoint.HasCapability(OpenNettyCapabilities.ProgressiveScenarioActivation))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         return _service.ExecuteCommandAsync(
             protocol         : endpoint.Protocol,
-            command          : OpenNettyCommands.Scenario.ActionInTime.WithParameters(
+            command          : OpenNettyCommands.ScenariosPlus.ActionInTime.WithParameters(
                 /* TIME: */ ((long) (duration.TotalSeconds * 5 + .5)).ToString(CultureInfo.InvariantCulture)),
             address          : endpoint.Address,
             medium           : endpoint.Medium,
-            mode             : OpenNettyMode.Broadcast,
+            mode             : null,
             gateway          : endpoint.Gateway,
             options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
@@ -385,7 +491,7 @@ public class OpenNettyController
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 
-        if (!endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioControl))
+        if (!endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioActivation))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
@@ -413,7 +519,7 @@ public class OpenNettyController
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 
-        if (!endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioControl))
+        if (!endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioActivation))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
@@ -441,7 +547,7 @@ public class OpenNettyController
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 
-        if (!endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioControl))
+        if (!endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioActivation))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
@@ -469,17 +575,17 @@ public class OpenNettyController
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 
-        if (!endpoint.HasCapability(OpenNettyCapabilities.StopActionScenarioControl))
+        if (!endpoint.HasCapability(OpenNettyCapabilities.StopActionScenarioActivation))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         return _service.ExecuteCommandAsync(
             protocol         : endpoint.Protocol,
-            command          : OpenNettyCommands.Scenario.StopAction,
+            command          : OpenNettyCommands.ScenariosPlus.StopAction,
             address          : endpoint.Address,
             medium           : endpoint.Medium,
-            mode             : OpenNettyMode.Broadcast,
+            mode             : null,
             gateway          : endpoint.Gateway,
             options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
@@ -499,18 +605,18 @@ public class OpenNettyController
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 
-        if (!endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioControl))
+        if (!endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioActivation))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
         return _service.ExecuteCommandAsync(
             protocol         : endpoint.Protocol,
-            command          : OpenNettyCommands.Scenario.ActionForTime.WithParameters(
+            command          : OpenNettyCommands.ScenariosPlus.ActionForTime.WithParameters(
                 /* TIME: */ ((long) (duration.TotalSeconds * 5 + .5)).ToString(CultureInfo.InvariantCulture)),
             address          : endpoint.Address,
             medium           : endpoint.Medium,
-            mode             : OpenNettyMode.Broadcast,
+            mode             : null,
             gateway          : endpoint.Gateway,
             options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
@@ -537,8 +643,8 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
-        // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
-        if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Lighting))
+        // If the endpoint has a function type attached, ensure it is suitable for the requested operation.
+        if (endpoint.GetStringSetting(OpenNettySettings.FunctionType) is not (null or OpenNettySettings.FunctionTypes.LightActuator))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
@@ -676,8 +782,8 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
-        // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
-        if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Automation))
+        // If the endpoint has a function type attached, ensure it is suitable for the requested operation.
+        if (endpoint.GetStringSetting(OpenNettySettings.FunctionType) is not (null or OpenNettySettings.FunctionTypes.AutomationActuator))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
@@ -739,8 +845,8 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
-        // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
-        if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Automation))
+        // If the endpoint has a function type attached, ensure it is suitable for the requested operation.
+        if (endpoint.GetStringSetting(OpenNettySettings.FunctionType) is not (null or OpenNettySettings.FunctionTypes.AutomationActuator))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
@@ -864,8 +970,8 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
-        // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
-        if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Lighting))
+        // If the endpoint has a function type attached, ensure it is suitable for the requested operation.
+        if (endpoint.GetStringSetting(OpenNettySettings.FunctionType) is not (null or OpenNettySettings.FunctionTypes.LightActuator))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
@@ -966,8 +1072,8 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
-        // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
-        if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Lighting))
+        // If the endpoint has a function type attached, ensure it is suitable for the requested operation.
+        if (endpoint.GetStringSetting(OpenNettySettings.FunctionType) is not (null or OpenNettySettings.FunctionTypes.LightActuator))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
@@ -1441,8 +1547,8 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
-        // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
-        if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Automation))
+        // If the endpoint has a function type attached, ensure it is suitable for the requested operation.
+        if (endpoint.GetStringSetting(OpenNettySettings.FunctionType) is not (null or OpenNettySettings.FunctionTypes.AutomationActuator))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
@@ -1490,8 +1596,8 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
-        // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
-        if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Automation))
+        // If the endpoint has a function type attached, ensure it is suitable for the requested operation.
+        if (endpoint.GetStringSetting(OpenNettySettings.FunctionType) is not (null or OpenNettySettings.FunctionTypes.AutomationActuator))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
@@ -1651,8 +1757,8 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
-        // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
-        if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Lighting))
+        // If the endpoint has a function type attached, ensure it is suitable for the requested operation.
+        if (endpoint.GetStringSetting(OpenNettySettings.FunctionType) is not (null or OpenNettySettings.FunctionTypes.LightActuator))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
@@ -1937,8 +2043,8 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
-        // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
-        if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Automation))
+        // If the endpoint has a function type attached, ensure it is suitable for the requested operation.
+        if (endpoint.GetStringSetting(OpenNettySettings.FunctionType) is not (null or OpenNettySettings.FunctionTypes.AutomationActuator))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
@@ -1971,8 +2077,8 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
-        // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
-        if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Automation))
+        // If the endpoint has a function type attached, ensure it is suitable for the requested operation.
+        if (endpoint.GetStringSetting(OpenNettySettings.FunctionType) is not (null or OpenNettySettings.FunctionTypes.AutomationActuator))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
@@ -2236,14 +2342,9 @@ public class OpenNettyController
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 
-        if (!Enum.IsDefined(mode))
-        {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
-        }
-
         if (!Enum.IsDefined(duration))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
+            throw new InvalidDataException(SR.GetResourceString(SR.ID0068));
         }
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
@@ -2297,11 +2398,6 @@ public class OpenNettyController
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(endpoint);
-
-        if (!Enum.IsDefined(mode))
-        {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
-        }
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
         {
@@ -2385,11 +2481,6 @@ public class OpenNettyController
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 
-        if (!Enum.IsDefined(mode))
-        {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
-        }
-
         if (!endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
@@ -2431,8 +2522,8 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
-        // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
-        if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Automation))
+        // If the endpoint has a function type attached, ensure it is suitable for the requested operation.
+        if (endpoint.GetStringSetting(OpenNettySettings.FunctionType) is not (null or OpenNettySettings.FunctionTypes.AutomationActuator))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
@@ -2465,8 +2556,8 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
-        // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
-        if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Lighting))
+        // If the endpoint has a function type attached, ensure it is suitable for the requested operation.
+        if (endpoint.GetStringSetting(OpenNettySettings.FunctionType) is not (null or OpenNettySettings.FunctionTypes.LightActuator))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
@@ -2505,8 +2596,8 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
-        // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
-        if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Lighting))
+        // If the endpoint has a function type attached, ensure it is suitable for the requested operation.
+        if (endpoint.GetStringSetting(OpenNettySettings.FunctionType) is not (null or OpenNettySettings.FunctionTypes.LightActuator))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
@@ -2545,8 +2636,8 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
-        // If the endpoint has an actuator type attached, ensure it is suitable for the requested operation.
-        if (endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Lighting))
+        // If the endpoint has a function type attached, ensure it is suitable for the requested operation.
+        if (endpoint.GetStringSetting(OpenNettySettings.FunctionType) is not (null or OpenNettySettings.FunctionTypes.LightActuator))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
@@ -2614,7 +2705,7 @@ public class OpenNettyController
 
         return _service.ExecuteCommandAsync(
             protocol         : endpoint.Protocol,
-            command          : OpenNettyCommands.Scenario.UnbindingRequest,
+            command          : OpenNettyCommands.ScenariosPlus.UnbindingRequest,
             address          : endpoint.Address,
             medium           : endpoint.Medium,
             mode             : null,

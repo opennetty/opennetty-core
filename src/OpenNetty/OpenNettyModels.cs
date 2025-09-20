@@ -394,6 +394,70 @@ public static class OpenNettyModels
     }
 
     /// <summary>
+    /// Scenarios models (WHO = 15).
+    /// </summary>
+    public static class Scenarios
+    {
+        /// <summary>
+        /// Pressure scenario type.
+        /// </summary>
+        public enum PressureScenarioType
+        {
+            /// <summary>
+            /// Pressure.
+            /// </summary>
+            Pressure = 0,
+
+            /// <summary>
+            /// Release after short pressure.
+            /// </summary>
+            ReleaseAfterShortPressure = 1,
+
+            /// <summary>
+            /// Release after extended pressure.
+            /// </summary>
+            ReleaseAfterExtendedPressure = 2,
+
+            /// <summary>
+            /// Extended pressure.
+            /// </summary>
+            ExtendedPressure = 3
+        }
+    }
+
+    /// <summary>
+    /// Scenarios plus models (WHO = 15).
+    /// </summary>
+    public static class ScenariosPlus
+    {
+        /// <summary>
+        /// Pressure scenario type.
+        /// </summary>
+        public enum PressureScenarioType
+        {
+            /// <summary>
+            /// Short pressure.
+            /// </summary>
+            ShortPressure = 0,
+
+            /// <summary>
+            /// Start of extended pressure.
+            /// </summary>
+            StartOfExtendedPressure = 1,
+
+            /// <summary>
+            /// Extended pressure.
+            /// </summary>
+            ExtendedPressure = 2,
+
+            /// <summary>
+            /// End of extended pressure.
+            /// </summary>
+            EndOfExtendedPressure = 3
+        }
+    }
+
+    /// <summary>
     /// Diagnostics models (WHO = 1000).
     /// </summary>
     public static class Diagnostics
@@ -464,7 +528,9 @@ public static class OpenNettyModels
             /// <returns>A new instance of the <see cref="MemoryData"/> class.</returns>
             public static MemoryData CreateFromUnitDescription(ImmutableArray<string> values) => new()
             {
-                Address      = new OpenNettyAddress(OpenNettyAddressType.Nitoo, values[1]),
+                Address      = OpenNettyAddress.FromNitooAddress(
+                    identifier: uint.Parse(values[1], CultureInfo.InvariantCulture) / 16,
+                    unit      : (byte) (uint.Parse(values[1], CultureInfo.InvariantCulture) % 16)),
                 FunctionCode = byte.Parse(values[2], CultureInfo.InvariantCulture),
                 Medium       = values[0] switch
                 {

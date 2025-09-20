@@ -207,7 +207,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         if (notification is OpenNettyNotifications.MessageReceived &&
                             message.Mode is OpenNettyMode.Broadcast &&
                             endpoint.Protocol is OpenNettyProtocol.Nitoo &&
-                            endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioState))
+                            endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioEvent))
                         {
                             if (message.Command == OpenNettyCommands.Lighting.On)
                             {
@@ -558,7 +558,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         if (notification is OpenNettyNotifications.MessageReceived &&
                             message.Protocol is OpenNettyProtocol.Nitoo &&
                             message.Mode is OpenNettyMode.Broadcast &&
-                            endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioState))
+                            endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioEvent))
                         {
                             if (message.Command == OpenNettyCommands.Automation.Stop)
                             {
@@ -601,7 +601,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
                     {
                         if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState) &&
-                            endpoint.GetStringSetting(OpenNettySettings.ActuatorType) is not (null or OpenNettySettings.ActuatorTypes.Automation))
+                            endpoint.GetStringSetting(OpenNettySettings.FunctionType) is not (null or OpenNettySettings.FunctionTypes.AutomationActuator))
                         {
                             await _events.PublishAsync(new ShutterStateReportedEventArgs(endpoint,
                                 (status, byte.Parse(position, CultureInfo.InvariantCulture)) switch
@@ -1301,9 +1301,9 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Type    : OpenNettyMessageType.BusCommand,
                                          Command : OpenNettyCommand command,
                                          Address : not null })
-                    when command == OpenNettyCommands.Scenario.OpenBinding ||
-                         command == OpenNettyCommands.Scenario.CloseBinding ||
-                         command == OpenNettyCommands.Scenario.CancelBinding:
+                    when command == OpenNettyCommands.ScenariosPlus.OpenBinding ||
+                         command == OpenNettyCommands.ScenariosPlus.CloseBinding ||
+                         command == OpenNettyCommands.ScenariosPlus.CancelBinding:
                 {
                     var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
 
@@ -1311,17 +1311,17 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     {
                         if (endpoint.HasCapability(OpenNettyCapabilities.ZigbeeBinding))
                         {
-                            if (command == OpenNettyCommands.Scenario.OpenBinding)
+                            if (command == OpenNettyCommands.ScenariosPlus.OpenBinding)
                             {
                                 await _events.PublishAsync(new BindingOpenEventArgs(endpoint), cancellationToken);
                             }
 
-                            else if (command == OpenNettyCommands.Scenario.CloseBinding)
+                            else if (command == OpenNettyCommands.ScenariosPlus.CloseBinding)
                             {
                                 await _events.PublishAsync(new BindingClosedEventArgs(endpoint), cancellationToken);
                             }
 
-                            else if (command == OpenNettyCommands.Scenario.CancelBinding)
+                            else if (command == OpenNettyCommands.ScenariosPlus.CancelBinding)
                             {
                                 await _events.PublishAsync(new BindingCanceledEventArgs(endpoint), cancellationToken);
                             }
@@ -1364,7 +1364,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
 
                     await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
                     {
-                        if (endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioState))
+                        if (endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioEvent))
                         {
                             var step = int.Parse(value, CultureInfo.InvariantCulture);
                             if (step is >= 128)
@@ -1389,7 +1389,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
 
                     await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
                     {
-                        if (endpoint.HasCapability(OpenNettyCapabilities.ToggleScenarioState))
+                        if (endpoint.HasCapability(OpenNettyCapabilities.ToggleScenarioEvent))
                         {
                             await _events.PublishAsync(new ToggleScenarioReportedEventArgs(endpoint), cancellationToken);
                         }
@@ -1398,19 +1398,60 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 }
 
                 case (OpenNettyNotifications.MessageReceived,
-                      OpenNettyMessage { Protocol: OpenNettyProtocol.Zigbee,
+                      OpenNettyMessage { Protocol: OpenNettyProtocol.Scs,
                                          Type    : OpenNettyMessageType.BusCommand,
                                          Command : OpenNettyCommand command,
                                          Address : not null })
-                    when command == OpenNettyCommands.Scenario.ShortPressure:
+                    // Note: pressure BUS COMMAND frames use the button number as the command.
+                    when command.Category == OpenNettyCategories.Scenarios &&
+                         byte.TryParse(command.Value, CultureInfo.InvariantCulture, out byte button) && button is <= 31:
                 {
+                    var type =
+                        command.Parameters is [   ] ? OpenNettyModels.Scenarios.PressureScenarioType.Pressure :
+                        command.Parameters is ["1"] ? OpenNettyModels.Scenarios.PressureScenarioType.ReleaseAfterShortPressure :
+                        command.Parameters is ["2"] ? OpenNettyModels.Scenarios.PressureScenarioType.ReleaseAfterExtendedPressure :
+                        command.Parameters is ["3"] ? OpenNettyModels.Scenarios.PressureScenarioType.ExtendedPressure :
+                        throw new InvalidDataException(SR.GetResourceString(SR.ID0068));
+
                     var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
 
                     await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
                     {
-                        if (endpoint.HasCapability(OpenNettyCapabilities.ShortPressureScenarioState))
+                        if (endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioEvent))
                         {
-                            await _events.PublishAsync(new ShortPressureScenarioReportedEventArgs(endpoint), cancellationToken);
+                            await _events.PublishAsync(new PressureScenarioReportedEventArgs(endpoint, type, button), cancellationToken);
+                        }
+                    });
+                    break;
+                }
+
+                case (OpenNettyNotifications.MessageReceived,
+                      OpenNettyMessage { Protocol: OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee,
+                                         Type    : OpenNettyMessageType.BusCommand,
+                                         Command : OpenNettyCommand command,
+                                         Address : not null })
+                    // Note: pressure BUS COMMAND frames can be parameterized.
+                    when command.WithParameters([]) == OpenNettyCommands.ScenariosPlus.ShortPressure ||
+                         command.WithParameters([]) == OpenNettyCommands.ScenariosPlus.StartOfExtendedPressure ||
+                         command.WithParameters([]) == OpenNettyCommands.ScenariosPlus.ExtendedPressure ||
+                         command.WithParameters([]) == OpenNettyCommands.ScenariosPlus.EndOfExtendedPressure:
+                {
+                    var type =
+                        command.WithParameters([]) == OpenNettyCommands.ScenariosPlus.ShortPressure           ? OpenNettyModels.ScenariosPlus.PressureScenarioType.ShortPressure :
+                        command.WithParameters([]) == OpenNettyCommands.ScenariosPlus.StartOfExtendedPressure ? OpenNettyModels.ScenariosPlus.PressureScenarioType.StartOfExtendedPressure :
+                        command.WithParameters([]) == OpenNettyCommands.ScenariosPlus.ExtendedPressure        ? OpenNettyModels.ScenariosPlus.PressureScenarioType.ExtendedPressure :
+                        command.WithParameters([]) == OpenNettyCommands.ScenariosPlus.EndOfExtendedPressure   ? OpenNettyModels.ScenariosPlus.PressureScenarioType.EndOfExtendedPressure :
+                        throw new InvalidDataException(SR.GetResourceString(SR.ID0068));
+
+                    byte? button = command.Parameters is [string value] ? byte.Parse(value, CultureInfo.InvariantCulture) : null;
+
+                    var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
+
+                    await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                    {
+                        if (endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioPlusEvent))
+                        {
+                            await _events.PublishAsync(new PressureScenarioPlusReportedEventArgs(endpoint, type, button), cancellationToken);
                         }
                     });
                     break;
@@ -1423,9 +1464,9 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Address : not null,
                                          Mode    : OpenNettyMode mode })
                     // Note: timed and progressive scenarios are parameterized.
-                    when command == OpenNettyCommands.Scenario.Action ||
-                         command.WithParameters([]) == OpenNettyCommands.Scenario.ActionForTime ||
-                         command.WithParameters([]) == OpenNettyCommands.Scenario.ActionInTime:
+                    when command == OpenNettyCommands.ScenariosPlus.Action ||
+                         command.WithParameters([]) == OpenNettyCommands.ScenariosPlus.ActionForTime ||
+                         command.WithParameters([]) == OpenNettyCommands.ScenariosPlus.ActionInTime:
                 {
                     var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
 
@@ -1433,9 +1474,9 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     {
                         List<Task> tasks = [];
 
-                        if (command == OpenNettyCommands.Scenario.Action)
+                        if (command == OpenNettyCommands.ScenariosPlus.Action)
                         {
-                            if (!endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioState))
+                            if (!endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioEvent))
                             {
                                 return;
                             }
@@ -1478,9 +1519,9 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                             }, cancellationToken));
                         }
 
-                        else if (command.Value == OpenNettyCommands.Scenario.ActionForTime.Value)
+                        else if (command.Value == OpenNettyCommands.ScenariosPlus.ActionForTime.Value)
                         {
-                            if (!endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioState))
+                            if (!endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioEvent))
                             {
                                 return;
                             }
@@ -1493,9 +1534,9 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                             }
                         }
 
-                        else if (command.Value == OpenNettyCommands.Scenario.ActionInTime.Value)
+                        else if (command.Value == OpenNettyCommands.ScenariosPlus.ActionInTime.Value)
                         {
-                            if (!endpoint.HasCapability(OpenNettyCapabilities.ProgressiveScenarioState))
+                            if (!endpoint.HasCapability(OpenNettyCapabilities.ProgressiveScenarioEvent))
                             {
                                 return;
                             }
@@ -1659,7 +1700,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     Command : OpenNettyCommand command,
                     Address : not null,
                     Mode    : OpenNettyMode.Broadcast } message }
-                when command == OpenNettyCommands.Scenario.Action
+                when command == OpenNettyCommands.ScenariosPlus.Action
                     => AsyncObservable.Return<(OpenNettyNotification Notification, OpenNettyMessage Message)>((notification, message)),
 
             OpenNettyNotifications.MessageReceived {
@@ -1671,7 +1712,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     Address : not null,
                     Mode    : OpenNettyMode.Broadcast } message }
                 // Note: timed scenarios are reported using parameterized BUS COMMAND frames.
-                when command.WithParameters([]) == OpenNettyCommands.Scenario.ActionForTime
+                when command.WithParameters([]) == OpenNettyCommands.ScenariosPlus.ActionForTime
                     => AsyncObservable.Return<(OpenNettyNotification Notification, OpenNettyMessage Message)>((notification, message)),
 
             OpenNettyNotifications.MessageReceived {
@@ -1683,7 +1724,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     Address : not null,
                     Mode    : OpenNettyMode.Broadcast } message }
                 // Note: progressive scenarios are reported using parameterized BUS COMMAND frames.
-                when command.WithParameters([]) == OpenNettyCommands.Scenario.ActionInTime
+                when command.WithParameters([]) == OpenNettyCommands.ScenariosPlus.ActionInTime
                     => AsyncObservable.Return<(OpenNettyNotification Notification, OpenNettyMessage Message)>((notification, message)),
 
             // Nitoo devices allow changing the brightness level of a local unit (and of associated
@@ -1718,7 +1759,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 switch (message)
                 {
                     case { Type: OpenNettyMessageType.BusCommand, Command: OpenNettyCommand command }
-                        when command == OpenNettyCommands.Scenario.Action && !endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioState):
+                        when command == OpenNettyCommands.ScenariosPlus.Action && !endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioEvent):
                         return;
 
                     case { Type: OpenNettyMessageType.BusCommand, Command: OpenNettyCommand command }
@@ -1742,18 +1783,18 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         break;
 
                     case { Type: OpenNettyMessageType.BusCommand, Command: OpenNettyCommand command }
-                        when command.WithParameters([]) == OpenNettyCommands.Scenario.ActionForTime &&
-                            !endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioState):
+                        when command.WithParameters([]) == OpenNettyCommands.ScenariosPlus.ActionForTime &&
+                            !endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioEvent):
                         return;
 
                     case { Type: OpenNettyMessageType.BusCommand, Command: OpenNettyCommand command }
-                        when command.WithParameters([]) == OpenNettyCommands.Scenario.ActionInTime &&
-                            !endpoint.HasCapability(OpenNettyCapabilities.ProgressiveScenarioState):
+                        when command.WithParameters([]) == OpenNettyCommands.ScenariosPlus.ActionInTime &&
+                            !endpoint.HasCapability(OpenNettyCapabilities.ProgressiveScenarioEvent):
                         return;
 
                     case { Type: OpenNettyMessageType.DimensionSet, Dimension: OpenNettyDimension dimension }
                         when dimension == OpenNettyDimensions.Lighting.DimmerStep &&
-                            !endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioState):
+                            !endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioEvent):
                         return;
                 }
 
@@ -1828,7 +1869,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     Address : not null,
                     Mode    : OpenNettyMode.Broadcast } message }
                 // Note: timed scenarios are reported using parameterized BUS COMMAND frames.
-                when command.WithParameters([]) == OpenNettyCommands.Scenario.ActionForTime &&
+                when command.WithParameters([]) == OpenNettyCommands.ScenariosPlus.ActionForTime &&
                      Math.Round(double.Parse(command.Parameters[0], CultureInfo.InvariantCulture) / 5, MidpointRounding.AwayFromZero) is double duration
                      => AsyncObservable.Timer(TimeSpan.FromSeconds(duration)).Select(_ => (Notification: notification, Message: message)),
 
@@ -1842,7 +1883,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
 
             await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
             {
-                if (!endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioState))
+                if (!endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioEvent))
                 {
                     return;
                 }

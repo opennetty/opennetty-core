@@ -6,6 +6,7 @@
 
 using System.Collections.Immutable;
 using System.ComponentModel;
+using System.Globalization;
 using System.Text;
 using Microsoft.Extensions.Options;
 
@@ -149,27 +150,44 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
                     break;
             }
 
-            switch (endpoint.GetStringSetting(OpenNettySettings.ActuatorType))
+            switch (endpoint.GetStringSetting(OpenNettySettings.FunctionType))
             {
                 // If the endpoint supports both lighting and automation commands,
-                // require that the actuator type be configured via the dedicated setting.
+                // require that the function type be configured via the dedicated setting.
                 case null or { Length: 0 } when SupportsLightControl(endpoint) && SupportsShutterControl(endpoint):
                     return ValidateOptionsResult.Fail(SR.FormatID2002(endpoint.Name));
 
+                // If the endpoint supports both pressure scenarios and pressure scenarios plus,
+                // require that the function type be configured via the dedicated setting.
+                case null or { Length: 0 } when
+                    endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioEvent) &&
+                    endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioPlusEvent):
+                    return ValidateOptionsResult.Fail(SR.FormatID2014(endpoint.Name));
+
                 case string type when type is not (
-                    OpenNettySettings.ActuatorTypes.Automation or
-                    OpenNettySettings.ActuatorTypes.Lighting):
+                    OpenNettySettings.FunctionTypes.AutomationActuator or
+                    OpenNettySettings.FunctionTypes.LightActuator      or 
+                    OpenNettySettings.FunctionTypes.ScheduledScenario  or
+                    OpenNettySettings.FunctionTypes.ScheduledScenarioPlus):
                     return ValidateOptionsResult.Fail(SR.FormatID2003(endpoint.Name, type));
             }
 
             switch (endpoint.GetStringSetting(OpenNettySettings.SwitchMode))
             {
-                case null or { Length: 0 }: break;
-
                 case string mode when mode is not (
                     OpenNettySettings.SwitchModes.Default or
                     OpenNettySettings.SwitchModes.PushButton):
                     return ValidateOptionsResult.Fail(SR.FormatID2004(endpoint.Name, mode));
+            }
+
+            switch (endpoint.GetStringSetting(OpenNettySettings.PushButtonNumbers))
+            {
+                case null or { Length: 0 } when endpoint.HasCapability(OpenNettyCapabilities.ConfigurablePushButtonNumbers):
+                    return ValidateOptionsResult.Fail(SR.FormatID2015(endpoint.Name));
+
+                case string text when text.Split(',', StringSplitOptions.RemoveEmptyEntries) is not [_, ..] array ||
+                    array.Any(number => !byte.TryParse(number, CultureInfo.InvariantCulture, out _)):
+                    return ValidateOptionsResult.Fail(SR.FormatID2016(endpoint.Name));
             }
 
             static bool SupportsLightControl(OpenNettyEndpoint endpoint) =>

@@ -254,10 +254,12 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
                     message.Medium = OpenNettyMedium.Bus;
 
                     var type =
-                        message.Category == OpenNettyCategories.Lighting   ? OpenNettyAddressType.ScsLightPoint :
-                        // Note: the WHO=2 category uses the same addressing scheme as the lighting category (WHO=1).
-                        message.Category == OpenNettyCategories.Automation ? OpenNettyAddressType.ScsLightPoint :
-                                                                             OpenNettyAddressType.Unknown;
+                        // Note: the WHO=2 and WHO=15 categories use the same addressing scheme as the WHO=1 category.
+                        message.Category == OpenNettyCategories.Lighting      ? OpenNettyAddressType.ScsLightPoint   :
+                        message.Category == OpenNettyCategories.Automation    ? OpenNettyAddressType.ScsLightPoint   :
+                        message.Category == OpenNettyCategories.Scenarios     ? OpenNettyAddressType.ScsLightPoint   :
+                        message.Category == OpenNettyCategories.ScenariosPlus ? OpenNettyAddressType.ScsScenarioPlus :
+                                                                                OpenNettyAddressType.Unknown;
 
                     if (field.Parameters.Length is 1)
                     {
@@ -650,7 +652,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
 
                 // Note: broadcast is always the default transmission mode for WHO=25 messages (scenarios).
                 case OpenNettyMode.Broadcast:
-                case null when category == OpenNettyCategories.Scenarios:
+                case null when category == OpenNettyCategories.ScenariosPlus:
                     parameters.Add(new OpenNettyParameter("0"));
                     break;
             }

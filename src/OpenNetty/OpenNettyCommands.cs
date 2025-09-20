@@ -177,59 +177,86 @@ public static class OpenNettyCommands
     }
 
     /// <summary>
-    /// Scenario commands (WHO = 25).
+    /// Scenarios plus commands (WHO = 25).
     /// </summary>
-    public static class Scenario
+    public static class ScenariosPlus
     {
         /// <summary>
         /// Action (WHAT = 11).
         /// </summary>
-        public static readonly OpenNettyCommand Action = new(OpenNettyCategories.Scenarios, "11");
+        public static readonly OpenNettyCommand Action = new(OpenNettyCategories.ScenariosPlus, "11");
 
         /// <summary>
         /// Stop action (WHAT = 16).
         /// </summary>
-        public static readonly OpenNettyCommand StopAction = new(OpenNettyCategories.Scenarios, "16");
+        public static readonly OpenNettyCommand StopAction = new(OpenNettyCategories.ScenariosPlus, "16");
 
         /// <summary>
         /// Action for time (WHAT = 17).
         /// </summary>
-        public static readonly OpenNettyCommand ActionForTime = new(OpenNettyCategories.Scenarios, "17");
+        public static readonly OpenNettyCommand ActionForTime = new(OpenNettyCategories.ScenariosPlus, "17");
 
         /// <summary>
         /// Action in time (WHAT = 18).
         /// </summary>
-        public static readonly OpenNettyCommand ActionInTime = new(OpenNettyCategories.Scenarios, "18");
+        public static readonly OpenNettyCommand ActionInTime = new(OpenNettyCategories.ScenariosPlus, "18");
 
         /// <summary>
         /// Short pressure (WHAT = 21).
         /// </summary>
-        public static readonly OpenNettyCommand ShortPressure = new(OpenNettyCategories.Scenarios, "21");
+        /// <remarks>
+        /// Note: this command MAY require specifying additional parameters.
+        /// </remarks>
+        public static readonly OpenNettyCommand ShortPressure = new(OpenNettyCategories.ScenariosPlus, "21");
+
+        /// <summary>
+        /// Start of extended pressure (WHAT = 22).
+        /// </summary>
+        /// <remarks>
+        /// Note: this command requires specifying additional parameters.
+        /// </remarks>
+        public static readonly OpenNettyCommand StartOfExtendedPressure = new(OpenNettyCategories.ScenariosPlus, "22");
+
+        /// <summary>
+        /// Extended pressure (WHAT = 23).
+        /// </summary>
+        /// <remarks>
+        /// Note: this command requires specifying additional parameters.
+        /// </remarks>
+        public static readonly OpenNettyCommand ExtendedPressure = new(OpenNettyCategories.ScenariosPlus, "23");
+
+        /// <summary>
+        /// End of extended pressure (WHAT = 24).
+        /// </summary>
+        /// <remarks>
+        /// Note: this command requires specifying additional parameters.
+        /// </remarks>
+        public static readonly OpenNettyCommand EndOfExtendedPressure = new(OpenNettyCategories.ScenariosPlus, "24");
 
         /// <summary>
         /// Binding request (WHAT = 33).
         /// </summary>
-        public static readonly OpenNettyCommand BindingRequest = new(OpenNettyCategories.Scenarios, "33");
+        public static readonly OpenNettyCommand BindingRequest = new(OpenNettyCategories.ScenariosPlus, "33");
 
         /// <summary>
         /// Unbinding request (WHAT = 34).
         /// </summary>
-        public static readonly OpenNettyCommand UnbindingRequest = new(OpenNettyCategories.Scenarios, "34");
+        public static readonly OpenNettyCommand UnbindingRequest = new(OpenNettyCategories.ScenariosPlus, "34");
 
         /// <summary>
         /// Open binding (WHAT = 35).
         /// </summary>
-        public static readonly OpenNettyCommand OpenBinding = new(OpenNettyCategories.Scenarios, "35");
+        public static readonly OpenNettyCommand OpenBinding = new(OpenNettyCategories.ScenariosPlus, "35");
 
         /// <summary>
         /// Close binding (WHAT = 36).
         /// </summary>
-        public static readonly OpenNettyCommand CloseBinding = new(OpenNettyCategories.Scenarios, "36");
+        public static readonly OpenNettyCommand CloseBinding = new(OpenNettyCategories.ScenariosPlus, "36");
 
         /// <summary>
         /// Cancel binding (WHAT = 37).
         /// </summary>
-        public static readonly OpenNettyCommand CancelBinding = new(OpenNettyCategories.Scenarios, "37");
+        public static readonly OpenNettyCommand CancelBinding = new(OpenNettyCategories.ScenariosPlus, "37");
     }
 
     /// <summary>

@@ -412,7 +412,7 @@
     <value>A private key file must be specified when using a TLS client certificate.</value>
   </data>
   <data name="ID0099" xml:space="preserve">
-    <value>The actuator type associated with the endpoint isn't valid for the requested operation.</value>
+    <value>The function type associated with the endpoint isn't valid for the requested operation.</value>
   </data>
   <data name="ID0100" xml:space="preserve">
     <value>The connection was unexpectedly closed while trying to open a new session.</value>
@@ -456,6 +456,21 @@
   <data name="ID0113" xml:space="preserve">
     <value>The specified device identifier cannot be converted to a Zigbee serial number.</value>
   </data>
+  <data name="ID0114" xml:space="preserve">
+    <value>The address doesn't represent a SCS light point address.</value>
+  </data>
+  <data name="ID0115" xml:space="preserve">
+    <value>The address doesn't represent a valid SCS scenario plus address.</value>
+  </data>
+  <data name="ID1116" xml:space="preserve">
+    <value>The scenario identifier must be between 0 and 2047.</value>
+  </data>
+  <data name="ID1117" xml:space="preserve">
+    <value>The button number is mandatory for endpoints that support configurable push button numbers.</value>
+  </data>
+  <data name="ID1118" xml:space="preserve">
+    <value>The button number cannot be specified for endpoints that don't support configurable push button numbers.</value>
+  </data>
   <data name="ID2000" xml:space="preserve">
     <value>The endpoint name '{0}' is not valid. Endpoint names cannot contain the '+' or '*' characters.</value>
   </data>
@@ -463,10 +478,10 @@
     <value>The MQTT root topic cannot contain the '+' or '*' characters.</value>
   </data>
   <data name="ID2002" xml:space="preserve">
-    <value>The endpoint '{0}' doesn't have an actuator type setting attached. Endpoints that support both light and shutter operations must be attached an actuator type setting reflecting the type configured on the actual actuator.</value>
+    <value>The endpoint '{0}' doesn't have a function type setting attached. Endpoints that support both light and shutter operations must be attached an function type setting reflecting the type configured via MyHome Suite.</value>
   </data>
   <data name="ID2003" xml:space="preserve">
-    <value>The endpoint '{0}' doesn't have a valid actuator type setting attached ({1}). Only 'Lighting' and 'Automation' are currently supported.</value>
+    <value>The endpoint '{0}' doesn't have a valid function type setting attached ({1}). Only 'Light actuator', 'Automation actuator', 'Scheduled scenario' and 'Scheduled scenario plus' are currently supported.</value>
   </data>
   <data name="ID2004" xml:space="preserve">
     <value>The endpoint '{0}' doesn't have a valid switch mode setting attached ({1}). Only 'Default' and 'Push button' are currently supported.</value>
@@ -497,6 +512,15 @@
   </data>
   <data name="ID2013" xml:space="preserve">
     <value>Multiple endpoints with the name '{0}' have been added.</value>
+  </data>
+  <data name="ID2014" xml:space="preserve">
+    <value>The endpoint '{0}' doesn't have a function type setting attached. Endpoints that support both pressure scenarios and pressure scenarios plus must be attached an function type setting reflecting the type configured via MyHome Suite.</value>
+  </data>
+  <data name="ID2015" xml:space="preserve">
+    <value>The endpoint '{0}' supports configurable push button numbers but doesn't have a list of numbers attached. Make sure the list of push button numbers configured in MyHome Suite is attached as an endpoint setting.</value>
+  </data>
+  <data name="ID2016" xml:space="preserve">
+    <value>The endpoint '{0}' has an invalid list of push button numbers attached.</value>
   </data>
   <data name="ID6000" xml:space="preserve">
     <value>The OpenNetty hosted service is starting.</value>

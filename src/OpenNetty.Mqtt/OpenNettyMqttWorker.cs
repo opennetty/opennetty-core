@@ -4,6 +4,7 @@
  * the license and the contributors participating to this project.
  */
 
+using System;
 using System.Buffers.Text;
 using System.Globalization;
 using System.IO.Hashing;
@@ -14,6 +15,7 @@ using System.Reflection;
 using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Channels;
 using Microsoft.Extensions.Logging;
@@ -120,6 +122,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         switch (attribute)
                         {
                             case OpenNettyMqttAttributes.BatteryAlert when operation is OpenNettyMqttOperation.Set:
+                            {
                                 switch (message.ConvertPayloadToString()?.ToLowerInvariant())
                                 {
                                     case "off":
@@ -133,12 +136,16 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                         break;
                                 }
                                 break;
+                            }
 
                             case OpenNettyMqttAttributes.Brightness when operation is OpenNettyMqttOperation.Get:
+                            {
                                 _ = await _controller.EnumerateBrightnessAsync(endpoint).ToListAsync();
                                 break;
+                            }
 
                             case OpenNettyMqttAttributes.Brightness when operation is OpenNettyMqttOperation.Set:
+                            {
                                 if (!byte.TryParse(message.PayloadSegment, CultureInfo.InvariantCulture, out var level))
                                 {
                                     throw new InvalidDataException(SR.GetResourceString(SR.ID0068));
@@ -146,25 +153,35 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                                 await _controller.SetBrightnessAsync(endpoint, level);
                                 break;
+                            }
 
                             case OpenNettyMqttAttributes.FirmwareVersion when operation is OpenNettyMqttOperation.Get:
+                            {
                                 _ = await _controller.GetFirmwareVersionAsync(endpoint);
                                 break;
+                            }
 
                             case OpenNettyMqttAttributes.HardwareVersion when operation is OpenNettyMqttOperation.Get:
+                            {
                                 _ = await _controller.GetHardwareVersionAsync(endpoint);
                                 break;
+                            }
 
                             case OpenNettyMqttAttributes.MacAddress when operation is OpenNettyMqttOperation.Get:
+                            {
                                 _ = await _controller.GetMacAddressAsync(endpoint);
                                 break;
+                            }
 
                             case OpenNettyMqttAttributes.PilotWireDerogationMode when operation is OpenNettyMqttOperation.Get:
                             case OpenNettyMqttAttributes.PilotWireSetpointMode   when operation is OpenNettyMqttOperation.Get:
+                            {
                                 _ = await _controller.GetPilotWireConfigurationAsync(endpoint);
                                 break;
+                            }
 
                             case OpenNettyMqttAttributes.PilotWireDerogationMode when operation is OpenNettyMqttOperation.Set:
+                            {
                                 switch (message.ConvertPayloadToString()?.ToLowerInvariant())
                                 {
                                     case "none":
@@ -262,8 +279,10 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                         break;
                                 }
                                 break;
+                            }
 
                             case OpenNettyMqttAttributes.PilotWireSetpointMode when operation is OpenNettyMqttOperation.Set:
+                            {
                                 switch (message.ConvertPayloadToString()?.ToLowerInvariant())
                                 {
                                     case "comfort":
@@ -292,12 +311,69 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                         break;
                                 }
                                 break;
+                            }
 
                             case OpenNettyMqttAttributes.Scenario when operation is OpenNettyMqttOperation.Set:
-                                switch (message.ConvertPayloadToString()?.ToLowerInvariant())
+                            {
+                                var parameters = TryParseAsJsonObject(message.ConvertPayloadToString());
+
+                                switch ((string?) parameters?["event_type"] ?? message.ConvertPayloadToString()?.ToLowerInvariant())
                                 {
                                     case "action":
                                         await _controller.DispatchActionScenarioAsync(endpoint);
+                                        break;
+
+                                    case "end_of_extended_pressure":
+                                        await _controller.DispatchPressureScenarioPlusAsync(endpoint,
+                                            OpenNettyModels.ScenariosPlus.PressureScenarioType.EndOfExtendedPressure,
+                                            (byte?) parameters?["button"]);
+                                        break;
+
+                                    case "extended_pressure" when ((string?) parameters?["scenario_type"]) is "evolved":
+                                        await _controller.DispatchPressureScenarioAsync(endpoint,
+                                            OpenNettyModels.Scenarios.PressureScenarioType.ExtendedPressure,
+                                            (byte?) parameters?["button"] ?? throw new InvalidDataException(SR.GetResourceString(SR.ID0068)));
+                                        break;
+
+                                    case "extended_pressure" when ((string?) parameters?["scenario_type"]) is "plus":
+                                        await _controller.DispatchPressureScenarioPlusAsync(endpoint,
+                                            OpenNettyModels.ScenariosPlus.PressureScenarioType.ExtendedPressure,
+                                            (byte?) parameters?["button"]);
+                                        break;
+
+                                    case "pressure":
+                                        await _controller.DispatchPressureScenarioAsync(endpoint,
+                                            OpenNettyModels.Scenarios.PressureScenarioType.Pressure,
+                                            (byte?) parameters?["button"] ?? throw new InvalidDataException(SR.GetResourceString(SR.ID0068)));
+                                        break;
+
+                                    case "progressive_action":
+                                    {
+                                        if (!TimeSpan.TryParse((string?) parameters?["duration"], CultureInfo.InvariantCulture, out var duration))
+                                        {
+                                            throw new InvalidDataException(SR.GetResourceString(SR.ID0068));
+                                        }
+
+                                        await _controller.DispatchProgressiveScenarioAsync(endpoint, duration);
+                                        break;
+                                    }
+
+                                    case "release_after_short_pressure":
+                                        await _controller.DispatchPressureScenarioAsync(endpoint,
+                                            OpenNettyModels.Scenarios.PressureScenarioType.ReleaseAfterShortPressure,
+                                            (byte?) parameters?["button"] ?? throw new InvalidDataException(SR.GetResourceString(SR.ID0068)));
+                                        break;
+
+                                    case "release_after_extended_pressure":
+                                        await _controller.DispatchPressureScenarioAsync(endpoint,
+                                            OpenNettyModels.Scenarios.PressureScenarioType.ReleaseAfterExtendedPressure,
+                                            (byte?) parameters?["button"] ?? throw new InvalidDataException(SR.GetResourceString(SR.ID0068)));
+                                        break;
+
+                                    case "short_pressure":
+                                        await _controller.DispatchPressureScenarioPlusAsync(endpoint,
+                                            OpenNettyModels.ScenariosPlus.PressureScenarioType.ShortPressure,
+                                            (byte?) parameters?["button"] ?? throw new InvalidDataException(SR.GetResourceString(SR.ID0068)));
                                         break;
 
                                     case "shutter_down":
@@ -312,6 +388,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                         await _controller.DispatchShutterUpScenarioAsync(endpoint);
                                         break;
 
+                                    case "start_of_extended_pressure":
+                                        await _controller.DispatchPressureScenarioPlusAsync(endpoint,
+                                            OpenNettyModels.ScenariosPlus.PressureScenarioType.StartOfExtendedPressure,
+                                            (byte?) parameters?["button"]);
+                                        break;
+
                                     case "stop_action":
                                         await _controller.DispatchStopActionScenarioAsync(endpoint);
                                         break;
@@ -323,14 +405,29 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                     case "switch_off":
                                         await _controller.DispatchOffScenarioAsync(endpoint);
                                         break;
+
+                                    case "timed_action":
+                                    {
+                                        if (!TimeSpan.TryParse((string?) parameters?["duration"], CultureInfo.InvariantCulture, out var duration))
+                                        {
+                                            throw new InvalidDataException(SR.GetResourceString(SR.ID0068));
+                                        }
+
+                                        await _controller.DispatchTimedScenarioAsync(endpoint, duration);
+                                        break;
+                                    }
                                 }
                                 break;
+                            }
 
                             case OpenNettyMqttAttributes.ShutterPosition when operation is OpenNettyMqttOperation.Get:
+                            {
                                 _ = await _controller.EnumerateShutterPositionsAsync(endpoint).ToListAsync();
                                 break;
+                            }
 
                             case OpenNettyMqttAttributes.ShutterPosition when operation is OpenNettyMqttOperation.Set:
+                            {
                                 if (!byte.TryParse(message.PayloadSegment, CultureInfo.InvariantCulture, out var position))
                                 {
                                     throw new InvalidDataException(SR.GetResourceString(SR.ID0068));
@@ -338,12 +435,16 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                                 await _controller.SetShutterPositionAsync(endpoint, position);
                                 break;
+                            }
 
                             case OpenNettyMqttAttributes.ShutterState when operation is OpenNettyMqttOperation.Get:
+                            {
                                 _ = await _controller.EnumerateShutterStatesAsync(endpoint).ToListAsync();
                                 break;
+                            }
 
                             case OpenNettyMqttAttributes.ShutterState when operation is OpenNettyMqttOperation.Set:
+                            {
                                 switch (message.ConvertPayloadToString()?.ToLowerInvariant())
                                 {
                                     case "close":
@@ -359,25 +460,35 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                         break;
                                 }
                                 break;
+                            }
 
                             case OpenNettyMqttAttributes.SmartMeterIndexes when operation is OpenNettyMqttOperation.Get:
+                            {
                                 _ = await _controller.GetSmartMeterIndexesAsync(endpoint);
                                 break;
+                            }
 
                             case OpenNettyMqttAttributes.SmartMeterPowerCutMode or OpenNettyMqttAttributes.SmartMeterRateType
                                 when operation is OpenNettyMqttOperation.Get:
+                            {
                                 _ = await _controller.GetSmartMeterInformationAsync(endpoint);
                                 break;
+                            }
 
                             case OpenNettyMqttAttributes.StartupDate when operation is OpenNettyMqttOperation.Get:
+                            {
                                 _ = await _controller.GetUptimeAsync(endpoint);
                                 break;
+                            }
 
                             case OpenNettyMqttAttributes.SwitchState when operation is OpenNettyMqttOperation.Get:
+                            {
                                 _ = await _controller.EnumerateSwitchStatesAsync(endpoint).ToListAsync();
                                 break;
+                            }
 
                             case OpenNettyMqttAttributes.SwitchState when operation is OpenNettyMqttOperation.Set:
+                            {
                                 switch (message.ConvertPayloadToString()?.ToLowerInvariant())
                                 {
                                     case "on":
@@ -393,8 +504,10 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                         break;
                                 }
                                 break;
+                            }
 
                             case OpenNettyMqttAttributes.WaterHeaterSetpointMode when operation is OpenNettyMqttOperation.Set:
+                            {
                                 switch (message.ConvertPayloadToString()?.ToLowerInvariant())
                                 {
                                     case "forced_off":
@@ -413,12 +526,16 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                         break;
                                 }
                                 break;
+                            }
 
                             case OpenNettyMqttAttributes.WaterHeaterState when operation is OpenNettyMqttOperation.Get:
+                            {
                                 _ = await _controller.GetWaterHeaterStateAsync(endpoint);
                                 break;
+                            }
 
                             case OpenNettyMqttAttributes.ZigbeeBinding when operation is OpenNettyMqttOperation.Set:
+                            {
                                 switch (message.ConvertPayloadToString()?.ToLowerInvariant())
                                 {
                                     case "bind":
@@ -430,12 +547,16 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                         break;
                                 }
                                 break;
+                            }
 
                             case OpenNettyMqttAttributes.ZigbeeChannel when operation is OpenNettyMqttOperation.Get:
+                            {
                                 _ = await _controller.GetZigbeeChannelAsync(endpoint);
                                 break;
+                            }
 
                             case OpenNettyMqttAttributes.ZigbeeNetwork when operation is OpenNettyMqttOperation.Set:
+                            {
                                 switch (message.ConvertPayloadToString()?.ToLowerInvariant())
                                 {
                                     case "close":
@@ -459,8 +580,10 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                         break;
                                 }
                                 break;
+                            }
 
                             case OpenNettyMqttAttributes.ZigbeeSupervision when operation is OpenNettyMqttOperation.Set:
+                            {
                                 switch (message.ConvertPayloadToString()?.ToLowerInvariant())
                                 {
                                     case "disable":
@@ -472,6 +595,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                         break;
                                 }
                                 break;
+                            }
                         }
 
                         if (!string.IsNullOrEmpty(message.ResponseTopic))
@@ -496,6 +620,19 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             .Build());
 
                         throw;
+                    }
+
+                    static JsonObject? TryParseAsJsonObject(string value)
+                    {
+                        try
+                        {
+                            return JsonObject.Parse(value)?.AsObject();
+                        }
+
+                        catch (JsonException)
+                        {
+                            return null;
+                        }
                     }
                 })
                 .Do((Exception exception) => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
@@ -726,63 +863,75 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     }
                 }
 
-                if (endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioState) ||
-                    endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioState) ||
-                    endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioState) ||
-                    endpoint.HasCapability(OpenNettyCapabilities.ProgressiveScenarioState) ||
-                    endpoint.HasCapability(OpenNettyCapabilities.ShortPressureScenarioState) ||
-                    endpoint.HasCapability(OpenNettyCapabilities.StopActionScenarioState) ||
-                    endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioState) ||
-                    endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioState) ||
-                    endpoint.HasCapability(OpenNettyCapabilities.ToggleScenarioState))
+                if (endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioEvent) ||
+                    endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioEvent) ||
+                    endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioEvent) ||
+                    endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioEvent) ||
+                    endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioPlusEvent) ||
+                    endpoint.HasCapability(OpenNettyCapabilities.ProgressiveScenarioEvent) ||
+                    endpoint.HasCapability(OpenNettyCapabilities.StopActionScenarioEvent) ||
+                    endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioEvent) ||
+                    endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioEvent) ||
+                    endpoint.HasCapability(OpenNettyCapabilities.ToggleScenarioEvent))
                 {
                     var types = new HashSet<string>(StringComparer.Ordinal);
 
-                    if (endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioState))
+                    if (endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioEvent))
                     {
                         types.Add("action");
                     }
 
-                    if (endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioState))
+                    if (endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioEvent))
                     {
                         types.Add("dimming_step_up");
                         types.Add("dimming_step_down");
                     }
 
-                    if (endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioState))
+                    if (endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioEvent))
                     {
                         types.Add("switch_on");
                         types.Add("switch_off");
                     }
 
-                    if (endpoint.HasCapability(OpenNettyCapabilities.ProgressiveScenarioState))
+                    if (endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioEvent))
+                    {
+                        types.Add("pressure");
+                        types.Add("release_after_short_pressure");
+                        types.Add("release_after_extended_pressure");
+                        types.Add("extended_pressure");
+                    }
+
+                    if (endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioPlusEvent))
+                    {
+                        types.Add("short_pressure");
+                        types.Add("start_of_extended_pressure");
+                        types.Add("extended_pressure");
+                        types.Add("end_of_extended_pressure");
+                    }
+
+                    if (endpoint.HasCapability(OpenNettyCapabilities.ProgressiveScenarioEvent))
                     {
                         types.Add("progressive_action");
                     }
 
-                    if (endpoint.HasCapability(OpenNettyCapabilities.ShortPressureScenarioState))
-                    {
-                        types.Add("short_pressure");
-                    }
-
-                    if (endpoint.HasCapability(OpenNettyCapabilities.StopActionScenarioState))
+                    if (endpoint.HasCapability(OpenNettyCapabilities.StopActionScenarioEvent))
                     {
                         types.Add("stop_action");
                     }
 
-                    if (endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioState))
+                    if (endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioEvent))
                     {
                         types.Add("shutter_up");
                         types.Add("shutter_down");
                         types.Add("shutter_stop");
                     }
 
-                    if (endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioState))
+                    if (endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioEvent))
                     {
                         types.Add("timed_action");
                     }
 
-                    if (endpoint.HasCapability(OpenNettyCapabilities.ToggleScenarioState))
+                    if (endpoint.HasCapability(OpenNettyCapabilities.ToggleScenarioEvent))
                     {
                         types.Add("switch_toggle");
                     }
@@ -798,17 +947,19 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             setting : OpenNettySettings.HomeAssistantScenarioName,
                             count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
                                 .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioState) ||
-                                                   endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioState) ||
-                                                   endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioState) ||
-                                                   endpoint.HasCapability(OpenNettyCapabilities.ProgressiveScenarioState) ||
-                                                   endpoint.HasCapability(OpenNettyCapabilities.ShortPressureScenarioState) ||
-                                                   endpoint.HasCapability(OpenNettyCapabilities.StopActionScenarioState) ||
-                                                   endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioState) ||
-                                                   endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioState) ||
-                                                   endpoint.HasCapability(OpenNettyCapabilities.ToggleScenarioState))
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioEvent) ||
+                                                   endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioEvent) ||
+                                                   endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioEvent) ||
+                                                   endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioEvent) ||
+                                                   endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioPlusEvent) ||
+                                                   endpoint.HasCapability(OpenNettyCapabilities.ProgressiveScenarioEvent) ||
+                                                   endpoint.HasCapability(OpenNettyCapabilities.StopActionScenarioEvent) ||
+                                                   endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioEvent) ||
+                                                   endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioEvent) ||
+                                                   endpoint.HasCapability(OpenNettyCapabilities.ToggleScenarioEvent))
                                 .CountAsync(cancellationToken)),
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}",
+                        ["json_attributes_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}",
                         ["event_types"] = new JsonArray([.. types])
                     };
 
@@ -820,7 +971,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", component);
                 }
 
-                if (endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioControl))
+                if (endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioActivation))
                 {
                     components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
                     {
@@ -832,14 +983,14 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             setting : OpenNettySettings.HomeAssistantScenarioName,
                             count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
                                 .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioControl))
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioActivation))
                                 .CountAsync(cancellationToken)),
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                         ["payload_press"] = "action"
                     });
                 }
 
-                if (endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioControl))
+                if (endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioActivation))
                 {
                     components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
                     {
@@ -851,7 +1002,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             setting : OpenNettySettings.HomeAssistantScenarioName,
                             count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
                                 .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioControl))
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioActivation))
                                 .CountAsync(cancellationToken)),
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                         ["payload_press"] = "switch_on"
@@ -867,14 +1018,332 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             setting : OpenNettySettings.HomeAssistantScenarioName,
                             count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
                                 .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioControl))
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioActivation))
                                 .CountAsync(cancellationToken)),
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                         ["payload_press"] = "switch_off"
                     });
                 }
 
-                if (endpoint.HasCapability(OpenNettyCapabilities.StopActionScenarioControl))
+                if (endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation) &&
+                    endpoint.GetStringSetting(OpenNettySettings.FunctionType) is OpenNettySettings.FunctionTypes.ScheduledScenario)
+                {
+                    if (endpoint.GetStringSetting(OpenNettySettings.PushButtonNumbers) is string value &&
+                        value.Split([','], StringSplitOptions.RemoveEmptyEntries) is { Length: > 0 } values &&
+                        values.Select(value => uint.Parse(value, CultureInfo.InvariantCulture)).ToList() is List<uint> buttons)
+                    {
+                        foreach (var button in buttons)
+                        {
+                            components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                            {
+                                ["platform"] = "button",
+                                ["unique_id"] = ComputeEntityUniqueId(endpoint,
+                                [
+                                    .. "be2887c3-f4ae-4935-bad6-1ffb1227d28b"u8,
+                                    .. Encoding.UTF8.GetBytes(button.ToString(CultureInfo.InvariantCulture))
+                                ]),
+                                ["name"] = ComputeEntityName(
+                                    name    : $"Dispatch pressure scenario (button {button.ToString(CultureInfo.InvariantCulture)})",
+                                    endpoint: endpoint,
+                                    setting : null,
+                                    count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                        .Where(endpoint => endpoint.Device == device)
+                                        .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
+                                        .CountAsync(cancellationToken)),
+                                ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
+                                ["payload_press"] = new JsonObject { ["event_type"] = "pressure", ["scenario_type"] = "basic", ["button"] = button }.ToJsonString()
+                            });
+
+                            components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                            {
+                                ["platform"] = "button",
+                                ["unique_id"] = ComputeEntityUniqueId(endpoint,
+                                [
+                                    .. "81e3f75a-fab3-4842-bb5e-1531d20290dd"u8,
+                                    .. Encoding.UTF8.GetBytes(button.ToString(CultureInfo.InvariantCulture))
+                                ]),
+                                ["name"] = ComputeEntityName(
+                                    name    : $"Dispatch release after short pressure scenario (button {button.ToString(CultureInfo.InvariantCulture)})",
+                                    endpoint: endpoint,
+                                    setting : null,
+                                    count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                        .Where(endpoint => endpoint.Device == device)
+                                        .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
+                                        .CountAsync(cancellationToken)),
+                                ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
+                                ["payload_press"] = new JsonObject { ["event_type"] = "release_after_short_pressure", ["scenario_type"] = "evolved", ["button"] = button }.ToJsonString()
+                            });
+
+                            components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                            {
+                                ["platform"] = "button",
+                                ["unique_id"] = ComputeEntityUniqueId(endpoint,
+                                [
+                                    .. "3f069e7f-7c8f-4730-b067-9a944f61700b"u8,
+                                    .. Encoding.UTF8.GetBytes(button.ToString(CultureInfo.InvariantCulture))
+                                ]),
+                                ["name"] = ComputeEntityName(
+                                    name    : $"Dispatch release after extended pressure scenario (button {button.ToString(CultureInfo.InvariantCulture)})",
+                                    endpoint: endpoint,
+                                    setting : null,
+                                    count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                        .Where(endpoint => endpoint.Device == device)
+                                        .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
+                                        .CountAsync(cancellationToken)),
+                                ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
+                                ["payload_press"] = new JsonObject { ["event_type"] = "release_after_extended_pressure", ["scenario_type"] = "evolved", ["button"] = button }.ToJsonString()
+                            });
+
+                            components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                            {
+                                ["platform"] = "button",
+                                ["unique_id"] = ComputeEntityUniqueId(endpoint,
+                                [
+                                    .. "23e04eeb-8b35-44c8-87da-aed3829ce07d"u8,
+                                    .. Encoding.UTF8.GetBytes(button.ToString(CultureInfo.InvariantCulture))
+                                ]),
+                                ["name"] = ComputeEntityName(
+                                    name    : $"Dispatch extended pressure scenario (button {button.ToString(CultureInfo.InvariantCulture)})",
+                                    endpoint: endpoint,
+                                    setting : null,
+                                    count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                        .Where(endpoint => endpoint.Device == device)
+                                        .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
+                                        .CountAsync(cancellationToken)),
+                                ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
+                                ["payload_press"] = new JsonObject { ["event_type"] = "extended_pressure", ["scenario_type"] = "evolved", ["button"] = button }.ToJsonString()
+                            });
+                        }
+                    }
+
+                    else
+                    {
+                        components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                        {
+                            ["platform"] = "button",
+                            ["unique_id"] = ComputeEntityUniqueId(endpoint, "be2887c3-f4ae-4935-bad6-1ffb1227d28b"u8),
+                            ["name"] = ComputeEntityName(
+                                name    : $"Dispatch pressure scenario",
+                                endpoint: endpoint,
+                                setting : OpenNettySettings.HomeAssistantScenarioName,
+                                count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                    .Where(endpoint => endpoint.Device == device)
+                                    .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
+                                    .CountAsync(cancellationToken)),
+                            ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
+                            ["payload_press"] = new JsonObject { ["event_type"] = "pressure", ["scenario_type"] = "basic" }.ToJsonString()
+                        });
+
+                        components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                        {
+                            ["platform"] = "button",
+                            ["unique_id"] = ComputeEntityUniqueId(endpoint, "81e3f75a-fab3-4842-bb5e-1531d20290dd"u8),
+                            ["name"] = ComputeEntityName(
+                                name    : $"Dispatch release after short pressure scenario",
+                                endpoint: endpoint,
+                                setting : OpenNettySettings.HomeAssistantScenarioName,
+                                count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                    .Where(endpoint => endpoint.Device == device)
+                                    .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
+                                    .CountAsync(cancellationToken)),
+                            ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
+                            ["payload_press"] = new JsonObject { ["event_type"] = "release_after_short_pressure", ["scenario_type"] = "evolved" }.ToJsonString()
+                        });
+
+                        components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                        {
+                            ["platform"] = "button",
+                            ["unique_id"] = ComputeEntityUniqueId(endpoint, "3f069e7f-7c8f-4730-b067-9a944f61700b"u8),
+                            ["name"] = ComputeEntityName(
+                                name    : "Dispatch release after extended pressure scenario",
+                                endpoint: endpoint,
+                                setting : OpenNettySettings.HomeAssistantScenarioName,
+                                count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                    .Where(endpoint => endpoint.Device == device)
+                                    .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
+                                    .CountAsync(cancellationToken)),
+                            ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
+                            ["payload_press"] = new JsonObject { ["event_type"] = "release_after_extended_pressure", ["scenario_type"] = "evolved" }.ToJsonString()
+                        });
+
+                        components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                        {
+                            ["platform"] = "button",
+                            ["unique_id"] = ComputeEntityUniqueId(endpoint, "23e04eeb-8b35-44c8-87da-aed3829ce07d"u8),
+                            ["name"] = ComputeEntityName(
+                                name    : "Dispatch extended pressure scenario",
+                                endpoint: endpoint,
+                                setting : OpenNettySettings.HomeAssistantScenarioName,
+                                count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                    .Where(endpoint => endpoint.Device == device)
+                                    .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
+                                    .CountAsync(cancellationToken)),
+                            ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
+                            ["payload_press"] = new JsonObject { ["event_type"] = "extended_pressure", ["scenario_type"] = "evolved" }.ToJsonString()
+                        });
+                    }
+                }
+
+                if (endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioPlusActivation) &&
+                    endpoint.GetStringSetting(OpenNettySettings.FunctionType) is OpenNettySettings.FunctionTypes.ScheduledScenarioPlus)
+                {
+                    if (endpoint.GetStringSetting(OpenNettySettings.PushButtonNumbers) is string value &&
+                        value.Split([','], StringSplitOptions.RemoveEmptyEntries) is { Length: > 0 } values &&
+                        values.Select(value => uint.Parse(value, CultureInfo.InvariantCulture)).ToList() is List<uint> buttons)
+                    {
+                        foreach (var button in buttons)
+                        {
+                            components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                            {
+                                ["platform"] = "button",
+                                ["unique_id"] = ComputeEntityUniqueId(endpoint,
+                                [
+                                    .. "63a92ba4-bec3-453e-a44a-9219e4f4d478"u8,
+                                    .. Encoding.UTF8.GetBytes(button.ToString(CultureInfo.InvariantCulture))
+                                ]),
+                                ["name"] = ComputeEntityName(
+                                    name    : $"Dispatch short pressure scenario (button {button.ToString(CultureInfo.InvariantCulture)})",
+                                    endpoint: endpoint,
+                                    setting : null,
+                                    count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                        .Where(endpoint => endpoint.Device == device)
+                                        .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
+                                        .CountAsync(cancellationToken)),
+                                ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
+                                ["payload_press"] = new JsonObject { ["event_type"] = "short_pressure", ["scenario_type"] = "plus", ["button"] = button }.ToJsonString()
+                            });
+
+                            components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                            {
+                                ["platform"] = "button",
+                                ["unique_id"] = ComputeEntityUniqueId(endpoint,
+                                [
+                                    .. "e524f94b-9862-4da4-8f57-82c220e4560c"u8,
+                                    .. Encoding.UTF8.GetBytes(button.ToString(CultureInfo.InvariantCulture))
+                                ]),
+                                ["name"] = ComputeEntityName(
+                                    name    : $"Dispatch start of extended pressure scenario (button {button.ToString(CultureInfo.InvariantCulture)})",
+                                    endpoint: endpoint,
+                                    setting : null,
+                                    count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                        .Where(endpoint => endpoint.Device == device)
+                                        .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
+                                        .CountAsync(cancellationToken)),
+                                ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
+                                ["payload_press"] = new JsonObject { ["event_type"] = "start_of_extended_pressure", ["scenario_type"] = "plus", ["button"] = button }.ToJsonString()
+                            });
+
+                            components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                            {
+                                ["platform"] = "button",
+                                ["unique_id"] = ComputeEntityUniqueId(endpoint,
+                                [
+                                    .. "bf90ede8-9078-4817-8ec4-ef762c3e2077"u8,
+                                    .. Encoding.UTF8.GetBytes(button.ToString(CultureInfo.InvariantCulture))
+                                ]),
+                                ["name"] = ComputeEntityName(
+                                    name    : $"Dispatch extended pressure scenario (button {button.ToString(CultureInfo.InvariantCulture)})",
+                                    endpoint: endpoint,
+                                    setting : null,
+                                    count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                        .Where(endpoint => endpoint.Device == device)
+                                        .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
+                                        .CountAsync(cancellationToken)),
+                                ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
+                                ["payload_press"] = new JsonObject { ["event_type"] = "extended_pressure", ["scenario_type"] = "plus", ["button"] = button }.ToJsonString()
+                            });
+
+                            components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                            {
+                                ["platform"] = "button",
+                                ["unique_id"] = ComputeEntityUniqueId(endpoint,
+                                [
+                                    .. "73ff2263-9962-443a-89a1-f209fba81948"u8,
+                                    .. Encoding.UTF8.GetBytes(button.ToString(CultureInfo.InvariantCulture))
+                                ]),
+                                ["name"] = ComputeEntityName(
+                                    name    : $"Dispatch end of extended pressure scenario (button {button.ToString(CultureInfo.InvariantCulture)})",
+                                    endpoint: endpoint,
+                                    setting : null,
+                                    count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                        .Where(endpoint => endpoint.Device == device)
+                                        .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
+                                        .CountAsync(cancellationToken)),
+                                ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
+                                ["payload_press"] = new JsonObject { ["event_type"] = "end_of_extended_pressure", ["scenario_type"] = "plus", ["button"] = button }.ToJsonString()
+                            });
+                        }
+                    }
+
+                    else
+                    {
+                        components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                        {
+                            ["platform"] = "button",
+                            ["unique_id"] = ComputeEntityUniqueId(endpoint, "63a92ba4-bec3-453e-a44a-9219e4f4d478"u8),
+                            ["name"] = ComputeEntityName(
+                                name    : $"Dispatch short pressure scenario",
+                                endpoint: endpoint,
+                                setting : OpenNettySettings.HomeAssistantScenarioName,
+                                count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                    .Where(endpoint => endpoint.Device == device)
+                                    .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
+                                    .CountAsync(cancellationToken)),
+                            ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
+                            ["payload_press"] = new JsonObject { ["event_type"] = "short_pressure", ["scenario_type"] = "plus" }.ToJsonString()
+                        });
+
+                        components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                        {
+                            ["platform"] = "button",
+                            ["unique_id"] = ComputeEntityUniqueId(endpoint, "e524f94b-9862-4da4-8f57-82c220e4560c"u8),
+                            ["name"] = ComputeEntityName(
+                                name    : $"Dispatch start of extended pressure scenario",
+                                endpoint: endpoint,
+                                setting : OpenNettySettings.HomeAssistantScenarioName,
+                                count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                    .Where(endpoint => endpoint.Device == device)
+                                    .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
+                                    .CountAsync(cancellationToken)),
+                            ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
+                            ["payload_press"] = new JsonObject { ["event_type"] = "start_of_extended_pressure", ["scenario_type"] = "plus" }.ToJsonString()
+                        });
+
+                        components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                        {
+                            ["platform"] = "button",
+                            ["unique_id"] = ComputeEntityUniqueId(endpoint, "bf90ede8-9078-4817-8ec4-ef762c3e2077"u8),
+                            ["name"] = ComputeEntityName(
+                                name    : "Dispatch extended pressure scenario",
+                                endpoint: endpoint,
+                                setting : OpenNettySettings.HomeAssistantScenarioName,
+                                count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                    .Where(endpoint => endpoint.Device == device)
+                                    .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
+                                    .CountAsync(cancellationToken)),
+                            ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
+                            ["payload_press"] = new JsonObject { ["event_type"] = "extended_pressure", ["scenario_type"] = "plus" }.ToJsonString()
+                        });
+
+                        components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                        {
+                            ["platform"] = "button",
+                            ["unique_id"] = ComputeEntityUniqueId(endpoint, "73ff2263-9962-443a-89a1-f209fba81948"u8),
+                            ["name"] = ComputeEntityName(
+                                name    : "Dispatch end of extended pressure scenario",
+                                endpoint: endpoint,
+                                setting : OpenNettySettings.HomeAssistantScenarioName,
+                                count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                    .Where(endpoint => endpoint.Device == device)
+                                    .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
+                                    .CountAsync(cancellationToken)),
+                            ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
+                            ["payload_press"] = new JsonObject { ["event_type"] = "end_of_extended_pressure", ["scenario_type"] = "plus" }.ToJsonString()
+                        });
+                    }
+                }
+
+                if (endpoint.HasCapability(OpenNettyCapabilities.StopActionScenarioActivation))
                 {
                     components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
                     {
@@ -886,7 +1355,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             setting : OpenNettySettings.HomeAssistantScenarioName,
                             count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
                                 .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.StopActionScenarioControl))
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.StopActionScenarioActivation))
                                 .CountAsync(cancellationToken)),
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                         ["payload_press"] = "stop_action",
@@ -894,7 +1363,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     });
                 }
 
-                if (endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioControl))
+                if (endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioActivation))
                 {
                     components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
                     {
@@ -906,7 +1375,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             setting : OpenNettySettings.HomeAssistantScenarioName,
                             count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
                                 .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioControl))
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioActivation))
                                 .CountAsync(cancellationToken)),
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                         ["payload_press"] = "shutter_up"
@@ -922,7 +1391,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             setting : OpenNettySettings.HomeAssistantScenarioName,
                             count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
                                 .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioControl))
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioActivation))
                                 .CountAsync(cancellationToken)),
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                         ["payload_press"] = "shutter_down"
@@ -938,7 +1407,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             setting : OpenNettySettings.HomeAssistantScenarioName,
                             count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
                                 .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioControl))
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioActivation))
                                 .CountAsync(cancellationToken)),
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                         ["payload_press"] = "shutter_stop"
@@ -1977,19 +2446,19 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 return false;
             }
 
-            // If the endpoint also supports lighting commands, ensure the actuator type
+            // If the endpoint also supports lighting commands, ensure the function type
             // associated with the endpoint is appropriate for the requested operation.
             if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchControl) ||
                 endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingControl) ||
                 endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingControl))
             {
-                var type = endpoint.GetStringSetting(OpenNettySettings.ActuatorType);
+                var type = endpoint.GetStringSetting(OpenNettySettings.FunctionType);
                 if (string.IsNullOrEmpty(type))
                 {
                     throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
                 }
 
-                return type is OpenNettySettings.ActuatorTypes.Automation;
+                return type is OpenNettySettings.FunctionTypes.AutomationActuator;
             }
 
             return true;
@@ -2006,18 +2475,18 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 return false;
             }
 
-            // If the endpoint also supports automation commands, ensure the actuator
+            // If the endpoint also supports automation commands, ensure the function
             // type associated with the endpoint is appropriate for a light entity.
             if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterControl) ||
                 endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterControl))
             {
-                var type = endpoint.GetStringSetting(OpenNettySettings.ActuatorType);
+                var type = endpoint.GetStringSetting(OpenNettySettings.FunctionType);
                 if (string.IsNullOrEmpty(type))
                 {
                     throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
                 }
 
-                return type is OpenNettySettings.ActuatorTypes.Lighting;
+                return type is OpenNettySettings.FunctionTypes.LightActuator;
             }
 
             // If the endpoint is configured to use the special "push button" mode, do not consider
