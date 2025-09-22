@@ -307,7 +307,7 @@
     <value>A serial port must be attached for gateways using serial connections.</value>
   </data>
   <data name="ID0064" xml:space="preserve">
-    <value>An Internet Protocol endpoint must be attached for gateways using TCP connections.</value>
+    <value>An IP or DNS endpoint must be attached for gateways using TCP connections.</value>
   </data>
   <data name="ID0065" xml:space="preserve">
     <value>The specified connection type is not supported.</value>

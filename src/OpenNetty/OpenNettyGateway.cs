@@ -25,6 +25,11 @@ public sealed class OpenNettyGateway
     public required OpenNettyDevice Device { get; init; }
 
     /// <summary>
+    /// Gets or sets the DNS or IP endpoint associated with the gateway, if applicable.
+    /// </summary>
+    public EndPoint? Endpoint { get; init; }
+
+    /// <summary>
     /// Gets or sets the password associated with the gateway, if applicable (SCS only).
     /// </summary>
     public string? Password { get; init; }
@@ -45,11 +50,6 @@ public sealed class OpenNettyGateway
     public required string Name { get; init; }
 
     /// <summary>
-    /// Gets or sets the IP endpoint associated with the gateway, if applicable.
-    /// </summary>
-    public IPEndPoint? IPEndpoint { get; init; }
-
-    /// <summary>
     /// Gets or sets the options associated with the gateway.
     /// </summary>
     public required OpenNettyGatewayOptions Options { get; init; }
@@ -65,7 +65,7 @@ public sealed class OpenNettyGateway
         return other is not null &&
             ConnectionType == other.ConnectionType &&
             Device == other.Device &&
-            IPEndpoint == other.IPEndpoint &&
+            Endpoint == other.Endpoint &&
             string.Equals(Name, other.Name, StringComparison.OrdinalIgnoreCase) &&
             string.Equals(Password, other.Password, StringComparison.Ordinal) &&
             Protocol == other.Protocol &&
@@ -81,7 +81,7 @@ public sealed class OpenNettyGateway
         var hash = new HashCode();
         hash.Add(ConnectionType);
         hash.Add(Device);
-        hash.Add(IPEndpoint);
+        hash.Add(Endpoint);
         hash.Add(Name);
         hash.Add(Password);
         hash.Add(Protocol);
@@ -114,19 +114,18 @@ public sealed class OpenNettyGateway
     public static bool operator !=(OpenNettyGateway? left, OpenNettyGateway? right) => !(left == right);
 
     /// <summary>
-    /// Creates a new instance of the <see cref="OpenNettyGateway"/>
-    /// class using the specified Internet Protocol endpoint.
+    /// Creates a new instance of the <see cref="OpenNettyGateway"/> class using the specified endpoint.
     /// </summary>
     /// <param name="name">The gateway name.</param>
     /// <param name="device">The gateway device.</param>
-    /// <param name="endpoint">The Internet Protocol endpoint.</param>
+    /// <param name="endpoint">The endpoint.</param>
     /// <param name="password">The authentication password, if applicable.</param>
     /// <param name="options">The gateway options.</param>
     /// <returns>A new instance of the <see cref="OpenNettyGateway"/> class.</returns>
     public static OpenNettyGateway Create(
         string name,
         OpenNettyDevice device,
-        IPEndPoint endpoint,
+        EndPoint endpoint,
         string? password = null,
         OpenNettyGatewayOptions? options = null)
     {
@@ -138,7 +137,7 @@ public sealed class OpenNettyGateway
         {
             ConnectionType = OpenNettyConnectionType.Tcp,
             Device = device,
-            IPEndpoint = endpoint,
+            Endpoint = endpoint,
             Name = name,
             Options = options ?? OpenNettyGatewayOptions.CreateDefaults(device),
             Password = password
@@ -174,14 +173,13 @@ public sealed class OpenNettyGateway
     }
 
     /// <summary>
-    /// Creates a new instance of the <see cref="OpenNettyGateway"/>
-    /// class using the specified Internet Protocol endpoint.
+    /// Creates a new instance of the <see cref="OpenNettyGateway"/> class using the specified endpoint.
     /// </summary>
     /// <param name="name">The gateway name.</param>
     /// <param name="brand">The gateway brand.</param>
     /// <param name="model">The gateway model.</param>
     /// <param name="identifier">The gateway identifier.</param>
-    /// <param name="endpoint">The Internet Protocol endpoint.</param>
+    /// <param name="endpoint">The endpoint.</param>
     /// <param name="password">The authentication password, if applicable.</param>
     /// <param name="options">The gateway options.</param>
     /// <returns>A new instance of the <see cref="OpenNettyGateway"/> class.</returns>
@@ -190,7 +188,7 @@ public sealed class OpenNettyGateway
         OpenNettyBrand brand,
         string model,
         OpenNettyDeviceIdentifier identifier,
-        IPEndPoint endpoint,
+        EndPoint endpoint,
         string? password = null,
         OpenNettyGatewayOptions? options = null)
     {
