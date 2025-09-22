@@ -36,55 +36,8 @@ gateways and a higher-level MQTT integration that can be directly used with home
 
 ## Supported devices
 
-The following Legrand and BTicino products are partially or fully supported by OpenNetty:
-
-| Product series    | Product collection | Legrand reference | BTicino reference | Description                            |
-|-------------------|--------------------|-------------------|-------------------|----------------------------------------|
-| In One by Legrand | Lexic              | 03600             |                   | 2-gang DIN rail switch                 |
-| In One by Legrand | Lexic              | 03648             |                   | SCS/Nitoo gateway                      |
-| In One by Legrand | Lexic              | 03809             |                   | DIN rail energy meter                  |
-| In One by Legrand |                    | 43214             |                   | Wireless burglar alarm                 |
-| In One by Legrand | Céliane            | 67201             |                   | 1-gang switch                          |
-| In One by Legrand | Céliane            | 67202             |                   | 2-gang switch                          |
-| In One by Legrand | Céliane            | 67203             |                   | 1-gang switch with indicator light     |
-| In One by Legrand | Céliane            | 67204             |                   | 2-gang switch with indicator light     |
-| In One by Legrand | Céliane            | 67208             |                   | Light control switch                   |
-| In One by Legrand | Céliane            | 67210             |                   | Dimmer switch                          |
-| In One by Legrand | Céliane            | 67212             |                   | Dimmer switch with indicator light     |
-| In One by Legrand | Céliane            | 67214             |                   | Dimmer switch with indicator light     |
-| In One by Legrand | Céliane            | 67215             |                   | Motion sensor switch                   |
-| In One by Legrand | Céliane            | 67220             |                   | Switched outlet                        |
-| In One by Legrand | Céliane            | 67222             |                   | Dimmable switched outlet               |
-| In One by Legrand | Céliane            | 67280             |                   | Multipurpose scenario switch           |
-| In One by Legrand | Céliane            | 67290             |                   | Multipurpose scenario switch           |
-| In One by Legrand | Céliane            | 67445             |                   | Pilot wire cable outlet                |
-| In One by Legrand | Céliane            | 67448             |                   | Pilot wire derogation command          |
-| In One by Legrand | Plexo              | 69510             |                   | 1-gang outdoor switch                  |
-| In One by Legrand | Sagane             | 84520             |                   | 2-gang switch                          |
-| In One by Legrand | Sagane             | 84522             |                   | Motion sensor switch                   |
-| In One by Legrand | Sagane             | 84523             |                   | Switched outlet                        |
-| In One by Legrand | Sagane             | 84524             |                   | Dimmable switched outlet               |
-| In One by Legrand | Sagane             | 84525             |                   | Multipurpose scenario switch           |
-| In One by Legrand | Sagane             | 84529             |                   | Pilot wire derogation command          |
-| In One by Legrand | Sagane             | 84530             |                   | Pilot wire cable outlet                |
-| In One by Legrand | Sagane             | 84531             |                   | 1-gang switch                          |
-| In One by Legrand | Sagane             | 84542             |                   | Multipurpose scenario switch           |
-| In One by Legrand |                    | 88205             |                   | Pocket scenario remote control         |
-| In One by Legrand |                    | 88213             |                   | PLC/USB gateway                        |
-|                   |                    |                   |                   |                                        |
-| MyHome Up         |                    | 03535             | MH202             | SCS scenario scheduler                 |
-| MyHome Up         |                    | 03553             | F428              | DIN rail contacts interface            |
-| MyHome Up         |                    | 03598             | F454              | SCS/Ethernet gateway                   |
-| MyHome Up         |                    | 03651             | F418U2            | 2-gang DIN rail dimmer switch          |
-| MyHome Up         |                    | 03847             | F411U1            | 1-gang DIN rail switch                 |
-| MyHome Up         |                    | 03848             | F411U2            | 2-gang DIN rail switch                 |
-| MyHome Up         | Céliane            | 67557             |                   | 1-channel advanced automation actuator |
-| MyHome Up         | Céliane            | 67561             |                   | 2-channel lighting/automation actuator |
-|                   |                    |                   |                   |                                        |
-| MyHome Play       | Céliane            | 67223             |                   | Light control switch                   |
-| MyHome Play       | Céliane            | 67266             |                   | Multifunction scenario switch          |
-| MyHome Play       |                    | 88328             | 3578              | Zigbee/USB gateway                     |
-| MyHome Play       |                    | 88337             |                   | Switched outlet                        |
+The complete list of Legrand and BTicino products currently supported by OpenNetty can be
+found in the dedicated [`OpenNettyDevices.xml`](src/OpenNetty/OpenNettyDevices.xml) file.
 
 > [!NOTE]
 > Support for additional devices will be progressively added depending on the demand.
@@ -259,7 +212,7 @@ For that, you need to add a `Device` node with the correct brand/model attribute
   itself and not one of its units: in this case, the endpoint must appear directly under the `Device` node and not under a `Unit` node.
 
   - The unit MUST match one of the unit identifiers offered by the specific device. If you're unsure what identifier should be used,
-  you can see [`OpenNettyDevices.xml`](src/OpenNetty/OpenNettyDevices.xml) for a list of all the supported devices and the units they expose.
+  take a look at [`OpenNettyDevices.xml`](src/OpenNetty/OpenNettyDevices.xml) for the list of all the supported devices and the units they expose.
 
   - For In One by Legrand and MyHome Play devices, units that are not explicitly listed are
   automatically added by OpenNetty and corresponding endpoints are generated using default names.

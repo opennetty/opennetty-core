@@ -13,7 +13,7 @@
 
     <Capability Name="Device description" />
 
-    <Unit Id="1" AssociatedUnitId="3" Description="Local control for output 1 and lighting scenario">
+    <Unit Id="1" AssociatedUnitId="3" Description="Local control for output 1 and light scenario">
       <Capability Name="Dimming scenario activation" />
       <Capability Name="Dimming scenario event" />
       <Capability Name="On/off scenario activation" />
@@ -25,7 +25,7 @@
       <Setting Name="Home Assistant scenario name" Value="ON/OFF/dimming command 1" />
     </Unit>
 
-    <Unit Id="2" AssociatedUnitId="4" Description="Local control for output 2 and lighting scenario">
+    <Unit Id="2" AssociatedUnitId="4" Description="Local control for output 2 and light scenario">
       <Capability Name="Dimming scenario activation" />
       <Capability Name="Dimming scenario event" />
       <Capability Name="On/off scenario activation" />
@@ -283,7 +283,7 @@
 
     <Capability Name="Device description" />
 
-    <Unit Id="1" AssociatedUnitId="2" Description="Local control and lighting scenario">
+    <Unit Id="1" AssociatedUnitId="2" Description="Local control and light scenario">
       <Capability Name="Dimming scenario activation" />
       <Capability Name="Dimming scenario event" />
       <Capability Name="On/off scenario activation" />
@@ -313,7 +313,7 @@
 
     <Capability Name="Device description" />
 
-    <Unit Id="1" AssociatedUnitId="3" Description="Local control for output 1 and lighting scenario">
+    <Unit Id="1" AssociatedUnitId="3" Description="Local control for output 1 and light scenario">
       <Capability Name="Dimming scenario activation" />
       <Capability Name="Dimming scenario event" />
       <Capability Name="On/off scenario activation" />
@@ -325,7 +325,7 @@
       <Setting Name="Home Assistant scenario name" Value="ON/OFF/dimming command 1" />
     </Unit>
 
-    <Unit Id="2" AssociatedUnitId="4" Description="Local control for output 2 and lighting scenario">
+    <Unit Id="2" AssociatedUnitId="4" Description="Local control for output 2 and light scenario">
       <Capability Name="Dimming scenario activation" />
       <Capability Name="Dimming scenario event" />
       <Capability Name="On/off scenario activation" />
@@ -359,11 +359,11 @@
   </Device>
 
   <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
-    <Identity Brand="Legrand" Collection="Céliane" Model="67208" Description="Lighting control switch" />
+    <Identity Brand="Legrand" Collection="Céliane" Model="67208" Description="Light control switch" />
 
     <Capability Name="Device description" />
 
-    <Unit Id="1" Description="Lighting scenario">
+    <Unit Id="1" Description="Light scenario">
       <Capability Name="Dimming scenario activation" />
       <Capability Name="Dimming scenario event" />
       <Capability Name="On/off scenario activation" />
@@ -375,7 +375,7 @@
       <Setting Name="Home Assistant scenario name" Value="ON/OFF/dimming command" />
     </Unit>
 
-    <Unit Id="2" Description="Multifunction scenario 1">
+    <Unit Id="2" Description="Scenario 1">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
       <Capability Name="Dimming scenario activation" />
@@ -389,7 +389,7 @@
       <Setting Name="Home Assistant scenario name" Value="Button 1" />
     </Unit>
 
-    <Unit Id="3" Description="Multifunction scenario 2">
+    <Unit Id="3" Description="Scenario 2">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
       <Capability Name="Dimming scenario activation" />
@@ -411,7 +411,7 @@
 
     <Capability Name="Device description" />
 
-    <Unit Id="1" AssociatedUnitId="4" Description="Local control and lighting scenario">
+    <Unit Id="1" AssociatedUnitId="4" Description="Local control and light scenario">
       <Capability Name="Dimming scenario activation" />
       <Capability Name="Dimming scenario event" />
       <Capability Name="On/off scenario activation" />
@@ -423,7 +423,7 @@
       <Setting Name="Home Assistant scenario name" Value="ON/OFF/dimming command" />
     </Unit>
 
-    <Unit Id="2" AssociatedUnitId="4" Description="Local preset+ control and lighting scenario">
+    <Unit Id="2" AssociatedUnitId="4" Description="Local preset+ control and light scenario">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
       <Capability Name="Dimming scenario activation" />
@@ -437,7 +437,7 @@
       <Setting Name="Home Assistant scenario name" Value="Preset+ command" />
     </Unit>
 
-    <Unit Id="3" AssociatedUnitId="4" Description="Local preset- control and lighting scenario">
+    <Unit Id="3" AssociatedUnitId="4" Description="Local preset- control and light scenario">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
       <Capability Name="Dimming scenario activation" />
@@ -476,7 +476,7 @@
       <Capability Name="Unit description" />
     </Unit>
 
-    <Unit Id="2" AssociatedUnitId="3" Description="Local control and lighting scenario">
+    <Unit Id="2" AssociatedUnitId="3" Description="Local control and light scenario">
       <Capability Name="On/off scenario activation" />
       <Capability Name="On/off scenario event" />
       <Capability Name="Unit description" />
@@ -499,7 +499,7 @@
 
     <Capability Name="Device description" />
 
-    <Unit Id="1" AssociatedUnitId="2" Description="Local control and lighting scenario">
+    <Unit Id="1" AssociatedUnitId="2" Description="Local control and light scenario">
       <Capability Name="Dimming scenario activation" />
       <Capability Name="Dimming scenario event" />
       <Capability Name="On/off scenario activation" />
@@ -526,7 +526,7 @@
 
     <Capability Name="Device description" />
 
-    <Unit Id="1" AssociatedUnitId="4" Description="Local control and lighting scenario">
+    <Unit Id="1" AssociatedUnitId="4" Description="Local control and light scenario">
       <Capability Name="Dimming scenario activation" />
       <Capability Name="Dimming scenario event" />
       <Capability Name="On/off scenario activation" />
@@ -538,7 +538,7 @@
       <Setting Name="Home Assistant scenario name" Value="ON/OFF/dimming command" />
     </Unit>
 
-    <Unit Id="2" AssociatedUnitId="4" Description="Local preset+ control and lighting scenario">
+    <Unit Id="2" AssociatedUnitId="4" Description="Local preset+ control and light scenario">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
       <Capability Name="Dimming scenario activation" />
@@ -552,7 +552,7 @@
       <Setting Name="Home Assistant scenario name" Value="Preset+ command" />
     </Unit>
 
-    <Unit Id="3" AssociatedUnitId="4" Description="Local preset- control and lighting scenario">
+    <Unit Id="3" AssociatedUnitId="4" Description="Local preset- control and light scenario">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
       <Capability Name="Dimming scenario activation" />
@@ -580,12 +580,12 @@
   </Device>
 
   <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
-    <Identity Brand="Legrand" Collection="Céliane" Model="67280" Description="Multifunction scenario switch" />
-    <Identity Brand="Legrand" Collection="Sagane"  Model="84525" Description="Multifunction scenario switch" />
+    <Identity Brand="Legrand" Collection="Céliane" Model="67280" Description="Scenario switch" />
+    <Identity Brand="Legrand" Collection="Sagane"  Model="84525" Description="Scenario switch" />
 
     <Capability Name="Device description" />
 
-    <Unit Id="1" Description="Multifunction scenario 1">
+    <Unit Id="1" Description="Scenario 1">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
       <Capability Name="Dimming scenario activation" />
@@ -599,7 +599,7 @@
       <Setting Name="Home Assistant scenario name" Value="Button 1" />
     </Unit>
 
-    <Unit Id="2" Description="Multifunction scenario 2">
+    <Unit Id="2" Description="Scenario 2">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
       <Capability Name="Dimming scenario activation" />
@@ -613,7 +613,7 @@
       <Setting Name="Home Assistant scenario name" Value="Button 2" />
     </Unit>
 
-    <Unit Id="3" Description="Multifunction scenario 3">
+    <Unit Id="3" Description="Scenario 3">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
       <Capability Name="Dimming scenario activation" />
@@ -627,7 +627,7 @@
       <Setting Name="Home Assistant scenario name" Value="Button 3" />
     </Unit>
 
-    <Unit Id="4" Description="Multifunction scenario 4">
+    <Unit Id="4" Description="Scenario 4">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
       <Capability Name="Dimming scenario activation" />
@@ -643,12 +643,12 @@
   </Device>
 
   <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Radio">
-    <Identity Brand="Legrand" Collection="Céliane" Model="67290" Description="Multifunction scenario switch" />
-    <Identity Brand="Legrand" Collection="Sagane"  Model="84542" Description="Multifunction scenario switch" />
+    <Identity Brand="Legrand" Collection="Céliane" Model="67290" Description="Wireless scenario switch" />
+    <Identity Brand="Legrand" Collection="Sagane"  Model="84542" Description="Wireless scenario switch" />
 
     <Capability Name="Battery alert" />
 
-    <Unit Id="1" Description="Multifunction scenario 1">
+    <Unit Id="1" Description="Scenario 1">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
       <Capability Name="Stop action scenario activation" />
@@ -659,7 +659,7 @@
       <Setting Name="Home Assistant scenario name" Value="Button 1" />
     </Unit>
 
-    <Unit Id="2" Description="Multifunction scenario 2">
+    <Unit Id="2" Description="Scenario 2">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
       <Capability Name="Stop action scenario activation" />
@@ -670,7 +670,7 @@
       <Setting Name="Home Assistant scenario name" Value="Button 2" />
     </Unit>
 
-    <Unit Id="3" Description="Multifunction scenario 3">
+    <Unit Id="3" Description="Scenario 3">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
       <Capability Name="Stop action scenario activation" />
@@ -681,7 +681,7 @@
       <Setting Name="Home Assistant scenario name" Value="Button 3" />
     </Unit>
 
-    <Unit Id="4" Description="Multifunction scenario 4">
+    <Unit Id="4" Description="Scenario 4">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
       <Capability Name="Stop action scenario activation" />
@@ -737,7 +737,7 @@
 
     <Capability Name="Battery alert" />
 
-    <Unit Id="1" Description="Multifunction scenario 1">
+    <Unit Id="1" Description="Scenario 1">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
       <Capability Name="Stop action scenario activation" />
@@ -748,7 +748,7 @@
       <Setting Name="Home Assistant scenario name" Value="Button 1" />
     </Unit>
 
-    <Unit Id="2" Description="Multifunction scenario 2">
+    <Unit Id="2" Description="Scenario 2">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
       <Capability Name="Stop action scenario activation" />
@@ -759,7 +759,7 @@
       <Setting Name="Home Assistant scenario name" Value="Button 2" />
     </Unit>
 
-    <Unit Id="3" Description="Multifunction scenario 3">
+    <Unit Id="3" Description="Scenario 3">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
       <Capability Name="Stop action scenario activation" />
@@ -770,7 +770,7 @@
       <Setting Name="Home Assistant scenario name" Value="Button 3" />
     </Unit>
 
-    <Unit Id="4" Description="Multifunction scenario 4">
+    <Unit Id="4" Description="Scenario 4">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
       <Capability Name="Stop action scenario activation" />
@@ -873,8 +873,8 @@
       <Capability Name="Configurable push button numbers" />
       <Capability Name="Pressure scenario activation" />
       <Capability Name="Pressure scenario event" />
-      <Capability Name="Pressure scenario plus event" />
       <Capability Name="Pressure scenario plus activation" />
+      <Capability Name="Pressure scenario plus event" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -885,8 +885,8 @@
       <Capability Name="Configurable push button numbers" />
       <Capability Name="Pressure scenario activation" />
       <Capability Name="Pressure scenario event" />
-      <Capability Name="Pressure scenario plus event" />
       <Capability Name="Pressure scenario plus activation" />
+      <Capability Name="Pressure scenario plus event" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -935,7 +935,7 @@
   </Device>
 
   <Device Series="MyHome" Protocol="Scs" Medium="Bus">
-    <Identity Brand="Legrand" Collection="Céliane" Model="67561" Description="2-channel lighting/automation actuator" />
+    <Identity Brand="Legrand" Collection="Céliane" Model="67561" Description="2-channel light/automation actuator" />
 
     <Unit Id="1" Description="Output 1">
       <Capability Name="Basic shutter control" />
@@ -967,11 +967,12 @@
   -->
 
   <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
-    <Identity Brand="Legrand" Collection="Céliane" Model="67223" Description="Lighting control switch" />
+    <Identity Brand="Legrand" Collection="Céliane" Model="67223" Description="1-gang wireless light control switch" />
 
     <Capability Name="Battery level" />
     <Capability Name="Firmware version" />
     <Capability Name="Hardware version" />
+    <Capability Name="Zigbee end device" />
 
     <Unit Id="1" Description="Toggle scenario">
       <Capability Name="Toggle scenario event" />
@@ -984,13 +985,139 @@
   </Device>
 
   <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
-    <Identity Brand="Legrand" Collection="Céliane" Model="67266" Description="Multifunction scenario switch" />
+    <Identity Brand="Legrand" Collection="Céliane" Model="67224" Description="2-gang wireless light control switch" />
 
     <Capability Name="Battery level" />
     <Capability Name="Firmware version" />
     <Capability Name="Hardware version" />
+    <Capability Name="Zigbee end device" />
 
-    <Unit Id="1" Description="Multifunction scenario 1">
+    <Unit Id="1" Description="Toggle scenario 1">
+      <Capability Name="Toggle scenario event" />
+      <Capability Name="Zigbee binding" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Button 1" />
+    </Unit>
+
+    <Unit Id="2" Description="Toggle scenario 2">
+      <Capability Name="Toggle scenario event" />
+      <Capability Name="Zigbee binding" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Button 2" />
+    </Unit>
+  </Device>
+
+  <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
+    <Identity Brand="Legrand" Collection="Céliane" Model="67229" Description="Wireless dimmer control switch" />
+
+    <Capability Name="Battery level" />
+    <Capability Name="Firmware version" />
+    <Capability Name="Hardware version" />
+    <Capability Name="Zigbee end device" />
+
+    <!--
+      Note: the dimmer control switch includes a single unit that covers the main toggle button and the dimming
+      "+" and "-" buttons. Unfortunately, these two buttons only generate "toggle" scenarios that can't be
+      distinguished from the main button's "toggle" scenario as they all share the same unit identifier and
+      generate the same type of OpenWebNet frames, which doesn't allow determining which button was pressed.
+    -->
+
+    <Unit Id="1" Description="Toggle scenario">
+      <Capability Name="Toggle scenario event" />
+      <Capability Name="Zigbee binding" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Button" />
+    </Unit>
+  </Device>
+
+  <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
+    <Identity Brand="Legrand" Collection="Céliane" Model="67233" Description="1-gang switch" />
+
+    <Capability Name="Firmware version" />
+    <Capability Name="Hardware version" />
+    <Capability Name="Zigbee router" />
+
+    <Unit Id="1" Description="Local control and toggle scenario">
+      <Capability Name="On/off switch state" />
+      <Capability Name="On/off switch control" />
+      <Capability Name="Toggle scenario event" />
+      <Capability Name="Zigbee binding" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Button" />
+
+      <Setting Name="Home Assistant light/switch name" Value="Output" />
+    </Unit>
+  </Device>
+
+  <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
+    <Identity Brand="Legrand" Collection="Céliane" Model="67234" Description="2-gang switch" />
+
+    <Capability Name="Firmware version" />
+    <Capability Name="Hardware version" />
+    <Capability Name="Zigbee router" />
+
+    <Unit Id="1" Description="Local control for output 1 and toggle scenario">
+      <Capability Name="On/off switch state" />
+      <Capability Name="On/off switch control" />
+      <Capability Name="Toggle scenario event" />
+      <Capability Name="Zigbee binding" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Button" />
+
+      <Setting Name="Home Assistant light/switch name" Value="Output 1" />
+    </Unit>
+
+    <Unit Id="2" Description="Local control for output 2 and toggle scenario">
+      <Capability Name="On/off switch state" />
+      <Capability Name="On/off switch control" />
+      <Capability Name="Toggle scenario event" />
+      <Capability Name="Zigbee binding" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Button" />
+
+      <Setting Name="Home Assistant light/switch name" Value="Output 2" />
+    </Unit>
+  </Device>
+
+  <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
+    <Identity Brand="Legrand" Collection="Céliane" Model="67265" Description="Wireless shutter control switch" />
+
+    <Capability Name="Battery level" />
+    <Capability Name="Firmware version" />
+    <Capability Name="Hardware version" />
+    <Capability Name="Zigbee end device" />
+
+    <Unit Id="1" Description="Stop/up/down scenario">
+      <Capability Name="Stop/up/down scenario event" />
+      <Capability Name="Zigbee binding" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Button" />
+    </Unit>
+  </Device>
+
+  <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
+    <Identity Brand="Legrand" Collection="Céliane" Model="67266" Description="Wireless scenario switch" />
+
+    <Capability Name="Battery level" />
+    <Capability Name="Firmware version" />
+    <Capability Name="Hardware version" />
+    <Capability Name="Zigbee end device" />
+
+    <Unit Id="1" Description="Scenario 1">
       <Capability Name="Pressure scenario event" />
       <Capability Name="Zigbee binding" />
 
@@ -999,7 +1126,7 @@
       <Setting Name="Home Assistant scenario name" Value="Button 1" />
     </Unit>
 
-    <Unit Id="2" Description="Multifunction scenario 2">
+    <Unit Id="2" Description="Scenario 2">
       <Capability Name="Pressure scenario event" />
       <Capability Name="Zigbee binding" />
 
@@ -1008,9 +1135,11 @@
       <Setting Name="Home Assistant scenario name" Value="Button 2" />
     </Unit>
 
-    <!-- Note: the physical switch labelled "4" is bound to unit 3 -->
+    <!--
+      Note: the physical switch labelled "4" is bound to unit 3.
+    -->
 
-    <Unit Id="3" Description="Multifunction scenario 4">
+    <Unit Id="3" Description="Scenario 4">
       <Capability Name="Pressure scenario event" />
       <Capability Name="Zigbee binding" />
 
@@ -1019,15 +1148,38 @@
       <Setting Name="Home Assistant scenario name" Value="Button 4" />
     </Unit>
 
-    <!-- Note: the physical switch labelled "3" is bound to unit 4 -->
+    <!--
+      Note: the physical switch labelled "3" is bound to unit 4.
+    -->
 
-    <Unit Id="4" Description="Multifunction scenario 3">
+    <Unit Id="4" Description="Scenario 3">
       <Capability Name="Pressure scenario event" />
       <Capability Name="Zigbee binding" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
       <Setting Name="Home Assistant scenario name" Value="Button 3" />
+    </Unit>
+  </Device>
+
+  <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
+    <Identity Brand="Legrand" Model="88306" Description="Micromodule light switch" />
+
+    <Capability Name="Firmware version" />
+    <Capability Name="Hardware version" />
+    <Capability Name="Zigbee router" />
+
+    <Unit Id="1" Description="Local control and toggle scenario">
+      <Capability Name="On/off switch state" />
+      <Capability Name="On/off switch control" />
+      <Capability Name="Toggle scenario event" />
+      <Capability Name="Zigbee binding" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Button" />
+
+      <Setting Name="Home Assistant light/switch name" Value="Output" />
     </Unit>
   </Device>
 
@@ -1041,6 +1193,7 @@
     <Capability Name="OpenWebNet gateway" />
     <Capability Name="OpenWebNet generic session" />
     <Capability Name="Zigbee network management" />
+    <Capability Name="Zigbee router" />
     <Capability Name="Zigbee supervision" />
 
     <Setting Name="Serial port baud rate" Value="19200" />
@@ -1050,10 +1203,46 @@
   </Device>
 
   <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
+    <Identity Brand="Legrand" Model="88331" Description="Light control switch with auxiliary inputs" />
+
+    <Capability Name="Battery level" />
+    <Capability Name="Firmware version" />
+    <Capability Name="Hardware version" />
+    <Capability Name="Zigbee end device" />
+
+    <!--
+      Note: the physical switch labelled "2" and the corresponding contact wires are bound to unit 1.
+    -->
+
+    <Unit Id="1" Description="Toggle scenario 2">
+      <Capability Name="Toggle scenario event" />
+      <Capability Name="Zigbee binding" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Button 2" />
+    </Unit>
+
+    <!--
+      Note: the physical switch labelled "1" and the corresponding contact wires are bound to unit 2.
+    -->
+
+    <Unit Id="2" Description="Toggle scenario 1">
+      <Capability Name="Toggle scenario event" />
+      <Capability Name="Zigbee binding" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+      <Setting Name="Home Assistant scenario name" Value="Button 1" />
+    </Unit>
+  </Device>
+
+  <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
     <Identity Brand="Legrand" Model="88337" Description="Switched outlet" />
 
     <Capability Name="Firmware version" />
     <Capability Name="Hardware version" />
+    <Capability Name="Zigbee router" />
 
     <Unit Id="1" Description="Local control and toggle scenario">
       <Capability Name="On/off switch state" />
