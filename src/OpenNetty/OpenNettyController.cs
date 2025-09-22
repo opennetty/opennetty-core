@@ -1257,7 +1257,7 @@ public class OpenNettyController
             // has a chance to respond, the timeouts are manually increased here.
             var options = GetTransmissionOptions(endpoint);
 
-            if (endpoint.Address is not null && endpoint.HasCapability(OpenNettyCapabilities.BatteryLevel))
+            if (endpoint.Address is not null && endpoint.HasCapability(OpenNettyCapabilities.ZigbeeEndDevice))
             {
                 if (options.FrameAcknowledgementTimeout < TimeSpan.FromSeconds(45))
                 {
@@ -1325,7 +1325,7 @@ public class OpenNettyController
         // has a chance to respond, the timeouts are manually increased here.
         var options = GetTransmissionOptions(endpoint);
 
-        if (endpoint.Address is not null && endpoint.HasCapability(OpenNettyCapabilities.BatteryLevel))
+        if (endpoint.Address is not null && endpoint.HasCapability(OpenNettyCapabilities.ZigbeeEndDevice))
         {
             if (options.FrameAcknowledgementTimeout < TimeSpan.FromSeconds(45))
             {
