@@ -71,7 +71,7 @@ public abstract class OpenNettyConnection : IAsyncDisposable
             OpenNettyConnectionType.Serial => CreateSerialConnectionAsync(gateway.SerialPort ??
                 throw new InvalidOperationException(SR.GetResourceString(SR.ID0063)), cancellationToken),
 
-            OpenNettyConnectionType.Tcp => CreateTcpConnectionAsync(gateway.IPEndpoint ??
+            OpenNettyConnectionType.Tcp => CreateTcpConnectionAsync(gateway.Endpoint ??
                 throw new InvalidOperationException(SR.GetResourceString(SR.ID0064)), cancellationToken),
 
             _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0065))
@@ -102,15 +102,15 @@ public abstract class OpenNettyConnection : IAsyncDisposable
     }
 
     /// <summary>
-    /// Creates a new TCP connection to the specified Internet Protocol endpoint.
+    /// Creates a new TCP connection to the specified endpoint.
     /// </summary>
-    /// <param name="endpoint">The Internet Protocol endpoint.</param>
+    /// <param name="endpoint">The endpoint.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>
     /// A <see cref="ValueTask"/> that can be used to monitor the asynchronous
     /// operation and whose result returns the created TCP connection.
     /// </returns>
-    public static async ValueTask<OpenNettyConnection> CreateTcpConnectionAsync(IPEndPoint endpoint, CancellationToken cancellationToken)
+    public static async ValueTask<OpenNettyConnection> CreateTcpConnectionAsync(EndPoint endpoint, CancellationToken cancellationToken)
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 

@@ -264,12 +264,19 @@ public sealed class OpenNettyBuilder
                             string value => throw new InvalidOperationException(SR.FormatID0094(value))
                         })),
 
+                "Tcp" when IPAddress.TryParse((string?) gateway.Attribute("Server"), out IPAddress? address)
+                    => OpenNettyGateway.Create(
+                        name    : (string?) gateway.Attribute("Name") ?? throw new InvalidOperationException(SR.FormatID0074("Name")),
+                        device  : device,
+                        endpoint: new IPEndPoint(address, port: (int?) gateway.Attribute("Port") ?? 20_000),
+                        password: (string?) gateway.Attribute("Password")),
+
                 "Tcp" => OpenNettyGateway.Create(
                     name    : (string?) gateway.Attribute("Name") ?? throw new InvalidOperationException(SR.FormatID0074("Name")),
                     device  : device,
-                    endpoint: new IPEndPoint(
-                        address: IPAddress.Parse((string?) gateway.Attribute("Server") ?? throw new InvalidOperationException(SR.FormatID0076("Server"))),
-                        port   : (int?) gateway.Attribute("Port") ?? 20_000),
+                    endpoint: new DnsEndPoint(
+                        host: (string?) gateway.Attribute("Server") ?? throw new InvalidOperationException(SR.FormatID0076("Server")),
+                        port: (int?) gateway.Attribute("Port") ?? 20_000),
                     password: (string?) gateway.Attribute("Password")),
 
                 null or { Length: 0 } => throw new InvalidOperationException(SR.FormatID0074("Type")),
@@ -304,7 +311,7 @@ public sealed class OpenNettyBuilder
                 null => device?.Definition.Protocol switch
                 {
                     // Note: gateway endpoints don't have an address attached.
-                    _ when device is not null && device.Definition.Capabilities.Contains(OpenNettyCapabilities.OpenWebNetGateway)
+                    _ when device is not null && device.Definition.HasCapability(OpenNettyCapabilities.OpenWebNetGateway)
                         => null as OpenNettyAddressType?,
 
                     OpenNettyProtocol.Nitoo  => OpenNettyAddressType.Nitoo,
@@ -313,9 +320,9 @@ public sealed class OpenNettyBuilder
                     // Note: SCS units/modules supporting ON/OFF switching or shutter
                     // control are assumed to use SCS light point addresses by default.
                     OpenNettyProtocol.Scs when unit is not null &&
-                        (unit.Definition.Capabilities.Contains(OpenNettyCapabilities.OnOffSwitchControl) ||
-                         unit.Definition.Capabilities.Contains(OpenNettyCapabilities.BasicShutterControl) ||
-                         unit.Definition.Capabilities.Contains(OpenNettyCapabilities.AdvancedShutterControl))
+                        (unit.HasCapability(OpenNettyCapabilities.OnOffSwitchControl) ||
+                         unit.HasCapability(OpenNettyCapabilities.BasicShutterControl) ||
+                         unit.HasCapability(OpenNettyCapabilities.AdvancedShutterControl))
                         => OpenNettyAddressType.ScsLightPoint,
 
                     _ => throw new InvalidOperationException(SR.FormatID0080(name, "Type"))

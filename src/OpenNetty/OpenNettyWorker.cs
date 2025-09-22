@@ -42,17 +42,17 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
 
         List<Task> tasks = [];
 
-        if (gateway.Device.Definition.Capabilities.Contains(OpenNettyCapabilities.OpenWebNetGenericSession))
+        if (gateway.Device.HasCapability(OpenNettyCapabilities.OpenWebNetGenericSession))
         {
             tasks.Add(CreateSharedSessionWorkerAsync(OpenNettySessionType.Generic, cancellationToken));
         }
 
-        if (gateway.Device.Definition.Capabilities.Contains(OpenNettyCapabilities.OpenWebNetEventSession))
+        if (gateway.Device.HasCapability(OpenNettyCapabilities.OpenWebNetEventSession))
         {
             tasks.Add(CreateSharedSessionWorkerAsync(OpenNettySessionType.Event, cancellationToken));
         }
 
-        if (gateway.Device.Definition.Capabilities.Contains(OpenNettyCapabilities.OpenWebNetCommandSession))
+        if (gateway.Device.HasCapability(OpenNettyCapabilities.OpenWebNetCommandSession))
         {
             for (var index = 0; index < options.MaximumConcurrentCommandSessions; index++)
             {
