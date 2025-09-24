@@ -19,7 +19,8 @@ To this date, 3 variants of OpenWebNet have been developed by the two companies:
 
 OpenNetty offers both low-level primitives to represent OpenWebNet messages and communicate with OpenWebNet
 gateways and a higher-level MQTT integration that can be directly used with home automation software like
-[Home Assistant](https://www.home-assistant.io/), [Jeedom](https://jeedom.com/) or [FHEM](https://fhem.de/).
+[Home Assistant](https://www.home-assistant.io/), [Jeedom](https://jeedom.com/),
+[FHEM](https://fhem.de/) or [openHAB](https://www.openhab.org/).
 
 > [!IMPORTANT]
 > **An OpenWebNet gateway is required by OpenNetty to be able to interact with BTicino and Legrand devices**:
@@ -152,6 +153,23 @@ server/port/username/password attributes to match the values used by your MQTT b
 > 
 > </Configuration>
 > ```
+
+### If necessary, change the UI culture used in the MQTT discovery payloads
+
+By default, OpenNetty always uses the user locale as the default UI culture when generating the MQTT discovery payloads used by Home
+Assistant - and other compatible software - to automatically create entities for each supported sensor or action exposed by OpenNetty.
+
+If you need to customize the UI culture used, you can set the `HomeAssistantDiscoveryUICulture`
+attribute to a specific value. At the time of writing, both English and French are natively supported:
+
+```xml
+<Configuration>
+
+  <Mqtt Server="192.168.5.1" Port="1883" Username="jeedom" Password="koIiuhTFGtrdRkjLKhYGvgfFSDr"
+        HomeAssistantDiscoveryUICulture="fr" />
+
+</Configuration>
+```
 
 ### Configure the gateways
 
@@ -377,10 +395,14 @@ sudo service opennetty start
 > You can also send an empty `opennetty/bedroom/wall light/switch_state/get` message to get the current switch state of the endpoint.
 
 > [!IMPORTANT]
-> The complete list of supported MQTT attributes can be found in the [`OpenNettyMqttAttributes.cs` file](src/OpenNetty.Mqtt/OpenNettyMqttAttributes.cs).
+> If your home automation software supports MQTT discovery (like Home Assistant or openHAB), devices should
+> automatically appear with all their supported entities without requiring any additional configuration.
 >
-> Ready-to-use templates for Jeedom's [jMQTT plugin](https://market.jeedom.com/index.php?v=d&p=market_display&id=3166)
-> can be found in the [opennetty-resources](https://github.com/opennetty/opennetty-resources) repository.
+> If your home automation software requires configuring devices manually, the complete list of supported
+> MQTT attributes can be found in the [`OpenNettyMqttAttributes.cs` file](src/OpenNetty.Mqtt/OpenNettyMqttAttributes.cs).
+>
+> Base templates for Jeedom's [jMQTT plugin](https://market.jeedom.com/index.php?v=d&p=market_display&id=3166)
+> can also be found in the [opennetty-resources](https://github.com/opennetty/opennetty-resources) repository.
 
 ### If necessary, change the default log level
 

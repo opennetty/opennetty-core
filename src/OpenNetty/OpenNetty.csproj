@@ -18,6 +18,7 @@
   <ItemGroup>
     <EmbeddedResource Include="*.xml" />
     <EmbeddedResource Update="**\*.resx" GenerateSource="true" GenerateResourcesCodeAsConstants="true" />
+    <EmbeddedResource Update="**\*.*.resx" GenerateSource="false" GenerateResourcesCodeAsConstants="false" />
   </ItemGroup>
 
   <ItemGroup>

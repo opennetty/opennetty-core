@@ -5,6 +5,7 @@
  */
 
 using System.Collections.Immutable;
+using System.Globalization;
 using System.Reflection;
 using System.Xml.Linq;
 
@@ -132,11 +133,19 @@ public static class OpenNettyDevices
 
         foreach (var identity in node.Elements("Identity"))
         {
+            Dictionary<CultureInfo, string> descriptions = [];
+
+            foreach (var description in identity.Elements("Description"))
+            {
+                var culture = CultureInfo.GetCultureInfo((string) description.Attribute("Culture")!);
+                descriptions.Add(culture, (string) description.Attribute("Value")!);
+            }
+
             identities.Add(new OpenNettyDeviceIdentity
             {
                 Brand = Enum.Parse<OpenNettyBrand>((string) identity.Attribute("Brand")!),
                 Collection = (string?) identity.Attribute("Collection"),
-                Description = (string) identity.Attribute("Description")!,
+                Descriptions = descriptions.ToImmutableDictionary(),
                 Model = (string) identity.Attribute("Model")!
             });
         }
@@ -154,7 +163,6 @@ public static class OpenNettyDevices
         return new OpenNettyDeviceDefinition
         {
             Capabilities = [.. capabilities],
-            Description = (string) node.Attribute("Description")!,
             Identities = [.. identities],
             Medium = Enum.Parse<OpenNettyMedium>((string) node.Attribute("Medium")!),
             Protocol = Enum.Parse<OpenNettyProtocol>((string) node.Attribute("Protocol")!),
@@ -167,11 +175,18 @@ public static class OpenNettyDevices
     private static OpenNettyUnitDefinition CreateUnitDefinition(XElement node)
     {
         HashSet<OpenNettyCapability> capabilities = [];
+        Dictionary<CultureInfo, string> descriptions = [];
         Dictionary<OpenNettySetting, string> settings = [];
 
         foreach (var capability in node.Elements("Capability"))
         {
             capabilities.Add(new OpenNettyCapability((string) capability.Attribute("Name")!));
+        }
+
+        foreach (var description in node.Elements("Description"))
+        {
+            var culture = CultureInfo.GetCultureInfo((string) description.Attribute("Culture")!);
+            descriptions[culture] = (string) description.Attribute("Value")!;
         }
 
         foreach (var setting in node.Elements("Setting"))
@@ -183,7 +198,7 @@ public static class OpenNettyDevices
         {
             AssociatedUnitId = (byte?) (uint?) node.Attribute("AssociatedUnitId"),
             Capabilities = [.. capabilities],
-            Description = (string) node.Attribute("Description")!,
+            Descriptions = descriptions.ToImmutableDictionary(),
             Id = (byte) (uint) node.Attribute("Id")!,
             Settings = settings.ToImmutableDictionary()
         };

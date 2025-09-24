@@ -5,6 +5,7 @@
  */
 
 using System.ComponentModel;
+using System.Globalization;
 using System.Security.Cryptography.X509Certificates;
 using System.Xml.Linq;
 using Microsoft.Extensions.FileProviders;
@@ -195,6 +196,12 @@ public sealed class OpenNettyMqttBuilder
             if (!string.IsNullOrEmpty(topics.DiscoveryRootTopic))
             {
                 options.HomeAssistantDiscoveryRootTopic = topics.DiscoveryRootTopic;
+            }
+
+            var culture = (string?) element.Attribute("HomeAssistantDiscoveryUICulture");
+            if (!string.IsNullOrEmpty(culture))
+            {
+                options.HomeAssistantDiscoveryUICulture = CultureInfo.GetCultureInfo(culture);
             }
 
             options.ClientOptions = builder.Build();

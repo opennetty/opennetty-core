@@ -19,11 +19,6 @@ public sealed class OpenNettyDeviceDefinition : IEquatable<OpenNettyDeviceDefini
     public required ImmutableHashSet<OpenNettyCapability> Capabilities { get; init; } = [];
 
     /// <summary>
-    /// Gets or sets the description associated with the unit definition.
-    /// </summary>
-    public required string Description { get; init; }
-
-    /// <summary>
     /// Gets or sets the identities associated with the device definition.
     /// </summary>
     public required ImmutableArray<OpenNettyDeviceIdentity> Identities { get; init; }
@@ -64,7 +59,6 @@ public sealed class OpenNettyDeviceDefinition : IEquatable<OpenNettyDeviceDefini
 
         return other is not null &&
             Capabilities.Count == other.Capabilities.Count && Capabilities.Except(other.Capabilities).IsEmpty &&
-            string.Equals(Description, other.Description, StringComparison.OrdinalIgnoreCase) &&
             Identities.Length == other.Identities.Length && !Identities.Except(other.Identities).Any() &&
             Medium == other.Medium &&
             Protocol == other.Protocol &&
@@ -86,8 +80,6 @@ public sealed class OpenNettyDeviceDefinition : IEquatable<OpenNettyDeviceDefini
         {
             hash.Add(capability);
         }
-
-        hash.Add(Description);
 
         hash.Add(Identities.Length);
         foreach (var identity in Identities)

@@ -5,6 +5,7 @@
  */
 
 using System.Collections.Immutable;
+using System.Globalization;
 
 namespace OpenNetty;
 
@@ -19,9 +20,9 @@ public sealed class OpenNettyUnitDefinition : IEquatable<OpenNettyUnitDefinition
     public byte? AssociatedUnitId { get; init; }
 
     /// <summary>
-    /// Gets or sets the description associated with the unit definition.
+    /// Gets or sets the descriptions associated with the unit definition.
     /// </summary>
-    public required string Description { get; init; }
+    public required ImmutableDictionary<CultureInfo, string> Descriptions { get; init; }
 
     /// <summary>
     /// Gets or sets the capabilities associated with the unit definition.
@@ -50,13 +51,43 @@ public sealed class OpenNettyUnitDefinition : IEquatable<OpenNettyUnitDefinition
         return other is not null &&
             AssociatedUnitId == other.AssociatedUnitId &&
             Capabilities.Count == other.Capabilities.Count && Capabilities.Except(other.Capabilities).IsEmpty &&
-            string.Equals(Description, other.Description, StringComparison.OrdinalIgnoreCase) &&
+            Descriptions.Count == other.Descriptions.Count && !Descriptions.Except(other.Descriptions).Any() &&
             Id == other.Id &&
             Settings.Count == other.Settings.Count && !Settings.Except(other.Settings).Any();
     }
 
     /// <inheritdoc/>
     public override bool Equals(object? obj) => obj is OpenNettyUnitDefinition definition && Equals(definition);
+
+    /// <summary>
+    /// Gets the localized description corresponding to the specified culture (or one of its parents).
+    /// If the description is not available in the specified culture, the English version is returned if available.
+    /// </summary>
+    /// <param name="culture">The culture.</param>
+    /// <returns>
+    /// The localized description corresponding to the specified culture,
+    /// or <see langword="null"/> if it's not available.
+    /// </returns>
+    public string? GetDescription(CultureInfo culture)
+    {
+        ArgumentNullException.ThrowIfNull(culture);
+
+        string? description;
+
+        do
+        {
+            if (Descriptions.TryGetValue(culture, out description))
+            {
+                return description;
+            }
+
+            culture = culture.Parent;
+        }
+
+        while (culture != CultureInfo.InvariantCulture);
+
+        return Descriptions.TryGetValue(CultureInfo.GetCultureInfo("en"), out description) ? description : null;
+    }
 
     /// <inheritdoc/>
     public override int GetHashCode()
@@ -70,7 +101,13 @@ public sealed class OpenNettyUnitDefinition : IEquatable<OpenNettyUnitDefinition
             hash.Add(capability);
         }
 
-        hash.Add(Description);
+        hash.Add(Descriptions.Count);
+        foreach (var (culture, value) in Descriptions)
+        {
+            hash.Add(culture);
+            hash.Add(value);
+        }
+
         hash.Add(Id);
 
         hash.Add(Settings.Count);

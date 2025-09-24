@@ -575,7 +575,7 @@ public sealed class OpenNettyBuilder
 
         static OpenNettyScenario GetScenario(XElement element) => new()
         {
-            EndpointName = (string?) element.Attribute("Endpoint") ?? throw new InvalidOperationException(SR.FormatID0088("Endpoint")),
+            EndpointName = (string?) element.Attribute("EndpointName") ?? throw new InvalidOperationException(SR.FormatID0088("EndpointName")),
             FunctionCode = (byte?) (uint?) element.Attribute("FunctionCode") ?? throw new InvalidOperationException(SR.FormatID0088("FunctionCode"))
         };
 

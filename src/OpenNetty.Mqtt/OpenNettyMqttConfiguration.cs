@@ -5,6 +5,7 @@
  */
 
 using System.ComponentModel;
+using System.Globalization;
 using Microsoft.Extensions.Options;
 
 namespace OpenNetty.Mqtt;
@@ -37,6 +38,8 @@ public sealed class OpenNettyMqttConfiguration : IPostConfigureOptions<OpenNetty
     public void PostConfigure(string? name, OpenNettyMqttOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
+
+        options.HomeAssistantDiscoveryUICulture ??= CultureInfo.CurrentUICulture;
 
         if (string.IsNullOrEmpty(options.HomeAssistantDiscoveryRootTopic))
         {

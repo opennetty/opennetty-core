@@ -594,4 +594,319 @@
   <data name="ID6023" xml:space="preserve">
     <value>An error occurred while processing an outgoing MQTT message for topic {Topic} (payload: {Payload}).</value>
   </data>
+  <data name="ID8000" xml:space="preserve">
+    <value>Switch</value>
+  </data>
+  <data name="ID8001" xml:space="preserve">
+    <value>Light</value>
+  </data>
+  <data name="ID8002" xml:space="preserve">
+    <value>Get switch state</value>
+  </data>
+  <data name="ID8003" xml:space="preserve">
+    <value>Get brightness</value>
+  </data>
+  <data name="ID8004" xml:space="preserve">
+    <value>Cover</value>
+  </data>
+  <data name="ID8005" xml:space="preserve">
+    <value>Get cover state</value>
+  </data>
+  <data name="ID8006" xml:space="preserve">
+    <value>Get cover position</value>
+  </data>
+  <data name="ID8007" xml:space="preserve">
+    <value>Scenario</value>
+  </data>
+  <data name="ID8008" xml:space="preserve">
+    <value>Dispatch action scenario</value>
+  </data>
+  <data name="ID8009" xml:space="preserve">
+    <value>Dispatch ON scenario</value>
+  </data>
+  <data name="ID8010" xml:space="preserve">
+    <value>Dispatch OFF scenario</value>
+  </data>
+  <data name="ID8011" xml:space="preserve">
+    <value>Dispatch pressure scenario (button n°{0})</value>
+  </data>
+  <data name="ID8012" xml:space="preserve">
+    <value>Dispatch release after short pressure scenario (button n°{0})</value>
+  </data>
+  <data name="ID8013" xml:space="preserve">
+    <value>Dispatch release after extended pressure scenario (button n°{0})</value>
+  </data>
+  <data name="ID8014" xml:space="preserve">
+    <value>Dispatch extended pressure scenario (button n°{0})</value>
+  </data>
+  <data name="ID8015" xml:space="preserve">
+    <value>Dispatch pressure scenario</value>
+  </data>
+  <data name="ID8016" xml:space="preserve">
+    <value>Dispatch release after short pressure scenario</value>
+  </data>
+  <data name="ID8017" xml:space="preserve">
+    <value>Dispatch release after extended pressure scenario</value>
+  </data>
+  <data name="ID8018" xml:space="preserve">
+    <value>Dispatch extended pressure scenario</value>
+  </data>
+  <data name="ID8019" xml:space="preserve">
+    <value>Dispatch short pressure scenario (button {0})</value>
+  </data>
+  <data name="ID8020" xml:space="preserve">
+    <value>Dispatch start of extended pressure scenario (button {0})</value>
+  </data>
+  <data name="ID8021" xml:space="preserve">
+    <value>Dispatch end of extended pressure scenario (button {0})</value>
+  </data>
+  <data name="ID8022" xml:space="preserve">
+    <value>Dispatch short pressure scenario</value>
+  </data>
+  <data name="ID8023" xml:space="preserve">
+    <value>Dispatch start of extended pressure scenario</value>
+  </data>
+  <data name="ID8024" xml:space="preserve">
+    <value>Dispatch end of extended pressure scenario</value>
+  </data>
+  <data name="ID8025" xml:space="preserve">
+    <value>Dispatch stop action scenario</value>
+  </data>
+  <data name="ID8026" xml:space="preserve">
+    <value>Dispatch UP scenario</value>
+  </data>
+  <data name="ID8027" xml:space="preserve">
+    <value>Dispatch DOWN scenario</value>
+  </data>
+  <data name="ID8028" xml:space="preserve">
+    <value>Dispatch STOP scenario</value>
+  </data>
+  <data name="ID8029" xml:space="preserve">
+    <value>Battery alert</value>
+  </data>
+  <data name="ID8030" xml:space="preserve">
+    <value>Reset battery state</value>
+  </data>
+  <data name="ID8031" xml:space="preserve">
+    <value>Battery level</value>
+  </data>
+  <data name="ID8032" xml:space="preserve">
+    <value>Firmware version</value>
+  </data>
+  <data name="ID8033" xml:space="preserve">
+    <value>Get firmware version</value>
+  </data>
+  <data name="ID8034" xml:space="preserve">
+    <value>Hardware version</value>
+  </data>
+  <data name="ID8035" xml:space="preserve">
+    <value>Get hardware version</value>
+  </data>
+  <data name="ID8036" xml:space="preserve">
+    <value>MAC address</value>
+  </data>
+  <data name="ID8037" xml:space="preserve">
+    <value>Get MAC address</value>
+  </data>
+  <data name="ID8038" xml:space="preserve">
+    <value>Push button</value>
+  </data>
+  <data name="ID8039" xml:space="preserve">
+    <value>Setpoint mode</value>
+  </data>
+  <data name="ID8040" xml:space="preserve">
+    <value>Comfort</value>
+  </data>
+  <data name="ID8041" xml:space="preserve">
+    <value>Comfort -1°C</value>
+  </data>
+  <data name="ID8042" xml:space="preserve">
+    <value>Comfort -2°C</value>
+  </data>
+  <data name="ID8043" xml:space="preserve">
+    <value>Eco</value>
+  </data>
+  <data name="ID8044" xml:space="preserve">
+    <value>Frost protection</value>
+  </data>
+  <data name="ID8045" xml:space="preserve">
+    <value>Derogation mode</value>
+  </data>
+  <data name="ID8046" xml:space="preserve">
+    <value>No derogation</value>
+  </data>
+  <data name="ID8047" xml:space="preserve">
+    <value>Comfort, until the next setpoint change</value>
+  </data>
+  <data name="ID8048" xml:space="preserve">
+    <value>Comfort, for at least 4 hours</value>
+  </data>
+  <data name="ID8049" xml:space="preserve">
+    <value>Comfort, for at least 8 hours</value>
+  </data>
+  <data name="ID8050" xml:space="preserve">
+    <value>Comfort -1°C, until the next setpoint change</value>
+  </data>
+  <data name="ID8051" xml:space="preserve">
+    <value>Comfort -1°C, for at least 4 hours</value>
+  </data>
+  <data name="ID8052" xml:space="preserve">
+    <value>Comfort -1°C, for at least 8 hours</value>
+  </data>
+  <data name="ID8053" xml:space="preserve">
+    <value>Comfort -2°C, until the next setpoint change</value>
+  </data>
+  <data name="ID8054" xml:space="preserve">
+    <value>Comfort -2°C, for at least 4 hours</value>
+  </data>
+  <data name="ID8055" xml:space="preserve">
+    <value>Comfort -2°C, for at least 8 hours</value>
+  </data>
+  <data name="ID8056" xml:space="preserve">
+    <value>Eco, until the next setpoint change</value>
+  </data>
+  <data name="ID8057" xml:space="preserve">
+    <value>Eco, for at least 4 hours</value>
+  </data>
+  <data name="ID8058" xml:space="preserve">
+    <value>Eco, for at least 8 hours</value>
+  </data>
+  <data name="ID8059" xml:space="preserve">
+    <value>Frost protection (permanent)</value>
+  </data>
+  <data name="ID8060" xml:space="preserve">
+    <value>Frost protection, for at least 4 hours</value>
+  </data>
+  <data name="ID8061" xml:space="preserve">
+    <value>Frost protection, for at least 8 hours</value>
+  </data>
+  <data name="ID8062" xml:space="preserve">
+    <value>Get setpoint mode</value>
+  </data>
+  <data name="ID8063" xml:space="preserve">
+    <value>Get derogation mode</value>
+  </data>
+  <data name="ID8064" xml:space="preserve">
+    <value>Base index</value>
+  </data>
+  <data name="ID8065" xml:space="preserve">
+    <value>Blue index</value>
+  </data>
+  <data name="ID8066" xml:space="preserve">
+    <value>Off-peak index</value>
+  </data>
+  <data name="ID8067" xml:space="preserve">
+    <value>Red index</value>
+  </data>
+  <data name="ID8068" xml:space="preserve">
+    <value>White index</value>
+  </data>
+  <data name="ID8069" xml:space="preserve">
+    <value>Subscription type</value>
+  </data>
+  <data name="ID8070" xml:space="preserve">
+    <value>Base</value>
+  </data>
+  <data name="ID8071" xml:space="preserve">
+    <value>Peak/off-peak</value>
+  </data>
+  <data name="ID8072" xml:space="preserve">
+    <value>Tempo</value>
+  </data>
+  <data name="ID8073" xml:space="preserve">
+    <value>Get indexes and subscription type</value>
+  </data>
+  <data name="ID8074" xml:space="preserve">
+    <value>Rate type</value>
+  </data>
+  <data name="ID8075" xml:space="preserve">
+    <value>Peak</value>
+  </data>
+  <data name="ID8076" xml:space="preserve">
+    <value>Off-peak</value>
+  </data>
+  <data name="ID8077" xml:space="preserve">
+    <value>Power cut active</value>
+  </data>
+  <data name="ID8078" xml:space="preserve">
+    <value>Get rate type</value>
+  </data>
+  <data name="ID8079" xml:space="preserve">
+    <value>Get power cut state</value>
+  </data>
+  <data name="ID8080" xml:space="preserve">
+    <value>Startup date</value>
+  </data>
+  <data name="ID8081" xml:space="preserve">
+    <value>Get startup date</value>
+  </data>
+  <data name="ID8082" xml:space="preserve">
+    <value>Automatic</value>
+  </data>
+  <data name="ID8083" xml:space="preserve">
+    <value>Forced ON</value>
+  </data>
+  <data name="ID8084" xml:space="preserve">
+    <value>Forced OFF</value>
+  </data>
+  <data name="ID8085" xml:space="preserve">
+    <value>Heater active</value>
+  </data>
+  <data name="ID8086" xml:space="preserve">
+    <value>Get heater state</value>
+  </data>
+  <data name="ID8087" xml:space="preserve">
+    <value>Alarm state</value>
+  </data>
+  <data name="ID8088" xml:space="preserve">
+    <value>Disarmed</value>
+  </data>
+  <data name="ID8089" xml:space="preserve">
+    <value>Armed</value>
+  </data>
+  <data name="ID8090" xml:space="preserve">
+    <value>Partially armed</value>
+  </data>
+  <data name="ID8091" xml:space="preserve">
+    <value>Exit delay elapsed</value>
+  </data>
+  <data name="ID8092" xml:space="preserve">
+    <value>Triggered</value>
+  </data>
+  <data name="ID8093" xml:space="preserve">
+    <value>Event detected</value>
+  </data>
+  <data name="ID8094" xml:space="preserve">
+    <value>Bind to gateway</value>
+  </data>
+  <data name="ID8095" xml:space="preserve">
+    <value>Unbind from gateway</value>
+  </data>
+  <data name="ID8096" xml:space="preserve">
+    <value>Zigbee channel</value>
+  </data>
+  <data name="ID8097" xml:space="preserve">
+    <value>Get Zigbee channel</value>
+  </data>
+  <data name="ID8098" xml:space="preserve">
+    <value>Create and open Zigbee network</value>
+  </data>
+  <data name="ID8099" xml:space="preserve">
+    <value>Join Zigbee network</value>
+  </data>
+  <data name="ID8100" xml:space="preserve">
+    <value>Leave Zigbee network</value>
+  </data>
+  <data name="ID8101" xml:space="preserve">
+    <value>Open Zigbee network</value>
+  </data>
+  <data name="ID8102" xml:space="preserve">
+    <value>Close Zigbee network</value>
+  </data>
+  <data name="ID8103" xml:space="preserve">
+    <value>Enable supervisor mode</value>
+  </data>
+  <data name="ID8104" xml:space="preserve">
+    <value>Disable supervisor mode</value>
+  </data>
 </root>
