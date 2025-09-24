@@ -37,14 +37,14 @@ public static class OpenNettySettings
     public static readonly OpenNettySetting HomeAssistantCoverIcon = new("Home Assistant cover icon");
 
     /// <summary>
-    /// Home Assistant light/switch name.
-    /// </summary>
-    public static readonly OpenNettySetting HomeAssistantCoverName = new("Home Assistant cover name");
-
-    /// <summary>
     /// Home Assistant discovery.
     /// </summary>
     public static readonly OpenNettySetting HomeAssistantDiscovery = new("Home Assistant discovery");
+
+    /// <summary>
+    /// Home Assistant discovery UI culture.
+    /// </summary>
+    public static readonly OpenNettySetting HomeAssistantDiscoveryUICulture = new("Home Assistant discovery UI culture");
 
     /// <summary>
     /// Home Assistant entity type.
@@ -62,11 +62,6 @@ public static class OpenNettySettings
     public static readonly OpenNettySetting HomeAssistantLightSwitchIcon = new("Home Assistant light/switch icon");
 
     /// <summary>
-    /// Home Assistant light/switch name.
-    /// </summary>
-    public static readonly OpenNettySetting HomeAssistantLightSwitchName = new("Home Assistant light/switch name");
-
-    /// <summary>
     /// Home Assistant scenario device class.
     /// </summary>
     public static readonly OpenNettySetting HomeAssistantScenarioDeviceClass = new("Home Assistant scenario device class");
@@ -75,11 +70,6 @@ public static class OpenNettySettings
     /// Home Assistant scenario icon.
     /// </summary>
     public static readonly OpenNettySetting HomeAssistantScenarioIcon = new("Home Assistant scenario icon");
-
-    /// <summary>
-    /// Home Assistant scenario name.
-    /// </summary>
-    public static readonly OpenNettySetting HomeAssistantScenarioName = new("Home Assistant scenario name");
 
     /// <summary>
     /// Home Assistant suggested area.

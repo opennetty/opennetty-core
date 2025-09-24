@@ -4,6 +4,7 @@
  * the license and the contributors participating to this project.
  */
 
+using System.Globalization;
 using MQTTnet.Client;
 
 namespace OpenNetty.Mqtt;
@@ -22,6 +23,12 @@ public sealed class OpenNettyMqttOptions
     /// Gets or sets a boolean indicating whether Home Assistant discovery is enabled.
     /// </summary>
     public bool DisableHomeAssistantDiscovery { get; set; }
+
+    /// <summary>
+    /// Gets or sets the UI culture to use in the user-visible strings
+    /// (e.g device identities) included in the MQTT discovery payloads.
+    /// </summary>
+    public CultureInfo HomeAssistantDiscoveryUICulture { get; set; } = default!;
 
     /// <summary>
     /// Gets or sets the MQTT discovery root topic (by default, "homeassistant").

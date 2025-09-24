@@ -1,0 +1,435 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<root>
+  <!-- 
+    Microsoft ResX Schema 
+    
+    Version 2.0
+    
+    The primary goals of this format is to allow a simple XML format 
+    that is mostly human readable. The generation and parsing of the 
+    various data types are done through the TypeConverter classes 
+    associated with the data types.
+    
+    Example:
+    
+    ... ado.net/XML headers & schema ...
+    <resheader name="resmimetype">text/microsoft-resx</resheader>
+    <resheader name="version">2.0</resheader>
+    <resheader name="reader">System.Resources.ResXResourceReader, System.Windows.Forms, ...</resheader>
+    <resheader name="writer">System.Resources.ResXResourceWriter, System.Windows.Forms, ...</resheader>
+    <data name="Name1"><value>this is my long string</value><comment>this is a comment</comment></data>
+    <data name="Color1" type="System.Drawing.Color, System.Drawing">Blue</data>
+    <data name="Bitmap1" mimetype="application/x-microsoft.net.object.binary.base64">
+        <value>[base64 mime encoded serialized .NET Framework object]</value>
+    </data>
+    <data name="Icon1" type="System.Drawing.Icon, System.Drawing" mimetype="application/x-microsoft.net.object.bytearray.base64">
+        <value>[base64 mime encoded string representing a byte array form of the .NET Framework object]</value>
+        <comment>This is a comment</comment>
+    </data>
+                
+    There are any number of "resheader" rows that contain simple 
+    name/value pairs.
+    
+    Each data row contains a name, and value. The row also contains a 
+    type or mimetype. Type corresponds to a .NET class that support 
+    text/value conversion through the TypeConverter architecture. 
+    Classes that don't support this are serialized and stored with the 
+    mimetype set.
+    
+    The mimetype is used for serialized objects, and tells the 
+    ResXResourceReader how to depersist the object. This is currently not 
+    extensible. For a given mimetype the value must be set accordingly:
+    
+    Note - application/x-microsoft.net.object.binary.base64 is the format 
+    that the ResXResourceWriter will generate, however the reader can 
+    read any of the formats listed below.
+    
+    mimetype: application/x-microsoft.net.object.binary.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Binary.BinaryFormatter
+            : and then encoded with base64 encoding.
+    
+    mimetype: application/x-microsoft.net.object.soap.base64
+    value   : The object must be serialized with 
+            : System.Runtime.Serialization.Formatters.Soap.SoapFormatter
+            : and then encoded with base64 encoding.
+
+    mimetype: application/x-microsoft.net.object.bytearray.base64
+    value   : The object must be serialized into a byte array 
+            : using a System.ComponentModel.TypeConverter
+            : and then encoded with base64 encoding.
+    -->
+  <xsd:schema id="root" xmlns="" xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:msdata="urn:schemas-microsoft-com:xml-msdata">
+    <xsd:import namespace="http://www.w3.org/XML/1998/namespace" />
+    <xsd:element name="root" msdata:IsDataSet="true">
+      <xsd:complexType>
+        <xsd:choice maxOccurs="unbounded">
+          <xsd:element name="metadata">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" />
+              </xsd:sequence>
+              <xsd:attribute name="name" use="required" type="xsd:string" />
+              <xsd:attribute name="type" type="xsd:string" />
+              <xsd:attribute name="mimetype" type="xsd:string" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="assembly">
+            <xsd:complexType>
+              <xsd:attribute name="alias" type="xsd:string" />
+              <xsd:attribute name="name" type="xsd:string" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="data">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+                <xsd:element name="comment" type="xsd:string" minOccurs="0" msdata:Ordinal="2" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" msdata:Ordinal="1" />
+              <xsd:attribute name="type" type="xsd:string" msdata:Ordinal="3" />
+              <xsd:attribute name="mimetype" type="xsd:string" msdata:Ordinal="4" />
+              <xsd:attribute ref="xml:space" />
+            </xsd:complexType>
+          </xsd:element>
+          <xsd:element name="resheader">
+            <xsd:complexType>
+              <xsd:sequence>
+                <xsd:element name="value" type="xsd:string" minOccurs="0" msdata:Ordinal="1" />
+              </xsd:sequence>
+              <xsd:attribute name="name" type="xsd:string" use="required" />
+            </xsd:complexType>
+          </xsd:element>
+        </xsd:choice>
+      </xsd:complexType>
+    </xsd:element>
+  </xsd:schema>
+  <resheader name="resmimetype">
+    <value>text/microsoft-resx</value>
+  </resheader>
+  <resheader name="version">
+    <value>2.0</value>
+  </resheader>
+  <resheader name="reader">
+    <value>System.Resources.ResXResourceReader, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <resheader name="writer">
+    <value>System.Resources.ResXResourceWriter, System.Windows.Forms, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089</value>
+  </resheader>
+  <data name="ID8000" xml:space="preserve">
+    <value>Interrupteur</value>
+  </data>
+  <data name="ID8001" xml:space="preserve">
+    <value>Lumière</value>
+  </data>
+  <data name="ID8002" xml:space="preserve">
+    <value>Récupérer état de l'interrupteur</value>
+  </data>
+  <data name="ID8003" xml:space="preserve">
+    <value>Récupérer luminosité</value>
+  </data>
+  <data name="ID8004" xml:space="preserve">
+    <value>Volet roulant</value>
+  </data>
+  <data name="ID8005" xml:space="preserve">
+    <value>Récupérer état du volet roulant</value>
+  </data>
+  <data name="ID8006" xml:space="preserve">
+    <value>Récupérer position de l'interrupteur</value>
+  </data>
+  <data name="ID8007" xml:space="preserve">
+    <value>Scénario</value>
+  </data>
+  <data name="ID8008" xml:space="preserve">
+    <value>Activer scénario action</value>
+  </data>
+  <data name="ID8009" xml:space="preserve">
+    <value>Activer scénario ON</value>
+  </data>
+  <data name="ID8010" xml:space="preserve">
+    <value>Activer scénario OFF</value>
+  </data>
+  <data name="ID8011" xml:space="preserve">
+    <value>Activer scénario pression (bouton n°{0})</value>
+  </data>
+  <data name="ID8012" xml:space="preserve">
+    <value>Activer scénario relâchement après pression courte (bouton n°{0})</value>
+  </data>
+  <data name="ID8013" xml:space="preserve">
+    <value>Activer scénario relâchement après pression prolongée (bouton n°{0})</value>
+  </data>
+  <data name="ID8014" xml:space="preserve">
+    <value>Activer scénario pression prolongée (bouton n°{0})</value>
+  </data>
+  <data name="ID8015" xml:space="preserve">
+    <value>Activer scénario pression</value>
+  </data>
+  <data name="ID8016" xml:space="preserve">
+    <value>Activer scénario relâchement après pression courte</value>
+  </data>
+  <data name="ID8017" xml:space="preserve">
+    <value>Activer scénario relâchement après pression prolongée</value>
+  </data>
+  <data name="ID8018" xml:space="preserve">
+    <value>Activer scénario pression prolongée</value>
+  </data>
+  <data name="ID8019" xml:space="preserve">
+    <value>Activer scénario pression courte (bouton {0})</value>
+  </data>
+  <data name="ID8020" xml:space="preserve">
+    <value>Activer scénario début de pression prolongée (bouton {0})</value>
+  </data>
+  <data name="ID8021" xml:space="preserve">
+    <value>Activer scénario fin de pression prolongée (bouton {0})</value>
+  </data>
+  <data name="ID8022" xml:space="preserve">
+    <value>Activer scénario pression courte</value>
+  </data>
+  <data name="ID8023" xml:space="preserve">
+    <value>Activer scénario début de pression prolongée</value>
+  </data>
+  <data name="ID8024" xml:space="preserve">
+    <value>Activer scénario fin de pression prolongée</value>
+  </data>
+  <data name="ID8025" xml:space="preserve">
+    <value>Activer scénario stop action</value>
+  </data>
+  <data name="ID8026" xml:space="preserve">
+    <value>Activer scénario montée</value>
+  </data>
+  <data name="ID8027" xml:space="preserve">
+    <value>Activer scénario descente</value>
+  </data>
+  <data name="ID8028" xml:space="preserve">
+    <value>Activer scénario stop</value>
+  </data>
+  <data name="ID8029" xml:space="preserve">
+    <value>Alerte de batterie</value>
+  </data>
+  <data name="ID8030" xml:space="preserve">
+    <value>Réinitialiser niveau de batterie</value>
+  </data>
+  <data name="ID8031" xml:space="preserve">
+    <value>Niveau de batterie</value>
+  </data>
+  <data name="ID8032" xml:space="preserve">
+    <value>Version du microgiciel</value>
+  </data>
+  <data name="ID8033" xml:space="preserve">
+    <value>Récupérer version du microgiciel</value>
+  </data>
+  <data name="ID8034" xml:space="preserve">
+    <value>Version du matériel</value>
+  </data>
+  <data name="ID8035" xml:space="preserve">
+    <value>Récupérer version du matériel</value>
+  </data>
+  <data name="ID8036" xml:space="preserve">
+    <value>Adresse MAC</value>
+  </data>
+  <data name="ID8037" xml:space="preserve">
+    <value>Récupérer adresse MAC</value>
+  </data>
+  <data name="ID8038" xml:space="preserve">
+    <value>Bouton poussoir</value>
+  </data>
+  <data name="ID8039" xml:space="preserve">
+    <value>Consigne</value>
+  </data>
+  <data name="ID8040" xml:space="preserve">
+    <value>Confort</value>
+  </data>
+  <data name="ID8041" xml:space="preserve">
+    <value>Confort -1°C</value>
+  </data>
+  <data name="ID8042" xml:space="preserve">
+    <value>Confort -2°C</value>
+  </data>
+  <data name="ID8043" xml:space="preserve">
+    <value>Éco</value>
+  </data>
+  <data name="ID8044" xml:space="preserve">
+    <value>Hors gel</value>
+  </data>
+  <data name="ID8045" xml:space="preserve">
+    <value>Dérogation</value>
+  </data>
+  <data name="ID8046" xml:space="preserve">
+    <value>Pas de dérogation</value>
+  </data>
+  <data name="ID8047" xml:space="preserve">
+    <value>Confort, jusqu'au prochain changement de consigne</value>
+  </data>
+  <data name="ID8048" xml:space="preserve">
+    <value>Confort, pendant au moins 4 heures</value>
+  </data>
+  <data name="ID8049" xml:space="preserve">
+    <value>Confort, pendant au moins 8 heures</value>
+  </data>
+  <data name="ID8050" xml:space="preserve">
+    <value>Confort -1°C, jusqu'au prochain changement de consigne</value>
+  </data>
+  <data name="ID8051" xml:space="preserve">
+    <value>Confort -1°C, pendant au moins 4 heures</value>
+  </data>
+  <data name="ID8052" xml:space="preserve">
+    <value>Confort -1°C, pendant au moins 8 heures</value>
+  </data>
+  <data name="ID8053" xml:space="preserve">
+    <value>Confort -2°C, jusqu'au prochain changement de consigne</value>
+  </data>
+  <data name="ID8054" xml:space="preserve">
+    <value>Confort -2°C, pendant au moins 4 heures</value>
+  </data>
+  <data name="ID8055" xml:space="preserve">
+    <value>Confort -2°C, pendant au moins 8 heures</value>
+  </data>
+  <data name="ID8056" xml:space="preserve">
+    <value>Éco, jusqu'au prochain changement de consigne</value>
+  </data>
+  <data name="ID8057" xml:space="preserve">
+    <value>Éco, pendant au moins 4 heures</value>
+  </data>
+  <data name="ID8058" xml:space="preserve">
+    <value>Éco, pendant au moins 8 heures</value>
+  </data>
+  <data name="ID8059" xml:space="preserve">
+    <value>Hors gel (permanent)</value>
+  </data>
+  <data name="ID8060" xml:space="preserve">
+    <value>Hors gel, pendant au moins 4 heures</value>
+  </data>
+  <data name="ID8061" xml:space="preserve">
+    <value>Hors gel, pendant au moins 8 heures</value>
+  </data>
+  <data name="ID8062" xml:space="preserve">
+    <value>Récupérer consigne</value>
+  </data>
+  <data name="ID8063" xml:space="preserve">
+    <value>Récupérer dérogation</value>
+  </data>
+  <data name="ID8064" xml:space="preserve">
+    <value>Index de base</value>
+  </data>
+  <data name="ID8065" xml:space="preserve">
+    <value>Index bleu</value>
+  </data>
+  <data name="ID8066" xml:space="preserve">
+    <value>Index heures creuses</value>
+  </data>
+  <data name="ID8067" xml:space="preserve">
+    <value>Index rouge</value>
+  </data>
+  <data name="ID8068" xml:space="preserve">
+    <value>Index blanc</value>
+  </data>
+  <data name="ID8069" xml:space="preserve">
+    <value>Type d'abonnement</value>
+  </data>
+  <data name="ID8070" xml:space="preserve">
+    <value>Base</value>
+  </data>
+  <data name="ID8071" xml:space="preserve">
+    <value>Heures pleines/heures creuses</value>
+  </data>
+  <data name="ID8072" xml:space="preserve">
+    <value>Tempo</value>
+  </data>
+  <data name="ID8073" xml:space="preserve">
+    <value>Récupérer index et type d'abonnement</value>
+  </data>
+  <data name="ID8074" xml:space="preserve">
+    <value>Tarif en vigueur</value>
+  </data>
+  <data name="ID8075" xml:space="preserve">
+    <value>Heures pleines</value>
+  </data>
+  <data name="ID8076" xml:space="preserve">
+    <value>Heures creuses</value>
+  </data>
+  <data name="ID8077" xml:space="preserve">
+    <value>Délestage électrique en cours</value>
+  </data>
+  <data name="ID8078" xml:space="preserve">
+    <value>Récupérer tarif en vigueur</value>
+  </data>
+  <data name="ID8079" xml:space="preserve">
+    <value>Récupérer état du délestage électrique</value>
+  </data>
+  <data name="ID8080" xml:space="preserve">
+    <value>Date de démarrage</value>
+  </data>
+  <data name="ID8081" xml:space="preserve">
+    <value>Récupérer date de démarrage</value>
+  </data>
+  <data name="ID8082" xml:space="preserve">
+    <value>Automatique</value>
+  </data>
+  <data name="ID8083" xml:space="preserve">
+    <value>Marche forcée</value>
+  </data>
+  <data name="ID8084" xml:space="preserve">
+    <value>Arrêt forcé</value>
+  </data>
+  <data name="ID8085" xml:space="preserve">
+    <value>Chauffe active</value>
+  </data>
+  <data name="ID8086" xml:space="preserve">
+    <value>Récupérer état de la chauffe</value>
+  </data>
+  <data name="ID8087" xml:space="preserve">
+    <value>État de l'alarme</value>
+  </data>
+  <data name="ID8088" xml:space="preserve">
+    <value>Arrêt</value>
+  </data>
+  <data name="ID8089" xml:space="preserve">
+    <value>Mise en service totale</value>
+  </data>
+  <data name="ID8090" xml:space="preserve">
+    <value>Mise en service partielle</value>
+  </data>
+  <data name="ID8091" xml:space="preserve">
+    <value>Verrouillage après temporisation de sortie</value>
+  </data>
+  <data name="ID8092" xml:space="preserve">
+    <value>Alarme en cours</value>
+  </data>
+  <data name="ID8093" xml:space="preserve">
+    <value>Événement détecté</value>
+  </data>
+  <data name="ID8094" xml:space="preserve">
+    <value>Associer à la passerelle</value>
+  </data>
+  <data name="ID8095" xml:space="preserve">
+    <value>Dissocier de la passerelle</value>
+  </data>
+  <data name="ID8096" xml:space="preserve">
+    <value>Canal Zigbee</value>
+  </data>
+  <data name="ID8097" xml:space="preserve">
+    <value>Récupérer canal Zigbee</value>
+  </data>
+  <data name="ID8098" xml:space="preserve">
+    <value>Créer et ouvrir réseau Zigbee</value>
+  </data>
+  <data name="ID8099" xml:space="preserve">
+    <value>Joindre réseau Zigbee</value>
+  </data>
+  <data name="ID8100" xml:space="preserve">
+    <value>Quitter réseau Zigbee</value>
+  </data>
+  <data name="ID8101" xml:space="preserve">
+    <value>Ouvrir réseau Zigbee</value>
+  </data>
+  <data name="ID8102" xml:space="preserve">
+    <value>Fermer réseau Zigbee</value>
+  </data>
+  <data name="ID8103" xml:space="preserve">
+    <value>Activer mode supervision</value>
+  </data>
+  <data name="ID8104" xml:space="preserve">
+    <value>Désactiver mode supervision</value>
+  </data>
+</root>

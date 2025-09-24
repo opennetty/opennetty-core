@@ -234,7 +234,7 @@ public static class OpenNettyModels
                 SubscriptionType = values[0] switch
                 {
                     "1"               => SmartMeterSubscriptionType.Base,
-                    "2"               => SmartMeterSubscriptionType.OffPeak,
+                    "2"               => SmartMeterSubscriptionType.PeakOffPeak,
                     "3" or "4" or "5" => SmartMeterSubscriptionType.Tempo,
 
                     _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
@@ -287,9 +287,9 @@ public static class OpenNettyModels
             Base = 0,
 
             /// <summary>
-            /// Off-peak.
+            /// Peak/off-peak.
             /// </summary>
-            OffPeak = 1,
+            PeakOffPeak = 1,
 
             /// <summary>
             /// Tempo.

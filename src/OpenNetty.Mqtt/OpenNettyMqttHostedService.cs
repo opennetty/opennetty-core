@@ -415,9 +415,9 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                         ["white_index"]       = arguments.Indexes.WhiteIndex,
                         ["subscription_type"] = arguments.Indexes.SubscriptionType switch
                         {
-                            OpenNettyModels.TemperatureControl.SmartMeterSubscriptionType.Base    => "base",
-                            OpenNettyModels.TemperatureControl.SmartMeterSubscriptionType.OffPeak => "off_peak",
-                            OpenNettyModels.TemperatureControl.SmartMeterSubscriptionType.Tempo   => "tempo",
+                            OpenNettyModels.TemperatureControl.SmartMeterSubscriptionType.Base        => "base",
+                            OpenNettyModels.TemperatureControl.SmartMeterSubscriptionType.PeakOffPeak => "peak/off_peak",
+                            OpenNettyModels.TemperatureControl.SmartMeterSubscriptionType.Tempo       => "tempo",
 
                             _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                         }
