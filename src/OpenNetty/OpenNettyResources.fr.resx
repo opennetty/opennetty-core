@@ -432,4 +432,10 @@
   <data name="ID8104" xml:space="preserve">
     <value>Désactiver mode supervision</value>
   </data>
+  <data name="ID8105" xml:space="preserve">
+    <value>Nombre d'appareils Zigbee dans la base de données</value>
+  </data>
+  <data name="ID8106" xml:space="preserve">
+    <value>Récupérer nombre d'appareils Zigbee dans la base de données</value>
+  </data>
 </root>

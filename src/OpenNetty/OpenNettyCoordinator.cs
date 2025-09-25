@@ -93,10 +93,11 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     Type    : OpenNettyMessageType.BusCommand or OpenNettyMessageType.DimensionSet } message }
                 => AsyncObservable.Return<(OpenNettyNotification Notification, OpenNettyMessage Message)>((notification, message)),
 
-            // Note: while Zigbee devices report back state changes to the gateway when the supervisor mode
-            // is enabled, this mode suffers from two major limitations: it is not recommended to use it on
-            // more than one Zigbee gateway at a time and state changes are always throttled so that they are
-            // only reported 3 seconds after the last change (intermediate changes are also not reported).
+            // Note: while Zigbee devices report back state changes to the gateway when the supervisor mode is
+            // enabled, this mode suffers from two major limitations: it is not recommended to use it on more than
+            // one Zigbee gateway at a time and state changes are generally throttled and are only reported after
+            // a delay of up to 3 seconds following the last state change (intermediate changes are also skipped).
+            //
             // To mitigate these limitations, the outgoing Zigbee BUS COMMAND and DIMENSION SET messages that
             // have been acknowledged by the gateway are monitored so that changes can be reported immediately.
             OpenNettyNotifications.MessageSent {
@@ -398,7 +399,6 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                     await _events.PublishAsync(new SwitchStateReportedEventArgs(endpoint, level is not 0 ?
                                         OpenNettyModels.Lighting.SwitchState.On :
                                         OpenNettyModels.Lighting.SwitchState.Off), cancellationToken);
-                                    break;
                                 }
 
                                 // Note: the special brightness level "0" always indicates that the output is switched off.
@@ -1300,6 +1300,26 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
                     {
                         await _events.PublishAsync(new ZigbeeChannelReportedEventArgs(endpoint, byte.Parse(value, CultureInfo.InvariantCulture)));
+                    }
+                    break;
+                }
+
+                // Note: Zigbee devices count DIMENSION READ messages never include an address, as they are sent by the gateway itself.
+                case (OpenNettyNotifications.MessageReceived,
+                      OpenNettyMessage { Protocol : OpenNettyProtocol.Zigbee,
+                                         Type     : OpenNettyMessageType.DimensionRead,
+                                         Address  : null,
+                                         Dimension: OpenNettyDimension dimension,
+                                         Values   : [{ Length: > 0 } value] })
+                    when dimension == OpenNettyDimensions.Management.NumberOfProducts:
+                {
+                    // Resolve the endpoint associated with the gateway that received the DIMENSION READ message.
+                    var endpoint = await _manager.FindEndpointAsync(endpoint =>
+                        endpoint.Device == notification.Gateway.Device && endpoint.Unit is null);
+
+                    if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+                    {
+                        await _events.PublishAsync(new ZigbeeDevicesCountReportedEventArgs(endpoint, byte.Parse(value, CultureInfo.InvariantCulture)));
                     }
                     break;
                 }

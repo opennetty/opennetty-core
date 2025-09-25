@@ -117,6 +117,11 @@ public static class OpenNettyMqttAttributes
     public const string ZigbeeChannel = "zigbee_channel";
 
     /// <summary>
+    /// Zigbee devices count.
+    /// </summary>
+    public const string ZigbeeDevicesCount = "zigbee_devices_count";
+
+    /// <summary>
     /// Zigbee network.
     /// </summary>
     public const string ZigbeeNetwork = "zigbee_network";

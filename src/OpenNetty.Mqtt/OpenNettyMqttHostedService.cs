@@ -575,6 +575,16 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                     builder.WithRetainFlag();
                 }))
                 .Retry()
+                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
+
+            await _events.ZigbeeDevicesCountReported
+                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.ZigbeeDevicesCount, builder =>
+                {
+                    builder.WithPayload(arguments.Count.ToString(CultureInfo.InvariantCulture));
+                    builder.WithRetainFlag();
+                }))
+                .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask)
         ]);
 

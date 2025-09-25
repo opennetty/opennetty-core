@@ -554,6 +554,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 break;
                             }
 
+                            case OpenNettyMqttAttributes.ZigbeeDevicesCount when operation is OpenNettyMqttOperation.Get:
+                            {
+                                _ = await _controller.CountZigbeeDevicesAsync(endpoint);
+                                break;
+                            }
+
                             case OpenNettyMqttAttributes.ZigbeeNetwork when operation is OpenNettyMqttOperation.Set:
                             {
                                 switch (message.ConvertPayloadToString()?.ToLowerInvariant())
@@ -746,11 +752,11 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         }
                     }
 
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", component);
+                    AddComponent(components, component);
 
                     if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
                     {
-                        components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                        AddComponent(components, new JsonObject
                         {
                             ["platform"] = "button",
                             ["unique_id"] = ComputeEntityUniqueId(endpoint, "3a10d925-c599-41a9-8a7e-30a04aefec86"u8),
@@ -772,7 +778,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     if (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) ||
                         endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
                     {
-                        components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                        AddComponent(components, new JsonObject
                         {
                             ["platform"] = "button",
                             ["unique_id"] = ComputeEntityUniqueId(endpoint, "f05ecfb8-70d5-4116-b0a8-2f6d9d02090f"u8),
@@ -827,12 +833,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         component["position_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ShutterPosition}";
                     }
 
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", component);
+                    AddComponent(components, component);
 
                     if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState) ||
                         endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
                     {
-                        components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                        AddComponent(components, new JsonObject
                         {
                             ["platform"] = "button",
                             ["unique_id"] = ComputeEntityUniqueId(endpoint, "3a760f9d-ca89-4c9e-9ad4-8ba40ad36f59"u8),
@@ -854,7 +860,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                     if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
                     {
-                        components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                        AddComponent(components, new JsonObject
                         {
                             ["platform"] = "button",
                             ["unique_id"] = ComputeEntityUniqueId(endpoint, "5731274c-e498-4c7b-8671-6de8c448eb99"u8),
@@ -979,12 +985,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         component["device_class"] = type;
                     }
 
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", component);
+                    AddComponent(components, component);
                 }
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioActivation))
                 {
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "63485e4c-a3bd-4fc9-831d-b96bacddade9"u8),
@@ -1003,7 +1009,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioActivation))
                 {
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "f053a594-66fa-42a6-9237-64d570b2bd57"u8),
@@ -1019,7 +1025,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["payload_press"] = "switch_on"
                     });
 
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "d292636e-00d3-442e-b1db-73d60b4085ec"u8),
@@ -1045,7 +1051,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     {
                         foreach (var button in buttons)
                         {
-                            components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                            AddComponent(components, new JsonObject
                             {
                                 ["platform"] = "button",
                                 ["unique_id"] = ComputeEntityUniqueId(endpoint,
@@ -1065,7 +1071,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 ["payload_press"] = new JsonObject { ["event_type"] = "pressure", ["scenario_type"] = "basic", ["button"] = button }.ToJsonString()
                             });
 
-                            components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                            AddComponent(components, new JsonObject
                             {
                                 ["platform"] = "button",
                                 ["unique_id"] = ComputeEntityUniqueId(endpoint,
@@ -1085,7 +1091,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 ["payload_press"] = new JsonObject { ["event_type"] = "release_after_short_pressure", ["scenario_type"] = "evolved", ["button"] = button }.ToJsonString()
                             });
 
-                            components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                            AddComponent(components, new JsonObject
                             {
                                 ["platform"] = "button",
                                 ["unique_id"] = ComputeEntityUniqueId(endpoint,
@@ -1105,7 +1111,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 ["payload_press"] = new JsonObject { ["event_type"] = "release_after_extended_pressure", ["scenario_type"] = "evolved", ["button"] = button }.ToJsonString()
                             });
 
-                            components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                            AddComponent(components, new JsonObject
                             {
                                 ["platform"] = "button",
                                 ["unique_id"] = ComputeEntityUniqueId(endpoint,
@@ -1129,7 +1135,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                     else
                     {
-                        components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                        AddComponent(components, new JsonObject
                         {
                             ["platform"] = "button",
                             ["unique_id"] = ComputeEntityUniqueId(endpoint, "be2887c3-f4ae-4935-bad6-1ffb1227d28b"u8),
@@ -1145,7 +1151,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             ["payload_press"] = new JsonObject { ["event_type"] = "pressure", ["scenario_type"] = "basic" }.ToJsonString()
                         });
 
-                        components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                        AddComponent(components, new JsonObject
                         {
                             ["platform"] = "button",
                             ["unique_id"] = ComputeEntityUniqueId(endpoint, "81e3f75a-fab3-4842-bb5e-1531d20290dd"u8),
@@ -1161,7 +1167,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             ["payload_press"] = new JsonObject { ["event_type"] = "release_after_short_pressure", ["scenario_type"] = "evolved" }.ToJsonString()
                         });
 
-                        components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                        AddComponent(components, new JsonObject
                         {
                             ["platform"] = "button",
                             ["unique_id"] = ComputeEntityUniqueId(endpoint, "3f069e7f-7c8f-4730-b067-9a944f61700b"u8),
@@ -1177,7 +1183,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             ["payload_press"] = new JsonObject { ["event_type"] = "release_after_extended_pressure", ["scenario_type"] = "evolved" }.ToJsonString()
                         });
 
-                        components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                        AddComponent(components, new JsonObject
                         {
                             ["platform"] = "button",
                             ["unique_id"] = ComputeEntityUniqueId(endpoint, "23e04eeb-8b35-44c8-87da-aed3829ce07d"u8),
@@ -1204,7 +1210,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     {
                         foreach (var button in buttons)
                         {
-                            components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                            AddComponent(components, new JsonObject
                             {
                                 ["platform"] = "button",
                                 ["unique_id"] = ComputeEntityUniqueId(endpoint,
@@ -1224,7 +1230,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 ["payload_press"] = new JsonObject { ["event_type"] = "short_pressure", ["scenario_type"] = "plus", ["button"] = button }.ToJsonString()
                             });
 
-                            components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                            AddComponent(components, new JsonObject
                             {
                                 ["platform"] = "button",
                                 ["unique_id"] = ComputeEntityUniqueId(endpoint,
@@ -1244,7 +1250,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 ["payload_press"] = new JsonObject { ["event_type"] = "start_of_extended_pressure", ["scenario_type"] = "plus", ["button"] = button }.ToJsonString()
                             });
 
-                            components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                            AddComponent(components, new JsonObject
                             {
                                 ["platform"] = "button",
                                 ["unique_id"] = ComputeEntityUniqueId(endpoint,
@@ -1264,7 +1270,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 ["payload_press"] = new JsonObject { ["event_type"] = "extended_pressure", ["scenario_type"] = "plus", ["button"] = button }.ToJsonString()
                             });
 
-                            components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                            AddComponent(components, new JsonObject
                             {
                                 ["platform"] = "button",
                                 ["unique_id"] = ComputeEntityUniqueId(endpoint,
@@ -1288,7 +1294,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                     else
                     {
-                        components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                        AddComponent(components, new JsonObject
                         {
                             ["platform"] = "button",
                             ["unique_id"] = ComputeEntityUniqueId(endpoint, "63a92ba4-bec3-453e-a44a-9219e4f4d478"u8),
@@ -1304,7 +1310,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             ["payload_press"] = new JsonObject { ["event_type"] = "short_pressure", ["scenario_type"] = "plus" }.ToJsonString()
                         });
 
-                        components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                        AddComponent(components, new JsonObject
                         {
                             ["platform"] = "button",
                             ["unique_id"] = ComputeEntityUniqueId(endpoint, "e524f94b-9862-4da4-8f57-82c220e4560c"u8),
@@ -1320,7 +1326,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             ["payload_press"] = new JsonObject { ["event_type"] = "start_of_extended_pressure", ["scenario_type"] = "plus" }.ToJsonString()
                         });
 
-                        components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                        AddComponent(components, new JsonObject
                         {
                             ["platform"] = "button",
                             ["unique_id"] = ComputeEntityUniqueId(endpoint, "bf90ede8-9078-4817-8ec4-ef762c3e2077"u8),
@@ -1336,7 +1342,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             ["payload_press"] = new JsonObject { ["event_type"] = "extended_pressure", ["scenario_type"] = "plus" }.ToJsonString()
                         });
 
-                        components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                        AddComponent(components, new JsonObject
                         {
                             ["platform"] = "button",
                             ["unique_id"] = ComputeEntityUniqueId(endpoint, "73ff2263-9962-443a-89a1-f209fba81948"u8),
@@ -1356,7 +1362,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.StopActionScenarioActivation))
                 {
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "bca953c0-7598-4baa-91df-f14ddc30450f"u8),
@@ -1376,7 +1382,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioActivation))
                 {
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "9065ccb4-d2c6-47f5-b118-e3d2ecbe20c3"u8),
@@ -1392,7 +1398,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["payload_press"] = "shutter_up"
                     });
 
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "4006cf9e-620c-49d4-81b3-ab060d376966"u8),
@@ -1408,7 +1414,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["payload_press"] = "shutter_down"
                     });
 
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "d13fdcd2-c974-490a-b544-436a91785ffa"u8),
@@ -1427,7 +1433,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.BatteryAlert))
                 {
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "binary_sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "b7dd3824-ddc3-4cf3-b79e-168faa710e43"u8),
@@ -1445,7 +1451,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.BatteryAlert}"
                     });
 
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "7f7625f0-2461-4804-9cae-829a1040cd93"u8),
@@ -1466,7 +1472,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.BatteryLevel))
                 {
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "6a8c7f1c-426a-47ab-97a1-a476acc603fd"u8),
@@ -1488,7 +1494,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 if (endpoint.HasCapability(OpenNettyCapabilities.FirmwareVersion) ||
                     endpoint.HasCapability(OpenNettyCapabilities.DeviceDescription))
                 {
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "3a92e77f-3910-4a20-9d19-caa1961dc33d"u8),
@@ -1505,7 +1511,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.FirmwareVersion}"
                     });
 
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "e4fa32b3-9e9f-43b5-810a-cdb75acf44e5"u8),
@@ -1527,7 +1533,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.HardwareVersion))
                 {
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "1091f326-0c22-4c59-af04-d0a6ee429a0c"u8),
@@ -1543,7 +1549,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.HardwareVersion}"
                     });
 
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "0371ccbb-52fd-4288-a943-b2f04a7b1e8b"u8),
@@ -1564,7 +1570,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.MacAddress))
                 {
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "a8de45b2-0bb5-4375-b33b-0869623e40a7"u8),
@@ -1580,7 +1586,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.MacAddress}"
                     });
 
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "aa1968e6-f232-4b96-a29f-0e64de093bb0"u8),
@@ -1603,7 +1609,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
                 {
                     // Note: endpoints that use the "push button" mode are always represented as buttons instead of light entities.
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "5c207503-bbc7-47dc-a4a7-8833c5bf058f"u8),
@@ -1623,7 +1629,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
                 {
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "select",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "205a01a1-ba4c-4e9b-a19a-c1589c445cbb"u8),
@@ -1668,7 +1674,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             """
                     });
 
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "select",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "f5f57920-d758-4ca8-8161-2614d4abeef0"u8),
@@ -1746,7 +1752,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             """
                     });
 
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "7a9130b9-675a-437d-b806-cbfe6f6e20a6"u8),
@@ -1763,7 +1769,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["payload_press"] = string.Empty
                     });
 
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "787582e8-0c5f-4c97-9277-0ad23dab4024"u8),
@@ -1783,7 +1789,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
                 {
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "6c83787a-3537-49fa-b409-dc15d5c37b43"u8),
@@ -1802,7 +1808,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["value_template"] = "{{ value_json.base_index }}"
                     });
 
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "0a9d909b-8449-496e-b38c-4dc3e2653288"u8),
@@ -1821,7 +1827,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["value_template"] = "{{ value_json.blue_index }}"
                     });
 
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "2661d8db-085a-41bb-bab6-a1627cbf91d0"u8),
@@ -1840,7 +1846,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["value_template"] = "{{ value_json.off_peak_index }}"
                     });
 
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "7dcf846c-fbdd-4457-9a17-9cbc0a7c072b"u8),
@@ -1859,7 +1865,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["value_template"] = "{{ value_json.red_index }}"
                     });
 
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "1de29bc5-70b6-4302-aa27-8ecbcce13ec9"u8),
@@ -1878,7 +1884,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["value_template"] = "{{ value_json.white_index }}"
                     });
 
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "e07f0687-6ca1-47d9-a5b7-b20c0e79775a"u8),
@@ -1909,7 +1915,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             """,
                     });
 
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "2eddee8f-7c81-47ea-a775-785e9dfb5c26"u8),
@@ -1928,7 +1934,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))
                 {
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "31eda1f3-343f-4cd7-9f56-ea792fcaec7f"u8),
@@ -1953,7 +1959,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             """,
                     });
 
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "binary_sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "280fd1d1-4220-42ec-bf70-69936b728eb2"u8),
@@ -1971,7 +1977,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["payload_off"] = "0"
                     });
 
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "91e32508-61fa-46e3-ba57-32166b2de116"u8),
@@ -1988,7 +1994,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["payload_press"] = string.Empty
                     });
 
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "df24321d-01e8-4d1a-9cca-92ece18934b4"u8),
@@ -2008,7 +2014,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.Uptime))
                 {
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "46c1f892-f9bf-46b6-8658-fed1d7eb177b"u8),
@@ -2025,7 +2031,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.StartupDate}",
                     });
 
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "5e9b5094-b028-492c-8be4-5b73139e2c57"u8),
@@ -2045,7 +2051,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
                 {
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "select",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "733d9bf6-fd89-4ce1-bd71-d12a1c6a846e"u8),
@@ -2084,7 +2090,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             """
                     });
 
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "binary_sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "344b6548-196d-42de-b627-22530cc28f07"u8),
@@ -2102,7 +2108,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["payload_off"] = "idle"
                     });
 
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "9aa4633b-c253-4623-a80c-54ba9d681777"u8),
@@ -2119,7 +2125,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["payload_press"] = string.Empty
                     });
 
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "bb186d7c-f49d-4aa2-8770-a0fdcf9de123"u8),
@@ -2139,7 +2145,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.WirelessBurglarAlarmState))
                 {
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "2dd476d5-a35a-442a-a3f2-4c2621dcf375"u8),
@@ -2179,7 +2185,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.ZigbeeBinding))
                 {
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "d04dc07d-b614-4e3e-aeac-ccaead40d919"u8),
@@ -2197,7 +2203,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["payload_press"] = "bind"
                     });
 
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "55a25c45-cb7a-4b74-baa4-7f9b87465d1a"u8),
@@ -2218,7 +2224,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
                 {
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "5ea35f24-9a6c-4d62-b000-85e6a9ef5380"u8),
@@ -2235,7 +2241,24 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeChannel}",
                     });
 
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
+                    {
+                        ["platform"] = "sensor",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "abda41d7-1b4c-41cc-99b9-81b7bc5801d3"u8),
+                        ["entity_category"] = "diagnostic",
+                        ["icon"] = "mdi:counter",
+                        ["name"] = ComputeEntityName(
+                            name    : GetLocalizedString(SR.ID8105, culture),
+                            endpoint: endpoint,
+                            culture : culture,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+                                .CountAsync(cancellationToken)),
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeDevicesCount}",
+                    });
+
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "b7355e3d-0137-41e7-90fa-8b81b9530466"u8),
@@ -2253,7 +2276,25 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["payload_press"] = string.Empty
                     });
 
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
+                    {
+                        ["platform"] = "button",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "6c550d13-cbd5-4a7a-b445-1c30e9b83c65"u8),
+                        ["entity_category"] = "diagnostic",
+                        ["icon"] = "mdi:counter",
+                        ["name"] = ComputeEntityName(
+                            name    : GetLocalizedString(SR.ID8106, culture),
+                            endpoint: endpoint,
+                            culture : culture,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeDevicesCount}/get",
+                        ["payload_press"] = string.Empty
+                    });
+
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "f366a06c-6d7f-4741-a99a-490fedeabf9f"u8),
@@ -2270,7 +2311,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["payload_press"] = "create"
                     });
 
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "1c56979a-3ad2-4b9b-9116-cd7321416b6a"u8),
@@ -2287,7 +2328,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["payload_press"] = "join"
                     });
 
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "63096c5c-3fba-4ea7-a30d-3568b0680e18"u8),
@@ -2304,7 +2345,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["payload_press"] = "leave"
                     });
 
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "09953b7d-0e18-4fc9-9b8c-2a11b52a15c5"u8),
@@ -2321,7 +2362,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["payload_press"] = "open"
                     });
 
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "7e344b36-199e-4a43-987f-59fccacc859b"u8),
@@ -2337,11 +2378,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeNetwork}/set",
                         ["payload_press"] = "close"
                     });
-                }
 
-                if (endpoint.HasCapability(OpenNettyCapabilities.ZigbeeSupervision))
-                {
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "f6a3d89f-a3a4-4776-a6b0-a0e3328183ee"u8),
@@ -2352,13 +2390,13 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             culture : culture,
                             count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
                                 .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeSupervision))
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
                                 .CountAsync(cancellationToken)),
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeSupervision}/set",
                         ["payload_press"] = "enable"
                     });
 
-                    components.Add($"entity{components.Count.ToString(CultureInfo.InvariantCulture)}", new JsonObject
+                    AddComponent(components, new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "35f91e70-674d-4977-9475-ba231553051d"u8),
@@ -2369,7 +2407,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             culture : culture,
                             count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
                                 .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeSupervision))
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
                                 .CountAsync(cancellationToken)),
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeSupervision}/set",
                         ["payload_press"] = "disable"
@@ -2397,6 +2435,17 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         .ToString())
                     .Build());
             }
+        }
+
+        static void AddComponent(JsonObject components, JsonObject component)
+        {
+            var identifier = (string?) component["unique_id"]?.AsValue();
+            if (string.IsNullOrEmpty(identifier))
+            {
+                throw new InvalidOperationException(SR.GetResourceString(SR.ID1119));
+            }
+
+            components.Add($"entity_{identifier}", component);
         }
 
         static JsonObject CreateDeviceNode(OpenNettyDevice device, CultureInfo culture)

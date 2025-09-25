@@ -125,6 +125,11 @@ public static class OpenNettyDimensions
         public static readonly OpenNettyDimension DeviceIdentifier = new(OpenNettyCategories.Management, "27");
 
         /// <summary>
+        /// Number of products (DIMENSION = 67).
+        /// </summary>
+        public static readonly OpenNettyDimension NumberOfProducts = new(OpenNettyCategories.Management, "67");
+
+        /// <summary>
         /// Zigbee channel (DIMENSION = 71).
         /// </summary>
         public static readonly OpenNettyDimension ZigbeeChannel = new(OpenNettyCategories.Management, "71");

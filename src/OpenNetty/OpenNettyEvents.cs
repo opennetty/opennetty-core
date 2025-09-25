@@ -281,6 +281,12 @@ public sealed class OpenNettyEvents : IDisposable
         => _observable.OfType<EventArgs, ZigbeeChannelReportedEventArgs>();
 
     /// <summary>
+    /// Gets an event triggered when the number of Zigbee devices in the database is reported.
+    /// </summary>
+    public IAsyncObservable<ZigbeeDevicesCountReportedEventArgs> ZigbeeDevicesCountReported
+        => _observable.OfType<EventArgs, ZigbeeDevicesCountReportedEventArgs>();
+
+    /// <summary>
     /// Connects the <see cref="IAsyncObservable{T}"/> so that events can start being processed.
     /// </summary>
     /// <returns>
@@ -561,4 +567,11 @@ public sealed class OpenNettyEvents : IDisposable
     /// <param name="Endpoint">The endpoint.</param>
     /// <param name="Channel">The channel.</param>
     public sealed record class ZigbeeChannelReportedEventArgs(OpenNettyEndpoint Endpoint, byte Channel) : EventArgs(Endpoint);
+
+    /// <summary>
+    /// Represents event arguments used when the number of Zigbee devices in the database is reported.
+    /// </summary>
+    /// <param name="Endpoint">The endpoint.</param>
+    /// <param name="Count">The number of Zigbee devices in the database.</param>
+    public sealed record class ZigbeeDevicesCountReportedEventArgs(OpenNettyEndpoint Endpoint, byte Count) : EventArgs(Endpoint);
 }

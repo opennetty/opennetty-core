@@ -471,6 +471,9 @@
   <data name="ID1118" xml:space="preserve">
     <value>The button number cannot be specified for endpoints that don't support configurable push button numbers.</value>
   </data>
+  <data name="ID1119" xml:space="preserve">
+    <value>MQTT entities must be assigned a unique identifier.</value>
+  </data>
   <data name="ID2000" xml:space="preserve">
     <value>The endpoint name '{0}' is not valid. Endpoint names cannot contain the '+' or '*' characters.</value>
   </data>
@@ -908,5 +911,11 @@
   </data>
   <data name="ID8104" xml:space="preserve">
     <value>Disable supervisor mode</value>
+  </data>
+  <data name="ID8105" xml:space="preserve">
+    <value>Number of Zigbee devices in the database</value>
+  </data>
+  <data name="ID8106" xml:space="preserve">
+    <value>Get number of Zigbee devices in the database</value>
   </data>
 </root>
