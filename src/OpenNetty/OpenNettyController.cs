@@ -116,7 +116,7 @@ public class OpenNettyController
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 
-        if (!endpoint.HasCapability(OpenNettyCapabilities.ZigbeeSupervision))
+        if (!endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
@@ -144,7 +144,7 @@ public class OpenNettyController
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 
-        if (!endpoint.HasCapability(OpenNettyCapabilities.ZigbeeSupervision))
+        if (!endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
@@ -214,6 +214,39 @@ public class OpenNettyController
             gateway          : endpoint.Gateway,
             options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
+    /// Asks the specified endpoint how many Zigbee devices are registered in its database.
+    /// </summary>
+    /// <param name="endpoint">The endpoint.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>
+    /// A <see cref="ValueTask{TResult}"/> that can be used to monitor the asynchronous
+    /// operation and whose result returns the number of Zigbee devices registered the database.
+    /// </returns>
+    public virtual async ValueTask<byte> CountZigbeeDevicesAsync(
+        OpenNettyEndpoint endpoint,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
+
+        if (!endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
+        }
+
+        var values = await _service.GetDimensionAsync(
+            protocol         : endpoint.Protocol,
+            dimension        : OpenNettyDimensions.Management.NumberOfProducts,
+            address          : endpoint.Address,
+            medium           : endpoint.Medium,
+            mode             : null,
+            gateway          : endpoint.Gateway,
+            options          : GetTransmissionOptions(endpoint),
+            cancellationToken: cancellationToken);
+
+        return byte.Parse(values[0], CultureInfo.InvariantCulture);
     }
 
     /// <summary>

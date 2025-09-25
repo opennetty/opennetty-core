@@ -280,9 +280,4 @@ public static class OpenNettyCapabilities
     /// Zigbee router (ZR).
     /// </summary>
     public static readonly OpenNettyCapability ZigbeeRouter = new("Zigbee router");
-
-    /// <summary>
-    /// Zigbee supervision.
-    /// </summary>
-    public static readonly OpenNettyCapability ZigbeeSupervision = new("Zigbee supervision");
 }

@@ -1507,7 +1507,6 @@
     <Capability Name="OpenWebNet generic session" />
     <Capability Name="Zigbee network management" />
     <Capability Name="Zigbee router" />
-    <Capability Name="Zigbee supervision" />
 
     <Setting Name="Serial port baud rate" Value="19200" />
     <Setting Name="Serial port data bits" Value="8" />
