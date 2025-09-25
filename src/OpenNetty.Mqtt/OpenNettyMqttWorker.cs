@@ -2442,7 +2442,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
             var identifier = (string?) component["unique_id"]?.AsValue();
             if (string.IsNullOrEmpty(identifier))
             {
-                throw new InvalidOperationException(SR.GetResourceString(SR.ID1119));
+                throw new InvalidOperationException(SR.GetResourceString(SR.ID0119));
             }
 
             components.Add($"entity_{identifier}", component);
