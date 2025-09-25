@@ -462,16 +462,16 @@
   <data name="ID0115" xml:space="preserve">
     <value>The address doesn't represent a valid SCS scenario plus address.</value>
   </data>
-  <data name="ID1116" xml:space="preserve">
+  <data name="ID0116" xml:space="preserve">
     <value>The scenario identifier must be between 0 and 2047.</value>
   </data>
-  <data name="ID1117" xml:space="preserve">
+  <data name="ID0117" xml:space="preserve">
     <value>The button number is mandatory for endpoints that support configurable push button numbers.</value>
   </data>
-  <data name="ID1118" xml:space="preserve">
+  <data name="ID0118" xml:space="preserve">
     <value>The button number cannot be specified for endpoints that don't support configurable push button numbers.</value>
   </data>
-  <data name="ID1119" xml:space="preserve">
+  <data name="ID0119" xml:space="preserve">
     <value>MQTT entities must be assigned a unique identifier.</value>
   </data>
   <data name="ID2000" xml:space="preserve">

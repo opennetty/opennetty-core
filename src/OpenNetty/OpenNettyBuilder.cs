@@ -385,7 +385,7 @@ public sealed class OpenNettyBuilder
                 Capabilities = GetCapabilities(endpoint),
                 Description = (string?) endpoint.Attribute("Description"),
                 Device = device,
-                Gateway = (string?) endpoint.Attribute("Gateway") is string gateway ?
+                Gateway = (string?) endpoint.Attribute("GatewayName") is string gateway ?
                     FindGatewayByName(gateways, gateway) :
                     device?.Gateway ??
                     gateways.FirstOrDefault(gateway => gateway.Protocol == protocol) ??

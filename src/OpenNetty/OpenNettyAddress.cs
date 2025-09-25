@@ -448,7 +448,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
     {
         if (identifier is > 2047)
         {
-            throw new ArgumentOutOfRangeException(nameof(identifier), SR.GetResourceString(SR.ID1116));
+            throw new ArgumentOutOfRangeException(nameof(identifier), SR.GetResourceString(SR.ID0116));
         }
 
         return new OpenNettyAddress(OpenNettyAddressType.ScsScenarioPlus, $"2{identifier.ToString(CultureInfo.InvariantCulture)}");

@@ -442,12 +442,12 @@ public class OpenNettyController
 
         if (button is null && endpoint.HasCapability(OpenNettyCapabilities.ConfigurablePushButtonNumbers))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID1117));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0117));
         }
 
         if (button is not null && !endpoint.HasCapability(OpenNettyCapabilities.ConfigurablePushButtonNumbers))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID1118));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0118));
         }
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioPlusActivation))
