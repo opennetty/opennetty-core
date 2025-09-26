@@ -918,4 +918,7 @@
   <data name="ID8106" xml:space="preserve">
     <value>Get number of Zigbee devices in the database</value>
   </data>
+  <data name="ID8107" xml:space="preserve">
+    <value>Binding in progress</value>
+  </data>
 </root>

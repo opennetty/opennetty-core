@@ -2187,6 +2187,24 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 {
                     AddComponent(components, new JsonObject
                     {
+                        ["platform"] = "binary_sensor",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "ee8cc336-01cb-4485-a377-dc5603c64a13"u8),
+                        ["entity_category"] = "diagnostic",
+                        ["device_class"] = "running",
+                        ["icon"] = "mdi:link-box",
+                        ["name"] = ComputeEntityName(
+                            name    : GetLocalizedString(SR.ID8107, culture),
+                            endpoint: endpoint,
+                            culture : culture,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeBinding))
+                                .CountAsync(cancellationToken)),
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeBinding}"
+                    });
+
+                    AddComponent(components, new JsonObject
+                    {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "d04dc07d-b614-4e3e-aeac-ccaead40d919"u8),
                         ["entity_category"] = "config",

@@ -438,4 +438,7 @@
   <data name="ID8106" xml:space="preserve">
     <value>Récupérer nombre d'appareils Zigbee dans la base de données</value>
   </data>
+  <data name="ID8107" xml:space="preserve">
+    <value>Association en cours</value>
+  </data>
 </root>
