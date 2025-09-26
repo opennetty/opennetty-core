@@ -921,4 +921,7 @@
   <data name="ID8107" xml:space="preserve">
     <value>Binding in progress</value>
   </data>
+  <data name="ID8108" xml:space="preserve">
+    <value>Zigbee network state</value>
+  </data>
 </root>

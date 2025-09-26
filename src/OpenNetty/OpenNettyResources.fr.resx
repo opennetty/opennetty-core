@@ -441,4 +441,7 @@
   <data name="ID8107" xml:space="preserve">
     <value>Association en cours</value>
   </data>
+  <data name="ID8108" xml:space="preserve">
+    <value>État du réseau Zigbee</value>
+  </data>
 </root>
