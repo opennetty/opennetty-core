@@ -2179,7 +2179,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                               'event_detected': '{{{GetLocalizedString(SR.ID8093, culture)}}}'
                             } %}
                             {{ map[value] }}
-                            """,
+                            """
                     });
                 }
 
@@ -2200,7 +2200,15 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeBinding))
                                 .CountAsync(cancellationToken)),
-                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeBinding}"
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeBinding}",
+                        ["value_template"] = """
+                            {% set map = {
+                              'canceled': 'OFF',
+                              'closed': 'OFF',
+                              'opened': 'ON'
+                            } %}
+                            {{ map[value] }}
+                            """
                     });
 
                     AddComponent(components, new JsonObject
@@ -2242,6 +2250,34 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
                 {
+                    AddComponent(components, new JsonObject
+                    {
+                        ["platform"] = "binary_sensor",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "da843c15-49d4-4a14-a7cb-4806783cd8a0"u8),
+                        ["entity_category"] = "diagnostic",
+                        ["device_class"] = "opening",
+                        ["icon"] = "mdi:wifi-strength-lock-open-outline",
+                        ["name"] = ComputeEntityName(
+                            name    : GetLocalizedString(SR.ID8108, culture),
+                            endpoint: endpoint,
+                            culture : culture,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+                                .CountAsync(cancellationToken)),
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeNetwork}",
+                        ["value_template"] = """
+                            {% set map = {
+                              'closed': 'OFF',
+                              'created': 'ON',
+                              'joint': 'OFF',
+                              'left': 'OFF',
+                              'opened': 'ON'
+                            } %}
+                            {{ map[value] }}
+                            """
+                    });
+
                     AddComponent(components, new JsonObject
                     {
                         ["platform"] = "sensor",

@@ -394,6 +394,43 @@ public static class OpenNettyModels
     }
 
     /// <summary>
+    /// Management models (WHO = 13).
+    /// </summary>
+    public static class Management
+    {
+        /// <summary>
+        /// Zigbee network event type.
+        /// </summary>
+        public enum ZigbeeNetworkEventType
+        {
+            /// <summary>
+            /// Closed.
+            /// </summary>
+            Closed = 0,
+
+            /// <summary>
+            /// Opened.
+            /// </summary>
+            Opened = 1,
+
+            /// <summary>
+            /// Created.
+            /// </summary>
+            Created = 2,
+
+            /// <summary>
+            /// Joined.
+            /// </summary>
+            Joined = 3,
+
+            /// <summary>
+            /// Left.
+            /// </summary>
+            Left = 4
+        }
+    }
+
+    /// <summary>
     /// Scenarios models (WHO = 15).
     /// </summary>
     public static class Scenarios
@@ -426,10 +463,31 @@ public static class OpenNettyModels
     }
 
     /// <summary>
-    /// Scenarios plus models (WHO = 15).
+    /// Scenarios plus models (WHO = 25).
     /// </summary>
     public static class ScenariosPlus
     {
+        /// <summary>
+        /// Zigbee binding event type.
+        /// </summary>
+        public enum ZigbeeBindingEventType
+        {
+            /// <summary>
+            /// Closed.
+            /// </summary>
+            Closed = 0,
+
+            /// <summary>
+            /// Opened.
+            /// </summary>
+            Opened = 1,
+
+            /// <summary>
+            /// Canceled.
+            /// </summary>
+            Canceled = 2
+        }
+
         /// <summary>
         /// Pressure scenario type.
         /// </summary>

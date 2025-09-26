@@ -1324,6 +1324,34 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     break;
                 }
 
+                case (OpenNettyNotifications.MessageReceived or OpenNettyNotifications.MessageSent,
+                      OpenNettyMessage { Protocol: OpenNettyProtocol.Zigbee,
+                                         Type    : OpenNettyMessageType.BusCommand,
+                                         Command : OpenNettyCommand command,
+                                         Address : null or not null })
+                    when command == OpenNettyCommands.Management.CreateZigbeeNetwork ||
+                         command == OpenNettyCommands.Management.CloseZigbeeNetwork  ||
+                         command == OpenNettyCommands.Management.OpenZigbeeNetwork   ||
+                         command == OpenNettyCommands.Management.JoinZigbeeNetwork   ||
+                         command == OpenNettyCommands.Management.LeaveZigbeeNetwork:
+                {
+                    // Resolve the endpoint associated with the gateway that received the BUS COMMAND message.
+                    var endpoint = await _manager.FindEndpointAsync(endpoint =>
+                        endpoint.Device == notification.Gateway.Device && endpoint.Unit is null);
+
+                    if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+                    {
+                        await _events.PublishAsync(new ZigbeeNetworkEventReportedEventArgs(endpoint,
+                            command == OpenNettyCommands.Management.CreateZigbeeNetwork ? OpenNettyModels.Management.ZigbeeNetworkEventType.Created :
+                            command == OpenNettyCommands.Management.CloseZigbeeNetwork  ? OpenNettyModels.Management.ZigbeeNetworkEventType.Closed  :
+                            command == OpenNettyCommands.Management.OpenZigbeeNetwork   ? OpenNettyModels.Management.ZigbeeNetworkEventType.Opened  :
+                            command == OpenNettyCommands.Management.JoinZigbeeNetwork   ? OpenNettyModels.Management.ZigbeeNetworkEventType.Joined  :
+                            command == OpenNettyCommands.Management.LeaveZigbeeNetwork  ? OpenNettyModels.Management.ZigbeeNetworkEventType.Left    :
+                            throw new InvalidDataException(SR.GetResourceString(SR.ID0068))));
+                    }
+                    break;
+                }
+
                 case (OpenNettyNotifications.MessageReceived,
                       OpenNettyMessage { Protocol: OpenNettyProtocol.Zigbee,
                                          Type    : OpenNettyMessageType.BusCommand,
@@ -1339,20 +1367,11 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     {
                         if (endpoint.HasCapability(OpenNettyCapabilities.ZigbeeBinding))
                         {
-                            if (command == OpenNettyCommands.ScenariosPlus.OpenBinding)
-                            {
-                                await _events.PublishAsync(new BindingOpenEventArgs(endpoint), cancellationToken);
-                            }
-
-                            else if (command == OpenNettyCommands.ScenariosPlus.CloseBinding)
-                            {
-                                await _events.PublishAsync(new BindingClosedEventArgs(endpoint), cancellationToken);
-                            }
-
-                            else if (command == OpenNettyCommands.ScenariosPlus.CancelBinding)
-                            {
-                                await _events.PublishAsync(new BindingCanceledEventArgs(endpoint), cancellationToken);
-                            }
+                            await _events.PublishAsync(new ZigbeeBindingEventReportedEventArgs(endpoint,
+                                command == OpenNettyCommands.ScenariosPlus.OpenBinding   ? OpenNettyModels.ScenariosPlus.ZigbeeBindingEventType.Opened   :
+                                command == OpenNettyCommands.ScenariosPlus.CloseBinding  ? OpenNettyModels.ScenariosPlus.ZigbeeBindingEventType.Closed   :
+                                command == OpenNettyCommands.ScenariosPlus.CancelBinding ? OpenNettyModels.ScenariosPlus.ZigbeeBindingEventType.Canceled :
+                                throw new InvalidDataException(SR.GetResourceString(SR.ID0068))));
                         }
                     });
                     break;

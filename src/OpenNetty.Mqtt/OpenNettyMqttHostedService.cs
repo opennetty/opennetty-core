@@ -96,31 +96,39 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
-            await _events.BindingCanceled
+            await _events.ZigbeeBindingEventReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.ZigbeeBinding, builder =>
                 {
-                    builder.WithPayload("OFF");
+                    builder.WithPayload(arguments.Type switch
+                    {
+                        OpenNettyModels.ScenariosPlus.ZigbeeBindingEventType.Closed   => "closed",
+                        OpenNettyModels.ScenariosPlus.ZigbeeBindingEventType.Canceled => "canceled",
+                        OpenNettyModels.ScenariosPlus.ZigbeeBindingEventType.Opened   => "opened",
+
+                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+                    });
+
                     builder.WithRetainFlag();
                 }))
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
-            await _events.BindingClosed
+            await _events.ZigbeeNetworkEventReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.ZigbeeBinding, builder =>
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.ZigbeeNetwork, builder =>
                 {
-                    builder.WithPayload("OFF");
-                    builder.WithRetainFlag();
-                }))
-                .Retry()
-                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
+                    builder.WithPayload(arguments.Type switch
+                    {
+                        OpenNettyModels.Management.ZigbeeNetworkEventType.Closed   => "closed",
+                        OpenNettyModels.Management.ZigbeeNetworkEventType.Created  => "created",
+                        OpenNettyModels.Management.ZigbeeNetworkEventType.Joined   => "joined",
+                        OpenNettyModels.Management.ZigbeeNetworkEventType.Left     => "left",
+                        OpenNettyModels.Management.ZigbeeNetworkEventType.Opened   => "opened",
 
-            await _events.BindingOpen
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.ZigbeeBinding, builder =>
-                {
-                    builder.WithPayload("ON");
+                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+                    });
+
                     builder.WithRetainFlag();
                 }))
                 .Retry()

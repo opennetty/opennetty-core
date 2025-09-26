@@ -89,24 +89,6 @@ public sealed class OpenNettyEvents : IDisposable
         => _observable.OfType<EventArgs, BatteryLevelReportedEventArgs>();
 
     /// <summary>
-    /// Gets an event triggered when a binding is canceled.
-    /// </summary>
-    public IAsyncObservable<BindingCanceledEventArgs> BindingCanceled
-        => _observable.OfType<EventArgs, BindingCanceledEventArgs>();
-
-    /// <summary>
-    /// Gets an event triggered when a binding is closed.
-    /// </summary>
-    public IAsyncObservable<BindingClosedEventArgs> BindingClosed
-        => _observable.OfType<EventArgs, BindingClosedEventArgs>();
-
-    /// <summary>
-    /// Gets an event triggered when a basic scenario is open.
-    /// </summary>
-    public IAsyncObservable<BindingOpenEventArgs> BindingOpen
-        => _observable.OfType<EventArgs, BindingOpenEventArgs>();
-
-    /// <summary>
     /// Gets an event triggered when a brightness level is reported.
     /// </summary>
     public IAsyncObservable<BrightnessReportedEventArgs> BrightnessReported
@@ -281,10 +263,22 @@ public sealed class OpenNettyEvents : IDisposable
         => _observable.OfType<EventArgs, ZigbeeChannelReportedEventArgs>();
 
     /// <summary>
+    /// Gets an event triggered when a Zigbee binding event is reported.
+    /// </summary>
+    public IAsyncObservable<ZigbeeBindingEventReportedEventArgs> ZigbeeBindingEventReported
+        => _observable.OfType<EventArgs, ZigbeeBindingEventReportedEventArgs>();
+
+    /// <summary>
     /// Gets an event triggered when the number of Zigbee devices in the database is reported.
     /// </summary>
     public IAsyncObservable<ZigbeeDevicesCountReportedEventArgs> ZigbeeDevicesCountReported
         => _observable.OfType<EventArgs, ZigbeeDevicesCountReportedEventArgs>();
+
+    /// <summary>
+    /// Gets an event triggered when a Zigbee network event is reported.
+    /// </summary>
+    public IAsyncObservable<ZigbeeNetworkEventReportedEventArgs> ZigbeeNetworkEventReported
+        => _observable.OfType<EventArgs, ZigbeeNetworkEventReportedEventArgs>();
 
     /// <summary>
     /// Connects the <see cref="IAsyncObservable{T}"/> so that events can start being processed.
@@ -335,24 +329,6 @@ public sealed class OpenNettyEvents : IDisposable
     /// <param name="Endpoint">The endpoint.</param>
     /// <param name="Level">The battery level.</param>
     public sealed record class BatteryLevelReportedEventArgs(OpenNettyEndpoint Endpoint, byte Level) : EventArgs(Endpoint);
-
-    /// <summary>
-    /// Represents event arguments used when a binding is canceled.
-    /// </summary>
-    /// <param name="Endpoint">The endpoint.</param>
-    public sealed record class BindingCanceledEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
-
-    /// <summary>
-    /// Represents event arguments used when a binding is closed.
-    /// </summary>
-    /// <param name="Endpoint">The endpoint.</param>
-    public sealed record class BindingClosedEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
-
-    /// <summary>
-    /// Represents event arguments used when a binding is open.
-    /// </summary>
-    /// <param name="Endpoint">The endpoint.</param>
-    public sealed record class BindingOpenEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when a brightness level is reported.
@@ -569,9 +545,25 @@ public sealed class OpenNettyEvents : IDisposable
     public sealed record class ZigbeeChannelReportedEventArgs(OpenNettyEndpoint Endpoint, byte Channel) : EventArgs(Endpoint);
 
     /// <summary>
+    /// Represents event arguments used when a Zigbee binding event is reported.
+    /// </summary>
+    /// <param name="Endpoint">The endpoint.</param>
+    /// <param name="Type">The event type.</param>
+    public sealed record class ZigbeeBindingEventReportedEventArgs(OpenNettyEndpoint Endpoint,
+        OpenNettyModels.ScenariosPlus.ZigbeeBindingEventType Type) : EventArgs(Endpoint);
+
+    /// <summary>
     /// Represents event arguments used when the number of Zigbee devices in the database is reported.
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
     /// <param name="Count">The number of Zigbee devices in the database.</param>
     public sealed record class ZigbeeDevicesCountReportedEventArgs(OpenNettyEndpoint Endpoint, byte Count) : EventArgs(Endpoint);
+
+    /// <summary>
+    /// Represents event arguments used when a Zigbee network event is reported.
+    /// </summary>
+    /// <param name="Endpoint">The endpoint.</param>
+    /// <param name="Type">The event type.</param>
+    public sealed record class ZigbeeNetworkEventReportedEventArgs(OpenNettyEndpoint Endpoint,
+        OpenNettyModels.Management.ZigbeeNetworkEventType Type) : EventArgs(Endpoint);
 }
