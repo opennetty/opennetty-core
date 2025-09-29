@@ -1371,7 +1371,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                 command == OpenNettyCommands.ScenariosPlus.OpenBinding   ? OpenNettyModels.ScenariosPlus.ZigbeeBindingEventType.Opened   :
                                 command == OpenNettyCommands.ScenariosPlus.CloseBinding  ? OpenNettyModels.ScenariosPlus.ZigbeeBindingEventType.Closed   :
                                 command == OpenNettyCommands.ScenariosPlus.CancelBinding ? OpenNettyModels.ScenariosPlus.ZigbeeBindingEventType.Canceled :
-                                throw new InvalidDataException(SR.GetResourceString(SR.ID0068))));
+                                throw new InvalidDataException(SR.GetResourceString(SR.ID0068))), cancellationToken);
                         }
                     });
                     break;

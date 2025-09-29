@@ -81,7 +81,7 @@ public sealed class OpenNettyGateway
         var hash = new HashCode();
         hash.Add(ConnectionType);
         hash.Add(Device);
-        hash.Add(Endpoint);
+        hash.Add(Endpoint?.Serialize());
         hash.Add(Name);
         hash.Add(Password);
         hash.Add(Protocol);
