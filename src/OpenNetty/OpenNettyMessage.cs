@@ -637,11 +637,27 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
 
         if (protocol is OpenNettyProtocol.Scs)
         {
-            return new OpenNettyField(address.Value.ToParameters());
+            return address.Value.Type switch
+            {
+                not OpenNettyAddressType.ScsLightPoint when category == OpenNettyCategories.Lighting ||
+                                                            category == OpenNettyCategories.Automation ||
+                                                            category == OpenNettyCategories.Scenarios
+                    => throw new InvalidOperationException(SR.GetResourceString(SR.ID0050)),
+
+                not OpenNettyAddressType.ScsScenarioPlus when category == OpenNettyCategories.ScenariosPlus
+                    => throw new InvalidOperationException(SR.GetResourceString(SR.ID0114)),
+
+                _ => new OpenNettyField(address.Value.ToParameters()),
+            };
         }
 
         else if (protocol is OpenNettyProtocol.Nitoo)
         {
+            if (address.Value.Type is not OpenNettyAddressType.Nitoo)
+            {
+                throw new InvalidOperationException(SR.GetResourceString(SR.ID0048));
+            }
+
             List<OpenNettyParameter> parameters = [];
 
             switch (mode)
@@ -676,6 +692,11 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
 
         else if (protocol is OpenNettyProtocol.Zigbee)
         {
+            if (address.Value.Type is not OpenNettyAddressType.Zigbee)
+            {
+                throw new InvalidOperationException(SR.GetResourceString(SR.ID0055));
+            }
+
             List<OpenNettyParameter> parameters = [];
 
             switch (mode)

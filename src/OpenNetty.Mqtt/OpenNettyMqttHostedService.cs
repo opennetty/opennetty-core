@@ -120,11 +120,11 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 {
                     builder.WithPayload(arguments.Type switch
                     {
-                        OpenNettyModels.Management.ZigbeeNetworkEventType.Closed   => "closed",
-                        OpenNettyModels.Management.ZigbeeNetworkEventType.Created  => "created",
-                        OpenNettyModels.Management.ZigbeeNetworkEventType.Joined   => "joined",
-                        OpenNettyModels.Management.ZigbeeNetworkEventType.Left     => "left",
-                        OpenNettyModels.Management.ZigbeeNetworkEventType.Opened   => "opened",
+                        OpenNettyModels.Management.ZigbeeNetworkEventType.Closed  => "closed",
+                        OpenNettyModels.Management.ZigbeeNetworkEventType.Created => "created",
+                        OpenNettyModels.Management.ZigbeeNetworkEventType.Joined  => "joined",
+                        OpenNettyModels.Management.ZigbeeNetworkEventType.Left    => "left",
+                        OpenNettyModels.Management.ZigbeeNetworkEventType.Opened  => "opened",
 
                         _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                     });
