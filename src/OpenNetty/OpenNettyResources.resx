@@ -457,10 +457,10 @@
     <value>The specified device identifier cannot be converted to a Zigbee serial number.</value>
   </data>
   <data name="ID0114" xml:space="preserve">
-    <value>The address doesn't represent a SCS light point address.</value>
+    <value>The address doesn't represent a SCS CEN+ address.</value>
   </data>
   <data name="ID0115" xml:space="preserve">
-    <value>The address doesn't represent a valid SCS scenario plus address.</value>
+    <value>The address doesn't represent a valid SCS CEN+ address.</value>
   </data>
   <data name="ID0116" xml:space="preserve">
     <value>The scenario identifier must be between 0 and 2047.</value>
