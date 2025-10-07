@@ -2057,7 +2057,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "733d9bf6-fd89-4ce1-bd71-d12a1c6a846e"u8),
                         ["icon"] = "mdi:water-boiler",
                         ["name"] = ComputeEntityName(
-                            name    : GetLocalizedString(SR.ID8039, culture),
+                            name    : GetLocalizedString(SR.ID8109, culture),
                             endpoint: endpoint,
                             culture : culture,
                             count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
@@ -2114,7 +2114,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "9aa4633b-c253-4623-a80c-54ba9d681777"u8),
                         ["entity_category"] = "diagnostic",
                         ["name"] = ComputeEntityName(
-                            name    : GetLocalizedString(SR.ID8062, culture),
+                            name    : GetLocalizedString(SR.ID8110, culture),
                             endpoint: endpoint,
                             culture : culture,
                             count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
