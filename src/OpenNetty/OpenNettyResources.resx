@@ -715,7 +715,7 @@
     <value>Push button</value>
   </data>
   <data name="ID8039" xml:space="preserve">
-    <value>Setpoint mode</value>
+    <value>Pilot wire setpoint mode</value>
   </data>
   <data name="ID8040" xml:space="preserve">
     <value>Comfort</value>
@@ -733,7 +733,7 @@
     <value>Frost protection</value>
   </data>
   <data name="ID8045" xml:space="preserve">
-    <value>Derogation mode</value>
+    <value>Pilot wire derogation mode</value>
   </data>
   <data name="ID8046" xml:space="preserve">
     <value>No derogation</value>
@@ -784,10 +784,10 @@
     <value>Frost protection, for at least 8 hours</value>
   </data>
   <data name="ID8062" xml:space="preserve">
-    <value>Get setpoint mode</value>
+    <value>Get pilot wire setpoint mode</value>
   </data>
   <data name="ID8063" xml:space="preserve">
-    <value>Get derogation mode</value>
+    <value>Get pilot wire derogation mode</value>
   </data>
   <data name="ID8064" xml:space="preserve">
     <value>Base index</value>
@@ -923,5 +923,11 @@
   </data>
   <data name="ID8108" xml:space="preserve">
     <value>Zigbee network state</value>
+  </data>
+  <data name="ID8109" xml:space="preserve">
+    <value>Hot water setpoint mode</value>
+  </data>
+  <data name="ID8110" xml:space="preserve">
+    <value>Get hot water setpoint mode</value>
   </data>
 </root>

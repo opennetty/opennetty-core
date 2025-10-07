@@ -161,7 +161,7 @@ public class OpenNettyController
     }
 
     /// <summary>
-    /// Cancels the pilot wire derogation mode currently enforced by the specified Nitoo gateway endpoint.
+    /// Cancels the pilot wire derogation mode currently enforced by the specified endpoint.
     /// </summary>
     /// <param name="endpoint">The endpoint.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>

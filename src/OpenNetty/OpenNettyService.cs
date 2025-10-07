@@ -726,8 +726,8 @@ public class OpenNettyService : IOpenNettyService
 
         await _pipeline.PublishAsync(notification, cancellationToken);
 
-        // Retrieve the notification indicating whether the session acknowledged or rejected the message.
-        // If no notification is received, assume the message couldn't be processed by a worker.
+        // Retrieve the notification indicating whether a session acknowledged or rejected the message.
+        // If no notification is received, assume the message couldn't be processed by the worker.
         switch (await notifications
             .FirstOrDefault()
             .Timeout(options.OutgoingMessageProcessingTimeout, AsyncObservable.Return(default(OpenNettyNotification)))

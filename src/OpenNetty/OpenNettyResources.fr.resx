@@ -235,7 +235,7 @@
     <value>Bouton poussoir</value>
   </data>
   <data name="ID8039" xml:space="preserve">
-    <value>Consigne</value>
+    <value>Consigne fil pilote</value>
   </data>
   <data name="ID8040" xml:space="preserve">
     <value>Confort</value>
@@ -253,7 +253,7 @@
     <value>Hors gel</value>
   </data>
   <data name="ID8045" xml:space="preserve">
-    <value>Dérogation</value>
+    <value>Dérogation fil pilote</value>
   </data>
   <data name="ID8046" xml:space="preserve">
     <value>Pas de dérogation</value>
@@ -304,10 +304,10 @@
     <value>Hors gel, pendant au moins 8 heures</value>
   </data>
   <data name="ID8062" xml:space="preserve">
-    <value>Récupérer consigne</value>
+    <value>Récupérer consigne fil pilote</value>
   </data>
   <data name="ID8063" xml:space="preserve">
-    <value>Récupérer dérogation</value>
+    <value>Récupérer dérogation fil pilote</value>
   </data>
   <data name="ID8064" xml:space="preserve">
     <value>Index de base</value>
@@ -443,5 +443,11 @@
   </data>
   <data name="ID8108" xml:space="preserve">
     <value>État du réseau Zigbee</value>
+  </data>
+  <data name="ID8109" xml:space="preserve">
+    <value>Consigne eau chaude sanitaire</value>
+  </data>
+  <data name="ID8110" xml:space="preserve">
+    <value>Récupérer consigne eau chaude sanitaire</value>
   </data>
 </root>
