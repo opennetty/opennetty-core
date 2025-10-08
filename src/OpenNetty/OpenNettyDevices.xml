@@ -628,6 +628,8 @@
     </Unit>
 
     <Unit Id="2">
+      <Capability Name="Memory reading" />
+      <Capability Name="Memory writing" />
       <Capability Name="On/off switch state" />
       <Capability Name="On/off switch control" />
       <Capability Name="Unit description" />

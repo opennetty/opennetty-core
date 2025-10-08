@@ -655,6 +655,103 @@ class MyEventHandler(OpenNettyEvents events) : IOpenNettyHandler
 }
 ```
 
+## Nitoo scenarios
+
+Unlike SCS and Zigbee gateways, the Nitoo PLC/USB gateway never reports state changes
+indirectly affecting Nitoo devices associated using a `Push & Learn` scenario (PnL).
+
+> [!TIP]
+> These scenarios are exclusively stored in the memory of each associated unit alongside a
+> `Function code` representing the desired outcome (e.g setting the brightness to 50%).
+
+To allow OpenNetty to propagate state changes triggered by Nitoo scenarios, each unit triggering scenarios resulting in a state
+change MUST include one or more `<Scenario>` node(s) indicating the name of the affected endpoint and the Nitoo function code:
+
+```xml
+<Device Brand="Legrand" Model="67280" SerialNumber="487125">
+  <Unit Id="1">
+    <!-- ON command -->
+
+    <Scenario EndpointName="Garage/Sectional door" FunctionCode="101" />
+  </Unit>
+
+  <Unit Id="2">
+    <!-- ON command -->
+
+    <Scenario EndpointName="Garage/Sliding door" FunctionCode="101" />
+  </Unit>
+
+  <Unit Id="3">
+    <!-- OFF command -->
+
+    <Scenario EndpointName="Garage/Switched outlet 1" FunctionCode="102" />
+    <Scenario EndpointName="Garage/Switched outlet 2" FunctionCode="102" />
+  </Unit>
+
+  <Unit Id="4">
+    <!-- ON command -->
+
+    <Scenario EndpointName="Garage/Switched outlet 1" FunctionCode="101" />
+    <Scenario EndpointName="Garage/Switched outlet 2" FunctionCode="101" />
+  </Unit>
+</Device>
+```
+
+> [!NOTE]
+>
+> Unfortunately, the Nitoo function codes are not documented by Legrand/BTicino. To work around this limitation, the memory
+> of powerline-based Nitoo units can be read programmatically using the `OpenNettyController.GetMemoryDataAsync()` API:
+>
+> ```csharp
+> var builder = Host.CreateApplicationBuilder();
+> 
+> builder.Services.AddOpenNetty(options =>
+> {
+>     var file = builder.Environment.ContentRootFileProvider.GetFileInfo("OpenNettyConfiguration.xml");
+>     options.ImportFromXmlConfiguration(file);
+> 
+>     options.AddMqttIntegration(options => options.ImportFromXmlConfiguration(file));
+> });
+> 
+> var app = builder.Build();
+> await app.StartAsync();
+> 
+> var manager = app.Services.GetRequiredService<OpenNettyManager>();
+> var controller = app.Services.GetRequiredService<OpenNettyController>();
+> 
+> // Resolve the endpoint that reacts to one or more Nitoo scenarios.
+> var receiver = await manager.FindEndpointByNameAsync("Garage/Switched outlet 1")
+>     ?? throw new InvalidOperationException("The endpoint couldn't be resolved.");
+> 
+> foreach (var data in await controller.GetMemoryDataAsync(receiver))
+> {
+>     // Resolve the endpoint that emits the Nitoo scenario matching the memory entry, if possible.
+>     var emitter = await manager.FindEndpointByAddressAsync(receiver.Gateway, data.Address);
+>     if (emitter is not null)
+>     {
+>         Console.WriteLine("Nitoo scenario triggered by a known endpoint:");
+>         Console.WriteLine("\tEndpoint name: {0}.", emitter.Name);
+>         Console.WriteLine("\tFunction code: {0}.", data.FunctionCode);
+>         Console.WriteLine();
+>         Console.WriteLine();
+>     }
+> 
+>     else
+>     {
+>         var (identifier, unit) = OpenNettyAddress.ToNitooAddress(data.Address);
+> 
+>         Console.WriteLine("Nitoo scenario triggered by an unknown endpoint:");
+>         Console.WriteLine("\tDevice identifier: {0}.", identifier);
+>         Console.WriteLine("\tUnit: {0}.", unit);
+>         Console.WriteLine("\tFunction code: {0}.", data.FunctionCode);
+>         Console.WriteLine();
+>         Console.WriteLine();
+>     }
+> }
+> 
+> await app.StopAsync();
+> ```
+
 ## Advanced settings
 
 OpenNetty allows attaching specific settings to endpoints to control how events are handled or how commands are sent.
