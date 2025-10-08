@@ -1446,6 +1446,10 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
+        // Note: even though reading the memory of a unit uses a BUS COMMAND, such commands
+        // are never acknowledged by remote devices using VALID ACTION/INVALID ACTION frames.
+        var options = GetTransmissionOptions(endpoint) with { IgnoreActionValidation = true };
+
         var messages = _service.ObserveMessagesAsync(
             message          : OpenNettyMessage.CreateCommand(
                 protocol: endpoint.Protocol,
@@ -1454,7 +1458,7 @@ public class OpenNettyController
                 medium  : endpoint.Medium,
                 mode    : null),
             gateway          : endpoint.Gateway,
-            options          : GetTransmissionOptions(endpoint),
+            options          : options,
             cancellationToken: cancellationToken).Replay();
 
         await using var connection = await messages.ConnectAsync();
@@ -1462,6 +1466,7 @@ public class OpenNettyController
         // Note: while the memory content is requested using a BUS COMMAND, it is returned asynchronously by
         // Nitoo devices using DIMENSION READ frames after the initial BUS COMMAND has been acknowledged.
         var dimensions = messages
+            .Where(static message => message.Type is OpenNettyMessageType.DimensionRead)
             .Where(static message => message.Dimension == OpenNettyDimensions.Diagnostics.MemoryDepth ||
                                      message.Dimension == OpenNettyDimensions.Diagnostics.MemoryData  ||
                                      message.Dimension == OpenNettyDimensions.Diagnostics.ExtendedMemoryData)
@@ -1509,6 +1514,10 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
+        // Note: even though reading the memory of a unit uses a BUS COMMAND, such commands
+        // are never acknowledged by remote devices using VALID ACTION/INVALID ACTION frames.
+        var options = GetTransmissionOptions(endpoint) with { IgnoreActionValidation = true };
+
         // Note: while the memory depth is requested using a BUS COMMAND, it is returned asynchronously by
         // Nitoo devices using DIMENSION READ frames after the initial BUS COMMAND has been acknowledged.
         var messages = _service.ObserveMessagesAsync(
@@ -1519,10 +1528,11 @@ public class OpenNettyController
                 medium  : endpoint.Medium,
                 mode    : null),
             gateway          : endpoint.Gateway,
-            options          : GetTransmissionOptions(endpoint),
+            options          : options,
             cancellationToken: cancellationToken);
 
         return await messages
+            .Where(static message => message.Type is OpenNettyMessageType.DimensionRead)
             .Where(static message => message.Dimension == OpenNettyDimensions.Diagnostics.MemoryDepth)
             .Where(message => message.Address == endpoint.Address)
             .Select(static message => byte.Parse(message.Values[0], CultureInfo.InvariantCulture))
@@ -2246,32 +2256,16 @@ public class OpenNettyController
                     cancellationToken: cancellationToken);
             }
 
-            // Note: while Zigbee/SCS gateways use 101-200 as the brightness range, the Nitoo gateway uses 0-100.
-            else if (endpoint.Protocol is OpenNettyProtocol.Nitoo)
-            {
-                return _service.SetDimensionAsync(
-                    protocol         : endpoint.Protocol,
-                    dimension        : OpenNettyDimensions.Lighting.DimmerLevelSpeed,
-                    values           : [
-                        level.ToString(CultureInfo.InvariantCulture),
-                        duration is not null ?
-                            ((long) ((duration ?? TimeSpan.FromSeconds(2)).TotalSeconds * 5 + .5)).ToString(CultureInfo.InvariantCulture) :
-                            "0"
-                    ],
-                    address          : endpoint.Address,
-                    medium           : endpoint.Medium,
-                    mode             : null,
-                    gateway          : endpoint.Gateway,
-                    options          : GetTransmissionOptions(endpoint),
-                    cancellationToken: cancellationToken);
-            }
-
             return _service.SetDimensionAsync(
                 protocol         : endpoint.Protocol,
                 dimension        : OpenNettyDimensions.Lighting.DimmerLevelSpeed,
-                values           : [
-                    (level + 100).ToString(CultureInfo.InvariantCulture),
-                    duration is not null ?
+                values           :
+                [
+                    // Note: while Zigbee/SCS gateways use 101-200 as the brightness range, the Nitoo gateway uses 0-100.
+                    /* LEVEL: */ endpoint.Protocol is OpenNettyProtocol.Nitoo ?
+                        level.ToString(CultureInfo.InvariantCulture) :
+                        (level + 100).ToString(CultureInfo.InvariantCulture),
+                    /* SPEED: */ duration is not null ?
                         ((long) ((duration ?? TimeSpan.FromSeconds(2)).TotalSeconds * 5 + .5)).ToString(CultureInfo.InvariantCulture) :
                         "0"
                 ],
@@ -2349,7 +2343,7 @@ public class OpenNettyController
                 ((int) date.DayOfWeek).ToString("00", CultureInfo.InvariantCulture),
                 date.Day.ToString("00", CultureInfo.InvariantCulture),
                 date.Month.ToString("00", CultureInfo.InvariantCulture),
-                date.Year.ToString("0000", CultureInfo.InvariantCulture),
+                date.Year.ToString("0000", CultureInfo.InvariantCulture)
             ],
             address          : endpoint.Address,
             medium           : endpoint.Medium,
