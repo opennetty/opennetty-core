@@ -50,6 +50,11 @@ found in the dedicated [`OpenNettyDevices.xml`](src/OpenNetty/OpenNettyDevices.x
 OpenNetty ships with an `OpenNetty.Daemon` executable that can be directly used as an OpenWebNet/MQTT
 gateway on any x64, ARM32 or ARM64 Linux distribution that supports .NET 9.0 and uses systemd.
 
+> [!IMPORTANT]
+> Using OpenNetty as an OpenWebNet/MQTT gateway works best with home automation software that natively supports
+> MQTT discovery (like Home Assistant or openHAB) as it allows importing all the devices configured in OpenNetty
+> automatically without requiring any additional configuration in the home automation software.
+
 ### Deploy the daemon
 
 Compiled binaries packaged as .zip archives can be found in the
@@ -709,8 +714,6 @@ change MUST include one or more `<Scenario>` node(s) indicating the name of the 
 > {
 >     var file = builder.Environment.ContentRootFileProvider.GetFileInfo("OpenNettyConfiguration.xml");
 >     options.ImportFromXmlConfiguration(file);
-> 
->     options.AddMqttIntegration(options => options.ImportFromXmlConfiguration(file));
 > });
 > 
 > var app = builder.Build();

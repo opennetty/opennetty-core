@@ -223,6 +223,8 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
             OpenNettyGateway gateway, OpenNettySession session, OpenNettyMessage message,
             OpenNettyTransmissionOptions options, OpenNettyTransaction transaction, CancellationToken cancellationToken)
         {
+            _logger.LogDebug(6024, SR.GetResourceString(SR.ID6024), gateway, session, message);
+
             try
             {
                 await session.SendAsync(message, options, cancellationToken);
