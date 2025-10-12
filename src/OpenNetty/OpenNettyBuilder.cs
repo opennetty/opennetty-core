@@ -508,7 +508,7 @@ public sealed class OpenNettyBuilder
 
             var gateway = definition.HasCapability(OpenNettyCapabilities.OpenWebNetGateway) ?
                 null :
-                (string?) element.Attribute("Gateway") switch
+                (string?) element.Attribute("GatewayName") switch
                 {
                     string value => FindGatewayByName(gateways, value),
 
