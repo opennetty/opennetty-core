@@ -83,7 +83,6 @@ public class OpenNettyService : IOpenNettyService
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyMessage>(nameof(OpenNettyMessage)), message);
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyTransmissionOptions>(nameof(OpenNettyTransmissionOptions)), options);
 
-        // Monitor ACKNOWLEDGEMENT and DIMENSION READ replies received by generic and command sessions.
         var notifications = _pipeline.Where(notification => notification.Gateway == gateway)
             .SelectMany(notification => notification switch
             {
@@ -205,7 +204,6 @@ public class OpenNettyService : IOpenNettyService
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyMessage>(nameof(OpenNettyMessage)), message);
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyTransmissionOptions>(nameof(OpenNettyTransmissionOptions)), options);
 
-        // Monitor ACKNOWLEDGEMENT and BUS COMMAND replies received by generic and command sessions.
         var notifications = _pipeline.Where(notification => notification.Gateway == gateway)
             .SelectMany(async notification => notification switch
             {
@@ -367,8 +365,6 @@ public class OpenNettyService : IOpenNettyService
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyMessage>(nameof(OpenNettyMessage)), message);
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyTransmissionOptions>(nameof(OpenNettyTransmissionOptions)), options);
 
-        // Monitor ACKNOWLEDGEMENT and DIMENSION READ replies sent by the same address
-        // as the message was sent to and received by generic and command sessions.
         var notifications = _pipeline.Where(notification => notification.Gateway == gateway)
             .SelectMany(notification => notification switch
             {
@@ -450,8 +446,6 @@ public class OpenNettyService : IOpenNettyService
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyMessage>(nameof(OpenNettyMessage)), message);
         context.Properties.Set(new ResiliencePropertyKey<OpenNettyTransmissionOptions>(nameof(OpenNettyTransmissionOptions)), options);
 
-        // Monitor ACKNOWLEDGEMENT and BUS COMMAND replies sent by the same address
-        // as the message was sent to and received by generic and command sessions.
         var notifications = _pipeline.Where(notification => notification.Gateway == gateway)
             .SelectMany(async notification => notification switch
             {
