@@ -228,6 +228,15 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
 
                     async ValueTask ReportStateAsync(OpenNettyEndpoint endpoint, CancellationToken cancellationToken)
                     {
+                        // SCS devices configured to use the PUL mode never react to area and general commands.
+                        if (message.Address.Value.Type is OpenNettyAddressType.ScsLightPoint &&
+                            (OpenNettyAddress.IsScsLightPointAreaAddress(message.Address.Value) ||
+                             OpenNettyAddress.IsScsLightPointGeneralAddress(message.Address.Value)) &&
+                            endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
+                        {
+                            return;
+                        }
+
                         if (message.Command == OpenNettyCommands.Lighting.On)
                         {
                             await _events.PublishAsync(new SwitchStateReportedEventArgs(endpoint,
@@ -584,11 +593,22 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     });
 
                     async ValueTask ReportStateAsync(OpenNettyEndpoint endpoint, CancellationToken cancellationToken)
-                        => await _events.PublishAsync(new ShutterStateReportedEventArgs(endpoint,
+                    {
+                        // SCS devices configured to use the PUL mode never react to area and general commands.
+                        if (message.Address.Value.Type is OpenNettyAddressType.ScsLightPoint &&
+                            (OpenNettyAddress.IsScsLightPointAreaAddress(message.Address.Value) ||
+                             OpenNettyAddress.IsScsLightPointGeneralAddress(message.Address.Value)) &&
+                            endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
+                        {
+                            return;
+                        }
+
+                        await _events.PublishAsync(new ShutterStateReportedEventArgs(endpoint,
                             message.Command == OpenNettyCommands.Automation.Stop ? OpenNettyModels.Automation.ShutterState.Stopped :
                             message.Command == OpenNettyCommands.Automation.Up   ? OpenNettyModels.Automation.ShutterState.Opening :
                             message.Command == OpenNettyCommands.Automation.Down ? OpenNettyModels.Automation.ShutterState.Closing :
                             throw new InvalidDataException(SR.GetResourceString(SR.ID0068))), cancellationToken);
+                    }
                     break;
                 }
 

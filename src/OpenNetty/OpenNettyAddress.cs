@@ -390,6 +390,11 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
                 builder.Append("00");
             }
 
+            else if (area is 10)
+            {
+                builder.Append("100");
+            }
+
             else
             {
                 builder.Append(area);
@@ -545,7 +550,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
 
                 // Group address with bus extension:
                 [string first, "4", string third] when
-                    byte.TryParse(first, CultureInfo.InvariantCulture, out byte group) && group is >= 1 and <= 255 &&
+                    byte.TryParse(first, CultureInfo.InvariantCulture, out byte group)     && group     is >= 1 and <= 255 &&
                     byte.TryParse(third, CultureInfo.InvariantCulture, out byte extension) && extension is >= 0 and <= 15
                     => (Extension: extension, General: false, Group: group, Area: null, Point: null),
 
@@ -568,18 +573,27 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
             };
         }
 
-        else if (address.Value is "00" or "1" or "2" or "3" or "4" or "5" or "6" or "7" or "8" or "9" or "10")
+        else if (address.Value is "00" or "1" or "2" or "3" or "4" or "5" or "6" or "7" or "8" or "9" or "10" or "100")
         {
             return address.Parameters switch
             {
+                // Extended A=10 area without bus extension:
+                { IsDefaultOrEmpty: true } when address.Value is "100"
+                    => (Extension: 0, General: false, Group: null, Area: 10, Point: null),
+
+                // Extended A=10 area with bus extension:
+                ["4", string value] when address.Value is "100" &&
+                    byte.TryParse(value, CultureInfo.InvariantCulture, out byte extension) && extension is >= 0 and <= 15
+                    => (Extension: extension, General: false, Group: null, Area: 10, Point: null),
+
                 // Area address without bus extension:
-                { IsDefaultOrEmpty: true } when byte.TryParse(address.Value, CultureInfo.InvariantCulture, out byte area) && area is >= 0 and <= 10
+                { IsDefaultOrEmpty: true } when byte.TryParse(address.Value, CultureInfo.InvariantCulture, out byte area) && area is >= 0 and <= 9
                     => (Extension: 0, General: false, Group: null, Area: area, Point: null),
 
                 // Area address with bus extension:
                 ["4", string value] when
-                    byte.TryParse(address.Value, CultureInfo.InvariantCulture, out byte area) &&
-                    byte.TryParse(value, CultureInfo.InvariantCulture, out byte extension) && extension is >= 0 and <= 15
+                    byte.TryParse(address.Value, CultureInfo.InvariantCulture, out byte area)      && area      is >= 0 and <= 9 &&
+                    byte.TryParse(value,         CultureInfo.InvariantCulture, out byte extension) && extension is >= 0 and <= 15
                     => (Extension: extension, General: false, Group: null, Area: area, Point: null),
 
                 _ => throw new ArgumentException(SR.GetResourceString(SR.ID0051), nameof(address))
