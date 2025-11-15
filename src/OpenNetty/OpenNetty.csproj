@@ -1,7 +1,7 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <TargetFramework>net9.0</TargetFramework>
+    <TargetFramework>net10.0</TargetFramework>
     <IsAotCompatible>true</IsAotCompatible>
   </PropertyGroup>
 
@@ -9,7 +9,6 @@
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Logging" />
     <PackageReference Include="Polly.Core" />
-    <PackageReference Include="System.IO.Pipelines" />
     <PackageReference Include="System.IO.Ports" />
     <PackageReference Include="System.Interactive.Async" />
     <PackageReference Include="System.Reactive.Async" />
