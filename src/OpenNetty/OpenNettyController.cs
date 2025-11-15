@@ -733,7 +733,7 @@ public class OpenNettyController
                                              message.Dimension == OpenNettyDimensions.Lighting.DimmerStatus)
                     .Timeout(TimeSpan.FromSeconds(10))
                     .ToAsyncEnumerable()
-                    .SelectAwaitWithCancellation(async (message, cancellationToken) => (
+                    .Select(async (message, cancellationToken) => (
                         Values  : message.Values,
                         Endpoint: await _manager.FindEndpointByAddressAsync(endpoint.Gateway, message.Address!.Value, cancellationToken)))
                     .Where(static arguments => arguments.Endpoint is not null)
@@ -771,7 +771,7 @@ public class OpenNettyController
                     cancellationToken: cancellationToken);
 
                 await foreach (var result in results
-                    .SelectAwaitWithCancellation(async (arguments, cancellationToken) => (
+                    .Select(async (arguments, cancellationToken) => (
                         Command : arguments.Command,
                         Endpoint: await _manager.FindEndpointByAddressAsync(endpoint.Gateway, arguments.Address, cancellationToken)))
                     .Where(static arguments => arguments.Endpoint is not null)
@@ -842,7 +842,7 @@ public class OpenNettyController
                     cancellationToken: cancellationToken);
 
                 return dimensions
-                    .SelectAwaitWithCancellation(async (message, cancellationToken) => (
+                    .Select(async (message, cancellationToken) => (
                         Values  : message.Values,
                         Endpoint: await _manager.FindEndpointByAddressAsync(endpoint.Gateway, message.Address, cancellationToken)))
                     .Where(static arguments => arguments.Endpoint is not null)
@@ -921,7 +921,7 @@ public class OpenNettyController
                     cancellationToken: cancellationToken);
 
                 await foreach (var result in dimensions
-                    .SelectAwaitWithCancellation(async (message, cancellationToken) => (
+                    .Select(async (message, cancellationToken) => (
                         Values  : message.Values,
                         Endpoint: await _manager.FindEndpointByAddressAsync(endpoint.Gateway, message.Address, cancellationToken)))
                     .Where(static arguments => arguments.Endpoint is not null)
@@ -965,7 +965,7 @@ public class OpenNettyController
                     cancellationToken: cancellationToken);
 
                 await foreach (var result in results
-                    .SelectAwaitWithCancellation(async (arguments, cancellationToken) => (
+                    .Select(async (arguments, cancellationToken) => (
                         Command : arguments.Command,
                         Endpoint: await _manager.FindEndpointByAddressAsync(endpoint.Gateway, arguments.Address, cancellationToken)))
                     .Where(static arguments => arguments.Endpoint is not null)
@@ -1045,7 +1045,7 @@ public class OpenNettyController
                     cancellationToken: cancellationToken);
 
                 return results
-                    .SelectAwaitWithCancellation(async (arguments, cancellationToken) => (
+                    .Select(async (arguments, cancellationToken) => (
                         Command : arguments.Command,
                         Endpoint: await _manager.FindEndpointByAddressAsync(endpoint.Gateway, arguments.Address, cancellationToken)))
                     .Where(static arguments => arguments.Endpoint is not null)

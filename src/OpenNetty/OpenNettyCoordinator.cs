@@ -197,7 +197,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                 {
                                     var endpoints = scenarios.ToAsyncEnumerable()
                                         .Where(static scenario => scenario.FunctionCode is < 105)
-                                        .SelectAwait(scenario => _manager.FindEndpointByNameAsync(scenario.EndpointName))
+                                        .Select((scenario, cancellationToken) => _manager.FindEndpointByNameAsync(scenario.EndpointName, cancellationToken))
                                         .Where(static endpoint => endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit: OpenNettyUnit })
                                         .OfType<OpenNettyEndpoint>()
                                         .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState));
@@ -558,7 +558,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                 {
                                     var endpoints = scenarios.ToAsyncEnumerable()
                                         .Where(static scenario => scenario.FunctionCode is < 110 or 111 or 112)
-                                        .SelectAwait(scenario => _manager.FindEndpointByNameAsync(scenario.EndpointName))
+                                        .Select((scenario, cancellationToken) => _manager.FindEndpointByNameAsync(scenario.EndpointName, cancellationToken))
                                         .Where(static endpoint => endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit: OpenNettyUnit })
                                         .OfType<OpenNettyEndpoint>()
                                         .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState));
@@ -847,7 +847,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         {
                             var endpoints = scenarios.ToAsyncEnumerable()
                                 .Where(static scenario => scenario.FunctionCode is 255)
-                                .SelectAwait(scenario => _manager.FindEndpointByNameAsync(scenario.EndpointName))
+                                .Select((scenario, cancellationToken) => _manager.FindEndpointByNameAsync(scenario.EndpointName, cancellationToken))
                                 .Where(static endpoint => endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit: OpenNettyUnit })
                                 .OfType<OpenNettyEndpoint>()
                                 .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.WaterHeating));
@@ -947,7 +947,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         {
                             var endpoints = scenarios.ToAsyncEnumerable()
                                 .Where(static scenario => scenario.FunctionCode is 255)
-                                .SelectAwait(scenario => _manager.FindEndpointByNameAsync(scenario.EndpointName))
+                                .Select((scenario, cancellationToken) => _manager.FindEndpointByNameAsync(scenario.EndpointName, cancellationToken))
                                 .Where(static endpoint => endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit: OpenNettyUnit })
                                 .OfType<OpenNettyEndpoint>()
                                 .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating));
@@ -1016,7 +1016,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         {
                             var endpoints = scenarios.ToAsyncEnumerable()
                                 .Where(static scenario => scenario.FunctionCode is 255)
-                                .SelectAwait(scenario => _manager.FindEndpointByNameAsync(scenario.EndpointName))
+                                .Select((scenario, cancellationToken) => _manager.FindEndpointByNameAsync(scenario.EndpointName, cancellationToken))
                                 .Where(static endpoint => endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit: OpenNettyUnit })
                                 .OfType<OpenNettyEndpoint>()
                                 .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating));
@@ -1087,7 +1087,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         {
                             var endpoints = scenarios.ToAsyncEnumerable()
                                 .Where(static scenario => scenario.FunctionCode is 255)
-                                .SelectAwait(scenario => _manager.FindEndpointByNameAsync(scenario.EndpointName))
+                                .Select((scenario, cancellationToken) => _manager.FindEndpointByNameAsync(scenario.EndpointName, cancellationToken))
                                 .Where(static endpoint => endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit: OpenNettyUnit })
                                 .OfType<OpenNettyEndpoint>()
                                 .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating));
@@ -1905,7 +1905,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 {
                     var endpoints = scenarios.ToAsyncEnumerable()
                         .Where(static scenario => scenario.FunctionCode is < 105)
-                        .SelectAwait(scenario => _manager.FindEndpointByNameAsync(scenario.EndpointName))
+                        .Select((scenario, cancellationToken) => _manager.FindEndpointByNameAsync(scenario.EndpointName, cancellationToken))
                         .Where(static endpoint => endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit: OpenNettyUnit })
                         .OfType<OpenNettyEndpoint>()
                         // Note: "DIM STEP" BUS COMMANDS don't have any effect on endpoints that don't support dimming.
@@ -1982,7 +1982,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 {
                     var endpoints = scenarios.ToAsyncEnumerable()
                         .Where(static scenario => scenario.FunctionCode is < 105)
-                        .SelectAwait(scenario => _manager.FindEndpointByNameAsync(scenario.EndpointName))
+                        .Select((scenario, cancellationToken) => _manager.FindEndpointByNameAsync(scenario.EndpointName, cancellationToken))
                         .Where(static endpoint => endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit: OpenNettyUnit })
                         .OfType<OpenNettyEndpoint>()
                         .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState));
