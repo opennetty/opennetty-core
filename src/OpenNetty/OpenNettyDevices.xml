@@ -1174,8 +1174,8 @@
 
   <Device Series="MyHome" Protocol="Scs" Medium="Bus">
     <Identity Brand="Legrand" Collection="Céliane" Model="67557">
-      <Description Culture="en" Value="1-channel advanced automation actuator" />
-      <Description Culture="fr" Value="Interrupteur de volet roulant avancé simple" />
+      <Description Culture="en" Value="Advanced automation actuator" />
+      <Description Culture="fr" Value="Interrupteur de volet roulant avancé" />
     </Identity>
 
     <Unit Id="1">
@@ -1184,8 +1184,8 @@
       <Capability Name="Basic shutter control" />
       <Capability Name="Basic shutter state" />
 
-      <Description Culture="en" Value="Output 1" />
-      <Description Culture="fr" Value="Sortie 1" />
+      <Description Culture="en" Value="Output" />
+      <Description Culture="fr" Value="Sortie" />
     </Unit>
   </Device>
 
@@ -1214,13 +1214,237 @@
     </Unit>
 
     <Unit Id="3">
-      <Description Culture="en" Value="Command 2" />
-      <Description Culture="fr" Value="Commande 2" />
+      <Capability Name="Configurable push button numbers" />
+      <Capability Name="Pressure scenario activation" />
+      <Capability Name="Pressure scenario event" />
+      <Capability Name="Pressure scenario plus activation" />
+      <Capability Name="Pressure scenario plus event" />
+
+      <Description Culture="en" Value="Command 1" />
+      <Description Culture="fr" Value="Commande 1" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
     </Unit>
 
     <Unit Id="4">
+      <Capability Name="Configurable push button numbers" />
+      <Capability Name="Pressure scenario activation" />
+      <Capability Name="Pressure scenario event" />
+      <Capability Name="Pressure scenario plus activation" />
+      <Capability Name="Pressure scenario plus event" />
+
       <Description Culture="en" Value="Command 2" />
       <Description Culture="fr" Value="Commande 2" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+    </Unit>
+  </Device>
+
+  <Device Series="MyHome" Protocol="Scs" Medium="Bus">
+    <Identity Brand="Legrand" Collection="Céliane" Model="MX5220">
+      <Description Culture="en" Value="Automation actuator" />
+      <Description Culture="fr" Value="Interrupteur de volet roulant" />
+    </Identity>
+
+    <Unit Id="1">
+      <Capability Name="Advanced shutter control" />
+      <Capability Name="Advanced shutter state" />
+      <Capability Name="Basic shutter control" />
+      <Capability Name="Basic shutter state" />
+
+      <Description Culture="en" Value="Output" />
+      <Description Culture="fr" Value="Sortie" />
+    </Unit>
+
+    <!--
+      Note: unlike older models, the MX5220/MX5222/MX5230 use one
+      module per physical button but do no support legacy scenarios.
+    -->
+
+    <Unit Id="2">
+      <Capability Name="Configurable push button numbers" />
+      <Capability Name="Pressure scenario plus activation" />
+      <Capability Name="Pressure scenario plus event" />
+
+      <Description Culture="en" Value="Command 1" />
+      <Description Culture="fr" Value="Commande 1" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+    </Unit>
+
+    <Unit Id="3">
+      <Capability Name="Configurable push button numbers" />
+      <Capability Name="Pressure scenario plus activation" />
+      <Capability Name="Pressure scenario plus event" />
+
+      <Description Culture="en" Value="Command 2" />
+      <Description Culture="fr" Value="Commande 2" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+    </Unit>
+
+    <Unit Id="4">
+      <Capability Name="Configurable push button numbers" />
+      <Capability Name="Pressure scenario plus activation" />
+      <Capability Name="Pressure scenario plus event" />
+
+      <Description Culture="en" Value="Command 3" />
+      <Description Culture="fr" Value="Commande 3" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+    </Unit>
+
+    <Unit Id="5">
+      <Capability Name="Configurable push button numbers" />
+      <Capability Name="Pressure scenario plus activation" />
+      <Capability Name="Pressure scenario plus event" />
+
+      <Description Culture="en" Value="Command 4" />
+      <Description Culture="fr" Value="Commande 4" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+    </Unit>
+  </Device>
+
+  <Device Series="MyHome" Protocol="Scs" Medium="Bus">
+    <Identity Brand="Legrand" Collection="Céliane" Model="MX5222">
+      <Description Culture="en" Value="2-gang light/automation control switch" />
+      <Description Culture="fr" Value="Commande d'éclairage/volet roulant double" />
+    </Identity>
+
+    <!--
+      Note: unlike older models, the MX5220/MX5222/MX5230 use one
+      module per physical button but do no support legacy scenarios.
+    -->
+
+    <Unit Id="1">
+      <Capability Name="Configurable push button numbers" />
+      <Capability Name="Pressure scenario plus activation" />
+      <Capability Name="Pressure scenario plus event" />
+
+      <Description Culture="en" Value="Command 1" />
+      <Description Culture="fr" Value="Commande 1" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+    </Unit>
+
+    <Unit Id="2">
+      <Capability Name="Configurable push button numbers" />
+      <Capability Name="Pressure scenario plus activation" />
+      <Capability Name="Pressure scenario plus event" />
+
+      <Description Culture="en" Value="Command 2" />
+      <Description Culture="fr" Value="Commande 2" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+    </Unit>
+
+    <Unit Id="3">
+      <Capability Name="Configurable push button numbers" />
+      <Capability Name="Pressure scenario plus activation" />
+      <Capability Name="Pressure scenario plus event" />
+
+      <Description Culture="en" Value="Command 3" />
+      <Description Culture="fr" Value="Commande 3" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+    </Unit>
+
+    <Unit Id="4">
+      <Capability Name="Configurable push button numbers" />
+      <Capability Name="Pressure scenario plus activation" />
+      <Capability Name="Pressure scenario plus event" />
+
+      <Description Culture="en" Value="Command 4" />
+      <Description Culture="fr" Value="Commande 4" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+    </Unit>
+  </Device>
+
+  <Device Series="MyHome" Protocol="Scs" Medium="Bus">
+    <Identity Brand="Legrand" Collection="Céliane" Model="MX5230">
+      <Description Culture="en" Value="2-channel light actuator" />
+      <Description Culture="fr" Value="Interrupteur d'éclairage double" />
+    </Identity>
+
+    <Unit Id="1">
+      <Capability Name="On/off switch state" />
+      <Capability Name="On/off switch control" />
+
+      <Description Culture="en" Value="Output 1" />
+      <Description Culture="fr" Value="Sortie 1" />
+    </Unit>
+
+    <Unit Id="2">
+      <Capability Name="On/off switch state" />
+      <Capability Name="On/off switch control" />
+
+      <Description Culture="en" Value="Output 2" />
+      <Description Culture="fr" Value="Sortie 2" />
+    </Unit>
+
+    <!--
+      Note: unlike older models, the MX5220/MX5222/MX5230 use one
+      module per physical button but do no support legacy scenarios.
+    -->
+
+    <Unit Id="3">
+      <Capability Name="Configurable push button numbers" />
+      <Capability Name="Pressure scenario plus activation" />
+      <Capability Name="Pressure scenario plus event" />
+
+      <Description Culture="en" Value="Command 1" />
+      <Description Culture="fr" Value="Commande 1" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+    </Unit>
+
+    <Unit Id="4">
+      <Capability Name="Configurable push button numbers" />
+      <Capability Name="Pressure scenario plus activation" />
+      <Capability Name="Pressure scenario plus event" />
+
+      <Description Culture="en" Value="Command 2" />
+      <Description Culture="fr" Value="Commande 2" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+    </Unit>
+
+    <Unit Id="5">
+      <Capability Name="Configurable push button numbers" />
+      <Capability Name="Pressure scenario plus activation" />
+      <Capability Name="Pressure scenario plus event" />
+
+      <Description Culture="en" Value="Command 3" />
+      <Description Culture="fr" Value="Commande 3" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+    </Unit>
+
+    <Unit Id="6">
+      <Capability Name="Configurable push button numbers" />
+      <Capability Name="Pressure scenario plus activation" />
+      <Capability Name="Pressure scenario plus event" />
+
+      <Description Culture="en" Value="Command 4" />
+      <Description Culture="fr" Value="Commande 4" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
     </Unit>
   </Device>
 
