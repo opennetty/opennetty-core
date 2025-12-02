@@ -33,7 +33,7 @@ public sealed record OpenNettyTransmissionOptions
 
     /// <summary>
     /// Gets or sets a boolean indicating whether OpenNetty should
-    /// wait for the gateway to return an ACK, BUSYACK or NACK frame.
+    /// wait for the gateway to return an ACK, BUSY NACK or NACK frame.
     /// </summary>
     public required bool IgnoreAcknowledgementValidation { get; init; }
 

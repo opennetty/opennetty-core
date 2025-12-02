@@ -74,7 +74,7 @@ public class OpenNettyService : IOpenNettyService
         var message = OpenNettyMessage.CreateDimensionRequest(protocol, dimension, address, medium, mode);
 
         // Note: acknowledgement validation is deliberately disabled while sending the DIMENSION REQUEST frame
-        // as it's used by the OWN gateway to indicate when it's done pushing additional DIMENSION READ frames.
+        // as it's used by the gateway to indicate when it's done pushing additional DIMENSION READ frames.
         options = options with { IgnoreAcknowledgementValidation = true };
 
         var context = ResilienceContextPool.Shared.Get(cancellationToken);

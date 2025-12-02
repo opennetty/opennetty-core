@@ -48,14 +48,8 @@ public sealed record class OpenNettySessionOptions
                 })
                 .AddRetry(new RetryStrategyOptions
                 {
-                    DelayGenerator = static arguments => new(arguments.AttemptNumber switch
-                    {
-                        0      or      1 => TimeSpan.FromSeconds(1),
-                        2      or      3 => TimeSpan.FromSeconds(5),
-                        4      or      5 => TimeSpan.FromSeconds(10),
-                        6 or 7 or 8 or 9 => TimeSpan.FromSeconds(30),
-                               _         => TimeSpan.FromSeconds(60)
-                    }),
+                    BackoffType = DelayBackoffType.Constant,
+                    Delay = TimeSpan.FromSeconds(10),
                     MaxRetryAttempts = int.MaxValue,
                     ShouldHandle = static arguments =>
                     {
