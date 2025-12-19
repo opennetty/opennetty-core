@@ -391,10 +391,9 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
 
                     await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
                     {
-                        // Note: for Nitoo devices, the brightness level is expressed differently.
-                        var level = message.Protocol is OpenNettyProtocol.Nitoo ?
-                            (byte) (byte.Parse(value, CultureInfo.InvariantCulture) - 100) :
-                            (byte) Math.Round(decimal.Parse(value, CultureInfo.InvariantCulture), MidpointRounding.AwayFromZero);
+                        // Note: for Nitoo devices, the brightness level is expressed differently (1 to 100 instead of 101 to 200).
+                        var level = message.Protocol is OpenNettyProtocol.Nitoo ? byte.Parse(value, CultureInfo.InvariantCulture) :
+                            (byte) (byte.Parse(value, CultureInfo.InvariantCulture) - 100);
 
                         switch (endpoint.Protocol)
                         {
