@@ -78,8 +78,6 @@
     <Unit Id="1">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
 
       <Description Culture="en" Value="Doorbell call" />
@@ -92,80 +90,60 @@
     <Unit Id="2">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
     </Unit>
 
     <Unit Id="3">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
     </Unit>
 
     <Unit Id="4">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
     </Unit>
 
     <Unit Id="5">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
     </Unit>
 
     <Unit Id="6">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
     </Unit>
 
     <Unit Id="7">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
     </Unit>
 
     <Unit Id="8">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
     </Unit>
 
     <Unit Id="9">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
     </Unit>
 
     <Unit Id="10">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
     </Unit>
 
     <Unit Id="11">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
     </Unit>
 
@@ -223,29 +201,21 @@
     <Unit Id="1">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
     </Unit>
 
     <Unit Id="2">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
     </Unit>
 
     <Unit Id="3">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
     </Unit>
 
     <Unit Id="4">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
 
       <Description Culture="en" Value="Alarm armed" />
       <Description Culture="fr" Value="Mise en service totale" />
@@ -256,8 +226,6 @@
     <Unit Id="5">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
 
       <Description Culture="en" Value="Alarm disarmed" />
       <Description Culture="fr" Value="Arrêt" />
@@ -268,8 +236,6 @@
     <Unit Id="6">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
 
       <Description Culture="en" Value="Alarm partially armed" />
       <Description Culture="fr" Value="Mise en service partielle" />
@@ -280,8 +246,6 @@
     <Unit Id="7">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
 
       <Description Culture="en" Value="Alarm triggered" />
       <Description Culture="fr" Value="Alarme déclenchée" />
@@ -292,8 +256,6 @@
     <Unit Id="8">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
 
       <Description Culture="en" Value="Exit delay elapsed" />
       <Description Culture="fr" Value="Temporisation de sortie écoulé" />
@@ -304,8 +266,6 @@
     <Unit Id="9">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
 
       <Description Culture="en" Value="Event detected" />
       <Description Culture="fr" Value="Événement détecté" />
@@ -454,8 +414,6 @@
       <Capability Name="Action scenario event" />
       <Capability Name="Dimming scenario activation" />
       <Capability Name="Dimming scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
 
       <Description Culture="en" Value="Button 1" />
@@ -470,8 +428,6 @@
       <Capability Name="Action scenario event" />
       <Capability Name="Dimming scenario activation" />
       <Capability Name="Dimming scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
 
       <Description Culture="en" Value="Button 2" />
@@ -519,8 +475,6 @@
       <Capability Name="Action scenario event" />
       <Capability Name="Dimming scenario activation" />
       <Capability Name="Dimming scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
 
       <Description Culture="en" Value="Preset+ command" />
@@ -535,8 +489,6 @@
       <Capability Name="Action scenario event" />
       <Capability Name="Dimming scenario activation" />
       <Capability Name="Dimming scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
 
       <Description Culture="en" Value="Preset- command" />
@@ -671,8 +623,6 @@
       <Capability Name="Action scenario event" />
       <Capability Name="Dimming scenario activation" />
       <Capability Name="Dimming scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
 
       <Description Culture="en" Value="Preset+ command" />
@@ -687,8 +637,6 @@
       <Capability Name="Action scenario event" />
       <Capability Name="Dimming scenario activation" />
       <Capability Name="Dimming scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
 
       <Description Culture="en" Value="Preset- command" />
@@ -730,8 +678,6 @@
       <Capability Name="Action scenario event" />
       <Capability Name="Dimming scenario activation" />
       <Capability Name="Dimming scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
 
       <Description Culture="en" Value="Button 1" />
@@ -746,8 +692,6 @@
       <Capability Name="Action scenario event" />
       <Capability Name="Dimming scenario activation" />
       <Capability Name="Dimming scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
 
       <Description Culture="en" Value="Button 2" />
@@ -762,8 +706,6 @@
       <Capability Name="Action scenario event" />
       <Capability Name="Dimming scenario activation" />
       <Capability Name="Dimming scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
 
       <Description Culture="en" Value="Button 4" />
@@ -778,8 +720,6 @@
       <Capability Name="Action scenario event" />
       <Capability Name="Dimming scenario activation" />
       <Capability Name="Dimming scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
       <Capability Name="Unit description" />
 
       <Description Culture="en" Value="Button 4" />
@@ -806,8 +746,6 @@
     <Unit Id="1">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
 
       <Description Culture="en" Value="Button 1" />
       <Description Culture="fr" Value="Bouton 1" />
@@ -819,8 +757,6 @@
     <Unit Id="2">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
 
       <Description Culture="en" Value="Button 2" />
       <Description Culture="fr" Value="Bouton 2" />
@@ -832,8 +768,6 @@
     <Unit Id="3">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
 
       <Description Culture="en" Value="Button 3" />
       <Description Culture="fr" Value="Bouton 3" />
@@ -845,8 +779,6 @@
     <Unit Id="4">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
 
       <Description Culture="en" Value="Button 4" />
       <Description Culture="fr" Value="Bouton 4" />
@@ -930,8 +862,6 @@
     <Unit Id="1">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
 
       <Description Culture="en" Value="Button 1" />
       <Description Culture="fr" Value="Bouton 1" />
@@ -943,8 +873,6 @@
     <Unit Id="2">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
 
       <Description Culture="en" Value="Button 2" />
       <Description Culture="fr" Value="Bouton 2" />
@@ -956,8 +884,6 @@
     <Unit Id="3">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
 
       <Description Culture="en" Value="Button 3" />
       <Description Culture="fr" Value="Bouton 3" />
@@ -969,8 +895,6 @@
     <Unit Id="4">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
-      <Capability Name="Stop action scenario activation" />
-      <Capability Name="Stop action scenario event" />
 
       <Description Culture="en" Value="Button 4" />
       <Description Culture="fr" Value="Bouton 4" />

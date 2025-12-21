@@ -207,16 +207,6 @@ public static class OpenNettyCapabilities
     public static readonly OpenNettyCapability SmartMeterInformation = new("Smart meter information");
 
     /// <summary>
-    /// Action scenario activation.
-    /// </summary>
-    public static readonly OpenNettyCapability StopActionScenarioActivation = new("Stop action scenario activation");
-
-    /// <summary>
-    /// Action scenario event.
-    /// </summary>
-    public static readonly OpenNettyCapability StopActionScenarioEvent = new("Stop action scenario event");
-
-    /// <summary>
     /// Stop/up/down scenario activation.
     /// </summary>
     public static readonly OpenNettyCapability StopUpDownScenarioActivation = new("Stop/up/down scenario activation");

@@ -61,13 +61,19 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
     {
         return StableCompositeAsyncDisposable.Create(
         [
-            await _events.BasicScenarioReported
+            await _events.ActionScenarioReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
                 {
                     var node = new JsonObject
                     {
-                        ["event_type"] = "action"
+                        ["event_type"] = arguments.Type switch
+                        {
+                            OpenNettyModels.ScenariosPlus.ActionScenarioType.Action     => "action",
+                            OpenNettyModels.ScenariosPlus.ActionScenarioType.StopAction => "stop_action",
+
+                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+                        }
                     };
 
                     builder.WithContentType(MediaTypeNames.Application.Json);
@@ -106,14 +112,14 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
-            await _events.DimmingStepReported
+            await _events.DimmingScenarioReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
                 {
                     var node = new JsonObject
                     {
-                        ["event_type"] = arguments.Delta is < 0 ? "dimming_step_down" : "dimming_step_up",
-                        ["delta"] = arguments.Delta
+                        ["event_type"] = "dimming",
+                        ["dimming_step"] = arguments.Step
                     };
 
                     builder.WithContentType(MediaTypeNames.Application.Json);
@@ -152,28 +158,19 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
-            await _events.OffScenarioReported
+            await _events.OnOffScenarioReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
                 {
                     var node = new JsonObject
                     {
-                        ["event_type"] = "switch_off"
-                    };
+                        ["event_type"] = arguments.Type switch
+                        {
+                            OpenNettyModels.Lighting.OnOffScenarioType.Off => "switch_off",
+                            OpenNettyModels.Lighting.OnOffScenarioType.On  => "switch_on",
 
-                    builder.WithContentType(MediaTypeNames.Application.Json);
-                    builder.WithPayload(node.ToJsonString());
-                }))
-                .Retry()
-                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
-
-            await _events.OnScenarioReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
-                {
-                    var node = new JsonObject
-                    {
-                        ["event_type"] = "switch_on"
+                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+                        }
                     };
 
                     builder.WithContentType(MediaTypeNames.Application.Json);
@@ -327,21 +324,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
-            await _events.ShutterDownScenarioReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
-                {
-                    var node = new JsonObject
-                    {
-                        ["event_type"] = "shutter_down"
-                    };
-
-                    builder.WithContentType(MediaTypeNames.Application.Json);
-                    builder.WithPayload(node.ToJsonString());
-                }))
-                .Retry()
-                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
-
             await _events.ShutterPositionReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.ShutterPosition, builder =>
@@ -368,36 +350,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                     });
 
                     builder.WithRetainFlag();
-                }))
-                .Retry()
-                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
-
-            await _events.ShutterStopScenarioReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
-                {
-                    var node = new JsonObject
-                    {
-                        ["event_type"] = "shutter_stop"
-                    };
-
-                    builder.WithContentType(MediaTypeNames.Application.Json);
-                    builder.WithPayload(node.ToJsonString());
-                }))
-                .Retry()
-                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
-
-            await _events.ShutterUpScenarioReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
-                {
-                    var node = new JsonObject
-                    {
-                        ["event_type"] = "shutter_up"
-                    };
-
-                    builder.WithContentType(MediaTypeNames.Application.Json);
-                    builder.WithPayload(node.ToJsonString());
                 }))
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
@@ -453,6 +405,28 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                     });
 
                     builder.WithRetainFlag();
+                }))
+                .Retry()
+                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
+
+            await _events.StopUpDownScenarioReported
+                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
+                {
+                    var node = new JsonObject
+                    {
+                        ["event_type"] = arguments.Type switch
+                        {
+                            OpenNettyModels.Automation.StopUpDownScenarioType.Stop => "shutter_stop",
+                            OpenNettyModels.Automation.StopUpDownScenarioType.Up   => "shutter_up",
+                            OpenNettyModels.Automation.StopUpDownScenarioType.Down => "shutter_down",
+
+                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+                        }
+                    };
+
+                    builder.WithContentType(MediaTypeNames.Application.Json);
+                    builder.WithPayload(node.ToJsonString());
                 }))
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),

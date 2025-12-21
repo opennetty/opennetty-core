@@ -71,10 +71,10 @@ public sealed class OpenNettyEvents : IDisposable
     }
 
     /// <summary>
-    /// Gets an event triggered when a basic scenario is reported.
+    /// Gets an event triggered when an action scenario is reported.
     /// </summary>
-    public IAsyncObservable<BasicScenarioReportedEventArgs> BasicScenarioReported
-        => _observable.OfType<EventArgs, BasicScenarioReportedEventArgs>();
+    public IAsyncObservable<ActionScenarioReportedEventArgs> ActionScenarioReported
+        => _observable.OfType<EventArgs, ActionScenarioReportedEventArgs>();
 
     /// <summary>
     /// Gets an event triggered when a battery alert is reported.
@@ -101,10 +101,10 @@ public sealed class OpenNettyEvents : IDisposable
         => _observable.OfType<EventArgs, DeviceDescriptionReportedEventArgs>();
 
     /// <summary>
-    /// Gets an event triggered when a dimming step is reported.
+    /// Gets an event triggered when a dimming scenario is reported.
     /// </summary>
-    public IAsyncObservable<DimmingStepReportedEventArgs> DimmingStepReported
-        => _observable.OfType<EventArgs, DimmingStepReportedEventArgs>();
+    public IAsyncObservable<DimmingScenarioReportedEventArgs> DimmingScenarioReported
+        => _observable.OfType<EventArgs, DimmingScenarioReportedEventArgs>();
 
     /// <summary>
     /// Gets an event triggered when a firmware version is reported.
@@ -125,16 +125,10 @@ public sealed class OpenNettyEvents : IDisposable
         => _observable.OfType<EventArgs, MacAddressReportedEventArgs>();
 
     /// <summary>
-    /// Gets an event triggered when an OFF scenario is reported.
+    /// Gets an event triggered when an ON/OFF scenario is reported.
     /// </summary>
-    public IAsyncObservable<OffScenarioReportedEventArgs> OffScenarioReported
-        => _observable.OfType<EventArgs, OffScenarioReportedEventArgs>();
-
-    /// <summary>
-    /// Gets an event triggered when an ON scenario is reported.
-    /// </summary>
-    public IAsyncObservable<OnScenarioReportedEventArgs> OnScenarioReported
-        => _observable.OfType<EventArgs, OnScenarioReportedEventArgs>();
+    public IAsyncObservable<OnOffScenarioReportedEventArgs> OnOffScenarioReported
+        => _observable.OfType<EventArgs, OnOffScenarioReportedEventArgs>();
 
     /// <summary>
     /// Gets an event triggered when a pilot wire derogation mode is reported.
@@ -179,24 +173,6 @@ public sealed class OpenNettyEvents : IDisposable
         => _observable.OfType<EventArgs, ShutterStateReportedEventArgs>();
 
     /// <summary>
-    /// Gets an event triggered when a shutter DOWN scenario is reported.
-    /// </summary>
-    public IAsyncObservable<ShutterDownScenarioReportedEventArgs> ShutterDownScenarioReported
-        => _observable.OfType<EventArgs, ShutterDownScenarioReportedEventArgs>();
-
-    /// <summary>
-    /// Gets an event triggered when a shutter STOP scenario is reported.
-    /// </summary>
-    public IAsyncObservable<ShutterStopScenarioReportedEventArgs> ShutterStopScenarioReported
-        => _observable.OfType<EventArgs, ShutterStopScenarioReportedEventArgs>();
-
-    /// <summary>
-    /// Gets an event triggered when a shutter UP scenario is reported.
-    /// </summary>
-    public IAsyncObservable<ShutterUpScenarioReportedEventArgs> ShutterUpScenarioReported
-        => _observable.OfType<EventArgs, ShutterUpScenarioReportedEventArgs>();
-
-    /// <summary>
     /// Gets an event triggered when smart meter indexes are reported.
     /// </summary>
     public IAsyncObservable<SmartMeterIndexesReportedEventArgs> SmartMeterIndexesReported
@@ -213,6 +189,12 @@ public sealed class OpenNettyEvents : IDisposable
     /// </summary>
     public IAsyncObservable<SmartMeterRateTypeReportedEventArgs> SmartMeterRateTypeReported
         => _observable.OfType<EventArgs, SmartMeterRateTypeReportedEventArgs>();
+
+    /// <summary>
+    /// Gets an event triggered when a STOP/UP/DOWN scenario is reported.
+    /// </summary>
+    public IAsyncObservable<StopUpDownScenarioReportedEventArgs> StopUpDownScenarioReported
+        => _observable.OfType<EventArgs, StopUpDownScenarioReportedEventArgs>();
 
     /// <summary>
     /// Gets an event triggered when a switch state is reported.
@@ -312,10 +294,12 @@ public sealed class OpenNettyEvents : IDisposable
     public abstract record class EventArgs(OpenNettyEndpoint Endpoint);
 
     /// <summary>
-    /// Represents event arguments used when a basic scenario is reported.
+    /// Represents event arguments used when an action scenario is reported.
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
-    public sealed record class BasicScenarioReportedEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
+    /// <param name="Type">The action scenario type.</param>
+    public sealed record class ActionScenarioReportedEventArgs(OpenNettyEndpoint Endpoint,
+        OpenNettyModels.ScenariosPlus.ActionScenarioType Type) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when a battery alert is reported.
@@ -346,11 +330,11 @@ public sealed class OpenNettyEvents : IDisposable
         OpenNettyModels.Diagnostics.DeviceDescription Description) : EventArgs(Endpoint);
 
     /// <summary>
-    /// Represents event arguments used when a dimming step is reported.
+    /// Represents event arguments used when a dimming scenario is reported.
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
-    /// <param name="Delta">The delta (positive or negative).</param>
-    public sealed record class DimmingStepReportedEventArgs(OpenNettyEndpoint Endpoint, int Delta) : EventArgs(Endpoint);
+    /// <param name="Step">The dimming step (positive or negative).</param>
+    public sealed record class DimmingScenarioReportedEventArgs(OpenNettyEndpoint Endpoint, short Step) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when a firmware version is reported.
@@ -374,16 +358,12 @@ public sealed class OpenNettyEvents : IDisposable
     public sealed record class MacAddressReportedEventArgs(OpenNettyEndpoint Endpoint, string Address) : EventArgs(Endpoint);
 
     /// <summary>
-    /// Represents event arguments used when an OFF scenario is reported.
+    /// Represents event arguments used when an ON/OFF scenario is reported.
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
-    public sealed record class OffScenarioReportedEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
-
-    /// <summary>
-    /// Represents event arguments used when an ON scenario is reported.
-    /// </summary>
-    /// <param name="Endpoint">The endpoint.</param>
-    public sealed record class OnScenarioReportedEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
+    /// <param name="Type">The switch scenario type.</param>
+    public sealed record class OnOffScenarioReportedEventArgs(OpenNettyEndpoint Endpoint,
+        OpenNettyModels.Lighting.OnOffScenarioType Type) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when a pilot wire derogation mode is reported.
@@ -445,24 +425,6 @@ public sealed class OpenNettyEvents : IDisposable
         OpenNettyModels.Automation.ShutterState State) : EventArgs(Endpoint);
 
     /// <summary>
-    /// Represents event arguments used when a shutter DOWN scenario is reported.
-    /// </summary>
-    /// <param name="Endpoint">The endpoint.</param>
-    public sealed record class ShutterDownScenarioReportedEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
-
-    /// <summary>
-    /// Represents event arguments used when a shutter STOP scenario is reported.
-    /// </summary>
-    /// <param name="Endpoint">The endpoint.</param>
-    public sealed record class ShutterStopScenarioReportedEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
-
-    /// <summary>
-    /// Represents event arguments used when a shutter UP scenario is reported.
-    /// </summary>
-    /// <param name="Endpoint">The endpoint.</param>
-    public sealed record class ShutterUpScenarioReportedEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
-
-    /// <summary>
     /// Represents event arguments used when smart meter indexes are reported.
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
@@ -484,6 +446,14 @@ public sealed class OpenNettyEvents : IDisposable
     /// <param name="Type">The rate type.</param>
     public sealed record class SmartMeterRateTypeReportedEventArgs(OpenNettyEndpoint Endpoint,
         OpenNettyModels.TemperatureControl.SmartMeterRateType Type) : EventArgs(Endpoint);
+
+    /// <summary>
+    /// Represents event arguments used when a STOP/UP/DOWN scenario is reported.
+    /// </summary>
+    /// <param name="Endpoint">The endpoint.</param>
+    /// <param name="Type">The shutter scenario type.</param>
+    public sealed record class StopUpDownScenarioReportedEventArgs(OpenNettyEndpoint Endpoint,
+        OpenNettyModels.Automation.StopUpDownScenarioType Type) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when a switch state is reported.
