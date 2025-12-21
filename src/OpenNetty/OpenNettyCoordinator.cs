@@ -210,15 +210,10 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                 if (endpoint.Protocol is OpenNettyProtocol.Zigbee ||
                                    (endpoint.Protocol is OpenNettyProtocol.Nitoo && message.Mode is OpenNettyMode.Broadcast))
                                 {
-                                    if (message.Command == OpenNettyCommands.Lighting.On)
-                                    {
-                                        tasks.Add(_events.PublishAsync(new OnScenarioReportedEventArgs(endpoint), cancellationToken).AsTask());
-                                    }
-
-                                    else
-                                    {
-                                        tasks.Add(_events.PublishAsync(new OffScenarioReportedEventArgs(endpoint), cancellationToken).AsTask());
-                                    }
+                                    tasks.Add(_events.PublishAsync(new OnOffScenarioReportedEventArgs(endpoint,
+                                        message.Command?.WithParameters([]) == OpenNettyCommands.Lighting.On  ? OpenNettyModels.Lighting.OnOffScenarioType.On  :
+                                        message.Command?.WithParameters([]) == OpenNettyCommands.Lighting.Off ? OpenNettyModels.Lighting.OnOffScenarioType.Off :
+                                        throw new InvalidDataException(SR.GetResourceString(SR.ID0068))), cancellationToken).AsTask());
                                 }
                             }
                         }
@@ -570,20 +565,11 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                 if (endpoint.Protocol is OpenNettyProtocol.Zigbee ||
                                    (endpoint.Protocol is OpenNettyProtocol.Nitoo && message.Mode is OpenNettyMode.Broadcast))
                                 {
-                                    if (message.Command == OpenNettyCommands.Automation.Stop)
-                                    {
-                                        tasks.Add(_events.PublishAsync(new ShutterStopScenarioReportedEventArgs(endpoint), cancellationToken).AsTask());
-                                    }
-
-                                    else if (message.Command == OpenNettyCommands.Automation.Up)
-                                    {
-                                        tasks.Add(_events.PublishAsync(new ShutterUpScenarioReportedEventArgs(endpoint), cancellationToken).AsTask());
-                                    }
-
-                                    else
-                                    {
-                                        tasks.Add(_events.PublishAsync(new ShutterDownScenarioReportedEventArgs(endpoint), cancellationToken).AsTask());
-                                    }
+                                    tasks.Add(_events.PublishAsync(new StopUpDownScenarioReportedEventArgs(endpoint, 
+                                        message.Command == OpenNettyCommands.Automation.Stop ? OpenNettyModels.Automation.StopUpDownScenarioType.Stop :
+                                        message.Command == OpenNettyCommands.Automation.Up   ? OpenNettyModels.Automation.StopUpDownScenarioType.Up   :
+                                        message.Command == OpenNettyCommands.Automation.Up   ? OpenNettyModels.Automation.StopUpDownScenarioType.Down :
+                                        throw new InvalidDataException(SR.GetResourceString(SR.ID0068))), cancellationToken).AsTask());
                                 }
                             }
                         }
@@ -1438,7 +1424,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                 step -= 256;
                             }
 
-                            await _events.PublishAsync(new DimmingStepReportedEventArgs(endpoint, step), cancellationToken);
+                            await _events.PublishAsync(new DimmingScenarioReportedEventArgs(endpoint, (short) step), cancellationToken);
                         }
                     });
                     break;
@@ -1531,6 +1517,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Mode    : OpenNettyMode mode })
                     // Note: timed and progressive scenarios are parameterized.
                     when command == OpenNettyCommands.ScenariosPlus.Action ||
+                         command == OpenNettyCommands.ScenariosPlus.StopAction ||
                          command.WithParameters([]) == OpenNettyCommands.ScenariosPlus.ActionForTime ||
                          command.WithParameters([]) == OpenNettyCommands.ScenariosPlus.ActionInTime:
                 {
@@ -1540,7 +1527,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     {
                         List<Task> tasks = [];
 
-                        if (command == OpenNettyCommands.ScenariosPlus.Action)
+                        if (command == OpenNettyCommands.ScenariosPlus.Action || command == OpenNettyCommands.ScenariosPlus.StopAction)
                         {
                             if (!endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioEvent))
                             {
@@ -1549,43 +1536,49 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
 
                             if (mode is OpenNettyMode.Broadcast && notification is OpenNettyNotifications.MessageReceived)
                             {
-                                tasks.Add(_events.PublishAsync(new BasicScenarioReportedEventArgs(endpoint), cancellationToken).AsTask());
+                                tasks.Add(_events.PublishAsync(new ActionScenarioReportedEventArgs(endpoint,
+                                    command == OpenNettyCommands.ScenariosPlus.Action     ? OpenNettyModels.ScenariosPlus.ActionScenarioType.Action     :
+                                    command == OpenNettyCommands.ScenariosPlus.StopAction ? OpenNettyModels.ScenariosPlus.ActionScenarioType.StopAction :
+                                    throw new InvalidDataException(SR.GetResourceString(SR.ID0068))), cancellationToken).AsTask());
                             }
 
                             // Note: since they are radiofrequency devices, the current state of Nitoo wireless burglar alarms
                             // cannot be retrieved using a unit description request. To inform devices associated using a
                             // PnL scenario of a state change, Nitoo alarms broadcast it using unit-specific ACTION scenarios.
-                            tasks.Add(Task.Run(async () =>
+                            if (command == OpenNettyCommands.ScenariosPlus.Action)
                             {
-                                var (identifier, unit) = OpenNettyAddress.ToNitooAddress(message.Address.Value);
-                                if (unit is not (>= 4 and <= 9))
+                                tasks.Add(Task.Run(async () =>
                                 {
-                                    return;
-                                }
+                                    var (identifier, unit) = OpenNettyAddress.ToNitooAddress(message.Address.Value);
+                                    if (unit is not (>= 4 and <= 9))
+                                    {
+                                        return;
+                                    }
 
-                                var endpoint = await _manager.FindEndpointByAddressAsync(notification.Gateway,
-                                    OpenNettyAddress.FromNitooAddress(identifier, 0));
+                                    var endpoint = await _manager.FindEndpointByAddressAsync(notification.Gateway,
+                                        OpenNettyAddress.FromNitooAddress(identifier, 0));
 
-                                if (endpoint is null || !endpoint.HasCapability(OpenNettyCapabilities.WirelessBurglarAlarmState))
-                                {
-                                    return;
-                                }
+                                    if (endpoint is null || !endpoint.HasCapability(OpenNettyCapabilities.WirelessBurglarAlarmState))
+                                    {
+                                        return;
+                                    }
 
-                                await _events.PublishAsync(new WirelessBurglarAlarmStateReportedEventArgs(endpoint, unit switch
-                                {
-                                    4 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.Armed,
-                                    5 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.Disarmed,
-                                    6 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.PartiallyArmed,
-                                    7 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.Triggered,
-                                    8 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.ExitDelayElapsed,
-                                    9 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.EventDetected,
+                                    await _events.PublishAsync(new WirelessBurglarAlarmStateReportedEventArgs(endpoint, unit switch
+                                    {
+                                        4 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.Armed,
+                                        5 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.Disarmed,
+                                        6 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.PartiallyArmed,
+                                        7 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.Triggered,
+                                        8 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.ExitDelayElapsed,
+                                        9 => OpenNettyModels.Alarm.WirelessBurglarAlarmState.EventDetected,
 
-                                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
-                                }));
-                            }, cancellationToken));
+                                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+                                    }));
+                                }, cancellationToken));
+                            }
                         }
 
-                        else if (command.Value == OpenNettyCommands.ScenariosPlus.ActionForTime.Value)
+                        else if (command.WithParameters([]) == OpenNettyCommands.ScenariosPlus.ActionForTime)
                         {
                             if (!endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioEvent))
                             {
@@ -1600,7 +1593,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                             }
                         }
 
-                        else if (command.Value == OpenNettyCommands.ScenariosPlus.ActionInTime.Value)
+                        else if (command.WithParameters([]) == OpenNettyCommands.ScenariosPlus.ActionInTime)
                         {
                             if (!endpoint.HasCapability(OpenNettyCapabilities.ProgressiveScenarioEvent))
                             {

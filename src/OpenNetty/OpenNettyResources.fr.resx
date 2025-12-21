@@ -450,4 +450,10 @@
   <data name="ID8110" xml:space="preserve">
     <value>Récupérer consigne eau chaude sanitaire</value>
   </data>
+  <data name="ID8111" xml:space="preserve">
+    <value>Activer scénario gradation+</value>
+  </data>
+  <data name="ID8112" xml:space="preserve">
+    <value>Activer scénario gradation-</value>
+  </data>
 </root>

@@ -295,10 +295,12 @@ public class OpenNettyController
     /// Dispatches a virtual action scenario for the specified endpoint.
     /// </summary>
     /// <param name="endpoint">The endpoint.</param>
+    /// <param name="type">The type of scenario to dispatch.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
-    public virtual async ValueTask DispatchActionScenarioAsync(
+    public virtual ValueTask DispatchActionScenarioAsync(
         OpenNettyEndpoint endpoint,
+        OpenNettyModels.ScenariosPlus.ActionScenarioType type,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(endpoint);
@@ -308,9 +310,15 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
-        await _service.ExecuteCommandAsync(
+        return _service.ExecuteCommandAsync(
             protocol         : endpoint.Protocol,
-            command          : OpenNettyCommands.ScenariosPlus.Action,
+            command          : type switch
+            {
+                OpenNettyModels.ScenariosPlus.ActionScenarioType.Action     => OpenNettyCommands.ScenariosPlus.Action,
+                OpenNettyModels.ScenariosPlus.ActionScenarioType.StopAction => OpenNettyCommands.ScenariosPlus.StopAction,
+
+                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+            },
             address          : endpoint.Address,
             medium           : endpoint.Medium,
             mode             : null,
@@ -320,25 +328,33 @@ public class OpenNettyController
     }
 
     /// <summary>
-    /// Dispatches a virtual OFF scenario for the specified endpoint.
+    /// Dispatches a virtual dimming scenario for the specified endpoint.
     /// </summary>
     /// <param name="endpoint">The endpoint.</param>
+    /// <param name="step">The dimming step (positive or negative).</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
-    public virtual ValueTask DispatchOffScenarioAsync(
+    public virtual ValueTask DispatchDimmingScenarioAsync(
         OpenNettyEndpoint endpoint,
+        short step,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 
-        if (!endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioActivation))
+        if (step is not (>= -100 and <= 100))
+        {
+            throw new ArgumentOutOfRangeException(nameof(step));
+        }
+
+        if (!endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioActivation))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
-        return _service.ExecuteCommandAsync(
+        return _service.SetDimensionAsync(
             protocol         : endpoint.Protocol,
-            command          : OpenNettyCommands.Lighting.Off,
+            dimension        : OpenNettyDimensions.Lighting.DimmerStep,
+            values           : [(step is < 0 ? step + 256 : step).ToString(CultureInfo.InvariantCulture)],
             address          : endpoint.Address,
             medium           : endpoint.Medium,
             mode             : OpenNettyMode.Broadcast,
@@ -348,13 +364,15 @@ public class OpenNettyController
     }
 
     /// <summary>
-    /// Dispatches a virtual ON scenario for the specified endpoint.
+    /// Dispatches a virtual ON/OFF scenario for the specified endpoint.
     /// </summary>
     /// <param name="endpoint">The endpoint.</param>
+    /// <param name="type">The type of scenario to dispatch.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
-    public virtual ValueTask DispatchOnScenarioAsync(
+    public virtual ValueTask DispatchOnOffScenarioAsync(
         OpenNettyEndpoint endpoint,
+        OpenNettyModels.Lighting.OnOffScenarioType type,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(endpoint);
@@ -366,7 +384,13 @@ public class OpenNettyController
 
         return _service.ExecuteCommandAsync(
             protocol         : endpoint.Protocol,
-            command          : OpenNettyCommands.Lighting.On,
+            command          : type switch
+            {
+                OpenNettyModels.Lighting.OnOffScenarioType.Off => OpenNettyCommands.Lighting.Off,
+                OpenNettyModels.Lighting.OnOffScenarioType.On  => OpenNettyCommands.Lighting.On,
+
+                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+            },
             address          : endpoint.Address,
             medium           : endpoint.Medium,
             mode             : OpenNettyMode.Broadcast,
@@ -513,13 +537,15 @@ public class OpenNettyController
     }
 
     /// <summary>
-    /// Dispatches a virtual shutter DOWN scenario for the specified endpoint.
+    /// Dispatches a virtual STOP/UP/DOWN scenario for the specified endpoint.
     /// </summary>
     /// <param name="endpoint">The endpoint.</param>
+    /// <param name="type">The type of scenario to dispatch.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
-    public virtual ValueTask DispatchShutterDownScenarioAsync(
+    public virtual ValueTask DispatchStopUpDownScenarioAsync(
         OpenNettyEndpoint endpoint,
+        OpenNettyModels.Automation.StopUpDownScenarioType type,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(endpoint);
@@ -531,94 +557,17 @@ public class OpenNettyController
 
         return _service.ExecuteCommandAsync(
             protocol         : endpoint.Protocol,
-            command          : OpenNettyCommands.Automation.Down,
+            command          : type switch
+            {
+                OpenNettyModels.Automation.StopUpDownScenarioType.Stop => OpenNettyCommands.Automation.Stop,
+                OpenNettyModels.Automation.StopUpDownScenarioType.Up   => OpenNettyCommands.Automation.Up,
+                OpenNettyModels.Automation.StopUpDownScenarioType.Down => OpenNettyCommands.Automation.Down,
+
+                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+            },
             address          : endpoint.Address,
             medium           : endpoint.Medium,
             mode             : OpenNettyMode.Broadcast,
-            gateway          : endpoint.Gateway,
-            options          : GetTransmissionOptions(endpoint),
-            cancellationToken: cancellationToken);
-    }
-
-    /// <summary>
-    /// Dispatches a virtual shutter STOP scenario for the specified endpoint.
-    /// </summary>
-    /// <param name="endpoint">The endpoint.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
-    /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
-    public virtual ValueTask DispatchShutterStopScenarioAsync(
-        OpenNettyEndpoint endpoint,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(endpoint);
-
-        if (!endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioActivation))
-        {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
-        }
-
-        return _service.ExecuteCommandAsync(
-            protocol         : endpoint.Protocol,
-            command          : OpenNettyCommands.Automation.Stop,
-            address          : endpoint.Address,
-            medium           : endpoint.Medium,
-            mode             : OpenNettyMode.Broadcast,
-            gateway          : endpoint.Gateway,
-            options          : GetTransmissionOptions(endpoint),
-            cancellationToken: cancellationToken);
-    }
-
-    /// <summary>
-    /// Dispatches a virtual shutter UP scenario for the specified endpoint.
-    /// </summary>
-    /// <param name="endpoint">The endpoint.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
-    /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
-    public virtual ValueTask DispatchShutterUpScenarioAsync(
-        OpenNettyEndpoint endpoint,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(endpoint);
-
-        if (!endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioActivation))
-        {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
-        }
-
-        return _service.ExecuteCommandAsync(
-            protocol         : endpoint.Protocol,
-            command          : OpenNettyCommands.Automation.Stop,
-            address          : endpoint.Address,
-            medium           : endpoint.Medium,
-            mode             : OpenNettyMode.Broadcast,
-            gateway          : endpoint.Gateway,
-            options          : GetTransmissionOptions(endpoint),
-            cancellationToken: cancellationToken);
-    }
-
-    /// <summary>
-    /// Dispatches a virtual stop action scenario for the specified endpoint.
-    /// </summary>
-    /// <param name="endpoint">The endpoint.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
-    /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
-    public virtual ValueTask DispatchStopActionScenarioAsync(
-        OpenNettyEndpoint endpoint,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(endpoint);
-
-        if (!endpoint.HasCapability(OpenNettyCapabilities.StopActionScenarioActivation))
-        {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
-        }
-
-        return _service.ExecuteCommandAsync(
-            protocol         : endpoint.Protocol,
-            command          : OpenNettyCommands.ScenariosPlus.StopAction,
-            address          : endpoint.Address,
-            medium           : endpoint.Medium,
-            mode             : null,
             gateway          : endpoint.Gateway,
             options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);

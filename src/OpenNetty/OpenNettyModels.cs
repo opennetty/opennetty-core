@@ -20,6 +20,22 @@ public static class OpenNettyModels
     public static class Lighting
     {
         /// <summary>
+        /// ON/OFF scenario type.
+        /// </summary>
+        public enum OnOffScenarioType
+        {
+            /// <summary>
+            /// Off.
+            /// </summary>
+            Off = 0,
+
+            /// <summary>
+            /// On.
+            /// </summary>
+            On = 1
+        }
+
+        /// <summary>
         /// Switch state.
         /// </summary>
         public enum SwitchState
@@ -76,6 +92,27 @@ public static class OpenNettyModels
             /// Note: this value is only supported by advanced shutter actuators.
             /// </remarks>
             Closed = 4
+        }
+
+        /// <summary>
+        /// STOP/UP/DOWN scenario type.
+        /// </summary>
+        public enum StopUpDownScenarioType
+        {
+            /// <summary>
+            /// Stop.
+            /// </summary>
+            Stop = 0,
+
+            /// <summary>
+            /// Up.
+            /// </summary>
+            Up = 1,
+
+            /// <summary>
+            /// Down.
+            /// </summary>
+            Down = 2
         }
     }
 
@@ -468,24 +505,19 @@ public static class OpenNettyModels
     public static class ScenariosPlus
     {
         /// <summary>
-        /// Zigbee binding event type.
+        /// Action scenario type.
         /// </summary>
-        public enum ZigbeeBindingEventType
+        public enum ActionScenarioType
         {
             /// <summary>
-            /// Closed.
+            /// Action.
             /// </summary>
-            Closed = 0,
+            Action = 0,
 
             /// <summary>
-            /// Opened.
+            /// Stop action.
             /// </summary>
-            Opened = 1,
-
-            /// <summary>
-            /// Canceled.
-            /// </summary>
-            Canceled = 2
+            StopAction = 1
         }
 
         /// <summary>
@@ -512,6 +544,27 @@ public static class OpenNettyModels
             /// End of extended pressure.
             /// </summary>
             EndOfExtendedPressure = 3
+        }
+
+        /// <summary>
+        /// Zigbee binding event type.
+        /// </summary>
+        public enum ZigbeeBindingEventType
+        {
+            /// <summary>
+            /// Closed.
+            /// </summary>
+            Closed = 0,
+
+            /// <summary>
+            /// Opened.
+            /// </summary>
+            Opened = 1,
+
+            /// <summary>
+            /// Canceled.
+            /// </summary>
+            Canceled = 2
         }
     }
 
