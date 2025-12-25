@@ -673,6 +673,17 @@ public class OpenNettyService : IOpenNettyService
             // blocked until the timeout is reached when sending STATUS REQUEST frames, acknowledgement validation
             // is deliberately disabled: in this case, the requests are assumed to be accepted by the gateway.
             case { Protocol: OpenNettyProtocol.Zigbee, Type: OpenNettyMessageType.StatusRequest }:
+                options = options with { IgnoreAcknowledgementValidation = true };
+                break;
+
+            // Note: Nitoo devices don't return action validation frames for these specific commands:
+            case { Protocol : OpenNettyProtocol.Nitoo,
+                   Type     : OpenNettyMessageType.BusCommand,
+                   Address  : not null,
+                   Command  : OpenNettyCommand command }
+                when command == OpenNettyCommands.Diagnostics.MemoryRead:
+                options = options with { IgnoreActionValidation = true };
+                break;
 
             // Note: Nitoo gateways don't return acknowledgement frames for these specific dimensions:
             case { Protocol : OpenNettyProtocol.Nitoo,

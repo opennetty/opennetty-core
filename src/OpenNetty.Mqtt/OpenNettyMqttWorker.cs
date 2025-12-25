@@ -2555,8 +2555,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
             if (device.Identifier.Type is OpenNettyDeviceIdentifierType.MacAddress)
             {
-                var address = OpenNettyDeviceIdentifier.ToMacAddress(device.Identifier);
-                node["connections"] = new JsonArray([new JsonArray(["mac", address.ToString()])]);
+                node["connections"] = new JsonArray([new JsonArray(["mac", OpenNettyDeviceIdentifier.ToMacAddress(device.Identifier)])]);
             }
 
             if (device.Gateway is not null)

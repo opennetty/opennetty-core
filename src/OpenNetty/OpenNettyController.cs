@@ -1092,7 +1092,7 @@ public class OpenNettyController
                                          message.Dimension == OpenNettyDimensions.Lighting.DimmerStatus)
                 .Where(message => message.Address == endpoint.Address)
                 .Select(static arguments => (byte) (byte.Parse(arguments.Values[0], CultureInfo.InvariantCulture) - 100))
-                .FirstOrDefault()
+                .First()
                 .Timeout(TimeSpan.FromSeconds(10))
                 .RunAsync(cancellationToken);
         }
@@ -1395,10 +1395,6 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
-        // Note: even though reading the memory of a unit uses a BUS COMMAND, such commands
-        // are never acknowledged by remote devices using VALID ACTION/INVALID ACTION frames.
-        var options = GetTransmissionOptions(endpoint) with { IgnoreActionValidation = true };
-
         var messages = _service.ObserveMessagesAsync(
             message          : OpenNettyMessage.CreateCommand(
                 protocol: endpoint.Protocol,
@@ -1407,7 +1403,7 @@ public class OpenNettyController
                 medium  : endpoint.Medium,
                 mode    : null),
             gateway          : endpoint.Gateway,
-            options          : options,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken).Replay();
 
         await using var connection = await messages.ConnectAsync();
@@ -1422,7 +1418,7 @@ public class OpenNettyController
             .Where(message => message.Address == endpoint.Address);
 
         var count = await dimensions
-            .FirstOrDefault(static message => message.Dimension == OpenNettyDimensions.Diagnostics.MemoryDepth)
+            .First(static message => message.Dimension == OpenNettyDimensions.Diagnostics.MemoryDepth)
             .Select(static message => int.Parse(message.Values[0], CultureInfo.InvariantCulture))
             .Timeout(TimeSpan.FromSeconds(10))
             .RunAsync(cancellationToken);
@@ -1463,10 +1459,6 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
-        // Note: even though reading the memory of a unit uses a BUS COMMAND, such commands
-        // are never acknowledged by remote devices using VALID ACTION/INVALID ACTION frames.
-        var options = GetTransmissionOptions(endpoint) with { IgnoreActionValidation = true };
-
         // Note: while the memory depth is requested using a BUS COMMAND, it is returned asynchronously by
         // Nitoo devices using DIMENSION READ frames after the initial BUS COMMAND has been acknowledged.
         var messages = _service.ObserveMessagesAsync(
@@ -1477,7 +1469,7 @@ public class OpenNettyController
                 medium  : endpoint.Medium,
                 mode    : null),
             gateway          : endpoint.Gateway,
-            options          : options,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
 
         return await messages
@@ -1485,7 +1477,7 @@ public class OpenNettyController
             .Where(static message => message.Dimension == OpenNettyDimensions.Diagnostics.MemoryDepth)
             .Where(message => message.Address == endpoint.Address)
             .Select(static message => byte.Parse(message.Values[0], CultureInfo.InvariantCulture))
-            .FirstOrDefault()
+            .First()
             .Timeout(TimeSpan.FromSeconds(10))
             .RunAsync(cancellationToken);
     }
