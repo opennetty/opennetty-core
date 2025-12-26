@@ -856,10 +856,10 @@
     <value>Forced OFF</value>
   </data>
   <data name="ID8085" xml:space="preserve">
-    <value>Heater active</value>
+    <value>Water heater active</value>
   </data>
   <data name="ID8086" xml:space="preserve">
-    <value>Get heater state</value>
+    <value>Get water heater state</value>
   </data>
   <data name="ID8087" xml:space="preserve">
     <value>Alarm state</value>
