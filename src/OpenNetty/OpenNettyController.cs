@@ -1214,7 +1214,7 @@ public class OpenNettyController
             options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
 
-        return OpenNettyModels.Diagnostics.DeviceDescription.CreateFromDeviceDescription(values);
+        return OpenNettyModels.Diagnostics.DeviceDescription.CreateFromDeviceDescription([.. values]);
     }
 
     /// <summary>
@@ -1435,7 +1435,7 @@ public class OpenNettyController
             .Timeout(TimeSpan.FromSeconds(10))
             .ToAsyncEnumerable()
             .OrderBy(static message => byte.Parse(message.Values[3], CultureInfo.InvariantCulture))
-            .Select(static message => OpenNettyModels.Diagnostics.MemoryData.CreateFromUnitDescription(message.Values))
+            .Select(static message => OpenNettyModels.Diagnostics.MemoryData.CreateFromUnitDescription([.. message.Values]))
             .ToListAsync(cancellationToken)];
     }
 
@@ -1503,12 +1503,12 @@ public class OpenNettyController
         }
 
         var description = await GetUnitDescriptionAsync(endpoint, cancellationToken);
-        if (description is not { FunctionCode: 6 or 132, Values: [{ Length: > 0 }] values })
+        if (description.FunctionCode is not (6 or 132))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0068));
         }
 
-        return OpenNettyModels.TemperatureControl.PilotWireConfiguration.CreateFromUnitDescription(values);
+        return OpenNettyModels.TemperatureControl.PilotWireConfiguration.CreateFromUnitDescription([.. description.Values]);
     }
 
     /// <summary>
@@ -1689,7 +1689,26 @@ public class OpenNettyController
             options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
 
-        return OpenNettyModels.TemperatureControl.SmartMeterIndexes.CreateFromDimensionValues(values);
+        var indexes = OpenNettyModels.TemperatureControl.SmartMeterIndexes.CreateFromDimensionValues([.. values]);
+
+        // Note: Nitoo smart meter devices are affected by an index overflow issue: to work around this limitation,
+        // dedicated "index offset" settings can be used to amend the indexes returned by each smart meter device.
+        return indexes with
+        {
+            BaseIndex    = ComputeIndex(indexes.BaseIndex,    endpoint, OpenNettySettings.SmartMeterBaseIndexOffset)!.GetValueOrDefault(),
+            BlueIndex    = ComputeIndex(indexes.BlueIndex,    endpoint, OpenNettySettings.SmartMeterBlueIndexOffset),
+            OffPeakIndex = ComputeIndex(indexes.OffPeakIndex, endpoint, OpenNettySettings.SmartMeterOffPeakIndexOffset),
+            RedIndex     = ComputeIndex(indexes.RedIndex,     endpoint, OpenNettySettings.SmartMeterRedIndexOffset),
+            WhiteIndex   = ComputeIndex(indexes.WhiteIndex,   endpoint, OpenNettySettings.SmartMeterWhiteIndexOffset)
+        };
+
+        static ulong? ComputeIndex(ulong? index, OpenNettyEndpoint endpoint, OpenNettySetting setting) => index switch
+        {
+            null => null,
+
+            ulong value when endpoint.GetIntegerSetting(setting) is long offset => (ulong) (((long) value) + offset),
+            ulong value => value
+        };
     }
 
     /// <summary>
@@ -1713,12 +1732,12 @@ public class OpenNettyController
         }
 
         var description = await GetUnitDescriptionAsync(endpoint, cancellationToken);
-        if (description is not { FunctionCode: 7, Values: [{ Length: > 0 }] values })
+        if (description.FunctionCode is not 7)
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0068));
         }
 
-        return OpenNettyModels.TemperatureControl.SmartMeterInformation.CreateFromUnitDescription(values);
+        return OpenNettyModels.TemperatureControl.SmartMeterInformation.CreateFromUnitDescription([.. description.Values]);
     }
 
     /// <summary>
@@ -1818,7 +1837,7 @@ public class OpenNettyController
             options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
 
-        return OpenNettyModels.Diagnostics.UnitDescription.CreateFromUnitDescription(values);
+        return OpenNettyModels.Diagnostics.UnitDescription.CreateFromUnitDescription([.. values]);
     }
 
     /// <summary>

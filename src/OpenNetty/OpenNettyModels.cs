@@ -177,28 +177,36 @@ public static class OpenNettyModels
             /// </summary>
             /// <param name="values">The unit description values.</param>
             /// <returns>A new instance of the <see cref="PilotWireConfiguration"/> class.</returns>
-            public static PilotWireConfiguration CreateFromUnitDescription(ImmutableArray<string> values) => new()
+            public static PilotWireConfiguration CreateFromUnitDescription(ReadOnlySpan<string> values)
             {
-                DerogationDuration = byte.Parse(values[0], CultureInfo.InvariantCulture) switch
+                if (values is not [{ Length: > 0 }])
                 {
-                    >=  8 and <  72 => PilotWireDerogationDuration.None,
-                    >= 72 and < 136 => PilotWireDerogationDuration.FourHours,
-                    >= 136          => PilotWireDerogationDuration.EightHours,
-
-                    _ => null
-                },
-                IsDerogationActive = byte.Parse(values[0], CultureInfo.InvariantCulture) is >= 8,
-                Mode               = values[0] switch
-                {
-                    "0" or "8"  or "72" or "136" => PilotWireMode.Comfort,
-                    "1" or "9"  or "73" or "137" => PilotWireMode.ComfortMinusOne,
-                    "2" or "10" or "74" or "138" => PilotWireMode.ComfortMinusTwo,
-                    "3" or "11" or "75" or "139" => PilotWireMode.Eco,
-                    "4" or "12" or "76" or "140" => PilotWireMode.FrostProtection,
-
-                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+                    throw new InvalidOperationException(SR.GetResourceString(SR.ID0068));
                 }
-            };
+
+                return new()
+                {
+                    DerogationDuration = byte.Parse(values[0], CultureInfo.InvariantCulture) switch
+                    {
+                        >=  8 and <  72 => PilotWireDerogationDuration.None,
+                        >= 72 and < 136 => PilotWireDerogationDuration.FourHours,
+                        >= 136          => PilotWireDerogationDuration.EightHours,
+
+                        _ => null
+                    },
+                    IsDerogationActive = byte.Parse(values[0], CultureInfo.InvariantCulture) is >= 8,
+                    Mode               = values[0] switch
+                    {
+                        "0" or "8"  or "72" or "136" => PilotWireMode.Comfort,
+                        "1" or "9"  or "73" or "137" => PilotWireMode.ComfortMinusOne,
+                        "2" or "10" or "74" or "138" => PilotWireMode.ComfortMinusTwo,
+                        "3" or "11" or "75" or "139" => PilotWireMode.Eco,
+                        "4" or "12" or "76" or "140" => PilotWireMode.FrostProtection,
+
+                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+                    }
+                };
+            }
         }
 
         /// <summary>
@@ -262,22 +270,30 @@ public static class OpenNettyModels
             /// </summary>
             /// <param name="values">The unit description values.</param>
             /// <returns>A new instance of the <see cref="SmartMeterIndexes"/> class.</returns>
-            public static SmartMeterIndexes CreateFromDimensionValues(ImmutableArray<string> values) => new()
+            public static SmartMeterIndexes CreateFromDimensionValues(ReadOnlySpan<string> values)
             {
-                BaseIndex        = ulong.Parse(values[1], CultureInfo.InvariantCulture),
-                BlueIndex        = values[0] is "3" ? ulong.Parse(values[2], CultureInfo.InvariantCulture) : null,
-                OffPeakIndex     = values[0] is "2" ? ulong.Parse(values[2], CultureInfo.InvariantCulture) : null,
-                RedIndex         = values[0] is "5" ? ulong.Parse(values[2], CultureInfo.InvariantCulture) : null,
-                SubscriptionType = values[0] switch
+                if (values is not [{ Length: > 0 }, { Length: > 0 }, ..])
                 {
-                    "1"               => SmartMeterSubscriptionType.Base,
-                    "2"               => SmartMeterSubscriptionType.PeakOffPeak,
-                    "3" or "4" or "5" => SmartMeterSubscriptionType.Tempo,
+                    throw new InvalidOperationException(SR.GetResourceString(SR.ID0068));
+                }
 
-                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
-                },
-                WhiteIndex       = values[0] is "4" ? ulong.Parse(values[2], CultureInfo.InvariantCulture) : null,
-            };
+                return new()
+                {
+                    BaseIndex        = ulong.Parse(values[1], CultureInfo.InvariantCulture),
+                    BlueIndex        = values[0] is "3" ? ulong.Parse(values[2], CultureInfo.InvariantCulture) : null,
+                    OffPeakIndex     = values[0] is "2" ? ulong.Parse(values[2], CultureInfo.InvariantCulture) : null,
+                    RedIndex         = values[0] is "5" ? ulong.Parse(values[2], CultureInfo.InvariantCulture) : null,
+                    SubscriptionType = values[0] switch
+                    {
+                        "1"               => SmartMeterSubscriptionType.Base,
+                        "2"               => SmartMeterSubscriptionType.PeakOffPeak,
+                        "3" or "4" or "5" => SmartMeterSubscriptionType.Tempo,
+
+                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+                    },
+                    WhiteIndex       = values[0] is "4" ? ulong.Parse(values[2], CultureInfo.InvariantCulture) : null,
+                };
+            }
         }
 
         /// <summary>
@@ -300,17 +316,25 @@ public static class OpenNettyModels
             /// </summary>
             /// <param name="values">The unit description values.</param>
             /// <returns>A new instance of the <see cref="SmartMeterInformation"/> class.</returns>
-            public static SmartMeterInformation CreateFromUnitDescription(ImmutableArray<string> values) => new()
+            public static SmartMeterInformation CreateFromUnitDescription(ReadOnlySpan<string> values)
             {
-                IsPowerCutActive = values[0] is "33" or "49",
-                RateType         = values[0] switch
+                if (values is not [{ Length: > 0 }])
                 {
-                    "32" or "33" => SmartMeterRateType.OffPeak,
-                    "48" or "49" => SmartMeterRateType.Peak,
-
-                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+                    throw new InvalidOperationException(SR.GetResourceString(SR.ID0068));
                 }
-            };
+
+                return new()
+                {
+                    IsPowerCutActive = values[0] is "33" or "49",
+                    RateType         = values[0] switch
+                    {
+                        "32" or "33" => SmartMeterRateType.OffPeak,
+                        "48" or "49" => SmartMeterRateType.Peak,
+
+                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+                    }
+                };
+            }
         }
 
         /// <summary>
@@ -603,13 +627,21 @@ public static class OpenNettyModels
             /// </summary>
             /// <param name="values">The unit description values.</param>
             /// <returns>A new instance of the <see cref="DeviceDescription"/> class.</returns>
-            public static DeviceDescription CreateFromDeviceDescription(ImmutableArray<string> values) => new()
+            public static DeviceDescription CreateFromDeviceDescription(ReadOnlySpan<string> values)
             {
-                FunctionCode = byte.Parse(values[2], CultureInfo.InvariantCulture),
-                Model        = uint.Parse(values[0], CultureInfo.InvariantCulture).ToString("X"),
-                Units        = byte.Parse(values[3], CultureInfo.InvariantCulture),
-                Version      = new Version(int.Parse(uint.Parse(values[1], CultureInfo.InvariantCulture).ToString("X")), 0)
-            };
+                if (values is not [{ Length: > 0 }, { Length: > 0 }, { Length: > 0 }, { Length: > 0 }])
+                {
+                    throw new InvalidOperationException(SR.GetResourceString(SR.ID0068));
+                }
+
+                return new()
+                {
+                    FunctionCode = byte.Parse(values[2], CultureInfo.InvariantCulture),
+                    Model        = uint.Parse(values[0], CultureInfo.InvariantCulture).ToString("X"),
+                    Units        = byte.Parse(values[3], CultureInfo.InvariantCulture),
+                    Version      = new Version(int.Parse(uint.Parse(values[1], CultureInfo.InvariantCulture).ToString("X")), 0)
+                };
+            }
         }
 
         /// <summary>
@@ -637,21 +669,29 @@ public static class OpenNettyModels
             /// </summary>
             /// <param name="values">The unit description values.</param>
             /// <returns>A new instance of the <see cref="MemoryData"/> class.</returns>
-            public static MemoryData CreateFromUnitDescription(ImmutableArray<string> values) => new()
+            public static MemoryData CreateFromUnitDescription(ReadOnlySpan<string> values)
             {
-                Address      = OpenNettyAddress.FromNitooAddress(
-                    identifier: uint.Parse(values[1], CultureInfo.InvariantCulture) / 16,
-                    unit      : (byte) (uint.Parse(values[1], CultureInfo.InvariantCulture) % 16)),
-                FunctionCode = byte.Parse(values[2], CultureInfo.InvariantCulture),
-                Medium       = values[0] switch
+                if (values is not [{ Length: > 0 }, { Length: > 0 }, { Length: > 0 }])
                 {
-                    "64"  => OpenNettyMedium.Radio,
-                    "96"  => OpenNettyMedium.Powerline,
-                    "128" => OpenNettyMedium.Infrared,
-
-                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+                    throw new InvalidOperationException(SR.GetResourceString(SR.ID0068));
                 }
-            };
+
+                return new()
+                {
+                    Address      = OpenNettyAddress.FromNitooAddress(
+                        identifier: uint.Parse(values[1], CultureInfo.InvariantCulture) / 16,
+                        unit      : (byte) (uint.Parse(values[1], CultureInfo.InvariantCulture) % 16)),
+                    FunctionCode = byte.Parse(values[2], CultureInfo.InvariantCulture),
+                    Medium       = values[0] switch
+                    {
+                        "64"  => OpenNettyMedium.Radio,
+                        "96"  => OpenNettyMedium.Powerline,
+                        "128" => OpenNettyMedium.Infrared,
+
+                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+                    }
+                };
+            }
         }
 
         /// <summary>
@@ -674,11 +714,19 @@ public static class OpenNettyModels
             /// </summary>
             /// <param name="values">The unit description values.</param>
             /// <returns>A new instance of the <see cref="UnitDescription"/> class.</returns>
-            public static UnitDescription CreateFromUnitDescription(ImmutableArray<string> values) => new()
+            public static UnitDescription CreateFromUnitDescription(ReadOnlySpan<string> values)
             {
-                FunctionCode = byte.Parse(values[0], CultureInfo.InvariantCulture),
-                Values       = values[1..]
-            };
+                if (values is not [{ Length: > 0 }, { Length: > 0 }, ..])
+                {
+                    throw new InvalidOperationException(SR.GetResourceString(SR.ID0068));
+                }
+
+                return new()
+                {
+                    FunctionCode = byte.Parse(values[0], CultureInfo.InvariantCulture),
+                    Values       = [.. values[1..]]
+                };
+            }
         }
     }
 }

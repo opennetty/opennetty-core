@@ -107,6 +107,31 @@ public static class OpenNettySettings
     public static readonly OpenNettySetting SerialPortStopBits = new("Serial port stop bits");
 
     /// <summary>
+    /// Smart meter base index offset.
+    /// </summary>
+    public static readonly OpenNettySetting SmartMeterBaseIndexOffset = new("Smart meter base index offset");
+
+    /// <summary>
+    /// Smart meter blue index offset.
+    /// </summary>
+    public static readonly OpenNettySetting SmartMeterBlueIndexOffset = new("Smart meter blue index offset");
+
+    /// <summary>
+    /// Smart meter off-peak index offset.
+    /// </summary>
+    public static readonly OpenNettySetting SmartMeterOffPeakIndexOffset = new("Smart meter off-peak index offset");
+
+    /// <summary>
+    /// Smart meter red index offset.
+    /// </summary>
+    public static readonly OpenNettySetting SmartMeterRedIndexOffset = new("Smart meter red index offset");
+
+    /// <summary>
+    /// Smart meter white index offset.
+    /// </summary>
+    public static readonly OpenNettySetting SmartMeterWhiteIndexOffset = new("Smart meter white index offset");
+
+    /// <summary>
     /// Switch mode.
     /// </summary>
     public static readonly OpenNettySetting SwitchMode = new("Switch mode");

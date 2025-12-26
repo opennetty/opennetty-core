@@ -662,7 +662,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Type     : OpenNettyMessageType.DimensionRead,
                                          Address  : not null,
                                          Dimension: OpenNettyDimension dimension,
-                                         Values   : [{ Length: > 0 }, { Length: > 0 }, { Length: > 0 }] values })
+                                         Values   : [{ Length: > 0 }, { Length: > 0 }, ..] values })
                     when dimension == OpenNettyDimensions.TemperatureControl.SmartMeterIndexes:
                 {
                     var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
@@ -671,9 +671,27 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     {
                         if (endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
                         {
-                            await _events.PublishAsync(new SmartMeterIndexesReportedEventArgs(endpoint,
-                                OpenNettyModels.TemperatureControl.SmartMeterIndexes.CreateFromDimensionValues(values)), cancellationToken);
+                            var indexes = OpenNettyModels.TemperatureControl.SmartMeterIndexes.CreateFromDimensionValues([.. values]);
+                            
+                            // Note: Nitoo smart meter devices are affected by an index overflow issue: to work around this limitation,
+                            // dedicated "index offset" settings can be used to amend the indexes returned by each smart meter device.
+                            await _events.PublishAsync(new SmartMeterIndexesReportedEventArgs(endpoint, indexes with
+                            {
+                                BaseIndex    = ComputeIndex(indexes.BaseIndex,    endpoint, OpenNettySettings.SmartMeterBaseIndexOffset)!.GetValueOrDefault(),
+                                BlueIndex    = ComputeIndex(indexes.BlueIndex,    endpoint, OpenNettySettings.SmartMeterBlueIndexOffset),
+                                OffPeakIndex = ComputeIndex(indexes.OffPeakIndex, endpoint, OpenNettySettings.SmartMeterOffPeakIndexOffset),
+                                RedIndex     = ComputeIndex(indexes.RedIndex,     endpoint, OpenNettySettings.SmartMeterRedIndexOffset),
+                                WhiteIndex   = ComputeIndex(indexes.WhiteIndex,   endpoint, OpenNettySettings.SmartMeterWhiteIndexOffset)
+                            }), cancellationToken);
                         }
+
+                        static ulong? ComputeIndex(ulong? index, OpenNettyEndpoint endpoint, OpenNettySetting setting) => index switch
+                        {
+                            null => null,
+
+                            ulong value when endpoint.GetIntegerSetting(setting) is long offset => (ulong) (((long) value) + offset),
+                            ulong value => value
+                        };
                     });
                     break;
                 }
@@ -1394,7 +1412,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
 
                     await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
                     {
-                        var description = OpenNettyModels.Diagnostics.DeviceDescription.CreateFromDeviceDescription(values);
+                        var description = OpenNettyModels.Diagnostics.DeviceDescription.CreateFromDeviceDescription([.. values]);
 
                         await Task.WhenAll(
                             _events.PublishAsync(new DeviceDescriptionReportedEventArgs(endpoint, description), cancellationToken).AsTask(),
