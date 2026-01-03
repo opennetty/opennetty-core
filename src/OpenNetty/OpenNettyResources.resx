@@ -939,4 +939,10 @@
   <data name="ID8112" xml:space="preserve">
     <value>Dispatch dimming- scenario</value>
   </data>
+  <data name="ID8113" xml:space="preserve">
+    <value>Forced shutdown mode</value>
+  </data>
+  <data name="ID8114" xml:space="preserve">
+    <value>Get forced shutdown mode status</value>
+  </data>
 </root>

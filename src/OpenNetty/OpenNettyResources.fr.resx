@@ -456,4 +456,10 @@
   <data name="ID8112" xml:space="preserve">
     <value>Activer scénario gradation-</value>
   </data>
+  <data name="ID8113" xml:space="preserve">
+    <value>Mode arrêt forcé</value>
+  </data>
+  <data name="ID8114" xml:space="preserve">
+    <value>Récupérer état mode arrêt forcé</value>
+  </data>
 </root>

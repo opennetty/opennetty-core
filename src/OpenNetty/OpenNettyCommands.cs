@@ -128,6 +128,16 @@ public static class OpenNettyCommands
         /// Cancel wire pilot derogation mode (WHAT = 52).
         /// </summary>
         public static readonly OpenNettyCommand CancelWirePilotDerogationMode = new(OpenNettyCategories.TemperatureControl, "52");
+
+        /// <summary>
+        /// Wire pilot shutdown mode (WHAT = 54).
+        /// </summary>
+        public static readonly OpenNettyCommand WirePilotShutdownMode = new(OpenNettyCategories.TemperatureControl, "54");
+
+        /// <summary>
+        /// Cancel wire pilot shutdown mode (WHAT = 55).
+        /// </summary>
+        public static readonly OpenNettyCommand CancelWirePilotShutdownMode = new(OpenNettyCategories.TemperatureControl, "55");
     }
 
     /// <summary>

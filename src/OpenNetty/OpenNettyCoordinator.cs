@@ -873,12 +873,13 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     break;
                 }
 
-                // The partial state of a pilot wire device can be inferred from 3 types of incoming messages:
+                // The partial state of a pilot wire device can be inferred from 5 types of incoming messages:
                 //
                 //   - From a "UNIT DESCRIPTION" DIMENSION READ message.
                 //   - From a parameterized "WIRE PILOT SETPOINT MODE" BUS COMMAND message.
                 //   - From a parameterized "WIRE PILOT DEROGATION MODE" BUS COMMAND message.
                 //   - From a "CANCEL WIRE PILOT DEROGATION" BUS COMMAND message.
+                //   - From a "WIRE PILOT SHUTDOWN" or "CANCEL WIRE PILOT SHUTDOWN" BUS COMMAND message.
 
                 case (OpenNettyNotifications.MessageReceived,
                       OpenNettyMessage { Protocol : OpenNettyProtocol.Nitoo,
@@ -892,7 +893,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
 
                     await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
                     {
-                        if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
+                        if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireControl))
                         {
                             var configuration = OpenNettyModels.TemperatureControl.PilotWireConfiguration.CreateFromUnitDescription([value]);
                             if (configuration.IsDerogationActive)
@@ -902,9 +903,12 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
 
                             else
                             {
-                                await _events.PublishAsync(new PilotWireSetpointModeReportedEventArgs(endpoint, configuration.Mode), cancellationToken);
-                                await _events.PublishAsync(new PilotWireDerogationModeReportedEventArgs(endpoint, null, null), cancellationToken);
+                                await Task.WhenAll(
+                                    _events.PublishAsync(new PilotWireSetpointModeReportedEventArgs(endpoint, configuration.Mode), cancellationToken).AsTask(),
+                                    _events.PublishAsync(new PilotWireDerogationModeReportedEventArgs(endpoint, null, null), cancellationToken).AsTask());
                             }
+
+                            await _events.PublishAsync(new PilotWireShutdownModeReportedEventArgs(endpoint, configuration.IsShutdownActive), cancellationToken);
                         }
                     });
                     break;
@@ -917,7 +921,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Address  : not null,
                                          Mode     : OpenNettyMode mode })
                     when command.WithParameters([]) == OpenNettyCommands.TemperatureControl.WirePilotSetpointMode &&
-                         command.Parameters is [{ Length: > 0 } value]:
+                         command.Parameters is [{ Length: > 0 }]:
                 {
                     var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
 
@@ -925,7 +929,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     {
                         List<Task> tasks = [];
 
-                        if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
+                        if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireControl))
                         {
                             tasks.Add(ReportSetpointModeAsync(endpoint, cancellationToken).AsTask());
                         }
@@ -938,7 +942,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                     OpenNettyAddress.FromNitooAddress(
                                         OpenNettyAddress.ToNitooAddress(message.Address.Value).Identifier, unit));
 
-                                if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
+                                if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.PilotWireControl))
                                 {
                                     await ReportSetpointModeAsync(endpoint, cancellationToken);
                                 }
@@ -953,7 +957,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                 .Select((scenario, cancellationToken) => _manager.FindEndpointByNameAsync(scenario.EndpointName, cancellationToken))
                                 .Where(static endpoint => endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit: OpenNettyUnit })
                                 .OfType<OpenNettyEndpoint>()
-                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating));
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireControl));
 
                             tasks.Add(Parallel.ForEachAsync(endpoints, ReportSetpointModeAsync));
                         }
@@ -965,17 +969,21 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     // derogation mode was set with a minimal duration during which setpoint commands are ignored).
                     //
                     // As such, the derogation mode cannot be reported here, as it may still be active on the device.
-                    async ValueTask ReportSetpointModeAsync(OpenNettyEndpoint endpoint, CancellationToken cancellationToken) =>
-                        await _events.PublishAsync(new PilotWireSetpointModeReportedEventArgs(endpoint, value switch
+                    async ValueTask ReportSetpointModeAsync(OpenNettyEndpoint endpoint, CancellationToken cancellationToken)
+                    {
+                        var value = byte.Parse(command.Parameters[0], CultureInfo.InvariantCulture);
+
+                        await _events.PublishAsync(new PilotWireSetpointModeReportedEventArgs(endpoint, (value & 0b_0000_0111) switch
                         {
-                            "0" => OpenNettyModels.TemperatureControl.PilotWireMode.Comfort,
-                            "1" => OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusOne,
-                            "2" => OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusTwo,
-                            "3" => OpenNettyModels.TemperatureControl.PilotWireMode.Eco,
-                            "4" => OpenNettyModels.TemperatureControl.PilotWireMode.FrostProtection,
+                            0 => OpenNettyModels.TemperatureControl.PilotWireMode.Comfort,
+                            1 => OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusOne,
+                            2 => OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusTwo,
+                            3 => OpenNettyModels.TemperatureControl.PilotWireMode.Eco,
+                            4 => OpenNettyModels.TemperatureControl.PilotWireMode.FrostProtection,
 
                             _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                         }), cancellationToken);
+                    }
                     break;
                 }
 
@@ -986,7 +994,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                          Address  : not null,
                                          Mode     : OpenNettyMode mode })
                     when command.WithParameters([]) == OpenNettyCommands.TemperatureControl.WirePilotDerogationMode &&
-                         command.Parameters is [{ Length: > 0 } value]:
+                         command.Parameters is [{ Length: > 0 }]:
                 {
                     var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
 
@@ -994,7 +1002,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     {
                         List<Task> tasks = [];
 
-                        if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
+                        if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireDerogation))
                         {
                             tasks.Add(ReportDerogationModeAsync(endpoint, cancellationToken).AsTask());
                         }
@@ -1007,7 +1015,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                     OpenNettyAddress.FromNitooAddress(
                                         OpenNettyAddress.ToNitooAddress(message.Address.Value).Identifier, unit));
 
-                                if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
+                                if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.PilotWireDerogation))
                                 {
                                     await ReportDerogationModeAsync(endpoint, cancellationToken);
                                 }
@@ -1022,7 +1030,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                 .Select((scenario, cancellationToken) => _manager.FindEndpointByNameAsync(scenario.EndpointName, cancellationToken))
                                 .Where(static endpoint => endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit: OpenNettyUnit })
                                 .OfType<OpenNettyEndpoint>()
-                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating));
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireDerogation));
 
                             tasks.Add(Parallel.ForEachAsync(endpoints, ReportDerogationModeAsync));
                         }
@@ -1030,24 +1038,30 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         await Task.WhenAll(tasks);
                     });
 
-                    async ValueTask ReportDerogationModeAsync(OpenNettyEndpoint endpoint, CancellationToken cancellationToken) =>
+                    async ValueTask ReportDerogationModeAsync(OpenNettyEndpoint endpoint, CancellationToken cancellationToken)
+                    {
+                        var value = byte.Parse(command.Parameters[0], CultureInfo.InvariantCulture);
+
                         await _events.PublishAsync(new PilotWireDerogationModeReportedEventArgs(endpoint,
-                            value switch
+                            (value & 0b_0000_0111) switch
                             {
-                                "0" or "32" or "128" => OpenNettyModels.TemperatureControl.PilotWireMode.Comfort,
-                                "1" or "33" or "129" => OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusOne,
-                                "2" or "34" or "130" => OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusTwo,
-                                "3" or "35" or "131" => OpenNettyModels.TemperatureControl.PilotWireMode.Eco,
-                                "4" or "36" or "132" => OpenNettyModels.TemperatureControl.PilotWireMode.FrostProtection,
+                                0 => OpenNettyModels.TemperatureControl.PilotWireMode.Comfort,
+                                1 => OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusOne,
+                                2 => OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusTwo,
+                                3 => OpenNettyModels.TemperatureControl.PilotWireMode.Eco,
+                                4 => OpenNettyModels.TemperatureControl.PilotWireMode.FrostProtection,
 
                                 _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                             },
-                            byte.Parse(value, CultureInfo.InvariantCulture) switch
+                            (value & 0b_0110_0000) switch
                             {
-                                          <  32 => OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None,
-                                >= 32 and < 128 => OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours,
-                                >= 128          => OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours
+                                0b_0000_0000 => OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None,
+                                0b_0010_0000 => OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours,
+                                0b_0100_0000 => OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours,
+
+                                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                             }), cancellationToken);
+                    }
                     break;
                 }
 
@@ -1065,7 +1079,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     {
                         List<Task> tasks = [];
 
-                        if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
+                        if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireDerogation))
                         {
                             tasks.Add(_events.PublishAsync(new PilotWireDerogationModeReportedEventArgs(endpoint, null, null), cancellationToken).AsTask());
                         }
@@ -1078,7 +1092,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                     OpenNettyAddress.FromNitooAddress(
                                         OpenNettyAddress.ToNitooAddress(message.Address.Value).Identifier, unit));
 
-                                if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
+                                if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.PilotWireDerogation))
                                 {
                                     await _events.PublishAsync(new PilotWireDerogationModeReportedEventArgs(endpoint, null, null));
                                 }
@@ -1093,11 +1107,70 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                 .Select((scenario, cancellationToken) => _manager.FindEndpointByNameAsync(scenario.EndpointName, cancellationToken))
                                 .Where(static endpoint => endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit: OpenNettyUnit })
                                 .OfType<OpenNettyEndpoint>()
-                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating));
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireDerogation));
 
                             tasks.Add(Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
                             {
                                 await _events.PublishAsync(new PilotWireDerogationModeReportedEventArgs(endpoint, null, null), cancellationToken);
+                            }));
+                        }
+
+                        await Task.WhenAll(tasks);
+                    });
+                    break;
+                }
+
+                case (OpenNettyNotifications.MessageReceived or OpenNettyNotifications.MessageSent,
+                      OpenNettyMessage { Protocol : OpenNettyProtocol.Nitoo,
+                                         Type     : OpenNettyMessageType.BusCommand,
+                                         Command  : OpenNettyCommand command,
+                                         Address  : not null,
+                                         Mode     : OpenNettyMode mode })
+                    when command == OpenNettyCommands.TemperatureControl.WirePilotShutdownMode ||
+                         command == OpenNettyCommands.TemperatureControl.CancelWirePilotShutdownMode:
+                {
+                    var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
+
+                    await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                    {
+                        List<Task> tasks = [];
+
+                        if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireShutdown))
+                        {
+                            tasks.Add(_events.PublishAsync(new PilotWireShutdownModeReportedEventArgs(endpoint,
+                                command == OpenNettyCommands.TemperatureControl.WirePilotShutdownMode), cancellationToken).AsTask());
+                        }
+
+                        if (endpoint is { Unit.Definition.AssociatedUnitId: byte unit })
+                        {
+                            tasks.Add(Task.Run(async () =>
+                            {
+                                var endpoint = await _manager.FindEndpointByAddressAsync(notification.Gateway,
+                                    OpenNettyAddress.FromNitooAddress(
+                                        OpenNettyAddress.ToNitooAddress(message.Address.Value).Identifier, unit));
+
+                                if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.PilotWireShutdown))
+                                {
+                                    await _events.PublishAsync(new PilotWireShutdownModeReportedEventArgs(endpoint,
+                                        command == OpenNettyCommands.TemperatureControl.WirePilotShutdownMode));
+                                }
+                            }, cancellationToken));
+                        }
+
+                        if (endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit.Scenarios: [_, ..] scenarios } &&
+                            message.Mode is OpenNettyMode.Broadcast or OpenNettyMode.Multicast)
+                        {
+                            var endpoints = scenarios.ToAsyncEnumerable()
+                                .Where(static scenario => scenario.FunctionCode is 255)
+                                .Select((scenario, cancellationToken) => _manager.FindEndpointByNameAsync(scenario.EndpointName, cancellationToken))
+                                .Where(static endpoint => endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit: OpenNettyUnit })
+                                .OfType<OpenNettyEndpoint>()
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireShutdown));
+
+                            tasks.Add(Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                            {
+                                await _events.PublishAsync(new PilotWireShutdownModeReportedEventArgs(endpoint,
+                                    command == OpenNettyCommands.TemperatureControl.WirePilotShutdownMode), cancellationToken);
                             }));
                         }
 
@@ -2070,7 +2143,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
 
             await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
             {
-                if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
+                if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireControl))
                 {
                     _ = await _controller.GetPilotWireConfigurationAsync(endpoint, cancellationToken);
                 }
