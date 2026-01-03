@@ -174,6 +174,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                             case OpenNettyMqttAttributes.PilotWireDerogationMode when operation is OpenNettyMqttOperation.Get:
                             case OpenNettyMqttAttributes.PilotWireSetpointMode   when operation is OpenNettyMqttOperation.Get:
+                            case OpenNettyMqttAttributes.PilotWireShutdownMode   when operation is OpenNettyMqttOperation.Get:
                             {
                                 _ = await _controller.GetPilotWireConfigurationAsync(endpoint);
                                 break;
@@ -307,6 +308,21 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                     case "frost_protection":
                                         await _controller.SetPilotWireSetpointModeAsync(endpoint,
                                             OpenNettyModels.TemperatureControl.PilotWireMode.FrostProtection);
+                                        break;
+                                }
+                                break;
+                            }
+
+                            case OpenNettyMqttAttributes.PilotWireShutdownMode when operation is OpenNettyMqttOperation.Set:
+                            {
+                                switch (message.ConvertPayloadToString()?.ToLowerInvariant())
+                                {
+                                    case "on":
+                                        await _controller.ActivatePilotWireShutdownModeAsync(endpoint);
+                                        break;
+
+                                    case "off":
+                                        await _controller.CancelPilotWireShutdownModeAsync(endpoint);
                                         break;
                                 }
                                 break;
@@ -1661,7 +1677,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     });
                 }
 
-                if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
+                if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireControl))
                 {
                     AddComponent(components, new JsonObject
                     {
@@ -1674,7 +1690,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             culture : culture,
                             count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
                                 .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireControl))
                                 .CountAsync(cancellationToken)),
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.PilotWireSetpointMode}/set",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.PilotWireSetpointMode}",
@@ -1710,6 +1726,26 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                     AddComponent(components, new JsonObject
                     {
+                        ["platform"] = "button",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "7a9130b9-675a-437d-b806-cbfe6f6e20a6"u8),
+                        ["entity_category"] = "diagnostic",
+                        ["name"] = ComputeEntityName(
+                            name    : GetLocalizedString(SR.ID8062, culture),
+                            endpoint: endpoint,
+                            culture : culture,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireControl))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.PilotWireSetpointMode}/get",
+                        ["payload_press"] = string.Empty
+                    });
+                }
+
+                if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireDerogation))
+                {
+                    AddComponent(components, new JsonObject
+                    {
                         ["platform"] = "select",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "f5f57920-d758-4ca8-8161-2614d4abeef0"u8),
                         ["icon"] = "mdi:radiator",
@@ -1719,7 +1755,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             culture : culture,
                             count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
                                 .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireDerogation))
                                 .CountAsync(cancellationToken)),
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.PilotWireDerogationMode}/set",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.PilotWireDerogationMode}",
@@ -1789,23 +1825,6 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     AddComponent(components, new JsonObject
                     {
                         ["platform"] = "button",
-                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "7a9130b9-675a-437d-b806-cbfe6f6e20a6"u8),
-                        ["entity_category"] = "diagnostic",
-                        ["name"] = ComputeEntityName(
-                            name    : GetLocalizedString(SR.ID8062, culture),
-                            endpoint: endpoint,
-                            culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
-                                .CountAsync(cancellationToken)),
-                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.PilotWireSetpointMode}/get",
-                        ["payload_press"] = string.Empty
-                    });
-
-                    AddComponent(components, new JsonObject
-                    {
-                        ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "787582e8-0c5f-4c97-9277-0ad23dab4024"u8),
                         ["entity_category"] = "diagnostic",
                         ["name"] = ComputeEntityName(
@@ -1814,9 +1833,46 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             culture : culture,
                             count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
                                 .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireDerogation))
                                 .CountAsync(cancellationToken)),
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.PilotWireDerogationMode}/get",
+                        ["payload_press"] = string.Empty
+                    });
+                }
+
+                if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireShutdown))
+                {
+                    AddComponent(components, new JsonObject
+                    {
+                        ["platform"] = "switch",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "178d9f9b-e87a-4ebf-8db3-80e1e1a091df"u8),
+                        ["icon"] = "mdi:radiator-off",
+                        ["name"] = ComputeEntityName(
+                            name    : GetLocalizedString(SR.ID8113, culture),
+                            endpoint: endpoint,
+                            culture : culture,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireShutdown))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.PilotWireShutdownMode}/set",
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.PilotWireShutdownMode}"
+                    });
+
+                    AddComponent(components, new JsonObject
+                    {
+                        ["platform"] = "button",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "ecc822a6-57ab-4352-8d2c-d85dc73df5da"u8),
+                        ["entity_category"] = "diagnostic",
+                        ["name"] = ComputeEntityName(
+                            name    : GetLocalizedString(SR.ID8114, culture),
+                            endpoint: endpoint,
+                            culture : culture,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireShutdown))
+                                .CountAsync(cancellationToken)),
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.PilotWireShutdownMode}/get",
                         ["payload_press"] = string.Empty
                     });
                 }
@@ -2006,9 +2062,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))
                                 .CountAsync(cancellationToken)),
-                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterPowerCutMode}",
-                        ["payload_on"] = "1",
-                        ["payload_off"] = "0"
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterPowerCutMode}"
                     });
 
                     AddComponent(components, new JsonObject

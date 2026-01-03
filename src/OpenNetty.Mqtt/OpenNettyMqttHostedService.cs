@@ -258,6 +258,16 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
+            await _events.PilotWireShutdownModeReported
+                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.PilotWireShutdownMode, builder =>
+                {
+                    builder.WithPayload(arguments.Active ? "ON" : "OFF");
+                    builder.WithRetainFlag();
+                }))
+                .Retry()
+                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
+
             await _events.PressureScenarioReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
@@ -386,7 +396,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.SmartMeterPowerCutMode, builder =>
                 {
-                    builder.WithPayload(arguments.Active ? "1" : "0");
+                    builder.WithPayload(arguments.Active ? "ON" : "OFF");
                     builder.WithRetainFlag();
                 }))
                 .Retry()

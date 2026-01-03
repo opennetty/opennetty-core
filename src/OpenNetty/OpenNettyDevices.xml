@@ -804,7 +804,9 @@
     <Unit Id="1">
       <Capability Name="Memory reading" />
       <Capability Name="Memory writing" />
-      <Capability Name="Pilot wire heating" />
+      <Capability Name="Pilot wire control" />
+      <Capability Name="Pilot wire derogation" />
+      <Capability Name="Pilot wire shutdown" />
       <Capability Name="Unit description" />
 
       <Description Culture="en" Value="Pilot wire control" />
@@ -828,7 +830,8 @@
     <Unit Id="1">
       <Capability Name="Memory reading" />
       <Capability Name="Memory writing" />
-      <Capability Name="Pilot wire heating" />
+      <Capability Name="Pilot wire control" />
+      <Capability Name="Pilot wire derogation" />
       <Capability Name="Unit description" />
 
       <Description Culture="en" Value="Wire pilot heating scenario" />

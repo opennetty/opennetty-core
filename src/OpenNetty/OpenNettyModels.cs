@@ -168,6 +168,11 @@ public static class OpenNettyModels
             public required bool IsDerogationActive { get; init; }
 
             /// <summary>
+            /// Gets or sets a boolean indicating whether a shutdown is active.
+            /// </summary>
+            public required bool IsShutdownActive { get; init; }
+
+            /// <summary>
             /// Gets or sets the pilot wire mode.
             /// </summary>
             public required PilotWireMode Mode { get; init; }
@@ -184,24 +189,27 @@ public static class OpenNettyModels
                     throw new InvalidOperationException(SR.GetResourceString(SR.ID0068));
                 }
 
+                var value = byte.Parse(values[0], CultureInfo.InvariantCulture);
+
                 return new()
                 {
-                    DerogationDuration = byte.Parse(values[0], CultureInfo.InvariantCulture) switch
+                    DerogationDuration = (value & 0b_1100_0000) switch
                     {
-                        >=  8 and <  72 => PilotWireDerogationDuration.None,
-                        >= 72 and < 136 => PilotWireDerogationDuration.FourHours,
-                        >= 136          => PilotWireDerogationDuration.EightHours,
+                        0b_0000_0000 => PilotWireDerogationDuration.None,
+                        0b_0100_0000 => PilotWireDerogationDuration.FourHours,
+                        0b_1000_0000 => PilotWireDerogationDuration.EightHours,
 
-                        _ => null
+                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                     },
-                    IsDerogationActive = byte.Parse(values[0], CultureInfo.InvariantCulture) is >= 8,
-                    Mode               = values[0] switch
+                    IsDerogationActive = (value & 0b_0000_1000) is not 0,
+                    IsShutdownActive   = (value & 0b_0001_0000) is not 0,
+                    Mode               = (value & 0b_0000_0111) switch
                     {
-                        "0" or "8"  or "72" or "136" => PilotWireMode.Comfort,
-                        "1" or "9"  or "73" or "137" => PilotWireMode.ComfortMinusOne,
-                        "2" or "10" or "74" or "138" => PilotWireMode.ComfortMinusTwo,
-                        "3" or "11" or "75" or "139" => PilotWireMode.Eco,
-                        "4" or "12" or "76" or "140" => PilotWireMode.FrostProtection,
+                        0 => PilotWireMode.Comfort,
+                        1 => PilotWireMode.ComfortMinusOne,
+                        2 => PilotWireMode.ComfortMinusTwo,
+                        3 => PilotWireMode.Eco,
+                        4 => PilotWireMode.FrostProtection,
 
                         _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                     }

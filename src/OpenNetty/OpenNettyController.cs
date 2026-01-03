@@ -33,6 +33,34 @@ public class OpenNettyController
     }
 
     /// <summary>
+    /// Activates the pilot wire shutdown mode for the specified endpoint.
+    /// </summary>
+    /// <param name="endpoint">The endpoint.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
+    public virtual ValueTask ActivatePilotWireShutdownModeAsync(
+        OpenNettyEndpoint endpoint,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
+
+        if (!endpoint.HasCapability(OpenNettyCapabilities.PilotWireShutdown))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
+        }
+        
+        return _service.ExecuteCommandAsync(
+            protocol         : endpoint.Protocol,
+            command          : OpenNettyCommands.TemperatureControl.WirePilotShutdownMode,
+            address          : endpoint.Address,
+            medium           : endpoint.Medium,
+            mode             : OpenNettyMode.Multicast,
+            gateway          : endpoint.Gateway,
+            options          : GetTransmissionOptions(endpoint),
+            cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
     /// Adds a new entry to the memory of the specified endpoint.
     /// </summary>
     /// <param name="endpoint">The endpoint.</param>
@@ -172,7 +200,7 @@ public class OpenNettyController
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 
-        if (!endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
+        if (!endpoint.HasCapability(OpenNettyCapabilities.PilotWireDerogation))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
@@ -180,6 +208,34 @@ public class OpenNettyController
         return _service.ExecuteCommandAsync(
             protocol         : endpoint.Protocol,
             command          : OpenNettyCommands.TemperatureControl.CancelWirePilotDerogationMode,
+            address          : endpoint.Address,
+            medium           : endpoint.Medium,
+            mode             : OpenNettyMode.Multicast,
+            gateway          : endpoint.Gateway,
+            options          : GetTransmissionOptions(endpoint),
+            cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
+    /// Cancels the pilot wire shutdown mode currently enforced by the specified endpoint.
+    /// </summary>
+    /// <param name="endpoint">The endpoint.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
+    public virtual ValueTask CancelPilotWireShutdownModeAsync(
+        OpenNettyEndpoint endpoint,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
+
+        if (!endpoint.HasCapability(OpenNettyCapabilities.PilotWireShutdown))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
+        }
+        
+        return _service.ExecuteCommandAsync(
+            protocol         : endpoint.Protocol,
+            command          : OpenNettyCommands.TemperatureControl.CancelWirePilotShutdownMode,
             address          : endpoint.Address,
             medium           : endpoint.Medium,
             mode             : OpenNettyMode.Multicast,
@@ -1497,7 +1553,7 @@ public class OpenNettyController
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 
-        if (!endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
+        if (!endpoint.HasCapability(OpenNettyCapabilities.PilotWireControl))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
@@ -2334,7 +2390,7 @@ public class OpenNettyController
             throw new InvalidDataException(SR.GetResourceString(SR.ID0068));
         }
 
-        if (!endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
+        if (!endpoint.HasCapability(OpenNettyCapabilities.PilotWireDerogation))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
@@ -2350,15 +2406,14 @@ public class OpenNettyController
             _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
         };
 
-        if (duration is OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours)
+        value |= duration switch
         {
-            value += 32;
-        }
+            OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None       => 0b_0000_0000,
+            OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours  => 0b_0010_0000,
+            OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours => 0b_0100_0000,
 
-        else if (duration is OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours)
-        {
-            value += 128;
-        }
+            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+        };
 
         return _service.ExecuteCommandAsync(
             protocol         : endpoint.Protocol,
@@ -2386,7 +2441,7 @@ public class OpenNettyController
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 
-        if (!endpoint.HasCapability(OpenNettyCapabilities.PilotWireHeating))
+        if (!endpoint.HasCapability(OpenNettyCapabilities.PilotWireControl))
         {
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }

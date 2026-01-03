@@ -143,6 +143,12 @@ public sealed class OpenNettyEvents : IDisposable
         => _observable.OfType<EventArgs, PilotWireSetpointModeReportedEventArgs>();
 
     /// <summary>
+    /// Gets an event triggered when a pilot wire shutdown mode is reported.
+    /// </summary>
+    public IAsyncObservable<PilotWireShutdownModeReportedEventArgs> PilotWireShutdownModeReported
+        => _observable.OfType<EventArgs, PilotWireShutdownModeReportedEventArgs>();
+
+    /// <summary>
     /// Gets an event triggered when a pressure scenario is reported.
     /// </summary>
     public IAsyncObservable<PressureScenarioReportedEventArgs> PressureScenarioReported
@@ -383,6 +389,14 @@ public sealed class OpenNettyEvents : IDisposable
     /// <param name="Mode">The setpoint mode.</param>
     public sealed record class PilotWireSetpointModeReportedEventArgs(
         OpenNettyEndpoint Endpoint, OpenNettyModels.TemperatureControl.PilotWireMode Mode) : EventArgs(Endpoint);
+
+    /// <summary>
+    /// Represents event arguments used when a pilot wire shutdown mode is reported.
+    /// </summary>
+    /// <param name="Endpoint">The endpoint.</param>
+    /// <param name="Active">A boolean indicating whether the shutdown mode is active or not.</param>
+    public sealed record class PilotWireShutdownModeReportedEventArgs(
+        OpenNettyEndpoint Endpoint, bool Active) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when a pressure scenario is reported.

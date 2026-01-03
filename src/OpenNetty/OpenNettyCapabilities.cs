@@ -182,9 +182,19 @@ public static class OpenNettyCapabilities
     public static readonly OpenNettyCapability OpenWebNetGenericSession = new("OpenWebNet generic session");
 
     /// <summary>
-    /// Pilot wire heating.
+    /// Pilot wire control.
     /// </summary>
-    public static readonly OpenNettyCapability PilotWireHeating = new("Pilot wire heating");
+    public static readonly OpenNettyCapability PilotWireControl = new("Pilot wire control");
+
+    /// <summary>
+    /// Pilot wire derogation.
+    /// </summary>
+    public static readonly OpenNettyCapability PilotWireDerogation = new("Pilot wire derogation");
+
+    /// <summary>
+    /// Pilot wire shutdown.
+    /// </summary>
+    public static readonly OpenNettyCapability PilotWireShutdown = new("Pilot wire shutdown");
 
     /// <summary>
     /// Progressive scenario activation.

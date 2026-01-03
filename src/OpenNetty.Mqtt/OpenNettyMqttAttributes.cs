@@ -52,6 +52,11 @@ public static class OpenNettyMqttAttributes
     public const string PilotWireSetpointMode = "pilot_wire_setpoint_mode";
 
     /// <summary>
+    /// Pilot wire shutdown mode.
+    /// </summary>
+    public const string PilotWireShutdownMode = "pilot_wire_shutdown_mode";
+
+    /// <summary>
     /// Scenario.
     /// </summary>
     public const string Scenario = "scenario";
