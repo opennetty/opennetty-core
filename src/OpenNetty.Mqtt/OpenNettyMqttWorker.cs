@@ -2484,7 +2484,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
                                 .CountAsync(cancellationToken)),
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeNetwork}/set",
-                        ["payload_press"] = "leave"
+                        ["payload_press"] = "leave",
+                        ["enabled_by_default"] = false
                     });
 
                     AddComponent(components, new JsonObject
