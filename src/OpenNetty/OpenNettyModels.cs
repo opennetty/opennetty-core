@@ -679,7 +679,8 @@ public static class OpenNettyModels
             /// <returns>A new instance of the <see cref="MemoryData"/> class.</returns>
             public static MemoryData CreateFromUnitDescription(ReadOnlySpan<string> values)
             {
-                if (values is not [{ Length: > 0 }, { Length: > 0 }, { Length: > 0 }])
+                // Note: while the frame number is part of the returned model, it MUST be present in the dimension values.
+                if (values is not [{ Length: > 0 }, { Length: > 0 }, { Length: > 0 }, { Length: > 0 }])
                 {
                     throw new InvalidOperationException(SR.GetResourceString(SR.ID0068));
                 }
