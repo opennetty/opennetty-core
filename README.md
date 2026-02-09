@@ -473,7 +473,7 @@ observe the messages sent by the OpenWebNet gateway.
 
 ```csharp
 var gateway = OpenNettyGateway.Create(
-    name      : "SCS-Ethernet gateway",
+    name      : "OPEN-SCS gateway",
     brand     : OpenNettyBrand.BTicino,
     model     : "F454",
     identifier: OpenNettyDeviceIdentifier.FromMacAddress("00:03:50:A2:27:1B"),
@@ -507,7 +507,7 @@ builder.Services.AddOpenNetty(options =>
 {
     // Register the SCS gateway used to communicate with MyHome devices.
     options.AddGateway(OpenNettyGateway.Create(
-        name      : "SCS-Ethernet gateway",
+        name      : "OPEN-SCS gateway",
         brand     : OpenNettyBrand.BTicino,
         model     : "F454",
         identifier: OpenNettyDeviceIdentifier.FromMacAddress("00:03:50:A2:27:1B"),
@@ -548,7 +548,7 @@ var builder = Host.CreateApplicationBuilder();
 builder.Services.AddOpenNetty(options =>
 {
     var gateway = OpenNettyGateway.Create(
-        name      : "SCS-Ethernet gateway",
+        name      : "OPEN-SCS gateway",
         brand     : OpenNettyBrand.BTicino,
         model     : "F454",
         identifier: OpenNettyDeviceIdentifier.FromMacAddress("00:03:50:A2:27:1B"),

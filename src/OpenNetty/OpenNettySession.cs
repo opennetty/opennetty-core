@@ -255,6 +255,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
         static bool IsActionValidationSupported(OpenNettyMessage message) => message is {
             Protocol: OpenNettyProtocol.Nitoo,
             Address : not null,
+            Medium  : OpenNettyMedium.Powerline,
             Mode    : OpenNettyMode.Unicast,
             Type    : OpenNettyMessageType.BusCommand or OpenNettyMessageType.DimensionSet };
     }
