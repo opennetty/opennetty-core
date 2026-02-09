@@ -1541,8 +1541,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     });
                 }
 
-                if (endpoint.HasCapability(OpenNettyCapabilities.FirmwareVersion) ||
-                    endpoint.HasCapability(OpenNettyCapabilities.DeviceDescription))
+                if (endpoint.HasCapability(OpenNettyCapabilities.FirmwareVersion))
                 {
                     AddComponent(components, new JsonObject
                     {
@@ -1555,8 +1554,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             culture : culture,
                             count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
                                 .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.FirmwareVersion) ||
-                                                   endpoint.HasCapability(OpenNettyCapabilities.DeviceDescription))
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.FirmwareVersion))
                                 .CountAsync(cancellationToken)),
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.FirmwareVersion}"
                     });
@@ -1573,8 +1571,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             culture : culture,
                             count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
                                 .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.FirmwareVersion) ||
-                                                   endpoint.HasCapability(OpenNettyCapabilities.DeviceDescription))
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.FirmwareVersion))
                                 .CountAsync(cancellationToken)),
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.FirmwareVersion}/get",
                         ["payload_press"] = string.Empty

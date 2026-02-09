@@ -1288,54 +1288,54 @@ public class OpenNettyController
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 
-        if (endpoint.HasCapability(OpenNettyCapabilities.FirmwareVersion))
+        if (!endpoint.HasCapability(OpenNettyCapabilities.FirmwareVersion))
         {
-            // Note: retrieving the firmware version of a battery-powered Zigbee endpoint
-            // can take a while. To ensure the operation is not aborted before the endpoint
-            // has a chance to respond, the timeouts are manually increased here.
-            var options = GetTransmissionOptions(endpoint);
-
-            if (endpoint.Address is not null && endpoint.HasCapability(OpenNettyCapabilities.ZigbeeEndDevice))
-            {
-                if (options.FrameAcknowledgementTimeout < TimeSpan.FromSeconds(45))
-                {
-                    options = options with { FrameAcknowledgementTimeout = TimeSpan.FromSeconds(45) };
-                }
-
-                if (options.OutgoingMessageProcessingTimeout < TimeSpan.FromSeconds(45))
-                {
-                    options = options with { OutgoingMessageProcessingTimeout = TimeSpan.FromSeconds(45) };
-                }
-
-                if (options.UniqueDimensionReplyTimeout < TimeSpan.FromSeconds(45))
-                {
-                    options = options with { UniqueDimensionReplyTimeout = TimeSpan.FromSeconds(45) };
-                }
-            }
-
-            var values = await _service.GetDimensionAsync(
-                protocol         : endpoint.Protocol,
-                dimension        : OpenNettyDimensions.Management.FirmwareVersion,
-                address          : endpoint.Address,
-                medium           : endpoint.Medium,
-                mode             : null,
-                gateway          : endpoint.Gateway,
-                options          : options,
-                cancellationToken: cancellationToken);
-
-            return new Version(
-                major: int.Parse(values[0], CultureInfo.InvariantCulture),
-                minor: int.Parse(values[1], CultureInfo.InvariantCulture),
-                build: int.Parse(values[2], CultureInfo.InvariantCulture));
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
-        else if (endpoint.HasCapability(OpenNettyCapabilities.DeviceDescription))
+        if (endpoint.Protocol is OpenNettyProtocol.Nitoo)
         {
             var description = await GetDeviceDescriptionAsync(endpoint, cancellationToken);
             return description.Version;
         }
 
-        throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
+        // Note: retrieving the firmware version of a battery-powered Zigbee endpoint
+        // can take a while. To ensure the operation is not aborted before the endpoint
+        // has a chance to respond, the timeouts are manually increased here.
+        var options = GetTransmissionOptions(endpoint);
+
+        if (endpoint.Address is not null && endpoint.HasCapability(OpenNettyCapabilities.ZigbeeEndDevice))
+        {
+            if (options.FrameAcknowledgementTimeout < TimeSpan.FromSeconds(45))
+            {
+                options = options with { FrameAcknowledgementTimeout = TimeSpan.FromSeconds(45) };
+            }
+
+            if (options.OutgoingMessageProcessingTimeout < TimeSpan.FromSeconds(45))
+            {
+                options = options with { OutgoingMessageProcessingTimeout = TimeSpan.FromSeconds(45) };
+            }
+
+            if (options.UniqueDimensionReplyTimeout < TimeSpan.FromSeconds(45))
+            {
+                options = options with { UniqueDimensionReplyTimeout = TimeSpan.FromSeconds(45) };
+            }
+        }
+
+        var values = await _service.GetDimensionAsync(
+            protocol         : endpoint.Protocol,
+            dimension        : OpenNettyDimensions.Management.FirmwareVersion,
+            address          : endpoint.Address,
+            medium           : endpoint.Medium,
+            mode             : null,
+            gateway          : endpoint.Gateway,
+            options          : options,
+            cancellationToken: cancellationToken);
+
+        return new Version(
+            major: int.Parse(values[0], CultureInfo.InvariantCulture),
+            minor: int.Parse(values[1], CultureInfo.InvariantCulture),
+            build: int.Parse(values[2], CultureInfo.InvariantCulture));
     }
 
     /// <summary>

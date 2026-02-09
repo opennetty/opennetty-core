@@ -1053,11 +1053,11 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
 
                                 _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                             },
-                            (value & 0b_0110_0000) switch
+                            (value & 0b_1010_0000) switch
                             {
                                 0b_0000_0000 => OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None,
                                 0b_0010_0000 => OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours,
-                                0b_0100_0000 => OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours,
+                                0b_1000_0000 => OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours,
 
                                 _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                             }), cancellationToken);

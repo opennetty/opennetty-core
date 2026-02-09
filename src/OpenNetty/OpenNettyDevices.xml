@@ -15,6 +15,7 @@
     </Identity>
 
     <Capability Name="Device description" />
+    <Capability Name="Firmware version" />
 
     <Unit Id="1" AssociatedUnitId="3">
       <Capability Name="Dimming scenario activation" />
@@ -74,6 +75,7 @@
     </Identity>
 
     <Capability Name="Device description" />
+    <Capability Name="Firmware version" />
 
     <Unit Id="1">
       <Capability Name="Action scenario activation" />
@@ -167,6 +169,7 @@
     </Identity>
 
     <Capability Name="Device description" />
+    <Capability Name="Firmware version" />
 
     <Unit Id="1">
       <Capability Name="Memory reading" />
@@ -291,6 +294,7 @@
     </Identity>
 
     <Capability Name="Device description" />
+    <Capability Name="Firmware version" />
 
     <Unit Id="1" AssociatedUnitId="2">
       <Capability Name="Dimming scenario activation" />
@@ -335,6 +339,7 @@
     </Identity>
 
     <Capability Name="Device description" />
+    <Capability Name="Firmware version" />
 
     <Unit Id="1" AssociatedUnitId="3">
       <Capability Name="Dimming scenario activation" />
@@ -394,6 +399,7 @@
     </Identity>
 
     <Capability Name="Device description" />
+    <Capability Name="Firmware version" />
 
     <Unit Id="1">
       <Capability Name="Dimming scenario activation" />
@@ -455,6 +461,7 @@
     </Identity>
 
     <Capability Name="Device description" />
+    <Capability Name="Firmware version" />
 
     <Unit Id="1" AssociatedUnitId="4">
       <Capability Name="Dimming scenario activation" />
@@ -524,6 +531,7 @@
     </Identity>
 
     <Capability Name="Device description" />
+    <Capability Name="Firmware version" />
 
     <Unit Id="1" AssociatedUnitId="3">
       <Capability Name="Timed scenario activation" />
@@ -564,6 +572,7 @@
     </Identity>
 
     <Capability Name="Device description" />
+    <Capability Name="Firmware version" />
 
     <Unit Id="1" AssociatedUnitId="2">
       <Capability Name="Dimming scenario activation" />
@@ -603,6 +612,7 @@
     </Identity>
 
     <Capability Name="Device description" />
+    <Capability Name="Firmware version" />
 
     <Unit Id="1" AssociatedUnitId="4">
       <Capability Name="Dimming scenario activation" />
@@ -672,6 +682,7 @@
     </Identity>
 
     <Capability Name="Device description" />
+    <Capability Name="Firmware version" />
 
     <Unit Id="1">
       <Capability Name="Action scenario activation" />
@@ -800,6 +811,7 @@
     </Identity>
 
     <Capability Name="Device description" />
+    <Capability Name="Firmware version" />
 
     <Unit Id="1">
       <Capability Name="Memory reading" />
@@ -826,6 +838,7 @@
     </Identity>
 
     <Capability Name="Device description" />
+    <Capability Name="Firmware version" />
 
     <Unit Id="1">
       <Capability Name="Memory reading" />
