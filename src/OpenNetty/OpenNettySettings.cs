@@ -27,14 +27,19 @@ public static class OpenNettySettings
     public static readonly OpenNettySetting FunctionType = new("Function type");
 
     /// <summary>
-    /// Home Assistant light/switch device class.
+    /// Home Assistant cover device class.
     /// </summary>
     public static readonly OpenNettySetting HomeAssistantCoverDeviceClass = new("Home Assistant cover device class");
 
     /// <summary>
-    /// Home Assistant light/switch icon.
+    /// Home Assistant cover icon.
     /// </summary>
     public static readonly OpenNettySetting HomeAssistantCoverIcon = new("Home Assistant cover icon");
+
+    /// <summary>
+    /// Home Assistant cover name.
+    /// </summary>
+    public static readonly OpenNettySetting HomeAssistantCoverName = new("Home Assistant cover name");
 
     /// <summary>
     /// Home Assistant discovery.
@@ -60,6 +65,11 @@ public static class OpenNettySettings
     /// Home Assistant light/switch icon.
     /// </summary>
     public static readonly OpenNettySetting HomeAssistantLightSwitchIcon = new("Home Assistant light/switch icon");
+
+    /// <summary>
+    /// Home Assistant light/switch name.
+    /// </summary>
+    public static readonly OpenNettySetting HomeAssistantLightSwitchName = new("Home Assistant light/switch name");
 
     /// <summary>
     /// Home Assistant scenario device class.
