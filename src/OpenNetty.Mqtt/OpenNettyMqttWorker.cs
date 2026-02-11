@@ -723,24 +723,44 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     var platform = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantEntityType)
                         ?? OpenNettySettings.HomeAssistantEntityTypes.Light;
 
+                    if (platform is not (OpenNettySettings.HomeAssistantEntityTypes.Light or OpenNettySettings.HomeAssistantEntityTypes.Switch))
+                    {
+                        throw new InvalidOperationException(SR.FormatID0120(platform));
+                    }
+
+                    var name = platform switch
+                    {
+                        OpenNettySettings.HomeAssistantEntityTypes.Light  => endpoint.GetStringSetting(OpenNettySettings.HomeAssistantLightName),
+                        OpenNettySettings.HomeAssistantEntityTypes.Switch => endpoint.GetStringSetting(OpenNettySettings.HomeAssistantSwitchName),
+
+                        _ => throw new InvalidOperationException(SR.FormatID0120(platform))
+                    };
+
+                    var icon = platform switch
+                    {
+                        OpenNettySettings.HomeAssistantEntityTypes.Light  => endpoint.GetStringSetting(OpenNettySettings.HomeAssistantLightIcon),
+                        OpenNettySettings.HomeAssistantEntityTypes.Switch => endpoint.GetStringSetting(OpenNettySettings.HomeAssistantSwitchIcon),
+
+                        _ => throw new InvalidOperationException(SR.FormatID0120(platform))
+                    };
+
                     var component = new JsonObject
                     {
                         ["platform"] = platform,
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "feb44223-4814-4652-933c-53dbbaabac3f"u8),
-                        ["name"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantLightSwitchName) ??
-                            ComputeEntityName(
-                                name    : platform is OpenNettySettings.HomeAssistantEntityTypes.Switch ?
-                                    GetLocalizedString(SR.ID8000, culture) : GetLocalizedString(SR.ID8001, culture),
-                                endpoint: endpoint,
-                                culture : culture,
-                                count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                    .Where(endpoint => endpoint.Device == device)
-                                    .Where(SupportsLightOrSwitchEntity)
-                                    .CountAsync(cancellationToken)),
+                        ["name"] = name ?? ComputeEntityName(
+                            name    : platform is OpenNettySettings.HomeAssistantEntityTypes.Light ?
+                                GetLocalizedString(SR.ID8001, culture) : GetLocalizedString(SR.ID8000, culture),
+                            endpoint: endpoint,
+                            culture : culture,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(SupportsLightOrSwitchEntity)
+                                .CountAsync(cancellationToken)),
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SwitchState}/set"
                     };
 
-                    if (endpoint.GetStringSetting(OpenNettySettings.HomeAssistantLightSwitchIcon) is string icon)
+                    if (!string.IsNullOrEmpty(icon))
                     {
                         component["icon"] = icon;
                     }
@@ -752,14 +772,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         component["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SwitchState}";
                     }
 
-                    // Unlike light entities, switch entities can specify a device class but cannot support brightness control.
-                    if (platform is OpenNettySettings.HomeAssistantEntityTypes.Switch)
-                    {
-                        component["device_class"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantLightSwitchDeviceClass)
-                            ?? OpenNettySettings.HomeAssistantDeviceClasses.Switch;
-                    }
-
-                    else
+                    if (platform is OpenNettySettings.HomeAssistantEntityTypes.Light)
                     {
                         if (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingControl) ||
                             endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingControl))
@@ -774,6 +787,13 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         {
                             component["brightness_state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Brightness}";
                         }
+                    }
+
+                    // Note: switch entities can specify a device class but cannot support brightness control.
+                    else if (platform is OpenNettySettings.HomeAssistantEntityTypes.Switch)
+                    {
+                        component["device_class"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantSwitchDeviceClass)
+                            ?? OpenNettySettings.HomeAssistantDeviceClasses.Switch;
                     }
 
                     AddComponent(components, component);

@@ -474,6 +474,9 @@
   <data name="ID0119" xml:space="preserve">
     <value>MQTT entities must be assigned a unique identifier.</value>
   </data>
+  <data name="ID0120" xml:space="preserve">
+    <value>The specified Home Assistant entity type ({0}) is not supported.</value>
+  </data>
   <data name="ID2000" xml:space="preserve">
     <value>The endpoint name '{0}' is not valid. Endpoint names cannot contain the '+' or '*' characters.</value>
   </data>

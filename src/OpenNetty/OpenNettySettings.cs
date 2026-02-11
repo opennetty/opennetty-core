@@ -57,19 +57,14 @@ public static class OpenNettySettings
     public static readonly OpenNettySetting HomeAssistantEntityType = new("Home Assistant entity type");
 
     /// <summary>
-    /// Home Assistant light/switch device class.
+    /// Home Assistant light icon.
     /// </summary>
-    public static readonly OpenNettySetting HomeAssistantLightSwitchDeviceClass = new("Home Assistant light/switch device class");
+    public static readonly OpenNettySetting HomeAssistantLightIcon = new("Home Assistant light icon");
 
     /// <summary>
-    /// Home Assistant light/switch icon.
+    /// Home Assistant light name.
     /// </summary>
-    public static readonly OpenNettySetting HomeAssistantLightSwitchIcon = new("Home Assistant light/switch icon");
-
-    /// <summary>
-    /// Home Assistant light/switch name.
-    /// </summary>
-    public static readonly OpenNettySetting HomeAssistantLightSwitchName = new("Home Assistant light/switch name");
+    public static readonly OpenNettySetting HomeAssistantLightName = new("Home Assistant light name");
 
     /// <summary>
     /// Home Assistant scenario device class.
@@ -85,6 +80,21 @@ public static class OpenNettySettings
     /// Home Assistant suggested area.
     /// </summary>
     public static readonly OpenNettySetting HomeAssistantSuggestedArea = new("Home Assistant suggested area");
+
+    /// <summary>
+    /// Home Assistant switch device class.
+    /// </summary>
+    public static readonly OpenNettySetting HomeAssistantSwitchDeviceClass = new("Home Assistant switch device class");
+
+    /// <summary>
+    /// Home Assistant switch icon.
+    /// </summary>
+    public static readonly OpenNettySetting HomeAssistantSwitchIcon = new("Home Assistant switch icon");
+
+    /// <summary>
+    /// Home Assistant switch name.
+    /// </summary>
+    public static readonly OpenNettySetting HomeAssistantSwitchName = new("Home Assistant switch name");
 
     /// <summary>
     /// MQTT topic.
