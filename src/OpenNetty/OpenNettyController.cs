@@ -2281,9 +2281,19 @@ public class OpenNettyController
                     /* LEVEL: */ endpoint.Protocol is OpenNettyProtocol.Nitoo ?
                         level.ToString(CultureInfo.InvariantCulture) :
                         (level + 100).ToString(CultureInfo.InvariantCulture),
-                    /* SPEED: */ duration is not null ?
-                        ((long) ((duration ?? TimeSpan.FromSeconds(2)).TotalSeconds * 5 + .5)).ToString(CultureInfo.InvariantCulture) :
-                        "0"
+                    /* SPEED: */ duration switch
+                    {
+                        // When explicitly set, use the duration specified by the caller to determine the speed.
+                        TimeSpan value => ((long) value.TotalSeconds * 5 + .5).ToString(CultureInfo.InvariantCulture),
+
+                        // For Nitoo devices, compute an optimal speed based on the brightness level to ensure a smooth transition.
+                        null when endpoint.Protocol is OpenNettyProtocol.Nitoo && level is <= 50 => "10",
+                        null when endpoint.Protocol is OpenNettyProtocol.Nitoo && level is >  50
+                            => ((long) ((level / 10) + .5)).ToString(CultureInfo.InvariantCulture),
+
+                        // Otherwise, use the last used speed.
+                        null => "0"
+                    }
                 ],
                 address          : endpoint.Address,
                 medium           : endpoint.Medium,
