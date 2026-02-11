@@ -727,15 +727,16 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     {
                         ["platform"] = platform,
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "feb44223-4814-4652-933c-53dbbaabac3f"u8),
-                        ["name"] = ComputeEntityName(
-                            name    : platform is OpenNettySettings.HomeAssistantEntityTypes.Switch ?
-                                GetLocalizedString(SR.ID8000, culture) : GetLocalizedString(SR.ID8001, culture),
-                            endpoint: endpoint,
-                            culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(SupportsLightOrSwitchEntity)
-                                .CountAsync(cancellationToken)),
+                        ["name"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantLightSwitchName) ??
+                            ComputeEntityName(
+                                name    : platform is OpenNettySettings.HomeAssistantEntityTypes.Switch ?
+                                    GetLocalizedString(SR.ID8000, culture) : GetLocalizedString(SR.ID8001, culture),
+                                endpoint: endpoint,
+                                culture : culture,
+                                count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                    .Where(endpoint => endpoint.Device == device)
+                                    .Where(SupportsLightOrSwitchEntity)
+                                    .CountAsync(cancellationToken)),
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SwitchState}/set"
                     };
 
@@ -830,14 +831,15 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "9b138d62-bb0d-49cb-8624-1d85f9e86a6e"u8),
                         ["device_class"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantCoverDeviceClass)
                             ?? OpenNettySettings.HomeAssistantDeviceClasses.Shutter,
-                        ["name"] = ComputeEntityName(
-                            name    : GetLocalizedString(SR.ID8004, culture),
-                            endpoint: endpoint,
-                            culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(SupportsCoverEntity)
-                                .CountAsync(cancellationToken)),
+                        ["name"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantCoverName) ??
+                            ComputeEntityName(
+                                name    : GetLocalizedString(SR.ID8004, culture),
+                                endpoint: endpoint,
+                                culture : culture,
+                                count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                    .Where(endpoint => endpoint.Device == device)
+                                    .Where(SupportsCoverEntity)
+                                    .CountAsync(cancellationToken)),
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ShutterState}/set"
                     };
 
