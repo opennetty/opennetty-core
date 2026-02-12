@@ -779,7 +779,17 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         {
                             component["brightness_command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Brightness}/set";
                             component["brightness_scale"] = 100;
-                            component["on_command_type"] = "brightness";
+
+                            // Note: unlike MyHome devices, Nitoo devices do not store the last brightness level set and always set
+                            // the brightness to 100% when receiving an ON command. To have a consistent behavior across all devices,
+                            // Nitoo devices are, by default, configured to use the brightness command topic to turn on the light.
+                            component["on_command_type"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantLightOnCommandType) switch
+                            {
+                                { Length: > 0 } value => value,
+
+                                _ when endpoint.Protocol is OpenNettyProtocol.Nitoo => "brightness",
+                                _ => "last"
+                            };
                         }
 
                         if (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) ||

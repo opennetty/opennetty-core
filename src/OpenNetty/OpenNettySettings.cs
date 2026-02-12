@@ -62,6 +62,11 @@ public static class OpenNettySettings
     public static readonly OpenNettySetting HomeAssistantLightIcon = new("Home Assistant light icon");
 
     /// <summary>
+    /// Home Assistant light on command type.
+    /// </summary>
+    public static readonly OpenNettySetting HomeAssistantLightOnCommandType = new("Home Assistant light on command type");
+
+    /// <summary>
     /// Home Assistant light name.
     /// </summary>
     public static readonly OpenNettySetting HomeAssistantLightName = new("Home Assistant light name");
