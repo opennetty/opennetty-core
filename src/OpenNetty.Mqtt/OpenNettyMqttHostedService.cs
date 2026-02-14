@@ -366,27 +366,99 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
 
             await _events.SmartMeterIndexesReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.SmartMeterIndexes, builder =>
+                .Where(static arguments => arguments.Indexes.BaseIndex is not null)
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.SmartMeterBaseIndex, builder =>
+                {
+                    builder.WithPayload(arguments.Indexes.BaseIndex!.BaseIndex.ToString(CultureInfo.InvariantCulture));
+                    builder.WithRetainFlag();
+                }))
+                .Retry()
+                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
+
+            await _events.SmartMeterIndexesReported
+                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
+                .Where(static arguments => arguments.Indexes.BlueIndex is not null)
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.SmartMeterBlueIndex, builder =>
                 {
                     var node = new JsonObject
                     {
-                        ["base_index"]        = arguments.Indexes.BaseIndex,
-                        ["blue_index"]        = arguments.Indexes.BlueIndex,
-                        ["off_peak_index"]    = arguments.Indexes.OffPeakIndex,
-                        ["red_index"]         = arguments.Indexes.RedIndex,
-                        ["white_index"]       = arguments.Indexes.WhiteIndex,
-                        ["subscription_type"] = arguments.Indexes.SubscriptionType switch
-                        {
-                            OpenNettyModels.TemperatureControl.SmartMeterSubscriptionType.Base        => "base",
-                            OpenNettyModels.TemperatureControl.SmartMeterSubscriptionType.PeakOffPeak => "peak/off_peak",
-                            OpenNettyModels.TemperatureControl.SmartMeterSubscriptionType.Tempo       => "tempo",
-
-                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
-                        }
+                        ["base_index"] = arguments.Indexes.BlueIndex!.BaseIndex,
+                        ["off_peak_index"] = arguments.Indexes.BlueIndex!.OffPeakIndex
                     };
 
                     builder.WithContentType(MediaTypeNames.Application.Json);
                     builder.WithPayload(node.ToJsonString());
+                    builder.WithRetainFlag();
+                }))
+                .Retry()
+                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
+
+            await _events.SmartMeterIndexesReported
+                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
+                .Where(static arguments => arguments.Indexes.PeakOffPeakIndex is not null)
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.SmartMeterPeakOffPeakIndex, builder =>
+                {
+                    var node = new JsonObject
+                    {
+                        ["base_index"] = arguments.Indexes.PeakOffPeakIndex!.BaseIndex,
+                        ["off_peak_index"] = arguments.Indexes.PeakOffPeakIndex!.OffPeakIndex
+                    };
+
+                    builder.WithContentType(MediaTypeNames.Application.Json);
+                    builder.WithPayload(node.ToJsonString());
+                    builder.WithRetainFlag();
+                }))
+                .Retry()
+                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
+
+            await _events.SmartMeterIndexesReported
+                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
+                .Where(static arguments => arguments.Indexes.RedIndex is not null)
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.SmartMeterRedIndex, builder =>
+                {
+                    var node = new JsonObject
+                    {
+                        ["base_index"] = arguments.Indexes.RedIndex!.BaseIndex,
+                        ["off_peak_index"] = arguments.Indexes.RedIndex!.OffPeakIndex
+                    };
+
+                    builder.WithContentType(MediaTypeNames.Application.Json);
+                    builder.WithPayload(node.ToJsonString());
+                    builder.WithRetainFlag();
+                }))
+                .Retry()
+                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
+
+            await _events.SmartMeterIndexesReported
+                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
+                .Where(static arguments => arguments.Indexes.WhiteIndex is not null)
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.SmartMeterWhiteIndex, builder =>
+                {
+                    var node = new JsonObject
+                    {
+                        ["base_index"] = arguments.Indexes.WhiteIndex!.BaseIndex,
+                        ["off_peak_index"] = arguments.Indexes.WhiteIndex!.OffPeakIndex
+                    };
+
+                    builder.WithContentType(MediaTypeNames.Application.Json);
+                    builder.WithPayload(node.ToJsonString());
+                    builder.WithRetainFlag();
+                }))
+                .Retry()
+                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
+
+            await _events.SmartMeterIndexesReported
+                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.SmartMeterSubscriptionType, builder =>
+                {
+                    builder.WithPayload(arguments.Indexes.SubscriptionType switch
+                    {
+                        OpenNettyModels.TemperatureControl.SmartMeterSubscriptionType.Base        => "base",
+                        OpenNettyModels.TemperatureControl.SmartMeterSubscriptionType.PeakOffPeak => "peak/off_peak",
+                        OpenNettyModels.TemperatureControl.SmartMeterSubscriptionType.Tempo       => "tempo",
+
+                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+                    });
                     builder.WithRetainFlag();
                 }))
                 .Retry()

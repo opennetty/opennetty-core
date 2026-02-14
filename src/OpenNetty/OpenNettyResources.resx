@@ -799,16 +799,16 @@
     <value>Base index</value>
   </data>
   <data name="ID8065" xml:space="preserve">
-    <value>Blue index</value>
+    <value>Blue index [base]</value>
   </data>
   <data name="ID8066" xml:space="preserve">
-    <value>Off-peak index</value>
+    <value>Peak index</value>
   </data>
   <data name="ID8067" xml:space="preserve">
-    <value>Red index</value>
+    <value>Red index [base]</value>
   </data>
   <data name="ID8068" xml:space="preserve">
-    <value>White index</value>
+    <value>White index [base]</value>
   </data>
   <data name="ID8069" xml:space="preserve">
     <value>Subscription type</value>
@@ -835,7 +835,7 @@
     <value>Off-peak</value>
   </data>
   <data name="ID8077" xml:space="preserve">
-    <value>Power cut active</value>
+    <value>Power cut</value>
   </data>
   <data name="ID8078" xml:space="preserve">
     <value>Get rate type</value>
@@ -859,7 +859,7 @@
     <value>Forced OFF</value>
   </data>
   <data name="ID8085" xml:space="preserve">
-    <value>Water heater active</value>
+    <value>Water heater</value>
   </data>
   <data name="ID8086" xml:space="preserve">
     <value>Get water heater state</value>
@@ -925,7 +925,7 @@
     <value>Get number of Zigbee devices in the database</value>
   </data>
   <data name="ID8107" xml:space="preserve">
-    <value>Binding in progress</value>
+    <value>Push&amp;Learn binding</value>
   </data>
   <data name="ID8108" xml:space="preserve">
     <value>Zigbee network state</value>
@@ -947,5 +947,17 @@
   </data>
   <data name="ID8114" xml:space="preserve">
     <value>Get forced shutdown mode status</value>
+  </data>
+  <data name="ID8115" xml:space="preserve">
+    <value>Blue index [off-peak]</value>
+  </data>
+  <data name="ID8116" xml:space="preserve">
+    <value>Off-peak index</value>
+  </data>
+  <data name="ID8117" xml:space="preserve">
+    <value>Red index [off-peak]</value>
+  </data>
+  <data name="ID8118" xml:space="preserve">
+    <value>White index [off-peak]</value>
   </data>
 </root>

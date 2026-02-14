@@ -313,16 +313,16 @@
     <value>Index de base</value>
   </data>
   <data name="ID8065" xml:space="preserve">
-    <value>Index bleu</value>
+    <value>Index bleu [base]</value>
   </data>
   <data name="ID8066" xml:space="preserve">
-    <value>Index heures creuses</value>
+    <value>Index heures pleines</value>
   </data>
   <data name="ID8067" xml:space="preserve">
-    <value>Index rouge</value>
+    <value>Index rouge [base]</value>
   </data>
   <data name="ID8068" xml:space="preserve">
-    <value>Index blanc</value>
+    <value>Index blanc [base]</value>
   </data>
   <data name="ID8069" xml:space="preserve">
     <value>Type d'abonnement</value>
@@ -349,7 +349,7 @@
     <value>Heures creuses</value>
   </data>
   <data name="ID8077" xml:space="preserve">
-    <value>Délestage électrique en cours</value>
+    <value>Délestage électrique</value>
   </data>
   <data name="ID8078" xml:space="preserve">
     <value>Récupérer tarif en vigueur</value>
@@ -373,10 +373,10 @@
     <value>Arrêt forcé</value>
   </data>
   <data name="ID8085" xml:space="preserve">
-    <value>Chauffe eau chaude sanitaire active</value>
+    <value>Chauffe-eau</value>
   </data>
   <data name="ID8086" xml:space="preserve">
-    <value>Récupérer état de la chauffe eau chaude sanitaire</value>
+    <value>Récupérer état chauffe-eau</value>
   </data>
   <data name="ID8087" xml:space="preserve">
     <value>État de l'alarme</value>
@@ -439,7 +439,7 @@
     <value>Récupérer nombre d'appareils Zigbee dans la base de données</value>
   </data>
   <data name="ID8107" xml:space="preserve">
-    <value>Association en cours</value>
+    <value>Association Push&amp;Learn</value>
   </data>
   <data name="ID8108" xml:space="preserve">
     <value>État du réseau Zigbee</value>
@@ -461,5 +461,17 @@
   </data>
   <data name="ID8114" xml:space="preserve">
     <value>Récupérer état mode arrêt forcé</value>
+  </data>
+  <data name="ID8115" xml:space="preserve">
+    <value>Index bleu [heures creuses]</value>
+  </data>
+  <data name="ID8116" xml:space="preserve">
+    <value>Index heures creuses</value>
+  </data>
+  <data name="ID8117" xml:space="preserve">
+    <value>Index rouge [heures creuses]</value>
+  </data>
+  <data name="ID8118" xml:space="preserve">
+    <value>Index blanc [heures creuses]</value>
   </data>
 </root>

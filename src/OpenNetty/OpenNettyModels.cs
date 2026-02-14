@@ -239,9 +239,9 @@ public static class OpenNettyModels
         }
 
         /// <summary>
-        /// Smart meter indexes.
+        /// Smart meter index.
         /// </summary>
-        public sealed record class SmartMeterIndexes
+        public sealed record class SmartMeterIndex
         {
             /// <summary>
             /// Gets or sets the base index.
@@ -249,19 +249,35 @@ public static class OpenNettyModels
             public required ulong BaseIndex { get; init; }
 
             /// <summary>
-            /// Gets or sets the blue index, if available.
+            /// Gets or sets the off-peak index.
             /// </summary>
-            public required ulong? BlueIndex { get; init; }
+            public required ulong OffPeakIndex { get; init; }
+        }
+
+        /// <summary>
+        /// Smart meter indexes.
+        /// </summary>
+        public sealed record class SmartMeterIndexes
+        {
+            /// <summary>
+            /// Gets or sets the base index.
+            /// </summary>
+            public required SmartMeterIndex? BaseIndex { get; init; }
 
             /// <summary>
-            /// Gets or sets the off-peak index, if available.
+            /// Gets or sets the blue index, if available.
             /// </summary>
-            public required ulong? OffPeakIndex { get; init; }
+            public required SmartMeterIndex? BlueIndex { get; init; }
+
+            /// <summary>
+            /// Gets or sets the peak/off-peak index, if available.
+            /// </summary>
+            public required SmartMeterIndex? PeakOffPeakIndex { get; init; }
 
             /// <summary>
             /// Gets or sets the red index, if available.
             /// </summary>
-            public required ulong? RedIndex { get; init; }
+            public required SmartMeterIndex? RedIndex { get; init; }
 
             /// <summary>
             /// Gets or sets the subscription type.
@@ -271,7 +287,7 @@ public static class OpenNettyModels
             /// <summary>
             /// Gets or sets the blue index, if available.
             /// </summary>
-            public required ulong? WhiteIndex { get; init; }
+            public required SmartMeterIndex? WhiteIndex { get; init; }
 
             /// <summary>
             /// Creates a new instance of the <see cref="SmartMeterIndexes"/> class using the specified unit description.
@@ -287,10 +303,10 @@ public static class OpenNettyModels
 
                 return new()
                 {
-                    BaseIndex        = ulong.Parse(values[1], CultureInfo.InvariantCulture),
-                    BlueIndex        = values[0] is "3" ? ulong.Parse(values[2], CultureInfo.InvariantCulture) : null,
-                    OffPeakIndex     = values[0] is "2" ? ulong.Parse(values[2], CultureInfo.InvariantCulture) : null,
-                    RedIndex         = values[0] is "5" ? ulong.Parse(values[2], CultureInfo.InvariantCulture) : null,
+                    BaseIndex        = values[0] is "1" ? GetSimpleIndex(values)  : null,
+                    BlueIndex        = values[0] is "3" ? GetComplexIndex(values) : null,
+                    PeakOffPeakIndex = values[0] is "2" ? GetComplexIndex(values) : null,
+                    RedIndex         = values[0] is "5" ? GetComplexIndex(values) : null,
                     SubscriptionType = values[0] switch
                     {
                         "1"               => SmartMeterSubscriptionType.Base,
@@ -299,7 +315,19 @@ public static class OpenNettyModels
 
                         _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                     },
-                    WhiteIndex       = values[0] is "4" ? ulong.Parse(values[2], CultureInfo.InvariantCulture) : null,
+                    WhiteIndex       = values[0] is "4" ? GetComplexIndex(values) : null
+                };
+
+                static SmartMeterIndex GetComplexIndex(ReadOnlySpan<string> values) => new()
+                {
+                    BaseIndex    = ulong.Parse(values[1], CultureInfo.InvariantCulture),
+                    OffPeakIndex = ulong.Parse(values[2], CultureInfo.InvariantCulture)
+                };
+
+                static SmartMeterIndex GetSimpleIndex(ReadOnlySpan<string> values) => new()
+                {
+                    BaseIndex    = ulong.Parse(values[1], CultureInfo.InvariantCulture),
+                    OffPeakIndex = default
                 };
             }
         }

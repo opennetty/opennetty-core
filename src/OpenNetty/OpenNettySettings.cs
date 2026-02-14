@@ -137,24 +137,44 @@ public static class OpenNettySettings
     public static readonly OpenNettySetting SmartMeterBaseIndexOffset = new("Smart meter base index offset");
 
     /// <summary>
-    /// Smart meter blue index offset.
+    /// Smart meter blue index offset [base].
     /// </summary>
-    public static readonly OpenNettySetting SmartMeterBlueIndexOffset = new("Smart meter blue index offset");
+    public static readonly OpenNettySetting SmartMeterBlueIndexOffsetBase = new("Smart meter blue index offset [base]");
 
     /// <summary>
-    /// Smart meter off-peak index offset.
+    /// Smart meter blue index offset [off-peak].
     /// </summary>
-    public static readonly OpenNettySetting SmartMeterOffPeakIndexOffset = new("Smart meter off-peak index offset");
+    public static readonly OpenNettySetting SmartMeterBlueIndexOffsetOffPeak = new("Smart meter blue index offset [off-peak]");
 
     /// <summary>
-    /// Smart meter red index offset.
+    /// Smart meter peak/off-peak index offset [base].
     /// </summary>
-    public static readonly OpenNettySetting SmartMeterRedIndexOffset = new("Smart meter red index offset");
+    public static readonly OpenNettySetting SmartMeterPeakOffPeakIndexOffsetBase = new("Smart meter peak/off-peak index offset [base]");
 
     /// <summary>
-    /// Smart meter white index offset.
+    /// Smart meter peak/off-peak index offset [off-peak].
     /// </summary>
-    public static readonly OpenNettySetting SmartMeterWhiteIndexOffset = new("Smart meter white index offset");
+    public static readonly OpenNettySetting SmartMeterPeakOffPeakIndexOffsetOffPeak = new("Smart meter peak/off-peak index offset [off-peak]");
+
+    /// <summary>
+    /// Smart meter red index offset [base].
+    /// </summary>
+    public static readonly OpenNettySetting SmartMeterRedIndexOffsetBase = new("Smart meter red index offset [base]");
+
+    /// <summary>
+    /// Smart meter red index offset [off-peak].
+    /// </summary>
+    public static readonly OpenNettySetting SmartMeterRedIndexOffsetOffPeak = new("Smart meter red index offset [off-peak]");
+
+    /// <summary>
+    /// Smart meter white index offset [base].
+    /// </summary>
+    public static readonly OpenNettySetting SmartMeterWhiteIndexOffsetBase = new("Smart meter white index offset [base]");
+
+    /// <summary>
+    /// Smart meter white index offset [off-peak].
+    /// </summary>
+    public static readonly OpenNettySetting SmartMeterWhiteIndexOffsetOffPeak = new("Smart meter white index offset [off-peak]");
 
     /// <summary>
     /// Switch mode.
