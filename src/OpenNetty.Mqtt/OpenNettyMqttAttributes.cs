@@ -72,9 +72,29 @@ public static class OpenNettyMqttAttributes
     public const string ShutterState = "shutter_state";
 
     /// <summary>
-    /// Smart meter indexes.
+    /// Smart meter base index.
     /// </summary>
-    public const string SmartMeterIndexes = "smart_meter_indexes";
+    public const string SmartMeterBaseIndex = "smart_meter_base_index";
+
+    /// <summary>
+    /// Smart meter blue index.
+    /// </summary>
+    public const string SmartMeterBlueIndex = "smart_meter_blue_index";
+
+    /// <summary>
+    /// Smart meter peak/off-peak index.
+    /// </summary>
+    public const string SmartMeterPeakOffPeakIndex = "smart_meter_peak_off_peak_index";
+
+    /// <summary>
+    /// Smart meter red index.
+    /// </summary>
+    public const string SmartMeterRedIndex = "smart_meter_red_index";
+
+    /// <summary>
+    /// Smart meter white index.
+    /// </summary>
+    public const string SmartMeterWhiteIndex = "smart_meter_white_index";
 
     /// <summary>
     /// Smart meter power cut mode.
@@ -85,6 +105,11 @@ public static class OpenNettyMqttAttributes
     /// Smart meter rate type.
     /// </summary>
     public const string SmartMeterRateType = "smart_meter_rate_type";
+
+    /// <summary>
+    /// Smart meter subscription type.
+    /// </summary>
+    public const string SmartMeterSubscriptionType = "smart_meter_subscription_type";
 
     /// <summary>
     /// Startup date.

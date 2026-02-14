@@ -677,18 +677,61 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                             // dedicated "index offset" settings can be used to amend the indexes returned by each smart meter device.
                             await _events.PublishAsync(new SmartMeterIndexesReportedEventArgs(endpoint, indexes with
                             {
-                                BaseIndex    = ComputeIndex(indexes.BaseIndex,    endpoint, OpenNettySettings.SmartMeterBaseIndexOffset)!.GetValueOrDefault(),
-                                BlueIndex    = ComputeIndex(indexes.BlueIndex,    endpoint, OpenNettySettings.SmartMeterBlueIndexOffset),
-                                OffPeakIndex = ComputeIndex(indexes.OffPeakIndex, endpoint, OpenNettySettings.SmartMeterOffPeakIndexOffset),
-                                RedIndex     = ComputeIndex(indexes.RedIndex,     endpoint, OpenNettySettings.SmartMeterRedIndexOffset),
-                                WhiteIndex   = ComputeIndex(indexes.WhiteIndex,   endpoint, OpenNettySettings.SmartMeterWhiteIndexOffset)
+                                BaseIndex = indexes.BaseIndex switch
+                                {
+                                    OpenNettyModels.TemperatureControl.SmartMeterIndex index => new()
+                                    {
+                                        BaseIndex    = ComputeIndex(index.BaseIndex, endpoint, OpenNettySettings.SmartMeterBaseIndexOffset),
+                                        OffPeakIndex = default
+                                    },
+
+                                    _ => null
+                                },
+                                BlueIndex = indexes.BlueIndex switch
+                                {
+                                    OpenNettyModels.TemperatureControl.SmartMeterIndex index => new()
+                                    {
+                                        BaseIndex    = ComputeIndex(index.BaseIndex,    endpoint, OpenNettySettings.SmartMeterBlueIndexOffsetBase),
+                                        OffPeakIndex = ComputeIndex(index.OffPeakIndex, endpoint, OpenNettySettings.SmartMeterBlueIndexOffsetOffPeak)
+                                    },
+
+                                    _ => null
+                                },
+                                PeakOffPeakIndex = indexes.PeakOffPeakIndex switch
+                                {
+                                    OpenNettyModels.TemperatureControl.SmartMeterIndex index => new()
+                                    {
+                                        BaseIndex    = ComputeIndex(index.BaseIndex,    endpoint, OpenNettySettings.SmartMeterPeakOffPeakIndexOffsetBase),
+                                        OffPeakIndex = ComputeIndex(index.OffPeakIndex, endpoint, OpenNettySettings.SmartMeterPeakOffPeakIndexOffsetOffPeak)
+                                    },
+
+                                    _ => null
+                                },
+                                RedIndex = indexes.RedIndex switch
+                                {
+                                    OpenNettyModels.TemperatureControl.SmartMeterIndex index => new()
+                                    {
+                                        BaseIndex    = ComputeIndex(index.BaseIndex,    endpoint, OpenNettySettings.SmartMeterRedIndexOffsetBase),
+                                        OffPeakIndex = ComputeIndex(index.OffPeakIndex, endpoint, OpenNettySettings.SmartMeterRedIndexOffsetOffPeak)
+                                    },
+
+                                    _ => null
+                                },
+                                WhiteIndex = indexes.WhiteIndex switch
+                                {
+                                    OpenNettyModels.TemperatureControl.SmartMeterIndex index => new()
+                                    {
+                                        BaseIndex    = ComputeIndex(index.BaseIndex,    endpoint, OpenNettySettings.SmartMeterWhiteIndexOffsetBase),
+                                        OffPeakIndex = ComputeIndex(index.OffPeakIndex, endpoint, OpenNettySettings.SmartMeterWhiteIndexOffsetOffPeak)
+                                    },
+
+                                    _ => null
+                                }
                             }), cancellationToken);
                         }
 
-                        static ulong? ComputeIndex(ulong? index, OpenNettyEndpoint endpoint, OpenNettySetting setting) => index switch
+                        static ulong ComputeIndex(ulong index, OpenNettyEndpoint endpoint, OpenNettySetting setting) => index switch
                         {
-                            null => null,
-
                             ulong value when endpoint.GetIntegerSetting(setting) is long offset => (ulong) (((long) value) + offset),
                             ulong value => value
                         };

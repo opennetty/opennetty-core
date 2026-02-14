@@ -484,7 +484,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 break;
                             }
 
-                            case OpenNettyMqttAttributes.SmartMeterIndexes when operation is OpenNettyMqttOperation.Get:
+                            case OpenNettyMqttAttributes.SmartMeterBaseIndex        when operation is OpenNettyMqttOperation.Get:
+                            case OpenNettyMqttAttributes.SmartMeterBlueIndex        when operation is OpenNettyMqttOperation.Get:
+                            case OpenNettyMqttAttributes.SmartMeterPeakOffPeakIndex when operation is OpenNettyMqttOperation.Get:
+                            case OpenNettyMqttAttributes.SmartMeterRedIndex         when operation is OpenNettyMqttOperation.Get:
+                            case OpenNettyMqttAttributes.SmartMeterSubscriptionType when operation is OpenNettyMqttOperation.Get:
+                            case OpenNettyMqttAttributes.SmartMeterWhiteIndex       when operation is OpenNettyMqttOperation.Get:
                             {
                                 _ = await _controller.GetSmartMeterIndexesAsync(endpoint);
                                 break;
@@ -1923,7 +1928,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
                                 .CountAsync(cancellationToken)),
-                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterIndexes}",
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterBaseIndex}",
                         ["value_template"] = "{{ value_json.base_index }}"
                     });
 
@@ -1942,8 +1947,27 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
                                 .CountAsync(cancellationToken)),
-                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterIndexes}",
-                        ["value_template"] = "{{ value_json.blue_index }}"
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterBlueIndex}",
+                        ["value_template"] = "{{ value_json.base_index }}"
+                    });
+
+                    AddComponent(components, new JsonObject
+                    {
+                        ["platform"] = "sensor",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "ccf0ce01-7b31-4eb6-995f-94038c186d20"u8),
+                        ["device_class"] = "energy",
+                        ["unit_of_measurement"] = "kWh",
+                        ["suggested_display_precision"] = 0,
+                        ["name"] = ComputeEntityName(
+                            name    : GetLocalizedString(SR.ID8115, culture),
+                            endpoint: endpoint,
+                            culture : culture,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
+                                .CountAsync(cancellationToken)),
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterBlueIndex}",
+                        ["value_template"] = "{{ value_json.off_peak_index }}"
                     });
 
                     AddComponent(components, new JsonObject
@@ -1961,7 +1985,26 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
                                 .CountAsync(cancellationToken)),
-                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterIndexes}",
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterPeakOffPeakIndex}",
+                        ["value_template"] = "{{ value_json.base_index }}"
+                    });
+
+                    AddComponent(components, new JsonObject
+                    {
+                        ["platform"] = "sensor",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "b087f0f1-db08-4a51-897a-dd5427590ad8"u8),
+                        ["device_class"] = "energy",
+                        ["unit_of_measurement"] = "kWh",
+                        ["suggested_display_precision"] = 0,
+                        ["name"] = ComputeEntityName(
+                            name    : GetLocalizedString(SR.ID8116, culture),
+                            endpoint: endpoint,
+                            culture : culture,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
+                                .CountAsync(cancellationToken)),
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterPeakOffPeakIndex}",
                         ["value_template"] = "{{ value_json.off_peak_index }}"
                     });
 
@@ -1980,8 +2023,27 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
                                 .CountAsync(cancellationToken)),
-                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterIndexes}",
-                        ["value_template"] = "{{ value_json.red_index }}"
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterRedIndex}",
+                        ["value_template"] = "{{ value_json.base_index }}"
+                    });
+
+                    AddComponent(components, new JsonObject
+                    {
+                        ["platform"] = "sensor",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "7efb6978-3112-4ef6-86f9-fe9127a4411d"u8),
+                        ["device_class"] = "energy",
+                        ["unit_of_measurement"] = "kWh",
+                        ["suggested_display_precision"] = 0,
+                        ["name"] = ComputeEntityName(
+                            name    : GetLocalizedString(SR.ID8117, culture),
+                            endpoint: endpoint,
+                            culture : culture,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
+                                .CountAsync(cancellationToken)),
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterRedIndex}",
+                        ["value_template"] = "{{ value_json.off_peak_index }}"
                     });
 
                     AddComponent(components, new JsonObject
@@ -1999,8 +2061,27 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
                                 .CountAsync(cancellationToken)),
-                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterIndexes}",
-                        ["value_template"] = "{{ value_json.white_index }}"
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterWhiteIndex}",
+                        ["value_template"] = "{{ value_json.base_index }}"
+                    });
+
+                    AddComponent(components, new JsonObject
+                    {
+                        ["platform"] = "sensor",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "89b5ff55-499a-45f0-948a-28e74e02bc6f"u8),
+                        ["device_class"] = "energy",
+                        ["unit_of_measurement"] = "kWh",
+                        ["suggested_display_precision"] = 0,
+                        ["name"] = ComputeEntityName(
+                            name    : GetLocalizedString(SR.ID8118, culture),
+                            endpoint: endpoint,
+                            culture : culture,
+                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                .Where(endpoint => endpoint.Device == device)
+                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
+                                .CountAsync(cancellationToken)),
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterWhiteIndex}",
+                        ["value_template"] = "{{ value_json.off_peak_index }}"
                     });
 
                     AddComponent(components, new JsonObject
@@ -2017,7 +2098,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
                                 .CountAsync(cancellationToken)),
-                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterIndexes}",
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterSubscriptionType}",
                         ["options"] = new JsonArray(
                         [
                             GetLocalizedString(SR.ID8070, culture),
@@ -2030,7 +2111,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                               'peak/off_peak': '{{{GetLocalizedString(SR.ID8071, culture).Replace("'", "\\'")}}}',
                               'tempo': '{{{GetLocalizedString(SR.ID8072, culture).Replace("'", "\\'")}}}'
                             } %}
-                            {{ map[value_json.subscription_type] }}
+                            {{ map[value] }}
                             """,
                     });
 
@@ -2046,7 +2127,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
                                 .CountAsync(cancellationToken)),
-                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterIndexes}/get",
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterBaseIndex}/get",
                         ["payload_press"] = string.Empty
                     });
                 }
@@ -2082,6 +2163,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     {
                         ["platform"] = "binary_sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "280fd1d1-4220-42ec-bf70-69936b728eb2"u8),
+                        ["device_class"] = "running",
                         ["icon"] = "mdi:transmission-tower-off",
                         ["name"] = ComputeEntityName(
                             name    : GetLocalizedString(SR.ID8077, culture),
@@ -2211,6 +2293,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     {
                         ["platform"] = "binary_sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "344b6548-196d-42de-b627-22530cc28f07"u8),
+                        ["device_class"] = "running",
                         ["icon"] = "mdi:fire",
                         ["name"] = ComputeEntityName(
                             name    : GetLocalizedString(SR.ID8085, culture),
