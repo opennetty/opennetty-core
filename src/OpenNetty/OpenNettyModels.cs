@@ -681,6 +681,22 @@ public static class OpenNettyModels
         }
 
         /// <summary>
+        /// Availability.
+        /// </summary>
+        public enum Availability
+        {
+            /// <summary>
+            /// Offline.
+            /// </summary>
+            Offline = 0,
+
+            /// <summary>
+            /// Online.
+            /// </summary>
+            Online = 1
+        }
+
+        /// <summary>
         /// Memory data.
         /// </summary>
         public sealed record class MemoryData

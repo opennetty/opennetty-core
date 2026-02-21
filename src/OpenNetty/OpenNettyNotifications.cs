@@ -12,33 +12,12 @@ namespace OpenNetty;
 public static class OpenNettyNotifications
 {
     /// <summary>
-    /// Represents a notification dispatched when an outgoing message is ready to be sent.
+    /// Represents a notification dispatched when an outgoing message was rejected by a busy gateway.
     /// </summary>
-    public sealed class MessageReady : OpenNettyNotification
+    public sealed class GatewayBusy : OpenNettyNotification
     {
         /// <summary>
-        /// Gets or sets the message to send.
-        /// </summary>
-        public required OpenNettyMessage Message { get; init; }
-
-        /// <summary>
-        /// Gets or sets the transmission options to use.
-        /// </summary>
-        public required OpenNettyTransmissionOptions Options { get; init; }
-
-        /// <summary>
-        /// Gets or sets the transaction associated with the notification.
-        /// </summary>
-        public required OpenNettyTransaction Transaction { get; init; }
-    }
-
-    /// <summary>
-    /// Represents a notification dispatched when an outgoing message was successfully sent.
-    /// </summary>
-    public sealed class MessageSent : OpenNettyNotification
-    {
-        /// <summary>
-        /// Gets or sets the message that was successfully sent.
+        /// Gets or sets the message that was rejected by the gateway.
         /// </summary>
         public required OpenNettyMessage Message { get; init; }
 
@@ -51,22 +30,6 @@ public static class OpenNettyNotifications
         /// Gets or sets the transaction associated with the notification.
         /// </summary>
         public required OpenNettyTransaction Transaction { get; init; }
-    }
-
-    /// <summary>
-    /// Represents a notification dispatched when an incoming message was received.
-    /// </summary>
-    public sealed class MessageReceived : OpenNettyNotification
-    {
-        /// <summary>
-        /// Gets or sets the received message.
-        /// </summary>
-        public required OpenNettyMessage Message { get; init; }
-
-        /// <summary>
-        /// Gets or sets the session that received the message.
-        /// </summary>
-        public required OpenNettySession Session { get; init; }
     }
 
     /// <summary>
@@ -112,12 +75,49 @@ public static class OpenNettyNotifications
     }
 
     /// <summary>
-    /// Represents a notification dispatched when an outgoing message was not validated by a Nitoo device.
+    /// Represents a notification dispatched when an outgoing message is ready to be sent.
     /// </summary>
-    public sealed class NoActionReceived : OpenNettyNotification
+    public sealed class MessageReady : OpenNettyNotification
     {
         /// <summary>
-        /// Gets or sets the message that wasn't validated by the device.
+        /// Gets or sets the message to send.
+        /// </summary>
+        public required OpenNettyMessage Message { get; init; }
+
+        /// <summary>
+        /// Gets or sets the transmission options to use.
+        /// </summary>
+        public required OpenNettyTransmissionOptions Options { get; init; }
+
+        /// <summary>
+        /// Gets or sets the transaction associated with the notification.
+        /// </summary>
+        public required OpenNettyTransaction Transaction { get; init; }
+    }
+
+    /// <summary>
+    /// Represents a notification dispatched when an incoming message was received.
+    /// </summary>
+    public sealed class MessageReceived : OpenNettyNotification
+    {
+        /// <summary>
+        /// Gets or sets the received message.
+        /// </summary>
+        public required OpenNettyMessage Message { get; init; }
+
+        /// <summary>
+        /// Gets or sets the session that received the message.
+        /// </summary>
+        public required OpenNettySession Session { get; init; }
+    }
+
+    /// <summary>
+    /// Represents a notification dispatched when an outgoing message was successfully sent.
+    /// </summary>
+    public sealed class MessageSent : OpenNettyNotification
+    {
+        /// <summary>
+        /// Gets or sets the message that was successfully sent.
         /// </summary>
         public required OpenNettyMessage Message { get; init; }
 
@@ -154,12 +154,12 @@ public static class OpenNettyNotifications
     }
 
     /// <summary>
-    /// Represents a notification dispatched when an outgoing message was rejected by a busy gateway.
+    /// Represents a notification dispatched when an outgoing message was not validated by a Nitoo device.
     /// </summary>
-    public sealed class GatewayBusy : OpenNettyNotification
+    public sealed class NoActionReceived : OpenNettyNotification
     {
         /// <summary>
-        /// Gets or sets the message that was rejected by the gateway.
+        /// Gets or sets the message that wasn't validated by the device.
         /// </summary>
         public required OpenNettyMessage Message { get; init; }
 
@@ -172,5 +172,27 @@ public static class OpenNettyNotifications
         /// Gets or sets the transaction associated with the notification.
         /// </summary>
         public required OpenNettyTransaction Transaction { get; init; }
+    }
+
+    /// <summary>
+    /// Represents a notification dispatched when a session is closed.
+    /// </summary>
+    public sealed class SessionClosed : OpenNettyNotification
+    {
+        /// <summary>
+        /// Gets or sets the session that was closed.
+        /// </summary>
+        public required OpenNettySession Session { get; init; }
+    }
+
+    /// <summary>
+    /// Represents a notification dispatched when a session is open.
+    /// </summary>
+    public sealed class SessionOpen : OpenNettyNotification
+    {
+        /// <summary>
+        /// Gets or sets the session that was open.
+        /// </summary>
+        public required OpenNettySession Session { get; init; }
     }
 }

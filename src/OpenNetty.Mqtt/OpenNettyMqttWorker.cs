@@ -11,7 +11,6 @@ using System.Net.Mime;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
 using System.Reflection;
-using System.Runtime.CompilerServices;
 using System.Runtime.InteropServices;
 using System.Text;
 using System.Text.Json;
@@ -674,7 +673,36 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
             .Retry()
             .SubscribeAsync(static arguments => ValueTask.CompletedTask);
 
-        await WaitCancellationAsync(cancellationToken);
+        // Wait until the host signals the application is shutting down and then, for each endpoint, publish
+        // an "offline" message to the corresponding availability topic before the MQTT client disconnects.
+        try
+        {
+            var source = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+            using var registration = cancellationToken.Register(static state => ((TaskCompletionSource) state!).SetResult(), source);
+            await source.Task;
+        }
+
+        finally
+        {
+            // Note: the cancellation token provided as a parameter MUST NOT be used here as it is already in a
+            // canceled state and would cause the MQTT client to skip the publication of the availability messages.
+            await Parallel.ForEachAsync(_manager.EnumerateEndpointsAsync(CancellationToken.None), async (endpoint, cancellationToken) =>
+            {
+                var topic = endpoint.GetStringSetting(OpenNettySettings.MqttTopic) ?? endpoint.Name.ToLowerInvariant();
+
+                await client.EnqueueAsync(new MqttApplicationMessageBuilder()
+                    .WithPayload("offline")
+                    .WithPayloadFormatIndicator(MqttPayloadFormatIndicator.CharacterData)
+                    .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
+                    .WithTopic($"{_options.CurrentValue.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}")
+                    .Build());
+            });
+
+            while (client.PendingApplicationMessagesCount is not 0)
+            {
+                await Task.Delay(100, CancellationToken.None);
+            }
+        }
     }
 
     /// <inheritdoc/>
@@ -762,6 +790,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(SupportsLightOrSwitchEntity)
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SwitchState}/set"
                     };
 
@@ -811,11 +840,11 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             ?? OpenNettySettings.HomeAssistantDeviceClasses.Switch;
                     }
 
-                    AddComponent(components, component);
+                    components.Add(CreateEntityNode(component));
 
                     if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
                     {
-                        AddComponent(components, new JsonObject
+                        components.Add(CreateEntityNode(new JsonObject
                         {
                             ["platform"] = "button",
                             ["unique_id"] = ComputeEntityUniqueId(endpoint, "3a10d925-c599-41a9-8a7e-30a04aefec86"u8),
@@ -829,15 +858,16 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                     .Where(SupportsLightOrSwitchEntity)
                                     .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
                                     .CountAsync(cancellationToken)),
+                            ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                             ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SwitchState}/get",
                             ["payload_press"] = string.Empty
-                        });
+                        }));
                     }
 
                     if (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) ||
                         endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
                     {
-                        AddComponent(components, new JsonObject
+                        components.Add(CreateEntityNode(new JsonObject
                         {
                             ["platform"] = "button",
                             ["unique_id"] = ComputeEntityUniqueId(endpoint, "f05ecfb8-70d5-4116-b0a8-2f6d9d02090f"u8),
@@ -852,9 +882,10 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                     .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) ||
                                                        endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
                                     .CountAsync(cancellationToken)),
+                            ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                             ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Brightness}/get",
                             ["payload_press"] = string.Empty
-                        });
+                        }));
                     }
                 }
 
@@ -875,6 +906,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                     .Where(endpoint => endpoint.Device == device)
                                     .Where(SupportsCoverEntity)
                                     .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ShutterState}/set"
                     };
 
@@ -893,12 +925,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         component["position_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ShutterPosition}";
                     }
 
-                    AddComponent(components, component);
+                    components.Add(CreateEntityNode(component));
 
                     if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState) ||
                         endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
                     {
-                        AddComponent(components, new JsonObject
+                        components.Add(CreateEntityNode(new JsonObject
                         {
                             ["platform"] = "button",
                             ["unique_id"] = ComputeEntityUniqueId(endpoint, "3a760f9d-ca89-4c9e-9ad4-8ba40ad36f59"u8),
@@ -913,14 +945,15 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                     .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState) ||
                                                        endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
                                     .CountAsync(cancellationToken)),
+                            ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                             ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ShutterState}/get",
                             ["payload_press"] = string.Empty
-                        });
+                        }));
                     }
 
                     if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
                     {
-                        AddComponent(components, new JsonObject
+                        components.Add(CreateEntityNode(new JsonObject
                         {
                             ["platform"] = "button",
                             ["unique_id"] = ComputeEntityUniqueId(endpoint, "5731274c-e498-4c7b-8671-6de8c448eb99"u8),
@@ -934,9 +967,10 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                     .Where(SupportsCoverEntity)
                                     .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
                                     .CountAsync(cancellationToken)),
+                            ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                             ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ShutterPosition}/get",
                             ["payload_press"] = string.Empty
-                        });
+                        }));
                     }
                 }
 
@@ -1028,6 +1062,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                                    endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioEvent)        ||
                                                    endpoint.HasCapability(OpenNettyCapabilities.ToggleScenarioEvent))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}",
                         ["json_attributes_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}",
                         ["event_types"] = new JsonArray([.. types])
@@ -1038,12 +1073,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         component["device_class"] = type;
                     }
 
-                    AddComponent(components, component);
+                    components.Add(CreateEntityNode(component));
                 }
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioActivation))
                 {
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "63485e4c-a3bd-4fc9-831d-b96bacddade9"u8),
@@ -1055,11 +1090,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioActivation))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                         ["payload_press"] = "action"
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "bca953c0-7598-4baa-91df-f14ddc30450f"u8),
@@ -1071,15 +1107,16 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioActivation))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                         ["payload_press"] = "stop_action",
                         ["enabled_by_default"] = false
-                    });
+                    }));
                 }
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioActivation))
                 {
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "f47365e3-86fa-449f-b84e-a06acc3484b1"u8),
@@ -1091,12 +1128,13 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioActivation))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                         ["payload_press"] = new JsonObject { ["event_type"] = "dimming", ["dimming_step"] = 5 }.ToJsonString(),
                         ["enabled_by_default"] = false
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "5c2db171-97b3-451e-a502-8800928b4335"u8),
@@ -1108,15 +1146,16 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioActivation))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                         ["payload_press"] = new JsonObject { ["event_type"] = "dimming", ["dimming_step"] = -5 }.ToJsonString(),
                         ["enabled_by_default"] = false
-                    });
+                    }));
                 }
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioActivation))
                 {
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "f053a594-66fa-42a6-9237-64d570b2bd57"u8),
@@ -1128,11 +1167,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioActivation))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                         ["payload_press"] = "switch_on"
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "d292636e-00d3-442e-b1db-73d60b4085ec"u8),
@@ -1144,9 +1184,10 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioActivation))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                         ["payload_press"] = "switch_off"
-                    });
+                    }));
                 }
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation) &&
@@ -1158,7 +1199,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     {
                         foreach (var button in buttons)
                         {
-                            AddComponent(components, new JsonObject
+                            components.Add(CreateEntityNode(new JsonObject
                             {
                                 ["platform"] = "button",
                                 ["unique_id"] = ComputeEntityUniqueId(endpoint,
@@ -1174,11 +1215,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                         .Where(endpoint => endpoint.Device == device)
                                         .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
                                         .CountAsync(cancellationToken)),
+                                ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                                 ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                                 ["payload_press"] = new JsonObject { ["event_type"] = "pressure", ["scenario_type"] = "basic", ["button"] = button }.ToJsonString()
-                            });
+                            }));
 
-                            AddComponent(components, new JsonObject
+                            components.Add(CreateEntityNode(new JsonObject
                             {
                                 ["platform"] = "button",
                                 ["unique_id"] = ComputeEntityUniqueId(endpoint,
@@ -1194,11 +1236,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                         .Where(endpoint => endpoint.Device == device)
                                         .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
                                         .CountAsync(cancellationToken)),
+                                ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                                 ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                                 ["payload_press"] = new JsonObject { ["event_type"] = "release_after_short_pressure", ["scenario_type"] = "evolved", ["button"] = button }.ToJsonString()
-                            });
+                            }));
 
-                            AddComponent(components, new JsonObject
+                            components.Add(CreateEntityNode(new JsonObject
                             {
                                 ["platform"] = "button",
                                 ["unique_id"] = ComputeEntityUniqueId(endpoint,
@@ -1214,11 +1257,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                         .Where(endpoint => endpoint.Device == device)
                                         .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
                                         .CountAsync(cancellationToken)),
+                                ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                                 ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                                 ["payload_press"] = new JsonObject { ["event_type"] = "release_after_extended_pressure", ["scenario_type"] = "evolved", ["button"] = button }.ToJsonString()
-                            });
+                            }));
 
-                            AddComponent(components, new JsonObject
+                            components.Add(CreateEntityNode(new JsonObject
                             {
                                 ["platform"] = "button",
                                 ["unique_id"] = ComputeEntityUniqueId(endpoint,
@@ -1234,15 +1278,16 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                         .Where(endpoint => endpoint.Device == device)
                                         .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
                                         .CountAsync(cancellationToken)),
+                                ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                                 ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                                 ["payload_press"] = new JsonObject { ["event_type"] = "extended_pressure", ["scenario_type"] = "evolved", ["button"] = button }.ToJsonString()
-                            });
+                            }));
                         }
                     }
 
                     else
                     {
-                        AddComponent(components, new JsonObject
+                        components.Add(CreateEntityNode(new JsonObject
                         {
                             ["platform"] = "button",
                             ["unique_id"] = ComputeEntityUniqueId(endpoint, "be2887c3-f4ae-4935-bad6-1ffb1227d28b"u8),
@@ -1254,11 +1299,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                     .Where(endpoint => endpoint.Device == device)
                                     .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
                                     .CountAsync(cancellationToken)),
+                            ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                             ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                             ["payload_press"] = new JsonObject { ["event_type"] = "pressure", ["scenario_type"] = "basic" }.ToJsonString()
-                        });
+                        }));
 
-                        AddComponent(components, new JsonObject
+                        components.Add(CreateEntityNode(new JsonObject
                         {
                             ["platform"] = "button",
                             ["unique_id"] = ComputeEntityUniqueId(endpoint, "81e3f75a-fab3-4842-bb5e-1531d20290dd"u8),
@@ -1270,11 +1316,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                     .Where(endpoint => endpoint.Device == device)
                                     .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
                                     .CountAsync(cancellationToken)),
+                            ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                             ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                             ["payload_press"] = new JsonObject { ["event_type"] = "release_after_short_pressure", ["scenario_type"] = "evolved" }.ToJsonString()
-                        });
+                        }));
 
-                        AddComponent(components, new JsonObject
+                        components.Add(CreateEntityNode(new JsonObject
                         {
                             ["platform"] = "button",
                             ["unique_id"] = ComputeEntityUniqueId(endpoint, "3f069e7f-7c8f-4730-b067-9a944f61700b"u8),
@@ -1286,11 +1333,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                     .Where(endpoint => endpoint.Device == device)
                                     .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
                                     .CountAsync(cancellationToken)),
+                            ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                             ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                             ["payload_press"] = new JsonObject { ["event_type"] = "release_after_extended_pressure", ["scenario_type"] = "evolved" }.ToJsonString()
-                        });
+                        }));
 
-                        AddComponent(components, new JsonObject
+                        components.Add(CreateEntityNode(new JsonObject
                         {
                             ["platform"] = "button",
                             ["unique_id"] = ComputeEntityUniqueId(endpoint, "23e04eeb-8b35-44c8-87da-aed3829ce07d"u8),
@@ -1302,9 +1350,10 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                     .Where(endpoint => endpoint.Device == device)
                                     .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
                                     .CountAsync(cancellationToken)),
+                            ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                             ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                             ["payload_press"] = new JsonObject { ["event_type"] = "extended_pressure", ["scenario_type"] = "evolved" }.ToJsonString()
-                        });
+                        }));
                     }
                 }
 
@@ -1317,7 +1366,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     {
                         foreach (var button in buttons)
                         {
-                            AddComponent(components, new JsonObject
+                            components.Add(CreateEntityNode(new JsonObject
                             {
                                 ["platform"] = "button",
                                 ["unique_id"] = ComputeEntityUniqueId(endpoint,
@@ -1333,11 +1382,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                         .Where(endpoint => endpoint.Device == device)
                                         .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
                                         .CountAsync(cancellationToken)),
+                                ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                                 ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                                 ["payload_press"] = new JsonObject { ["event_type"] = "short_pressure", ["scenario_type"] = "plus", ["button"] = button }.ToJsonString()
-                            });
+                            }));
 
-                            AddComponent(components, new JsonObject
+                            components.Add(CreateEntityNode(new JsonObject
                             {
                                 ["platform"] = "button",
                                 ["unique_id"] = ComputeEntityUniqueId(endpoint,
@@ -1353,11 +1403,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                         .Where(endpoint => endpoint.Device == device)
                                         .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
                                         .CountAsync(cancellationToken)),
+                                ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                                 ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                                 ["payload_press"] = new JsonObject { ["event_type"] = "start_of_extended_pressure", ["scenario_type"] = "plus", ["button"] = button }.ToJsonString()
-                            });
+                            }));
 
-                            AddComponent(components, new JsonObject
+                            components.Add(CreateEntityNode(new JsonObject
                             {
                                 ["platform"] = "button",
                                 ["unique_id"] = ComputeEntityUniqueId(endpoint,
@@ -1373,11 +1424,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                         .Where(endpoint => endpoint.Device == device)
                                         .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
                                         .CountAsync(cancellationToken)),
+                                ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                                 ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                                 ["payload_press"] = new JsonObject { ["event_type"] = "extended_pressure", ["scenario_type"] = "plus", ["button"] = button }.ToJsonString()
-                            });
+                            }));
 
-                            AddComponent(components, new JsonObject
+                            components.Add(CreateEntityNode(new JsonObject
                             {
                                 ["platform"] = "button",
                                 ["unique_id"] = ComputeEntityUniqueId(endpoint,
@@ -1393,15 +1445,16 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                         .Where(endpoint => endpoint.Device == device)
                                         .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
                                         .CountAsync(cancellationToken)),
+                                ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                                 ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                                 ["payload_press"] = new JsonObject { ["event_type"] = "end_of_extended_pressure", ["scenario_type"] = "plus", ["button"] = button }.ToJsonString()
-                            });
+                            }));
                         }
                     }
 
                     else
                     {
-                        AddComponent(components, new JsonObject
+                        components.Add(CreateEntityNode(new JsonObject
                         {
                             ["platform"] = "button",
                             ["unique_id"] = ComputeEntityUniqueId(endpoint, "63a92ba4-bec3-453e-a44a-9219e4f4d478"u8),
@@ -1413,11 +1466,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                     .Where(endpoint => endpoint.Device == device)
                                     .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
                                     .CountAsync(cancellationToken)),
+                            ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                             ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                             ["payload_press"] = new JsonObject { ["event_type"] = "short_pressure", ["scenario_type"] = "plus" }.ToJsonString()
-                        });
+                        }));
 
-                        AddComponent(components, new JsonObject
+                        components.Add(CreateEntityNode(new JsonObject
                         {
                             ["platform"] = "button",
                             ["unique_id"] = ComputeEntityUniqueId(endpoint, "e524f94b-9862-4da4-8f57-82c220e4560c"u8),
@@ -1429,11 +1483,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                     .Where(endpoint => endpoint.Device == device)
                                     .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
                                     .CountAsync(cancellationToken)),
+                            ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                             ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                             ["payload_press"] = new JsonObject { ["event_type"] = "start_of_extended_pressure", ["scenario_type"] = "plus" }.ToJsonString()
-                        });
+                        }));
 
-                        AddComponent(components, new JsonObject
+                        components.Add(CreateEntityNode(new JsonObject
                         {
                             ["platform"] = "button",
                             ["unique_id"] = ComputeEntityUniqueId(endpoint, "bf90ede8-9078-4817-8ec4-ef762c3e2077"u8),
@@ -1445,11 +1500,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                     .Where(endpoint => endpoint.Device == device)
                                     .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
                                     .CountAsync(cancellationToken)),
+                            ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                             ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                             ["payload_press"] = new JsonObject { ["event_type"] = "extended_pressure", ["scenario_type"] = "plus" }.ToJsonString()
-                        });
+                        }));
 
-                        AddComponent(components, new JsonObject
+                        components.Add(CreateEntityNode(new JsonObject
                         {
                             ["platform"] = "button",
                             ["unique_id"] = ComputeEntityUniqueId(endpoint, "73ff2263-9962-443a-89a1-f209fba81948"u8),
@@ -1461,15 +1517,16 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                     .Where(endpoint => endpoint.Device == device)
                                     .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
                                     .CountAsync(cancellationToken)),
+                            ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                             ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                             ["payload_press"] = new JsonObject { ["event_type"] = "end_of_extended_pressure", ["scenario_type"] = "plus" }.ToJsonString()
-                        });
+                        }));
                     }
                 }
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioActivation))
                 {
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "9065ccb4-d2c6-47f5-b118-e3d2ecbe20c3"u8),
@@ -1481,11 +1538,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioActivation))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                         ["payload_press"] = "shutter_up"
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "4006cf9e-620c-49d4-81b3-ab060d376966"u8),
@@ -1497,11 +1555,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioActivation))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                         ["payload_press"] = "shutter_down"
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "d13fdcd2-c974-490a-b544-436a91785ffa"u8),
@@ -1513,14 +1572,15 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioActivation))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                         ["payload_press"] = "shutter_stop"
-                    });
+                    }));
                 }
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.BatteryAlert))
                 {
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "binary_sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "b7dd3824-ddc3-4cf3-b79e-168faa710e43"u8),
@@ -1535,10 +1595,11 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.BatteryAlert))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.BatteryAlert}"
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "7f7625f0-2461-4804-9cae-829a1040cd93"u8),
@@ -1552,14 +1613,15 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.BatteryAlert))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.BatteryAlert}/set",
                         ["payload_press"] = "OFF"
-                    });
+                    }));
                 }
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.BatteryLevel))
                 {
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "6a8c7f1c-426a-47ab-97a1-a476acc603fd"u8),
@@ -1574,13 +1636,14 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.BatteryLevel))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.BatteryLevel}"
-                    });
+                    }));
                 }
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.FirmwareVersion))
                 {
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "3a92e77f-3910-4a20-9d19-caa1961dc33d"u8),
@@ -1593,10 +1656,11 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.FirmwareVersion))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.FirmwareVersion}"
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "e4fa32b3-9e9f-43b5-810a-cdb75acf44e5"u8),
@@ -1610,14 +1674,15 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.FirmwareVersion))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.FirmwareVersion}/get",
                         ["payload_press"] = string.Empty
-                    });
+                    }));
                 }
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.HardwareVersion))
                 {
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "1091f326-0c22-4c59-af04-d0a6ee429a0c"u8),
@@ -1630,10 +1695,11 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.HardwareVersion))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.HardwareVersion}"
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "0371ccbb-52fd-4288-a943-b2f04a7b1e8b"u8),
@@ -1647,14 +1713,15 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.HardwareVersion))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.HardwareVersion}/get",
                         ["payload_press"] = string.Empty
-                    });
+                    }));
                 }
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.MacAddress))
                 {
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "a8de45b2-0bb5-4375-b33b-0869623e40a7"u8),
@@ -1667,10 +1734,11 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.MacAddress))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.MacAddress}"
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "aa1968e6-f232-4b96-a29f-0e64de093bb0"u8),
@@ -1684,16 +1752,17 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.MacAddress))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.MacAddress}/get",
                         ["payload_press"] = string.Empty
-                    });
+                    }));
                 }
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchControl) &&
                     endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
                 {
                     // Note: endpoints that use the "push button" mode are always represented as buttons instead of light entities.
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "5c207503-bbc7-47dc-a4a7-8833c5bf058f"u8),
@@ -1706,14 +1775,15 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchControl))
                                 .Where(endpoint => endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SwitchState}/set",
                         ["payload_press"] = "ON"
-                    });
+                    }));
                 }
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireControl))
                 {
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "select",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "205a01a1-ba4c-4e9b-a19a-c1589c445cbb"u8),
@@ -1726,6 +1796,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireControl))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.PilotWireSetpointMode}/set",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.PilotWireSetpointMode}",
                         ["options"] = new JsonArray(
@@ -1756,9 +1827,9 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             } %}
                             {{ map[value] }}
                             """
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "7a9130b9-675a-437d-b806-cbfe6f6e20a6"u8),
@@ -1771,14 +1842,15 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireControl))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.PilotWireSetpointMode}/get",
                         ["payload_press"] = string.Empty
-                    });
+                    }));
                 }
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireDerogation))
                 {
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "select",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "f5f57920-d758-4ca8-8161-2614d4abeef0"u8),
@@ -1791,6 +1863,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireDerogation))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.PilotWireDerogationMode}/set",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.PilotWireDerogationMode}",
                         ["options"] = new JsonArray(
@@ -1854,9 +1927,9 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             } %}
                             {{ map[value] }}
                             """
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "787582e8-0c5f-4c97-9277-0ad23dab4024"u8),
@@ -1869,14 +1942,15 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireDerogation))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.PilotWireDerogationMode}/get",
                         ["payload_press"] = string.Empty
-                    });
+                    }));
                 }
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.PilotWireShutdown))
                 {
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "switch",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "178d9f9b-e87a-4ebf-8db3-80e1e1a091df"u8),
@@ -1889,11 +1963,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireShutdown))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.PilotWireShutdownMode}/set",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.PilotWireShutdownMode}"
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "ecc822a6-57ab-4352-8d2c-d85dc73df5da"u8),
@@ -1906,14 +1981,15 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireShutdown))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.PilotWireShutdownMode}/get",
                         ["payload_press"] = string.Empty
-                    });
+                    }));
                 }
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
                 {
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "6c83787a-3537-49fa-b409-dc15d5c37b43"u8),
@@ -1928,11 +2004,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterBaseIndex}",
                         ["value_template"] = "{{ value_json.base_index }}"
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "0a9d909b-8449-496e-b38c-4dc3e2653288"u8),
@@ -1947,11 +2024,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterBlueIndex}",
                         ["value_template"] = "{{ value_json.base_index }}"
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "ccf0ce01-7b31-4eb6-995f-94038c186d20"u8),
@@ -1966,11 +2044,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterBlueIndex}",
                         ["value_template"] = "{{ value_json.off_peak_index }}"
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "2661d8db-085a-41bb-bab6-a1627cbf91d0"u8),
@@ -1985,11 +2064,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterPeakOffPeakIndex}",
                         ["value_template"] = "{{ value_json.base_index }}"
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "b087f0f1-db08-4a51-897a-dd5427590ad8"u8),
@@ -2004,11 +2084,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterPeakOffPeakIndex}",
                         ["value_template"] = "{{ value_json.off_peak_index }}"
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "7dcf846c-fbdd-4457-9a17-9cbc0a7c072b"u8),
@@ -2023,11 +2104,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterRedIndex}",
                         ["value_template"] = "{{ value_json.base_index }}"
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "7efb6978-3112-4ef6-86f9-fe9127a4411d"u8),
@@ -2042,11 +2124,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterRedIndex}",
                         ["value_template"] = "{{ value_json.off_peak_index }}"
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "1de29bc5-70b6-4302-aa27-8ecbcce13ec9"u8),
@@ -2061,11 +2144,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterWhiteIndex}",
                         ["value_template"] = "{{ value_json.base_index }}"
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "89b5ff55-499a-45f0-948a-28e74e02bc6f"u8),
@@ -2080,11 +2164,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterWhiteIndex}",
                         ["value_template"] = "{{ value_json.off_peak_index }}"
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "e07f0687-6ca1-47d9-a5b7-b20c0e79775a"u8),
@@ -2098,6 +2183,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterSubscriptionType}",
                         ["options"] = new JsonArray(
                         [
@@ -2113,9 +2199,9 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             } %}
                             {{ map[value] }}
                             """,
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "2eddee8f-7c81-47ea-a775-785e9dfb5c26"u8),
@@ -2127,14 +2213,15 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterBaseIndex}/get",
                         ["payload_press"] = string.Empty
-                    });
+                    }));
                 }
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))
                 {
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "31eda1f3-343f-4cd7-9f56-ea792fcaec7f"u8),
@@ -2148,6 +2235,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterRateType}",
                         ["options"] = new JsonArray([GetLocalizedString(SR.ID8075, culture), GetLocalizedString(SR.ID8076, culture)]),
                         ["value_template"] = $$$"""
@@ -2157,9 +2245,9 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             } %}
                             {{ map[value] }}
                             """,
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "binary_sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "280fd1d1-4220-42ec-bf70-69936b728eb2"u8),
@@ -2173,10 +2261,11 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterPowerCutMode}"
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "91e32508-61fa-46e3-ba57-32166b2de116"u8),
@@ -2189,11 +2278,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterRateType}/get",
                         ["payload_press"] = string.Empty
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "df24321d-01e8-4d1a-9cca-92ece18934b4"u8),
@@ -2206,14 +2296,15 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterPowerCutMode}/get",
                         ["payload_press"] = string.Empty
-                    });
+                    }));
                 }
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.Uptime))
                 {
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "46c1f892-f9bf-46b6-8658-fed1d7eb177b"u8),
@@ -2227,10 +2318,11 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.Uptime))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.StartupDate}",
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "5e9b5094-b028-492c-8be4-5b73139e2c57"u8),
@@ -2243,14 +2335,15 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.Uptime))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.StartupDate}/get",
                         ["payload_press"] = string.Empty
-                    });
+                    }));
                 }
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
                 {
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "select",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "733d9bf6-fd89-4ce1-bd71-d12a1c6a846e"u8),
@@ -2263,6 +2356,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.WaterHeaterSetpointMode}/set",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.WaterHeaterSetpointMode}",
                         ["options"] = new JsonArray(
@@ -2287,9 +2381,9 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             } %}
                             {{ map[value] }}
                             """
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "binary_sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "344b6548-196d-42de-b627-22530cc28f07"u8),
@@ -2303,12 +2397,13 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.WaterHeaterState}",
                         ["payload_on"] = "heating",
                         ["payload_off"] = "idle"
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "9aa4633b-c253-4623-a80c-54ba9d681777"u8),
@@ -2321,11 +2416,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.WaterHeaterSetpointMode}/get",
                         ["payload_press"] = string.Empty
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "bb186d7c-f49d-4aa2-8770-a0fdcf9de123"u8),
@@ -2338,14 +2434,15 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.WaterHeaterState}/get",
                         ["payload_press"] = string.Empty
-                    });
+                    }));
                 }
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.WirelessBurglarAlarmState))
                 {
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "2dd476d5-a35a-442a-a3f2-4c2621dcf375"u8),
@@ -2359,6 +2456,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.WirelessBurglarAlarmState))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.WirelessBurglarAlarmState}",
                         ["options"] = new JsonArray(
                         [
@@ -2380,12 +2478,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             } %}
                             {{ map[value] }}
                             """
-                    });
+                    }));
                 }
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.ZigbeeBinding))
                 {
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "binary_sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "ee8cc336-01cb-4485-a377-dc5603c64a13"u8),
@@ -2400,6 +2498,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeBinding))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeBinding}",
                         ["value_template"] = """
                             {% set map = {
@@ -2409,9 +2508,9 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             } %}
                             {{ map[value] }}
                             """
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "d04dc07d-b614-4e3e-aeac-ccaead40d919"u8),
@@ -2425,11 +2524,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeBinding))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeBinding}/set",
                         ["payload_press"] = "bind"
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "55a25c45-cb7a-4b74-baa4-7f9b87465d1a"u8),
@@ -2443,14 +2543,15 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeBinding))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeBinding}/set",
                         ["payload_press"] = "unbind"
-                    });
+                    }));
                 }
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
                 {
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "binary_sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "da843c15-49d4-4a14-a7cb-4806783cd8a0"u8),
@@ -2465,6 +2566,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeNetwork}",
                         ["value_template"] = """
                             {% set map = {
@@ -2476,9 +2578,9 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             } %}
                             {{ map[value] }}
                             """
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "5ea35f24-9a6c-4d62-b000-85e6a9ef5380"u8),
@@ -2492,10 +2594,11 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeChannel}",
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "abda41d7-1b4c-41cc-99b9-81b7bc5801d3"u8),
@@ -2509,10 +2612,11 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeDevicesCount}",
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "b7355e3d-0137-41e7-90fa-8b81b9530466"u8),
@@ -2526,11 +2630,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeChannel}/get",
                         ["payload_press"] = string.Empty
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "6c550d13-cbd5-4a7a-b445-1c30e9b83c65"u8),
@@ -2544,11 +2649,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeDevicesCount}/get",
                         ["payload_press"] = string.Empty
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "f366a06c-6d7f-4741-a99a-490fedeabf9f"u8),
@@ -2561,11 +2667,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeNetwork}/set",
                         ["payload_press"] = "create"
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "1c56979a-3ad2-4b9b-9116-cd7321416b6a"u8),
@@ -2578,11 +2685,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeNetwork}/set",
                         ["payload_press"] = "join"
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "63096c5c-3fba-4ea7-a30d-3568b0680e18"u8),
@@ -2595,12 +2703,13 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeNetwork}/set",
                         ["payload_press"] = "leave",
                         ["enabled_by_default"] = false
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "09953b7d-0e18-4fc9-9b8c-2a11b52a15c5"u8),
@@ -2613,11 +2722,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeNetwork}/set",
                         ["payload_press"] = "open"
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "7e344b36-199e-4a43-987f-59fccacc859b"u8),
@@ -2630,11 +2740,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeNetwork}/set",
                         ["payload_press"] = "close"
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "f6a3d89f-a3a4-4776-a6b0-a0e3328183ee"u8),
@@ -2647,11 +2758,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeSupervision}/set",
                         ["payload_press"] = "enable"
-                    });
+                    }));
 
-                    AddComponent(components, new JsonObject
+                    components.Add(CreateEntityNode(new JsonObject
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "35f91e70-674d-4977-9475-ba231553051d"u8),
@@ -2664,9 +2776,10 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .Where(endpoint => endpoint.Device == device)
                                 .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
                                 .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeSupervision}/set",
                         ["payload_press"] = "disable"
-                    });
+                    }));
                 }
             }
 
@@ -2692,7 +2805,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
             }
         }
 
-        static void AddComponent(JsonObject components, JsonObject component)
+        static KeyValuePair<string, JsonNode?> CreateEntityNode(JsonObject component)
         {
             var identifier = (string?) component["unique_id"]?.AsValue();
             if (string.IsNullOrEmpty(identifier))
@@ -2700,7 +2813,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 throw new InvalidOperationException(SR.GetResourceString(SR.ID0119));
             }
 
-            components.Add($"entity_{identifier}", component);
+            return KeyValuePair.Create<string, JsonNode?>($"entity_{identifier}", component);
         }
 
         static JsonObject CreateDeviceNode(OpenNettyDevice device, CultureInfo culture)
@@ -2725,9 +2838,9 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 node["connections"] = new JsonArray([new JsonArray(["mac", OpenNettyDeviceIdentifier.ToMacAddress(device.Identifier)])]);
             }
 
-            if (device.Gateway is not null)
+            if (device.Gateway is OpenNettyGateway gateway)
             {
-                node["via_device"] = ComputeDeviceUniqueId(device.Gateway.Device);
+                node["via_device"] = ComputeDeviceUniqueId(gateway.Device);
             }
 
             if (device.GetStringSetting(OpenNettySettings.HomeAssistantSuggestedArea) is { Length: > 0 } area)
@@ -2859,12 +2972,4 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
             _ => (null, null, null)
         };
-
-    [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-    static async Task WaitCancellationAsync(CancellationToken cancellationToken)
-    {
-        var source = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-        using var registration = cancellationToken.Register(static state => ((TaskCompletionSource) state!).SetResult(), source);
-        await source.Task;
-    }
 }

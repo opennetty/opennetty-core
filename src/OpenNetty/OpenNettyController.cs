@@ -1293,7 +1293,7 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
-        if (endpoint.Protocol is OpenNettyProtocol.Nitoo)
+        if (endpoint.Protocol is OpenNettyProtocol.Nitoo && !endpoint.HasCapability(OpenNettyCapabilities.OpenWebNetGateway))
         {
             var description = await GetDeviceDescriptionAsync(endpoint, cancellationToken);
             return description.Version;

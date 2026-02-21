@@ -312,6 +312,48 @@ public class OpenNettyManager
     }
 
     /// <summary>
+    /// Resolves all the endpoints matching the specified gateway and device.
+    /// </summary>
+    /// <param name="gateway">The gateway used to communicate with the endpoint.</param>
+    /// <param name="device">The device.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>
+    /// An <see cref="IAsyncEnumerable{T}"/> that can be used to iterate the endpoints associated with the device.
+    /// </returns>
+    public virtual async IAsyncEnumerable<OpenNettyEndpoint> FindEndpointsByDeviceAsync(
+        OpenNettyGateway gateway, OpenNettyDevice device,
+        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        await foreach (var endpoint in EnumerateEndpointsAsync(cancellationToken))
+        {
+            if (endpoint.Gateway == gateway && endpoint.Device == device)
+            {
+                yield return endpoint;
+            }
+        }
+    }
+
+    /// <summary>
+    /// Resolves all the endpoints matching the specified gateway.
+    /// </summary>
+    /// <param name="gateway">The gateway used to communicate with the endpoint.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>
+    /// An <see cref="IAsyncEnumerable{T}"/> that can be used to iterate the endpoints associated with the gateway.
+    /// </returns>
+    public virtual async IAsyncEnumerable<OpenNettyEndpoint> FindEndpointsByGatewayAsync(
+        OpenNettyGateway gateway, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    {
+        await foreach (var endpoint in EnumerateEndpointsAsync(cancellationToken))
+        {
+            if (endpoint.Gateway == gateway)
+            {
+                yield return endpoint;
+            }
+        }
+    }
+
+    /// <summary>
     /// Resolves a gateway using the specified name.
     /// </summary>
     /// <param name="name">The gateway name.</param>

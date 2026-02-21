@@ -82,6 +82,22 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
+            await _events.AvailabilityReported
+                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Availability, builder =>
+                {
+                    builder.WithPayload(arguments.Availability switch
+                    {
+                        OpenNettyModels.Diagnostics.Availability.Offline => "offline",
+                        OpenNettyModels.Diagnostics.Availability.Online  => "online",
+
+                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+                    });
+                    builder.WithRetainFlag();
+                }))
+                .Retry()
+                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
+
             await _events.BatteryAlertReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.BatteryAlert, builder =>

@@ -385,11 +385,13 @@ public sealed class OpenNettyBuilder
                 Capabilities = GetCapabilities(endpoint),
                 Description = (string?) endpoint.Attribute("Description"),
                 Device = device,
-                Gateway = (string?) endpoint.Attribute("GatewayName") is string gateway ?
-                    FindGatewayByName(gateways, gateway) :
-                    device?.Gateway ??
-                    gateways.FirstOrDefault(gateway => gateway.Protocol == protocol) ??
-                    throw new InvalidOperationException(SR.FormatID0106(protocol)),
+                Gateway = device is not null && device.HasCapability(OpenNettyCapabilities.OpenWebNetGateway)
+                    ? gateways.Single(gateway => gateway.Device == device)
+                    : (string?) endpoint.Attribute("GatewayName") is string gateway ?
+                        FindGatewayByName(gateways, gateway) :
+                        device?.Gateway ??
+                        gateways.FirstOrDefault(gateway => gateway.Protocol == protocol) ??
+                        throw new InvalidOperationException(SR.FormatID0106(protocol)),
                 Medium = device?.Definition.Medium,
                 Name = name ?? ComputeDefaultEndpointName(protocol, address, device, unit),
                 Protocol = protocol,

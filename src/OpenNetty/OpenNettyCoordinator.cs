@@ -2301,6 +2301,34 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
         .Retry()
         .SubscribeAsync(static notification => ValueTask.CompletedTask),
 
+        // Note: this event handler is responsible for reporting the available/unavailable
+        // state of all the OpenNetty endpoints by monitoring the session open/closed events.
+        await _pipeline.SelectMany(static notification => notification switch
+        {
+            OpenNettyNotifications.SessionOpen {
+                Session.Type: OpenNettySessionType.Event or OpenNettySessionType.Generic }
+                => AsyncObservable.Return(notification),
+
+            OpenNettyNotifications.SessionClosed {
+                Session.Type: OpenNettySessionType.Event or OpenNettySessionType.Generic }
+                => AsyncObservable.Return(notification),
+
+            _ => AsyncObservable.Empty<OpenNettyNotification>()
+        })
+        .Do(onNext: async notification => await Parallel.ForEachAsync(_manager.FindEndpointsByGatewayAsync(notification.Gateway), async (endpoint, cancellationToken) =>
+        {
+            await _events.PublishAsync(new AvailabilityReportedEventArgs(endpoint, notification switch
+            {
+                OpenNettyNotifications.SessionOpen   => OpenNettyModels.Diagnostics.Availability.Online,
+                OpenNettyNotifications.SessionClosed => OpenNettyModels.Diagnostics.Availability.Offline,
+
+                _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0068))
+            }), cancellationToken).AsTask();
+        }))
+        .Do(onError: exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
+        .Retry()
+        .SubscribeAsync(static message => ValueTask.CompletedTask),
+
         // Note: this event is responsible for synchronizing the date/time of compatible OpenWebNet gateways at regular intervals.
         await AsyncObservable.Interval(TimeSpan.FromMinutes(10))
         .ObserveOn(TaskPoolAsyncScheduler.Default)
