@@ -90,7 +90,7 @@ public sealed class OpenNettyHostedService : BackgroundService
                 // Monitor all the notifications that should be handled by the worker and copy them to the output channel.
                 await subscriptions.AddAsync(await _pipeline
                     .Where(notification => notification.Gateway == gateway)
-                    .Do(notification => output.Writer.WriteAsync(notification))
+                    .Do(notification => output.Writer.WriteAsync(notification, stoppingToken))
                     .Retry()
                     .SubscribeAsync(static notification => ValueTask.CompletedTask));
 

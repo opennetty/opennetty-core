@@ -77,6 +77,12 @@ public sealed class OpenNettyEvents : IDisposable
         => _observable.OfType<EventArgs, ActionScenarioReportedEventArgs>();
 
     /// <summary>
+    /// Gets an event triggered when the availability of an endpoint is reported.
+    /// </summary>
+    public IAsyncObservable<AvailabilityReportedEventArgs> AvailabilityReported
+        => _observable.OfType<EventArgs, AvailabilityReportedEventArgs>();
+
+    /// <summary>
     /// Gets an event triggered when a battery alert is reported.
     /// </summary>
     public IAsyncObservable<BatteryAlertReportedEventArgs> BatteryAlertReported
@@ -306,6 +312,14 @@ public sealed class OpenNettyEvents : IDisposable
     /// <param name="Type">The action scenario type.</param>
     public sealed record class ActionScenarioReportedEventArgs(OpenNettyEndpoint Endpoint,
         OpenNettyModels.ScenariosPlus.ActionScenarioType Type) : EventArgs(Endpoint);
+
+    /// <summary>
+    /// Represents event arguments used when the availability of an endpoint is reported.
+    /// </summary>
+    /// <param name="Endpoint">The endpoint.</param>
+    /// <param name="Availability">The gateway availability.</param>
+    public sealed record class AvailabilityReportedEventArgs(OpenNettyEndpoint Endpoint,
+        OpenNettyModels.Diagnostics.Availability Availability) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when a battery alert is reported.

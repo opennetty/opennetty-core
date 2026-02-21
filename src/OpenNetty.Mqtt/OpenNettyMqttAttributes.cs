@@ -12,6 +12,11 @@ namespace OpenNetty.Mqtt;
 public static class OpenNettyMqttAttributes
 {
     /// <summary>
+    /// Availability.
+    /// </summary>
+    public const string Availability = "availability";
+
+    /// <summary>
     /// Battery alert.
     /// </summary>
     public const string BatteryAlert = "battery_alert";

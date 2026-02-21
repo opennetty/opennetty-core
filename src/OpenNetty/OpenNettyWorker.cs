@@ -80,6 +80,12 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
 
                 _logger.LogDebug(6007, SR.GetResourceString(SR.ID6007), type, gateway, session);
 
+                await writer.WriteAsync(cancellationToken: cancellationToken, item: new OpenNettyNotifications.SessionOpen
+                {
+                    Gateway = gateway,
+                    Session = session
+                });
+
                 try
                 {
                     await using (await session.SubscribeAsync(
@@ -87,7 +93,7 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
                         {
                             _logger.LogDebug(6009, SR.GetResourceString(SR.ID6009), gateway, session, message);
 
-                            await writer.WriteAsync(new OpenNettyNotifications.MessageReceived
+                            await writer.WriteAsync(cancellationToken: cancellationToken, item: new OpenNettyNotifications.MessageReceived
                             {
                                 Gateway = gateway,
                                 Message = message,
@@ -122,11 +128,23 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
                     }
 
                     _logger.LogDebug(6008, SR.GetResourceString(SR.ID6008), session);
+
+                    await writer.WriteAsync(cancellationToken: cancellationToken, item: new OpenNettyNotifications.SessionClosed
+                    {
+                        Gateway = gateway,
+                        Session = session
+                    });
                 }
 
                 catch (OperationCanceledException) when (source.Token.IsCancellationRequested)
                 {
                     _logger.LogDebug(6008, SR.GetResourceString(SR.ID6008), session);
+
+                    await writer.WriteAsync(cancellationToken: cancellationToken, item: new OpenNettyNotifications.SessionClosed
+                    {
+                        Gateway = gateway,
+                        Session = session
+                    });
                 }
             }, context);
         }
@@ -156,6 +174,12 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
 
                     _logger.LogDebug(6007, SR.GetResourceString(SR.ID6007), type, gateway, session);
 
+                    await writer.WriteAsync(cancellationToken: cancellationToken, item: new OpenNettyNotifications.SessionOpen
+                    {
+                        Gateway = gateway,
+                        Session = session
+                    });
+
                     try
                     {
                         await using var subscription = await session.SubscribeAsync(
@@ -163,7 +187,7 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
                             {
                                 _logger.LogDebug(6009, SR.GetResourceString(SR.ID6009), gateway, session, message);
 
-                                await writer.WriteAsync(new OpenNettyNotifications.MessageReceived
+                                await writer.WriteAsync(cancellationToken: cancellationToken, item: new OpenNettyNotifications.MessageReceived
                                 {
                                     Gateway = gateway,
                                     Message = message,
@@ -209,11 +233,23 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
                         while (reader.TryRead(out notification) || stopwatch.Elapsed < options.CommandSessionMaximumLifetime);
 
                         _logger.LogDebug(6008, SR.GetResourceString(SR.ID6008), session);
+
+                        await writer.WriteAsync(cancellationToken: cancellationToken, item: new OpenNettyNotifications.SessionClosed
+                        {
+                            Gateway = gateway,
+                            Session = session
+                        });
                     }
 
                     catch (OperationCanceledException) when (source.Token.IsCancellationRequested)
                     {
                         _logger.LogDebug(6008, SR.GetResourceString(SR.ID6008), session);
+
+                        await writer.WriteAsync(cancellationToken: cancellationToken, item: new OpenNettyNotifications.SessionClosed
+                        {
+                            Gateway = gateway,
+                            Session = session
+                        });
                     }
                 }
             }, context);
