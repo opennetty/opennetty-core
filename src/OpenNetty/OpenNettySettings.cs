@@ -27,6 +27,16 @@ public static class OpenNettySettings
     public static readonly OpenNettySetting FunctionType = new("Function type");
 
     /// <summary>
+    /// Home Assistant button icon.
+    /// </summary>
+    public static readonly OpenNettySetting HomeAssistantButtonIcon = new("Home Assistant button icon");
+
+    /// <summary>
+    /// Home Assistant button name.
+    /// </summary>
+    public static readonly OpenNettySetting HomeAssistantButtonName = new("Home Assistant button name");
+
+    /// <summary>
     /// Home Assistant cover device class.
     /// </summary>
     public static readonly OpenNettySetting HomeAssistantCoverDeviceClass = new("Home Assistant cover device class");

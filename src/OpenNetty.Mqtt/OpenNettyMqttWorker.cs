@@ -1766,15 +1766,17 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "5c207503-bbc7-47dc-a4a7-8833c5bf058f"u8),
-                        ["name"] = ComputeEntityName(
-                            name    : GetLocalizedString(SR.ID8038, culture),
-                            endpoint: endpoint,
-                            culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchControl))
-                                .Where(endpoint => endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
-                                .CountAsync(cancellationToken)),
+                        ["icon"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantButtonIcon) ?? "mdi:button-pointer",
+                        ["name"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantButtonName) ??
+                            ComputeEntityName(
+                                name    : GetLocalizedString(SR.ID8038, culture),
+                                endpoint: endpoint,
+                                culture : culture,
+                                count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
+                                    .Where(endpoint => endpoint.Device == device)
+                                    .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchControl))
+                                    .Where(endpoint => endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
+                                    .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SwitchState}/set",
                         ["payload_press"] = "ON"
