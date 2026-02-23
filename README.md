@@ -133,7 +133,7 @@ server/port/username/password attributes to match the values used by your MQTT b
 ```xml
 <Configuration>
 
-  <Mqtt Server="192.168.5.1" Port="1883" Username="jeedom" Password="koIiuhTFGtrdRkjLKhYGvgfFSDr" />
+  <Mqtt Server="192.168.5.1" Port="1883" Username="opennetty" Password="koIiuhTFGtrdRkjLKhYGvgfFSDr" />
 
 </Configuration>
 ```
@@ -150,7 +150,7 @@ server/port/username/password attributes to match the values used by your MQTT b
 > ```xml
 > <Configuration>
 > 
->   <Mqtt Server="192.168.5.1" Port="8883" Username="jeedom" Password="koIiuhTFGtrdRkjLKhYGvgfFSDr"
+>   <Mqtt Server="192.168.5.1" Port="8883" Username="opennetty" Password="koIiuhTFGtrdRkjLKhYGvgfFSDr"
 >         TlsServerCertificateAuthorityFile="ca.crt"
 >         TlsClientCertificateFile="client.crt"
 >         TlsClientCertificatePrivateKeyFile="client.key"
@@ -170,7 +170,7 @@ attribute to a specific value. At the time of writing, both English and French a
 ```xml
 <Configuration>
 
-  <Mqtt Server="192.168.5.1" Port="1883" Username="jeedom" Password="koIiuhTFGtrdRkjLKhYGvgfFSDr"
+  <Mqtt Server="192.168.5.1" Port="1883" Username="opennetty" Password="koIiuhTFGtrdRkjLKhYGvgfFSDr"
         HomeAssistantDiscoveryUICulture="fr" />
 
 </Configuration>
@@ -187,7 +187,7 @@ socket to initiate OpenWebNet sessions:
 ```xml
 <Configuration>
 
-  <Mqtt Server="192.168.5.1" Port="1883" Username="jeedom" Password="koIiuhTFGtrdRkjLKhYGvgfFSDr" />
+  <Mqtt Server="192.168.5.1" Port="1883" Username="opennetty" Password="koIiuhTFGtrdRkjLKhYGvgfFSDr" />
 
   <!-- In One by Legrand gateway -->
 
@@ -257,7 +257,7 @@ For that, you need to add a `Device` node with the correct brand/model attribute
 ```xml
 <Configuration>
 
-  <Mqtt Server="192.168.5.1" Port="1883" Username="jeedom" Password="koIiuhTFGtrdRkjLKhYGvgfFSDr" />
+  <Mqtt Server="192.168.5.1" Port="1883" Username="opennetty" Password="koIiuhTFGtrdRkjLKhYGvgfFSDr" />
 
   <!-- In One by Legrand gateway -->
 
@@ -405,9 +405,6 @@ sudo service opennetty start
 >
 > If your home automation software requires configuring devices manually, the complete list of supported
 > MQTT attributes can be found in the [`OpenNettyMqttAttributes.cs` file](src/OpenNetty.Mqtt/OpenNettyMqttAttributes.cs).
->
-> Base templates for Jeedom's [jMQTT plugin](https://market.jeedom.com/index.php?v=d&p=market_display&id=3166)
-> can also be found in the [opennetty-resources](https://github.com/opennetty/opennetty-resources) repository.
 
 ### If necessary, change the default log level
 
