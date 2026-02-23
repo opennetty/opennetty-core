@@ -144,12 +144,15 @@ public sealed class OpenNettyMqttBuilder
 
         builder.WithProtocolVersion(MqttProtocolVersion.V500);
 
-        var username = (string?) element.Attribute("Username");
-        var password = (string?) element.Attribute("Password");
-
-        if (!string.IsNullOrEmpty(username) && !string.IsNullOrEmpty(password))
+        if ((string?) element.Attribute("Username") is { Length: > 0 } username &&
+            (string?) element.Attribute("Password") is { Length: > 0 } password)
         {
             builder.WithCredentials(username, password);
+        }
+
+        if ((string?) element.Attribute("ClientId") is { Length: > 0 } identifier)
+        {
+            builder.WithClientId(identifier);
         }
 
         builder.WithTlsOptions(builder =>

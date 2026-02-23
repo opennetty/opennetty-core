@@ -596,7 +596,7 @@ public sealed class OpenNettyBuilder
             }
 
             var definition = OpenNettyDevices.GetUnitByModel(Enum.Parse<OpenNettyBrand>(brand), model, unit)
-                ?? throw new InvalidOperationException(SR.FormatID0087(brand, model, unit));
+                ?? throw new InvalidOperationException(SR.FormatID0087(unit, brand, model));
 
             return new()
             {
