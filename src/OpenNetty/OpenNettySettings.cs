@@ -122,6 +122,16 @@ public static class OpenNettySettings
     public static readonly OpenNettySetting PushButtonNumbers = new("Push button numbers");
 
     /// <summary>
+    /// Raw incoming messages.
+    /// </summary>
+    public static readonly OpenNettySetting RawIncomingMessages = new("Raw incoming messages");
+
+    /// <summary>
+    /// Raw outgoing messages.
+    /// </summary>
+    public static readonly OpenNettySetting RawOutgoingMessages = new("Raw outgoing messages");
+
+    /// <summary>
     /// Serial port baud rate.
     /// </summary>
     public static readonly OpenNettySetting SerialPortBaudRate = new("Serial port baud rate");

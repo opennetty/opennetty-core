@@ -171,6 +171,21 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 break;
                             }
 
+                            case OpenNettyMqttAttributes.OutgoingMessage when operation is OpenNettyMqttOperation.Set:
+                            {
+                                var parameters = TryParseAsJsonObject(message.ConvertPayloadToString())
+                                    ?? throw new InvalidDataException(SR.GetResourceString(SR.ID0068));
+
+                                await _controller.SendRawMessageAsync(endpoint, parameters["message"]?["raw"]?.GetValue<string>() switch
+                                {
+                                    { Length: > 0 } frame => OpenNettyMessage.CreateFromFrame(endpoint.Protocol, frame),
+
+                                    _ => OpenNettyMessage.CreateFromJsonObject(parameters["message"]?["parsed"]?.AsObject()
+                                        ?? throw new InvalidDataException(SR.GetResourceString(SR.ID0068)))
+                                });
+                                break;
+                            }
+
                             case OpenNettyMqttAttributes.PilotWireDerogationMode when operation is OpenNettyMqttOperation.Get:
                             case OpenNettyMqttAttributes.PilotWireSetpointMode   when operation is OpenNettyMqttOperation.Get:
                             case OpenNettyMqttAttributes.PilotWireShutdownMode   when operation is OpenNettyMqttOperation.Get:

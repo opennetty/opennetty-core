@@ -164,6 +164,37 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
+            await _events.IncomingMessageReported
+                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.IncomingMessage, builder =>
+                {
+                    var node = new JsonObject
+                    {
+                        ["message"] = new JsonObject
+                        {
+                            ["parsed"] = arguments.Message.ToJsonObject(),
+                            ["raw"] = arguments.Message.ToString()
+                        },
+                        ["session"] = new JsonObject
+                        {
+                            ["id"] = arguments.Session.Id.ToString(),
+                            ["type"] = arguments.Session.Type switch
+                            {
+                                OpenNettySessionType.Command => "command",
+                                OpenNettySessionType.Event   => "event",
+                                OpenNettySessionType.Generic => "generic",
+
+                                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+                            }
+                        }
+                    };
+
+                    builder.WithContentType(MediaTypeNames.Application.Json);
+                    builder.WithPayload(node.ToJsonString());
+                }))
+                .Retry()
+                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
+
             await _events.MacAddressReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.MacAddress, builder =>
@@ -186,6 +217,37 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                             OpenNettyModels.Lighting.OnOffScenarioType.On  => "switch_on",
 
                             _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+                        }
+                    };
+
+                    builder.WithContentType(MediaTypeNames.Application.Json);
+                    builder.WithPayload(node.ToJsonString());
+                }))
+                .Retry()
+                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
+
+            await _events.OutgoingMessageReported
+                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.OutgoingMessage, builder =>
+                {
+                    var node = new JsonObject
+                    {
+                        ["message"] = new JsonObject
+                        {
+                            ["parsed"] = arguments.Message.ToJsonObject(),
+                            ["raw"] = arguments.Message.ToString()
+                        },
+                        ["session"] = new JsonObject
+                        {
+                            ["id"] = arguments.Session.Id.ToString(),
+                            ["type"] = arguments.Session.Type switch
+                            {
+                                OpenNettySessionType.Command => "command",
+                                OpenNettySessionType.Event   => "event",
+                                OpenNettySessionType.Generic => "generic",
+
+                                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+                            }
                         }
                     };
 

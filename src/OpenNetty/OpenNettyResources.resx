@@ -477,6 +477,12 @@
   <data name="ID0120" xml:space="preserve">
     <value>The specified Home Assistant entity type ({0}) is not supported.</value>
   </data>
+  <data name="ID0121" xml:space="preserve">
+    <value>Raw outgoing messages must be enabled for a gateway to be allowed to send custom messages.</value>
+  </data>
+  <data name="ID0122" xml:space="preserve">
+    <value>The specified JSON payload is invalid, doesn't include a required parameter or is of an unsupported type.</value>
+  </data>
   <data name="ID2000" xml:space="preserve">
     <value>The endpoint name '{0}' is not valid. Endpoint names cannot contain the '+' or '*' characters.</value>
   </data>

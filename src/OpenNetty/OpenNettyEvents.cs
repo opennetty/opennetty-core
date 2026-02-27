@@ -125,6 +125,12 @@ public sealed class OpenNettyEvents : IDisposable
         => _observable.OfType<EventArgs, HardwareVersionReportedEventArgs>();
 
     /// <summary>
+    /// Gets an event triggered when an incoming message is reported.
+    /// </summary>
+    public IAsyncObservable<IncomingMessageReportedEventArgs> IncomingMessageReported
+        => _observable.OfType<EventArgs, IncomingMessageReportedEventArgs>();
+
+    /// <summary>
     /// Gets an event triggered when a MAC address is reported.
     /// </summary>
     public IAsyncObservable<MacAddressReportedEventArgs> MacAddressReported
@@ -135,6 +141,12 @@ public sealed class OpenNettyEvents : IDisposable
     /// </summary>
     public IAsyncObservable<OnOffScenarioReportedEventArgs> OnOffScenarioReported
         => _observable.OfType<EventArgs, OnOffScenarioReportedEventArgs>();
+
+    /// <summary>
+    /// Gets an event triggered when an outgoing message is reported.
+    /// </summary>
+    public IAsyncObservable<OutgoingMessageReportedEventArgs> OutgoingMessageReported
+        => _observable.OfType<EventArgs, OutgoingMessageReportedEventArgs>();
 
     /// <summary>
     /// Gets an event triggered when a pilot wire derogation mode is reported.
@@ -371,6 +383,15 @@ public sealed class OpenNettyEvents : IDisposable
     public sealed record class HardwareVersionReportedEventArgs(OpenNettyEndpoint Endpoint, Version Version) : EventArgs(Endpoint);
 
     /// <summary>
+    /// Represents event arguments used when an incoming message is reported.
+    /// </summary>
+    /// <param name="Endpoint">The endpoint.</param>
+    /// <param name="Message">The message.</param>
+    /// <param name="Session">The session that was used to receive the message.</param>
+    public sealed record class IncomingMessageReportedEventArgs(OpenNettyEndpoint Endpoint,
+        OpenNettyMessage Message, OpenNettySession Session) : EventArgs(Endpoint);
+
+    /// <summary>
     /// Represents event arguments used when a MAC address is reported.
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
@@ -384,6 +405,15 @@ public sealed class OpenNettyEvents : IDisposable
     /// <param name="Type">The switch scenario type.</param>
     public sealed record class OnOffScenarioReportedEventArgs(OpenNettyEndpoint Endpoint,
         OpenNettyModels.Lighting.OnOffScenarioType Type) : EventArgs(Endpoint);
+
+    /// <summary>
+    /// Represents event arguments used when an outgoing message is reported.
+    /// </summary>
+    /// <param name="Endpoint">The endpoint.</param>
+    /// <param name="Message">The message.</param>
+    /// <param name="Session">The session that was used to send the message.</param>
+    public sealed record class OutgoingMessageReportedEventArgs(OpenNettyEndpoint Endpoint,
+        OpenNettyMessage Message, OpenNettySession Session) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when a pilot wire derogation mode is reported.

@@ -492,7 +492,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                         // Ensure the password only includes at most 9 ASCII digit characters as non-digit
                         // characters are not supported when using the legacy authentication method.
                         if (gateway.Password.Any(static character => !char.IsAsciiDigit(character)) ||
-                            gateway.Password.Length > 9 ||
+                            gateway.Password.Length is > 9 ||
                             !uint.TryParse(gateway.Password, CultureInfo.InvariantCulture, out uint password))
                         {
                             throw new OpenNettyException(OpenNettyErrorCode.AuthenticationInvalid, SR.GetResourceString(SR.ID0097));

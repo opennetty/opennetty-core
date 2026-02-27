@@ -147,6 +147,14 @@ public readonly struct OpenNettyDeviceIdentifier : IEquatable<OpenNettyDeviceIde
     /// </summary>
     /// <param name="identifier">The serial number.</param>
     /// <returns>A new <see cref="OpenNettyDeviceIdentifier"/> instance representing a Zigbee serial number.</returns>
+    public static OpenNettyDeviceIdentifier FromZigbeeSerialNumber(ulong identifier)
+        => new(OpenNettyDeviceIdentifierType.ZigbeeSerialNumber, identifier.ToString("X8", CultureInfo.InvariantCulture));
+
+    /// <summary>
+    /// Creates a new <see cref="OpenNettyDeviceIdentifier"/> instance representing a Zigbee serial number.
+    /// </summary>
+    /// <param name="identifier">The serial number.</param>
+    /// <returns>A new <see cref="OpenNettyDeviceIdentifier"/> instance representing a Zigbee serial number.</returns>
     public static OpenNettyDeviceIdentifier FromZigbeeSerialNumber(string identifier)
     {
         ArgumentException.ThrowIfNullOrEmpty(identifier);

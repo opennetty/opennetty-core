@@ -42,9 +42,19 @@ public static class OpenNettyMqttAttributes
     public const string HardwareVersion = "hardware_version";
 
     /// <summary>
+    /// Incoming message.
+    /// </summary>
+    public const string IncomingMessage = "incoming_message";
+
+    /// <summary>
     /// MAC address.
     /// </summary>
     public const string MacAddress = "mac_address";
+
+    /// <summary>
+    /// Outgoing message.
+    /// </summary>
+    public const string OutgoingMessage = "outgoing_message";
 
     /// <summary>
     /// Pilot wire derogation mode.

@@ -7,6 +7,7 @@
 using System.Collections.Immutable;
 using System.Diagnostics;
 using System.Globalization;
+using System.Text.Json.Nodes;
 
 namespace OpenNetty;
 
@@ -606,6 +607,339 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
     /// </summary>
     /// <returns>The <see cref="string"/> representation of the current message.</returns>
     public override string ToString() => Frame.ToString();
+
+    /// <summary>
+    /// Computes the JSON representation of the current message.
+    /// </summary>
+    /// <returns>The JSON representation of the current message.</returns>
+    public JsonObject ToJsonObject()
+    {
+        var result = new JsonObject
+        {
+            ["protocol"] = Protocol switch
+            {
+                OpenNettyProtocol.Scs    => "scs",
+                OpenNettyProtocol.Nitoo  => "nitoo",
+                OpenNettyProtocol.Zigbee => "zigbee",
+
+                _ => "unknown"
+            },
+            ["type"] = Type switch
+            {
+                OpenNettyMessageType.Acknowledgement             => "acknowledgement",
+                OpenNettyMessageType.BusCommand                  => "bus_command",
+                OpenNettyMessageType.BusyNegativeAcknowledgement => "busy_negative_acknowledgement",
+                OpenNettyMessageType.DimensionRead               => "dimension_read",
+                OpenNettyMessageType.DimensionRequest            => "dimension_request",
+                OpenNettyMessageType.DimensionSet                => "dimension_set",
+                OpenNettyMessageType.NegativeAcknowledgement     => "negative_acknowledgement",
+                OpenNettyMessageType.StatusRequest               => "status_request",
+                OpenNettyMessageType.Unknown or _                => "unknown"
+            }
+        };
+
+        switch (Type)
+        {
+            case OpenNettyMessageType.BusCommand:
+            case OpenNettyMessageType.DimensionRead:
+            case OpenNettyMessageType.DimensionRequest:
+            case OpenNettyMessageType.DimensionSet:
+            case OpenNettyMessageType.StatusRequest:
+                result["medium"] = Medium switch
+                {
+                    OpenNettyMedium.Bus       => "bus",
+                    OpenNettyMedium.Infrared  => "infrared",
+                    OpenNettyMedium.Powerline => "powerline",
+                    OpenNettyMedium.Radio     => "radio",
+
+                    _ => "unknown"
+                };
+
+                result["mode"] = Mode switch
+                {
+                    OpenNettyMode.Unicast   => "unicast",
+                    OpenNettyMode.Multicast => "multicast",
+                    OpenNettyMode.Broadcast => "broadcast",
+
+                    _ => "unknown"
+                };
+                break;
+        }
+
+        if (Address is OpenNettyAddress address)
+        {
+            result["address"] = new JsonObject
+            {
+                ["value"] = address.Value,
+                ["type"] = address.Type switch
+                {
+                    OpenNettyAddressType.Nitoo           => "nitoo",
+                    OpenNettyAddressType.ScsLightPoint   => "scs_light_point",
+                    OpenNettyAddressType.ScsScenarioPlus => "scs_scenario_plus",
+                    OpenNettyAddressType.Zigbee          => "zigbee",
+                    OpenNettyAddressType.Unknown or _    => "unknown"
+                }
+            };
+
+            if (address.Parameters is { IsDefaultOrEmpty: false })
+            {
+                result["address"]?["parameters"] = new JsonArray([.. address.Parameters]);
+            }
+
+            switch (address.Type)
+            {
+                case OpenNettyAddressType.Nitoo when OpenNettyAddress.ToNitooAddress(address)
+                    is { Identifier: var identifier, Unit: var unit }:
+                    result["address"]?["identifier"] = identifier;
+                    result["address"]?["unit"] = unit;
+                    break;
+
+                case OpenNettyAddressType.ScsLightPoint when OpenNettyAddress.ToScsLightPointAddress(address)
+                    is { Area: var area, Extension: var extension, General: var general, Group: var group, Point: var point }:
+                    result["address"]?["area"] = area;
+                    result["address"]?["extension"] = extension;
+                    result["address"]?["general"] = general;
+                    result["address"]?["group"] = group;
+                    result["address"]?["point"] = point;
+                    break;
+
+                case OpenNettyAddressType.ScsScenarioPlus:
+                    result["address"]?["object"] = OpenNettyAddress.ToScsScenarioPlusAddress(address);
+                    break;
+
+                case OpenNettyAddressType.Zigbee when OpenNettyAddress.ToZigbeeAddress(address)
+                    is { Identifier: var identifier, Unit: var unit }:
+                    result["address"]?["identifier"] = identifier;
+                    result["address"]?["unit"] = unit;
+                    break;
+            }
+        }
+
+        if (Category is OpenNettyCategory category)
+        {
+            result["category"] = new JsonObject
+            {
+                ["value"] = category.Value
+            };
+
+            if (category.Parameters is { IsDefaultOrEmpty: false })
+            {
+                result["category"]?["parameters"] = new JsonArray([.. category.Parameters]);
+            }
+        }
+
+        if (Command is OpenNettyCommand command)
+        {
+            result["command"] = new JsonObject
+            {
+                ["value"] = command.Value
+            };
+
+            if (command.Parameters is { IsDefaultOrEmpty: false })
+            {
+                result["command"]?["parameters"] = new JsonArray([.. command.Parameters]);
+            }
+        }
+
+        if (Dimension is OpenNettyDimension dimension)
+        {
+            result["dimension"] = new JsonObject
+            {
+                ["value"] = dimension.Value
+            };
+
+            if (dimension.Parameters is { IsDefaultOrEmpty: false })
+            {
+                result["dimension"]?["parameters"] = new JsonArray([.. dimension.Parameters]);
+            }
+        }
+
+        if (Type is OpenNettyMessageType.DimensionRead or OpenNettyMessageType.DimensionSet)
+        {
+            result["values"] = new JsonArray([.. Values]);
+        }
+
+        return result;
+    }
+
+    /// <summary>
+    /// Creates a new instance of <see cref="OpenNettyMessage"/> from a
+    /// JSON object containing the parameters used to create the message.
+    /// </summary>
+    /// <param name="parameters">The JSON object containing the parameters used to create the message.</param>
+    /// <returns>A new instance of <see cref="OpenNettyMessage"/>.</returns>
+    public static OpenNettyMessage CreateFromJsonObject(JsonObject parameters)
+    {
+        ArgumentNullException.ThrowIfNull(parameters);
+
+        var protocol = ParseProtocol(parameters["protocol"]?.AsValue());
+
+        return ParseMessageType(parameters["type"]?.AsValue()) switch
+        {
+            OpenNettyMessageType.Acknowledgement             => CreateFromFrame(protocol, OpenNettyFrames.Acknowledgement),
+            OpenNettyMessageType.NegativeAcknowledgement     => CreateFromFrame(protocol, OpenNettyFrames.NegativeAcknowledgement),
+            OpenNettyMessageType.BusyNegativeAcknowledgement => CreateFromFrame(protocol, OpenNettyFrames.BusyNegativeAcknowledgement),
+
+            OpenNettyMessageType.BusCommand
+                when ParseCategory(parameters["category"]?.AsObject())         is OpenNettyCategory category &&
+                     ParseCommand(parameters["command"]?.AsObject(), category) is OpenNettyCommand command &&
+                     ParseAddress(parameters["address"]?.AsObject())           is var address &&
+                     ParseMedium(parameters["medium"]?.AsValue())              is var medium &&
+                     ParseMode(parameters["mode"]?.AsValue())                  is var mode
+                => CreateCommand(protocol, command, address, medium, mode),
+
+            OpenNettyMessageType.DimensionRequest
+                when ParseCategory(parameters["category"]?.AsObject())             is OpenNettyCategory category &&
+                     ParseDimension(parameters["dimension"]?.AsObject(), category) is OpenNettyDimension dimension &&
+                     ParseAddress(parameters["address"]?.AsObject())               is var address &&
+                     ParseMedium(parameters["medium"]?.AsValue())                  is var medium &&
+                     ParseMode(parameters["mode"]?.AsValue())                      is var mode
+                => CreateDimensionRequest(protocol, dimension, address, medium, mode),
+
+            OpenNettyMessageType.DimensionRead
+                when ParseCategory(parameters["category"]?.AsObject())             is OpenNettyCategory category &&
+                     ParseDimension(parameters["dimension"]?.AsObject(), category) is OpenNettyDimension dimension &&
+                     ParseValues(parameters["values"]?.AsArray())                  is ImmutableArray<string> values &&
+                     ParseAddress(parameters["address"]?.AsObject())               is var address &&
+                     ParseMedium(parameters["medium"]?.AsValue())                  is var medium &&
+                     ParseMode(parameters["mode"]?.AsValue())                      is var mode
+                => CreateDimensionRead(protocol, dimension, values, address, medium, mode),
+
+            OpenNettyMessageType.DimensionSet
+                when ParseCategory(parameters["category"]?.AsObject())             is OpenNettyCategory category &&
+                     ParseDimension(parameters["dimension"]?.AsObject(), category) is OpenNettyDimension dimension &&
+                     ParseValues(parameters["values"]?.AsArray())                  is ImmutableArray<string> values &&
+                     ParseAddress(parameters["address"]?.AsObject())               is var address &&
+                     ParseMedium(parameters["medium"]?.AsValue())                  is var medium &&
+                     ParseMode(parameters["mode"]?.AsValue())                      is var mode
+                => CreateDimensionSet(protocol, dimension, values, address, medium, mode),
+
+            OpenNettyMessageType.StatusRequest
+                when ParseCategory(parameters["category"]?.AsObject()) is OpenNettyCategory category &&
+                     ParseAddress(parameters["address"]?.AsObject())   is var address &&
+                     ParseMedium(parameters["medium"]?.AsValue())      is var medium &&
+                     ParseMode(parameters["mode"]?.AsValue())          is var mode
+                => CreateStatusRequest(protocol, category, address, medium, mode),
+
+            _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0122))
+        };
+
+        static OpenNettyAddress? ParseAddress(JsonObject? node) => node is null
+            ? null
+            : node["type"]?.GetValue<string>() switch
+            {
+                "nitoo" when (uint?) node["identifier"]?.AsValue() is uint identifier &&
+                             (byte?) node["unit"]?.AsValue()       is var unit
+                    => OpenNettyAddress.FromNitooAddress(identifier, unit ?? 0),
+
+                "zigbee" when (uint?) node["identifier"]?.AsValue() is uint identifier &&
+                              (byte?) node["unit"]?.AsValue()       is var unit
+                    => OpenNettyAddress.FromZigbeeAddress(OpenNettyDeviceIdentifier.FromZigbeeSerialNumber(identifier), unit ?? 0),
+
+                "scs_light_point" when (byte?) node["extension"]?.AsValue() is var extension &&
+                                       (bool?) node["general"]?.AsValue()   is var general &&
+                                       (byte?) node["group"]?.AsValue()     is var group &&
+                                       (byte?) node["area"]?.AsValue()      is var area &&
+                                       (byte?) node["point"]?.AsValue()     is var point
+                    => OpenNettyAddress.FromScsLightPointAddress(extension ?? 0, general ?? false, group, area, point),
+
+                "scs_scenario_plus" when (ushort?) node["object"]?.AsValue() is ushort identifier
+                    => OpenNettyAddress.FromScsScenarioPlusAddress(identifier),
+
+                _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0122))
+            };
+
+        static OpenNettyCategory? ParseCategory(JsonObject? node) => node is null
+            ? null
+            : new OpenNettyCategory(
+                value     : ParseValue(node["value"]?.AsValue()),
+                parameters: ParseValues(node["parameters"]?.AsArray()));
+
+        static OpenNettyCommand? ParseCommand(JsonObject? node, OpenNettyCategory category) => node is null
+            ? null
+            : new OpenNettyCommand(
+                category  : category,
+                value     : ParseValue(node["value"]?.AsValue()),
+                parameters: ParseValues(node["parameters"]?.AsArray()));
+
+        static OpenNettyDimension? ParseDimension(JsonObject? node, OpenNettyCategory category) => node is null
+            ? null
+            : new OpenNettyDimension(
+                category  : category,
+                value     : ParseValue(node["value"]?.AsValue()),
+                parameters: ParseValues(node["parameters"]?.AsArray()));
+
+        static OpenNettyMessageType ParseMessageType(JsonValue? node) => (string?) node switch
+        {
+            "acknowledgement"               => OpenNettyMessageType.Acknowledgement,
+            "bus_command"                   => OpenNettyMessageType.BusCommand,
+            "busy_negative_acknowledgement" => OpenNettyMessageType.BusyNegativeAcknowledgement,
+            "dimension_read"                => OpenNettyMessageType.DimensionRead,
+            "dimension_request"             => OpenNettyMessageType.DimensionRequest,
+            "dimension_set"                 => OpenNettyMessageType.DimensionSet,
+            "negative_acknowledgement"      => OpenNettyMessageType.NegativeAcknowledgement,
+            "status_request"                => OpenNettyMessageType.StatusRequest,
+
+            _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0122))
+        };
+
+        static OpenNettyMedium? ParseMedium(JsonValue? node) => (string?) node switch
+        {
+            "bus"       => OpenNettyMedium.Bus,
+            "infrared"  => OpenNettyMedium.Infrared,
+            "powerline" => OpenNettyMedium.Powerline,
+            "radio"     => OpenNettyMedium.Radio,
+
+            null or { Length: 0 } => null,
+
+            _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0122))
+        };
+
+        static OpenNettyMode? ParseMode(JsonValue? node) => (string?) node switch
+        {
+            "unicast"   => OpenNettyMode.Unicast,
+            "multicast" => OpenNettyMode.Multicast,
+            "broadcast" => OpenNettyMode.Broadcast,
+
+            null or { Length: 0 } => null,
+
+            _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0122))
+        };
+
+        static OpenNettyProtocol ParseProtocol(JsonValue? node) => (string?) node switch
+        {
+            "scs"    => OpenNettyProtocol.Scs,
+            "nitoo"  => OpenNettyProtocol.Nitoo,
+            "zigbee" => OpenNettyProtocol.Zigbee,
+
+            _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0057))
+        };
+
+        static string ParseValue(JsonValue? node) => node?.GetValue<string>()
+            ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0122));
+
+        static ImmutableArray<string> ParseValues(JsonArray? node)
+        {
+            if (node is null)
+            {
+                return [];
+            }
+
+            var builder = ImmutableArray.CreateBuilder<string>(node.Count);
+
+            for (var index = 0; index < node.Count; index++)
+            {
+                if (node[index]?.GetValue<string>() is not { Length: > 0 } item)
+                {
+                    throw new InvalidOperationException(SR.GetResourceString(SR.ID0057));
+                }
+
+                builder.Add(item);
+            }
+
+            return builder.ToImmutable();
+        }
+    }
 
     private static OpenNettyField CreateWhoField(OpenNettyMessageType type, OpenNettyCategory category)
     {
