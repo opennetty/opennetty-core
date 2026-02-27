@@ -209,11 +209,23 @@
     <Unit Id="2">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
+
+      <Description Culture="en" Value="Key 1" />
+      <Description Culture="fr" Value="Touche 1" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:dialpad" />
     </Unit>
 
     <Unit Id="3">
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
+
+      <Description Culture="en" Value="Key 2" />
+      <Description Culture="fr" Value="Touche 2" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:dialpad" />
     </Unit>
 
     <Unit Id="4">
