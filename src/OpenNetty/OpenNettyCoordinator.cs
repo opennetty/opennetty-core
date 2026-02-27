@@ -2331,18 +2331,46 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
 
         // Note: this event is responsible for synchronizing the date/time of compatible OpenWebNet gateways at regular intervals.
         await AsyncObservable.Interval(TimeSpan.FromMinutes(10))
-        .ObserveOn(TaskPoolAsyncScheduler.Default)
-        .Do(onNext: async _ => await Parallel.ForEachAsync(_manager.EnumerateGatewaysAsync(), async (gateway, cancellationToken) =>
-        {
-            var endpoint = await _manager.FindEndpointAsync(endpoint => endpoint.Device == gateway.Device && endpoint.Unit is null, cancellationToken);
-            if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.DateTime) &&
-                endpoint.GetBooleanSetting(OpenNettySettings.ClockSynchronization) is not false)
+            .ObserveOn(TaskPoolAsyncScheduler.Default)
+            .Do(onNext: async _ => await Parallel.ForEachAsync(_manager.EnumerateGatewaysAsync(), async (gateway, cancellationToken) =>
             {
-                await _controller.SetDateTimeAsync(endpoint, DateTimeOffset.Now, cancellationToken);
-            }
-        }))
-        .Do(onError: exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
-        .Retry()
-        .SubscribeAsync(static message => ValueTask.CompletedTask)
+                var endpoint = await _manager.FindEndpointAsync(endpoint => endpoint.Device == gateway.Device && endpoint.Unit is null, cancellationToken);
+                if (endpoint is not null && endpoint.HasCapability(OpenNettyCapabilities.DateTime) &&
+                    endpoint.GetBooleanSetting(OpenNettySettings.ClockSynchronization) is not false)
+                {
+                    await _controller.SetDateTimeAsync(endpoint, DateTimeOffset.Now, cancellationToken);
+                }
+            }))
+            .Do(onError: exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
+            .Retry()
+            .SubscribeAsync(static message => ValueTask.CompletedTask),
+
+        // Note: this event handler is responsible for reporting incoming messages received by OpenWebNet gateways.
+        await _pipeline.OfType<OpenNettyNotification, OpenNettyNotifications.MessageReceived>()
+            .Do(onNext: async notification =>
+            {
+                var endpoint = await _manager.FindEndpointAsync(endpoint => endpoint.Device == notification.Gateway.Device && endpoint.Unit is null);
+                if (endpoint is not null && endpoint.GetBooleanSetting(OpenNettySettings.RawIncomingMessages) is true)
+                {
+                    await _events.PublishAsync(new IncomingMessageReportedEventArgs(endpoint, notification.Message, notification.Session));
+                }
+            })
+            .Do(onError: exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
+            .Retry()
+            .SubscribeAsync(static notification => ValueTask.CompletedTask),
+
+        // Note: this event handler is responsible for reporting outgoing messages sent by OpenWebNet gateways.
+        await _pipeline.OfType<OpenNettyNotification, OpenNettyNotifications.MessageSent>()
+            .Do(onNext: async notification =>
+            {
+                var endpoint = await _manager.FindEndpointAsync(endpoint => endpoint.Device == notification.Gateway.Device && endpoint.Unit is null);
+                if (endpoint is not null && endpoint.GetBooleanSetting(OpenNettySettings.RawOutgoingMessages) is true)
+                {
+                    await _events.PublishAsync(new OutgoingMessageReportedEventArgs(endpoint, notification.Message, notification.Session));
+                }
+            })
+            .Do(onError: exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
+            .Retry()
+            .SubscribeAsync(static notification => ValueTask.CompletedTask)
     ]);
 }

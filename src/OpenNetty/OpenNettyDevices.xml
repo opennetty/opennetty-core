@@ -261,7 +261,7 @@
       <Capability Name="Action scenario event" />
 
       <Description Culture="en" Value="Exit delay elapsed" />
-      <Description Culture="fr" Value="Temporisation de sortie écoulé" />
+      <Description Culture="fr" Value="Temporisation de sortie écoulée" />
 
       <Setting Name="Home Assistant scenario icon" Value="mdi:security" />
     </Unit>

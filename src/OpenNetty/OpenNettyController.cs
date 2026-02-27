@@ -5,6 +5,7 @@
  */
 
 using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Globalization;
 using System.Reactive.Linq;
 using System.Runtime.CompilerServices;
@@ -2247,6 +2248,38 @@ public class OpenNettyController
             address          : endpoint.Address,
             medium           : endpoint.Medium,
             mode             : null,
+            gateway          : endpoint.Gateway,
+            options          : GetTransmissionOptions(endpoint),
+            cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
+    /// Sends a raw message using the specified gateway endpoint.
+    /// </summary>
+    /// <param name="endpoint">The endpoint.</param>
+    /// <param name="message">The message to send.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
+    [EditorBrowsable(EditorBrowsableState.Advanced)]
+    public virtual ValueTask SendRawMessageAsync(
+        OpenNettyEndpoint endpoint,
+        OpenNettyMessage message,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
+
+        if (!endpoint.HasCapability(OpenNettyCapabilities.OpenWebNetGateway))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
+        }
+
+        if (endpoint.GetBooleanSetting(OpenNettySettings.RawOutgoingMessages) is not true)
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0121));
+        }
+
+        return _service.SendMessageAsync(
+            message          : message,
             gateway          : endpoint.Gateway,
             options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
