@@ -334,7 +334,7 @@
     <value>The channel was closed by the hosted service.</value>
   </data>
   <data name="ID0073" xml:space="preserve">
-    <value>Gateway nodes can only be defined under a device node.</value>
+    <value>The parent of the specified XML node cannot be resolved or is not of the expected type.</value>
   </data>
   <data name="ID0074" xml:space="preserve">
     <value>Gateways must include a non-null '{0}' attribute.</value>

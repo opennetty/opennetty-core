@@ -759,9 +759,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 ["qos"] = 2
             };
 
-            await foreach (var endpoint in from endpoint in _manager.EnumerateEndpointsAsync(cancellationToken)
-                                           where endpoint.Device == device
-                                           select endpoint)
+            await foreach (var endpoint in _manager.FindEndpointsByDeviceAsync(device, cancellationToken))
             {
                 var topic = endpoint.GetStringSetting(OpenNettySettings.MqttTopic) ?? endpoint.Name.ToLowerInvariant();
 

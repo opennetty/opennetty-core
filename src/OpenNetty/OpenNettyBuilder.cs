@@ -185,14 +185,9 @@ public sealed class OpenNettyBuilder
         List<OpenNettyEndpoint> endpoints = [];
         List<OpenNettyGateway> gateways = [];
 
-        foreach (var gateway in document.Root.Descendants("Gateway"))
+        foreach (var gateway in document.Root.Elements("Device").Elements("Gateway"))
         {
-            if (gateway.Parent?.Name != "Device")
-            {
-                throw new NotSupportedException(SR.GetResourceString(SR.ID0073));
-            }
-
-            var device = GetDevice(gateways, gateway.Parent);
+            var device = GetDevice(gateways, gateway.Parent ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0073)));
 
             gateways.Add((string?) gateway.Attribute("Type") switch
             {
@@ -285,17 +280,24 @@ public sealed class OpenNettyBuilder
             });
         }
 
-        foreach (var device in document.Root.Descendants("Device"))
+        foreach (var device in document.Root.Elements("Device"))
         {
             devices.Add(GetDevice(gateways, device));
         }
 
-        foreach (var endpoint in document.Root.Descendants("Endpoint"))
+        // Note: endpoint nodes are allowed to appear directly under the root configuration node,
+        // nested within a device node or nested within a unit node that is nested within a device node.
+        foreach (var endpoint in document.Root.Elements("Endpoint")
+            .Concat(document.Root.Elements("Device").Elements("Endpoint"))
+            .Concat(document.Root.Elements("Device").Elements("Unit").Elements("Endpoint")))
         {
             var name = (string?) endpoint.Attribute("Name");
 
-            var device = endpoint.Parent?.Name == "Device" ? GetDevice(gateways, endpoint.Parent) :
-                         endpoint.Parent?.Name == "Unit" && endpoint.Parent.Parent?.Name == "Device" ? GetDevice(gateways, endpoint.Parent.Parent) : null;
+            var device = endpoint.Parent?.Name == "Device"
+                ? GetDevice(gateways, endpoint.Parent)
+                :  endpoint.Parent?.Name == "Unit" && endpoint.Parent.Parent?.Name == "Device"
+                    ? GetDevice(gateways, endpoint.Parent.Parent)
+                    : null;
 
             var unit = device is not null && endpoint.Parent?.Name == "Unit" ? GetUnit(endpoint.Parent,
                 (byte?) (uint?) endpoint.Parent.Attribute("Id") ?? throw new InvalidOperationException(SR.FormatID0078("Id"))) : null;
@@ -508,9 +510,9 @@ public sealed class OpenNettyBuilder
             var definition = OpenNettyDevices.GetDeviceByModel(Enum.Parse<OpenNettyBrand>(brand), model)
                 ?? throw new InvalidOperationException(SR.FormatID0085(brand, model));
 
-            var gateway = definition.HasCapability(OpenNettyCapabilities.OpenWebNetGateway) ?
-                null :
-                (string?) element.Attribute("GatewayName") switch
+            var gateway = definition.HasCapability(OpenNettyCapabilities.OpenWebNetGateway)
+                ? null
+                : (string?) element.Attribute("GatewayName") switch
                 {
                     string value => FindGatewayByName(gateways, value),
 
