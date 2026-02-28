@@ -163,6 +163,8 @@ public class OpenNettyManager
     public virtual ValueTask<OpenNettyEndpoint?> FindEndpointByAddressAsync(
         OpenNettyGateway gateway, OpenNettyAddress address, CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(gateway);
+
         OpenNettyEndpoint? endpoint = null;
 
         for (var index = 0; index < _options.CurrentValue.Endpoints.Count; index++)
@@ -201,6 +203,8 @@ public class OpenNettyManager
         OpenNettyGateway gateway, OpenNettyAddress address,
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(gateway);
+
         if (address.Type is OpenNettyAddressType.Nitoo)
         {
             await foreach (var endpoint in EnumerateEndpointsAsync(cancellationToken))
@@ -312,21 +316,21 @@ public class OpenNettyManager
     }
 
     /// <summary>
-    /// Resolves all the endpoints matching the specified gateway and device.
+    /// Resolves all the endpoints matching the specified device.
     /// </summary>
-    /// <param name="gateway">The gateway used to communicate with the endpoint.</param>
     /// <param name="device">The device.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>
     /// An <see cref="IAsyncEnumerable{T}"/> that can be used to iterate the endpoints associated with the device.
     /// </returns>
     public virtual async IAsyncEnumerable<OpenNettyEndpoint> FindEndpointsByDeviceAsync(
-        OpenNettyGateway gateway, OpenNettyDevice device,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        OpenNettyDevice device, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(device);
+
         await foreach (var endpoint in EnumerateEndpointsAsync(cancellationToken))
         {
-            if (endpoint.Gateway == gateway && endpoint.Device == device)
+            if (endpoint.Gateway == device.Gateway && endpoint.Device == device)
             {
                 yield return endpoint;
             }
@@ -344,6 +348,8 @@ public class OpenNettyManager
     public virtual async IAsyncEnumerable<OpenNettyEndpoint> FindEndpointsByGatewayAsync(
         OpenNettyGateway gateway, [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
+        ArgumentNullException.ThrowIfNull(gateway);
+
         await foreach (var endpoint in EnumerateEndpointsAsync(cancellationToken))
         {
             if (endpoint.Gateway == gateway)
