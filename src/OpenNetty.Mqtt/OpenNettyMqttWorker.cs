@@ -59,634 +59,56 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
         ChannelReader<MqttApplicationMessage> reader,
         CancellationToken cancellationToken)
     {
-        await using var subscription = await AsyncObservable.Create<MqttApplicationMessage>(observer =>
-            TaskPoolAsyncScheduler.Default.ScheduleAsync(async cancellationToken =>
+        await using var subscription = await ObserveMessagesAsync(reader, cancellationToken)
+            .Select(async message => ExtractParameters(message))
+            .Where(static parameters => !string.IsNullOrEmpty(parameters.Name) &&
+                !string.IsNullOrEmpty(parameters.Attribute) &&
+                parameters.Operation is OpenNettyMqttOperation.Get or OpenNettyMqttOperation.Set)
+            .GroupBy(static parameters => parameters.Name)
+            .Do(async group => await group.ObserveOn(TaskPoolAsyncScheduler.Default).Do(async parameters =>
             {
-                while (!cancellationToken.IsCancellationRequested)
+                var endpoints = from endpoint in _manager.EnumerateEndpointsAsync(cancellationToken)
+                                let topic = endpoint.GetStringSetting(OpenNettySettings.MqttTopic) ?? endpoint.Name.ToLowerInvariant()
+                                where string.Equals(topic, parameters.Name, StringComparison.Ordinal)
+                                select endpoint;
+
+                await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
                 {
                     try
                     {
-                        if (!await reader.WaitToReadAsync(cancellationToken))
-                        {
-                            await observer.OnCompletedAsync();
-                            return;
-                        }
+                        await ExecuteAsync(parameters.Message, endpoint, parameters.Attribute!,
+                            parameters.Operation!.Value, cancellationToken);
 
-                        while (reader.TryRead(out MqttApplicationMessage? message))
-                        {
-                            await observer.OnNextAsync(message);
-                        }
-                    }
-
-                    catch (ChannelClosedException)
-                    {
-                        await observer.OnCompletedAsync();
-                        return;
-                    }
-
-                    catch (Exception exception)
-                    {
-                        await observer.OnErrorAsync(exception);
-                    }
-                }
-            }))
-            .SelectMany(async message =>
-            {
-                var (name, attribute, operation) = ExtractParameters(message);
-
-                if (string.IsNullOrEmpty(name) ||
-                    string.IsNullOrEmpty(attribute) ||
-                    operation is not (OpenNettyMqttOperation.Get or OpenNettyMqttOperation.Set) ||
-                    await _manager.FindEndpointAsync(Matches) is not OpenNettyEndpoint endpoint)
-                {
-                    return AsyncObservable.Empty<(MqttApplicationMessage Message, OpenNettyEndpoint Endpoint, string Attribute, OpenNettyMqttOperation Operation)>();
-                }
-
-                return AsyncObservable.Return((Message: message, Endpoint: endpoint, Attribute: attribute, Operation: operation.Value));
-
-                bool Matches(OpenNettyEndpoint endpoint) => string.Equals(
-                    endpoint.GetStringSetting(OpenNettySettings.MqttTopic) ?? endpoint.Name.ToLowerInvariant(),
-                    name, StringComparison.Ordinal);
-            })
-            .GroupBy(static arguments => arguments.Endpoint.Name)
-            .Do(async group => await group
-                .ObserveOn(TaskPoolAsyncScheduler.Default)
-                .Do(async arguments =>
-                {
-                    var (message, endpoint, attribute, operation) = arguments;
-
-                    try
-                    {
-                        switch (attribute)
-                        {
-                            case OpenNettyMqttAttributes.BatteryAlert when operation is OpenNettyMqttOperation.Set:
-                            {
-                                switch (message.ConvertPayloadToString()?.ToLowerInvariant())
-                                {
-                                    case "off":
-                                        await client.EnqueueAsync(new MqttApplicationMessageBuilder()
-                                            .WithPayloadFormatIndicator(MqttPayloadFormatIndicator.CharacterData)
-                                            .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
-                                            .WithTopic(message.Topic[..^4])
-                                            .WithPayload("OFF")
-                                            .WithRetainFlag()
-                                            .Build());
-                                        break;
-                                }
-                                break;
-                            }
-
-                            case OpenNettyMqttAttributes.Brightness when operation is OpenNettyMqttOperation.Get:
-                            {
-                                _ = await _controller.EnumerateBrightnessAsync(endpoint).ToListAsync();
-                                break;
-                            }
-
-                            case OpenNettyMqttAttributes.Brightness when operation is OpenNettyMqttOperation.Set:
-                            {
-                                if (!byte.TryParse(message.PayloadSegment, CultureInfo.InvariantCulture, out var level))
-                                {
-                                    throw new InvalidDataException(SR.GetResourceString(SR.ID0068));
-                                }
-
-                                await _controller.SetBrightnessAsync(endpoint, level);
-                                break;
-                            }
-
-                            case OpenNettyMqttAttributes.FirmwareVersion when operation is OpenNettyMqttOperation.Get:
-                            {
-                                _ = await _controller.GetFirmwareVersionAsync(endpoint);
-                                break;
-                            }
-
-                            case OpenNettyMqttAttributes.HardwareVersion when operation is OpenNettyMqttOperation.Get:
-                            {
-                                _ = await _controller.GetHardwareVersionAsync(endpoint);
-                                break;
-                            }
-
-                            case OpenNettyMqttAttributes.MacAddress when operation is OpenNettyMqttOperation.Get:
-                            {
-                                _ = await _controller.GetMacAddressAsync(endpoint);
-                                break;
-                            }
-
-                            case OpenNettyMqttAttributes.OutgoingMessage when operation is OpenNettyMqttOperation.Set:
-                            {
-                                var parameters = TryParseAsJsonObject(message.ConvertPayloadToString())
-                                    ?? throw new InvalidDataException(SR.GetResourceString(SR.ID0068));
-
-                                await _controller.SendRawMessageAsync(endpoint, parameters["message"]?["raw"]?.GetValue<string>() switch
-                                {
-                                    { Length: > 0 } frame => OpenNettyMessage.CreateFromFrame(endpoint.Protocol, frame),
-
-                                    _ => OpenNettyMessage.CreateFromJsonObject(parameters["message"]?["parsed"]?.AsObject()
-                                        ?? throw new InvalidDataException(SR.GetResourceString(SR.ID0068)))
-                                });
-                                break;
-                            }
-
-                            case OpenNettyMqttAttributes.PilotWireDerogationMode when operation is OpenNettyMqttOperation.Get:
-                            case OpenNettyMqttAttributes.PilotWireSetpointMode   when operation is OpenNettyMqttOperation.Get:
-                            case OpenNettyMqttAttributes.PilotWireShutdownMode   when operation is OpenNettyMqttOperation.Get:
-                            {
-                                _ = await _controller.GetPilotWireConfigurationAsync(endpoint);
-                                break;
-                            }
-
-                            case OpenNettyMqttAttributes.PilotWireDerogationMode when operation is OpenNettyMqttOperation.Set:
-                            {
-                                switch (message.ConvertPayloadToString()?.ToLowerInvariant())
-                                {
-                                    case "none":
-                                        await _controller.CancelPilotWireDerogationModeAsync(endpoint);
-                                        break;
-
-                                    case "comfort":
-                                        await _controller.SetPilotWireDerogationModeAsync(endpoint,
-                                            OpenNettyModels.TemperatureControl.PilotWireMode.Comfort,
-                                            OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None);
-                                        break;
-
-                                    case "comfort:4h":
-                                        await _controller.SetPilotWireDerogationModeAsync(endpoint,
-                                            OpenNettyModels.TemperatureControl.PilotWireMode.Comfort,
-                                            OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours);
-                                        break;
-
-                                    case "comfort:8h":
-                                        await _controller.SetPilotWireDerogationModeAsync(endpoint,
-                                            OpenNettyModels.TemperatureControl.PilotWireMode.Comfort,
-                                            OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours);
-                                        break;
-
-                                    case "comfort-1":
-                                        await _controller.SetPilotWireDerogationModeAsync(endpoint,
-                                            OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusOne,
-                                            OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None);
-                                        break;
-
-                                    case "comfort-1:4h":
-                                        await _controller.SetPilotWireDerogationModeAsync(endpoint,
-                                            OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusOne,
-                                            OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours);
-                                        break;
-
-                                    case "comfort-1:8h":
-                                        await _controller.SetPilotWireDerogationModeAsync(endpoint,
-                                            OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusOne,
-                                            OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours);
-                                        break;
-
-                                    case "comfort-2":
-                                        await _controller.SetPilotWireDerogationModeAsync(endpoint,
-                                            OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusTwo,
-                                            OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None);
-                                        break;
-
-                                    case "comfort-2:4h":
-                                        await _controller.SetPilotWireDerogationModeAsync(endpoint,
-                                            OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusTwo,
-                                            OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours);
-                                        break;
-
-                                    case "comfort-2:8h":
-                                        await _controller.SetPilotWireDerogationModeAsync(endpoint,
-                                            OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusTwo,
-                                            OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours);
-                                        break;
-
-                                    case "eco":
-                                        await _controller.SetPilotWireDerogationModeAsync(endpoint,
-                                            OpenNettyModels.TemperatureControl.PilotWireMode.Eco,
-                                            OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None);
-                                        break;
-
-                                    case "eco:4h":
-                                        await _controller.SetPilotWireDerogationModeAsync(endpoint,
-                                            OpenNettyModels.TemperatureControl.PilotWireMode.Eco,
-                                            OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours);
-                                        break;
-
-                                    case "eco:8h":
-                                        await _controller.SetPilotWireDerogationModeAsync(endpoint,
-                                            OpenNettyModels.TemperatureControl.PilotWireMode.Eco,
-                                            OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours);
-                                        break;
-
-                                    case "frost_protection":
-                                        await _controller.SetPilotWireDerogationModeAsync(endpoint,
-                                            OpenNettyModels.TemperatureControl.PilotWireMode.FrostProtection,
-                                            OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None);
-                                        break;
-
-                                    case "frost_protection:4h":
-                                        await _controller.SetPilotWireDerogationModeAsync(endpoint,
-                                            OpenNettyModels.TemperatureControl.PilotWireMode.FrostProtection,
-                                            OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours);
-                                        break;
-
-                                    case "frost_protection:8h":
-                                        await _controller.SetPilotWireDerogationModeAsync(endpoint,
-                                            OpenNettyModels.TemperatureControl.PilotWireMode.FrostProtection,
-                                            OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours);
-                                        break;
-                                }
-                                break;
-                            }
-
-                            case OpenNettyMqttAttributes.PilotWireSetpointMode when operation is OpenNettyMqttOperation.Set:
-                            {
-                                switch (message.ConvertPayloadToString()?.ToLowerInvariant())
-                                {
-                                    case "comfort":
-                                        await _controller.SetPilotWireSetpointModeAsync(endpoint,
-                                            OpenNettyModels.TemperatureControl.PilotWireMode.Comfort);
-                                        break;
-
-                                    case "comfort-1":
-                                        await _controller.SetPilotWireSetpointModeAsync(endpoint,
-                                            OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusOne);
-                                        break;
-
-                                    case "comfort-2":
-                                        await _controller.SetPilotWireSetpointModeAsync(endpoint,
-                                            OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusTwo);
-                                        break;
-
-                                    case "eco":
-                                        await _controller.SetPilotWireSetpointModeAsync(endpoint,
-                                            OpenNettyModels.TemperatureControl.PilotWireMode.Eco);
-                                        break;
-
-                                    case "frost_protection":
-                                        await _controller.SetPilotWireSetpointModeAsync(endpoint,
-                                            OpenNettyModels.TemperatureControl.PilotWireMode.FrostProtection);
-                                        break;
-                                }
-                                break;
-                            }
-
-                            case OpenNettyMqttAttributes.PilotWireShutdownMode when operation is OpenNettyMqttOperation.Set:
-                            {
-                                switch (message.ConvertPayloadToString()?.ToLowerInvariant())
-                                {
-                                    case "on":
-                                        await _controller.ActivatePilotWireShutdownModeAsync(endpoint);
-                                        break;
-
-                                    case "off":
-                                        await _controller.CancelPilotWireShutdownModeAsync(endpoint);
-                                        break;
-                                }
-                                break;
-                            }
-
-                            case OpenNettyMqttAttributes.Scenario when operation is OpenNettyMqttOperation.Set:
-                            {
-                                var parameters = TryParseAsJsonObject(message.ConvertPayloadToString());
-
-                                switch ((string?) parameters?["event_type"] ?? message.ConvertPayloadToString()?.ToLowerInvariant())
-                                {
-                                    case "action":
-                                        await _controller.DispatchActionScenarioAsync(endpoint, OpenNettyModels.ScenariosPlus.ActionScenarioType.Action);
-                                        break;
-
-                                    case "dimming":
-                                    {
-                                        await _controller.DispatchDimmingScenarioAsync(endpoint,
-                                            (short?) parameters?["dimming_step"] ?? throw new InvalidDataException(SR.GetResourceString(SR.ID0068)));
-                                        break;
-                                    }
-
-                                    case "end_of_extended_pressure":
-                                        await _controller.DispatchPressureScenarioPlusAsync(endpoint,
-                                            OpenNettyModels.ScenariosPlus.PressureScenarioType.EndOfExtendedPressure,
-                                            (byte?) parameters?["button"]);
-                                        break;
-
-                                    case "extended_pressure" when ((string?) parameters?["scenario_type"]) is "evolved":
-                                        await _controller.DispatchPressureScenarioAsync(endpoint,
-                                            OpenNettyModels.Scenarios.PressureScenarioType.ExtendedPressure,
-                                            (byte?) parameters?["button"] ?? throw new InvalidDataException(SR.GetResourceString(SR.ID0068)));
-                                        break;
-
-                                    case "extended_pressure" when ((string?) parameters?["scenario_type"]) is "plus":
-                                        await _controller.DispatchPressureScenarioPlusAsync(endpoint,
-                                            OpenNettyModels.ScenariosPlus.PressureScenarioType.ExtendedPressure,
-                                            (byte?) parameters?["button"]);
-                                        break;
-
-                                    case "pressure":
-                                        await _controller.DispatchPressureScenarioAsync(endpoint,
-                                            OpenNettyModels.Scenarios.PressureScenarioType.Pressure,
-                                            (byte?) parameters?["button"] ?? throw new InvalidDataException(SR.GetResourceString(SR.ID0068)));
-                                        break;
-
-                                    case "progressive_action":
-                                    {
-                                        if (!TimeSpan.TryParse((string?) parameters?["duration"], CultureInfo.InvariantCulture, out var duration))
-                                        {
-                                            throw new InvalidDataException(SR.GetResourceString(SR.ID0068));
-                                        }
-
-                                        await _controller.DispatchProgressiveScenarioAsync(endpoint, duration);
-                                        break;
-                                    }
-
-                                    case "release_after_short_pressure":
-                                        await _controller.DispatchPressureScenarioAsync(endpoint,
-                                            OpenNettyModels.Scenarios.PressureScenarioType.ReleaseAfterShortPressure,
-                                            (byte?) parameters?["button"] ?? throw new InvalidDataException(SR.GetResourceString(SR.ID0068)));
-                                        break;
-
-                                    case "release_after_extended_pressure":
-                                        await _controller.DispatchPressureScenarioAsync(endpoint,
-                                            OpenNettyModels.Scenarios.PressureScenarioType.ReleaseAfterExtendedPressure,
-                                            (byte?) parameters?["button"] ?? throw new InvalidDataException(SR.GetResourceString(SR.ID0068)));
-                                        break;
-
-                                    case "short_pressure":
-                                        await _controller.DispatchPressureScenarioPlusAsync(endpoint,
-                                            OpenNettyModels.ScenariosPlus.PressureScenarioType.ShortPressure,
-                                            (byte?) parameters?["button"] ?? throw new InvalidDataException(SR.GetResourceString(SR.ID0068)));
-                                        break;
-
-                                    case "shutter_down":
-                                        await _controller.DispatchStopUpDownScenarioAsync(endpoint, OpenNettyModels.Automation.StopUpDownScenarioType.Down);
-                                        break;
-
-                                    case "shutter_stop":
-                                        await _controller.DispatchStopUpDownScenarioAsync(endpoint, OpenNettyModels.Automation.StopUpDownScenarioType.Stop);
-                                        break;
-
-                                    case "shutter_up":
-                                        await _controller.DispatchStopUpDownScenarioAsync(endpoint, OpenNettyModels.Automation.StopUpDownScenarioType.Up);
-                                        break;
-
-                                    case "start_of_extended_pressure":
-                                        await _controller.DispatchPressureScenarioPlusAsync(endpoint,
-                                            OpenNettyModels.ScenariosPlus.PressureScenarioType.StartOfExtendedPressure,
-                                            (byte?) parameters?["button"]);
-                                        break;
-
-                                    case "stop_action":
-                                        await _controller.DispatchActionScenarioAsync(endpoint, OpenNettyModels.ScenariosPlus.ActionScenarioType.StopAction);
-                                        break;
-
-                                    case "switch_on":
-                                        await _controller.DispatchOnOffScenarioAsync(endpoint, OpenNettyModels.Lighting.OnOffScenarioType.On);
-                                        break;
-
-                                    case "switch_off":
-                                        await _controller.DispatchOnOffScenarioAsync(endpoint, OpenNettyModels.Lighting.OnOffScenarioType.Off);
-                                        break;
-
-                                    case "timed_action":
-                                    {
-                                        if (!TimeSpan.TryParse((string?) parameters?["duration"], CultureInfo.InvariantCulture, out var duration))
-                                        {
-                                            throw new InvalidDataException(SR.GetResourceString(SR.ID0068));
-                                        }
-
-                                        await _controller.DispatchTimedScenarioAsync(endpoint, duration);
-                                        break;
-                                    }
-                                }
-                                break;
-                            }
-
-                            case OpenNettyMqttAttributes.ShutterPosition when operation is OpenNettyMqttOperation.Get:
-                            {
-                                _ = await _controller.EnumerateShutterPositionsAsync(endpoint).ToListAsync();
-                                break;
-                            }
-
-                            case OpenNettyMqttAttributes.ShutterPosition when operation is OpenNettyMqttOperation.Set:
-                            {
-                                if (!byte.TryParse(message.PayloadSegment, CultureInfo.InvariantCulture, out var position))
-                                {
-                                    throw new InvalidDataException(SR.GetResourceString(SR.ID0068));
-                                }
-
-                                await _controller.SetShutterPositionAsync(endpoint, position);
-                                break;
-                            }
-
-                            case OpenNettyMqttAttributes.ShutterState when operation is OpenNettyMqttOperation.Get:
-                            {
-                                _ = await _controller.EnumerateShutterStatesAsync(endpoint).ToListAsync();
-                                break;
-                            }
-
-                            case OpenNettyMqttAttributes.ShutterState when operation is OpenNettyMqttOperation.Set:
-                            {
-                                switch (message.ConvertPayloadToString()?.ToLowerInvariant())
-                                {
-                                    case "close":
-                                        await _controller.MoveShutterDownAsync(endpoint);
-                                        break;
-
-                                    case "open":
-                                        await _controller.MoveShutterUpAsync(endpoint);
-                                        break;
-
-                                    case "stop":
-                                        await _controller.StopShutterAsync(endpoint);
-                                        break;
-                                }
-                                break;
-                            }
-
-                            case OpenNettyMqttAttributes.SmartMeterBaseIndex        when operation is OpenNettyMqttOperation.Get:
-                            case OpenNettyMqttAttributes.SmartMeterBlueIndex        when operation is OpenNettyMqttOperation.Get:
-                            case OpenNettyMqttAttributes.SmartMeterPeakOffPeakIndex when operation is OpenNettyMqttOperation.Get:
-                            case OpenNettyMqttAttributes.SmartMeterRedIndex         when operation is OpenNettyMqttOperation.Get:
-                            case OpenNettyMqttAttributes.SmartMeterSubscriptionType when operation is OpenNettyMqttOperation.Get:
-                            case OpenNettyMqttAttributes.SmartMeterWhiteIndex       when operation is OpenNettyMqttOperation.Get:
-                            {
-                                _ = await _controller.GetSmartMeterIndexesAsync(endpoint);
-                                break;
-                            }
-
-                            case OpenNettyMqttAttributes.SmartMeterPowerCutMode or OpenNettyMqttAttributes.SmartMeterRateType
-                                when operation is OpenNettyMqttOperation.Get:
-                            {
-                                _ = await _controller.GetSmartMeterInformationAsync(endpoint);
-                                break;
-                            }
-
-                            case OpenNettyMqttAttributes.StartupDate when operation is OpenNettyMqttOperation.Get:
-                            {
-                                _ = await _controller.GetUptimeAsync(endpoint);
-                                break;
-                            }
-
-                            case OpenNettyMqttAttributes.SwitchState when operation is OpenNettyMqttOperation.Get:
-                            {
-                                _ = await _controller.EnumerateSwitchStatesAsync(endpoint).ToListAsync();
-                                break;
-                            }
-
-                            case OpenNettyMqttAttributes.SwitchState when operation is OpenNettyMqttOperation.Set:
-                            {
-                                switch (message.ConvertPayloadToString()?.ToLowerInvariant())
-                                {
-                                    case "on":
-                                        await _controller.SwitchOnAsync(endpoint);
-                                        break;
-
-                                    case "off":
-                                        await _controller.SwitchOffAsync(endpoint);
-                                        break;
-
-                                    case "toggle":
-                                        await _controller.ToggleAsync(endpoint);
-                                        break;
-                                }
-                                break;
-                            }
-
-                            case OpenNettyMqttAttributes.WaterHeaterSetpointMode when operation is OpenNettyMqttOperation.Set:
-                            {
-                                switch (message.ConvertPayloadToString()?.ToLowerInvariant())
-                                {
-                                    case "forced_off":
-                                        await _controller.SetWaterHeaterSetpointModeAsync(endpoint,
-                                            OpenNettyModels.TemperatureControl.WaterHeaterMode.ForcedOff);
-                                        break;
-
-                                    case "forced_on":
-                                        await _controller.SetWaterHeaterSetpointModeAsync(endpoint,
-                                            OpenNettyModels.TemperatureControl.WaterHeaterMode.ForcedOn);
-                                        break;
-
-                                    case "automatic":
-                                        await _controller.SetWaterHeaterSetpointModeAsync(endpoint,
-                                            OpenNettyModels.TemperatureControl.WaterHeaterMode.Automatic);
-                                        break;
-                                }
-                                break;
-                            }
-
-                            case OpenNettyMqttAttributes.WaterHeaterState when operation is OpenNettyMqttOperation.Get:
-                            {
-                                _ = await _controller.GetWaterHeaterStateAsync(endpoint);
-                                break;
-                            }
-
-                            case OpenNettyMqttAttributes.ZigbeeBinding when operation is OpenNettyMqttOperation.Set:
-                            {
-                                switch (message.ConvertPayloadToString()?.ToLowerInvariant())
-                                {
-                                    case "bind":
-                                        await _controller.BindAsync(endpoint);
-                                        break;
-
-                                    case "unbind":
-                                        await _controller.UnbindAsync(endpoint);
-                                        break;
-                                }
-                                break;
-                            }
-
-                            case OpenNettyMqttAttributes.ZigbeeChannel when operation is OpenNettyMqttOperation.Get:
-                            {
-                                _ = await _controller.GetZigbeeChannelAsync(endpoint);
-                                break;
-                            }
-
-                            case OpenNettyMqttAttributes.ZigbeeDevicesCount when operation is OpenNettyMqttOperation.Get:
-                            {
-                                _ = await _controller.CountZigbeeDevicesAsync(endpoint);
-                                break;
-                            }
-
-                            case OpenNettyMqttAttributes.ZigbeeNetwork when operation is OpenNettyMqttOperation.Set:
-                            {
-                                switch (message.ConvertPayloadToString()?.ToLowerInvariant())
-                                {
-                                    case "close":
-                                        await _controller.CloseZigbeeNetworkAsync(endpoint);
-                                        break;
-
-                                    case "create":
-                                        await _controller.CreateZigbeeNetworkAsync(endpoint);
-                                        break;
-
-                                    case "join":
-                                        await _controller.JoinZigbeeNetworkAsync(endpoint);
-                                        break;
-
-                                    case "leave":
-                                        await _controller.LeaveZigbeeNetworkAsync(endpoint);
-                                        break;
-
-                                    case "open":
-                                        await _controller.OpenZigbeeNetworkAsync(endpoint);
-                                        break;
-                                }
-                                break;
-                            }
-
-                            case OpenNettyMqttAttributes.ZigbeeSupervision when operation is OpenNettyMqttOperation.Set:
-                            {
-                                switch (message.ConvertPayloadToString()?.ToLowerInvariant())
-                                {
-                                    case "disable":
-                                        await _controller.DisableSupervisionAsync(endpoint);
-                                        break;
-
-                                    case "enable":
-                                        await _controller.EnableSupervisionAsync(endpoint);
-                                        break;
-                                }
-                                break;
-                            }
-                        }
-
-                        if (!string.IsNullOrEmpty(message.ResponseTopic))
+                        if (!string.IsNullOrEmpty(parameters.Message.ResponseTopic))
                         {
                             await client.EnqueueAsync(new MqttApplicationMessageBuilder()
-                                .WithCorrelationData(message.CorrelationData)
+                                .WithCorrelationData(parameters.Message.CorrelationData)
                                 .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
-                                .WithTopic(message.ResponseTopic)
+                                .WithTopic(parameters.Message.ResponseTopic)
                                 .Build());
                         }
                     }
 
-                    catch (OpenNettyException exception) when (!string.IsNullOrEmpty(message.ResponseTopic))
+                    catch (OpenNettyException exception) when (!string.IsNullOrEmpty(parameters.Message.ResponseTopic))
                     {
                         await client.EnqueueAsync(new MqttApplicationMessageBuilder()
                             .WithContentType(MediaTypeNames.Application.Json)
-                            .WithCorrelationData(message.CorrelationData)
+                            .WithCorrelationData(parameters.Message.CorrelationData)
                             .WithPayload(new JsonObject { ["error"] = exception.Message }.ToJsonString())
                             .WithPayloadFormatIndicator(MqttPayloadFormatIndicator.CharacterData)
                             .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
-                            .WithTopic(message.ResponseTopic)
+                            .WithTopic(parameters.Message.ResponseTopic)
                             .Build());
 
                         throw;
                     }
-
-                    static JsonObject? TryParseAsJsonObject(string value)
-                    {
-                        try
-                        {
-                            return JsonObject.Parse(value)?.AsObject();
-                        }
-
-                        catch (JsonException)
-                        {
-                            return null;
-                        }
-                    }
-                })
-                .Do((Exception exception) => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
-                .Retry()
-                .SubscribeAsync(static arguments => ValueTask.CompletedTask))
+                });
+            })
+            .Do((Exception exception) => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
             .Retry()
-            .SubscribeAsync(static arguments => ValueTask.CompletedTask);
+            .SubscribeAsync(static arguments => ValueTask.CompletedTask))
+        .Retry()
+        .SubscribeAsync(static arguments => ValueTask.CompletedTask);
 
         // Wait until the host signals the application is shutting down and then, for each endpoint, publish
         // an "offline" message to the corresponding availability topic before the MQTT client disconnects.
@@ -716,6 +138,592 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
             while (client.PendingApplicationMessagesCount is not 0)
             {
                 await Task.Delay(100, CancellationToken.None);
+            }
+        }
+
+        static IAsyncObservable<MqttApplicationMessage> ObserveMessagesAsync(
+            ChannelReader<MqttApplicationMessage> reader, CancellationToken cancellationToken)
+            => AsyncObservable.Create<MqttApplicationMessage>(observer =>
+                TaskPoolAsyncScheduler.Default.ScheduleAsync(async cancellationToken =>
+                {
+                    while (!cancellationToken.IsCancellationRequested)
+                    {
+                        try
+                        {
+                            if (!await reader.WaitToReadAsync(cancellationToken))
+                            {
+                                await observer.OnCompletedAsync();
+                                return;
+                            }
+
+                            while (reader.TryRead(out MqttApplicationMessage? message))
+                            {
+                                await observer.OnNextAsync(message);
+                            }
+                        }
+
+                        catch (ChannelClosedException)
+                        {
+                            await observer.OnCompletedAsync();
+                            return;
+                        }
+
+                        catch (Exception exception)
+                        {
+                            await observer.OnErrorAsync(exception);
+                        }
+                    }
+                }));
+
+        async ValueTask ExecuteAsync(MqttApplicationMessage message, OpenNettyEndpoint endpoint,
+            string attribute, OpenNettyMqttOperation operation, CancellationToken cancellationToken)
+        {
+            switch (attribute)
+            {
+                case OpenNettyMqttAttributes.BatteryAlert when operation is OpenNettyMqttOperation.Set:
+                {
+                    switch (message.ConvertPayloadToString()?.ToLowerInvariant())
+                    {
+                        case "off":
+                            await client.EnqueueAsync(new MqttApplicationMessageBuilder()
+                                .WithPayloadFormatIndicator(MqttPayloadFormatIndicator.CharacterData)
+                                .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
+                                .WithTopic(message.Topic[..^4])
+                                .WithPayload("OFF")
+                                .WithRetainFlag()
+                                .Build());
+                            break;
+                    }
+                    break;
+                }
+
+                case OpenNettyMqttAttributes.Brightness when operation is OpenNettyMqttOperation.Get:
+                {
+                    _ = await _controller.EnumerateBrightnessAsync(endpoint, cancellationToken).ToListAsync(cancellationToken);
+                    break;
+                }
+
+                case OpenNettyMqttAttributes.Brightness when operation is OpenNettyMqttOperation.Set:
+                {
+                    if (!byte.TryParse(message.PayloadSegment, CultureInfo.InvariantCulture, out var level))
+                    {
+                        throw new InvalidDataException(SR.GetResourceString(SR.ID0068));
+                    }
+
+                    await _controller.SetBrightnessAsync(endpoint, level, null, cancellationToken);
+                    break;
+                }
+
+                case OpenNettyMqttAttributes.FirmwareVersion when operation is OpenNettyMqttOperation.Get:
+                {
+                    _ = await _controller.GetFirmwareVersionAsync(endpoint, cancellationToken);
+                    break;
+                }
+
+                case OpenNettyMqttAttributes.HardwareVersion when operation is OpenNettyMqttOperation.Get:
+                {
+                    _ = await _controller.GetHardwareVersionAsync(endpoint, cancellationToken);
+                    break;
+                }
+
+                case OpenNettyMqttAttributes.MacAddress when operation is OpenNettyMqttOperation.Get:
+                {
+                    _ = await _controller.GetMacAddressAsync(endpoint, cancellationToken);
+                    break;
+                }
+
+                case OpenNettyMqttAttributes.OutgoingMessage when operation is OpenNettyMqttOperation.Set:
+                {
+                    var parameters = TryParseAsJsonObject(message.ConvertPayloadToString())
+                        ?? throw new InvalidDataException(SR.GetResourceString(SR.ID0068));
+
+                    await _controller.SendRawMessageAsync(endpoint, parameters["message"]?["raw"]?.GetValue<string>() switch
+                    {
+                        { Length: > 0 } frame => OpenNettyMessage.CreateFromFrame(endpoint.Protocol, frame),
+
+                        _ => OpenNettyMessage.CreateFromJsonObject(parameters["message"]?["parsed"]?.AsObject()
+                            ?? throw new InvalidDataException(SR.GetResourceString(SR.ID0068)))
+                    }, cancellationToken);
+                    break;
+                }
+
+                case OpenNettyMqttAttributes.PilotWireDerogationMode when operation is OpenNettyMqttOperation.Get:
+                case OpenNettyMqttAttributes.PilotWireSetpointMode when operation is OpenNettyMqttOperation.Get:
+                case OpenNettyMqttAttributes.PilotWireShutdownMode when operation is OpenNettyMqttOperation.Get:
+                {
+                    _ = await _controller.GetPilotWireConfigurationAsync(endpoint, cancellationToken);
+                    break;
+                }
+
+                case OpenNettyMqttAttributes.PilotWireDerogationMode when operation is OpenNettyMqttOperation.Set:
+                {
+                    switch (message.ConvertPayloadToString()?.ToLowerInvariant())
+                    {
+                        case "none":
+                            await _controller.CancelPilotWireDerogationModeAsync(endpoint, cancellationToken);
+                            break;
+
+                        case "comfort":
+                            await _controller.SetPilotWireDerogationModeAsync(endpoint,
+                                OpenNettyModels.TemperatureControl.PilotWireMode.Comfort,
+                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None, cancellationToken);
+                            break;
+
+                        case "comfort:4h":
+                            await _controller.SetPilotWireDerogationModeAsync(endpoint,
+                                OpenNettyModels.TemperatureControl.PilotWireMode.Comfort,
+                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours, cancellationToken);
+                            break;
+
+                        case "comfort:8h":
+                            await _controller.SetPilotWireDerogationModeAsync(endpoint,
+                                OpenNettyModels.TemperatureControl.PilotWireMode.Comfort,
+                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours, cancellationToken);
+                            break;
+
+                        case "comfort-1":
+                            await _controller.SetPilotWireDerogationModeAsync(endpoint,
+                                OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusOne,
+                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None, cancellationToken);
+                            break;
+
+                        case "comfort-1:4h":
+                            await _controller.SetPilotWireDerogationModeAsync(endpoint,
+                                OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusOne,
+                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours, cancellationToken);
+                            break;
+
+                        case "comfort-1:8h":
+                            await _controller.SetPilotWireDerogationModeAsync(endpoint,
+                                OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusOne,
+                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours, cancellationToken);
+                            break;
+
+                        case "comfort-2":
+                            await _controller.SetPilotWireDerogationModeAsync(endpoint,
+                                OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusTwo,
+                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None, cancellationToken);
+                            break;
+
+                        case "comfort-2:4h":
+                            await _controller.SetPilotWireDerogationModeAsync(endpoint,
+                                OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusTwo,
+                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours, cancellationToken);
+                            break;
+
+                        case "comfort-2:8h":
+                            await _controller.SetPilotWireDerogationModeAsync(endpoint,
+                                OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusTwo,
+                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours, cancellationToken);
+                            break;
+
+                        case "eco":
+                            await _controller.SetPilotWireDerogationModeAsync(endpoint,
+                                OpenNettyModels.TemperatureControl.PilotWireMode.Eco,
+                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None, cancellationToken);
+                            break;
+
+                        case "eco:4h":
+                            await _controller.SetPilotWireDerogationModeAsync(endpoint,
+                                OpenNettyModels.TemperatureControl.PilotWireMode.Eco,
+                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours, cancellationToken);
+                            break;
+
+                        case "eco:8h":
+                            await _controller.SetPilotWireDerogationModeAsync(endpoint,
+                                OpenNettyModels.TemperatureControl.PilotWireMode.Eco,
+                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours, cancellationToken);
+                            break;
+
+                        case "frost_protection":
+                            await _controller.SetPilotWireDerogationModeAsync(endpoint,
+                                OpenNettyModels.TemperatureControl.PilotWireMode.FrostProtection,
+                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None, cancellationToken);
+                            break;
+
+                        case "frost_protection:4h":
+                            await _controller.SetPilotWireDerogationModeAsync(endpoint,
+                                OpenNettyModels.TemperatureControl.PilotWireMode.FrostProtection,
+                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours, cancellationToken);
+                            break;
+
+                        case "frost_protection:8h":
+                            await _controller.SetPilotWireDerogationModeAsync(endpoint,
+                                OpenNettyModels.TemperatureControl.PilotWireMode.FrostProtection,
+                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours, cancellationToken);
+                            break;
+                    }
+                    break;
+                }
+
+                case OpenNettyMqttAttributes.PilotWireSetpointMode when operation is OpenNettyMqttOperation.Set:
+                {
+                    switch (message.ConvertPayloadToString()?.ToLowerInvariant())
+                    {
+                        case "comfort":
+                            await _controller.SetPilotWireSetpointModeAsync(endpoint,
+                                OpenNettyModels.TemperatureControl.PilotWireMode.Comfort, cancellationToken);
+                            break;
+
+                        case "comfort-1":
+                            await _controller.SetPilotWireSetpointModeAsync(endpoint,
+                                OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusOne, cancellationToken);
+                            break;
+
+                        case "comfort-2":
+                            await _controller.SetPilotWireSetpointModeAsync(endpoint,
+                                OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusTwo, cancellationToken);
+                            break;
+
+                        case "eco":
+                            await _controller.SetPilotWireSetpointModeAsync(endpoint,
+                                OpenNettyModels.TemperatureControl.PilotWireMode.Eco, cancellationToken);
+                            break;
+
+                        case "frost_protection":
+                            await _controller.SetPilotWireSetpointModeAsync(endpoint,
+                                OpenNettyModels.TemperatureControl.PilotWireMode.FrostProtection, cancellationToken);
+                            break;
+                    }
+                    break;
+                }
+
+                case OpenNettyMqttAttributes.PilotWireShutdownMode when operation is OpenNettyMqttOperation.Set:
+                {
+                    switch (message.ConvertPayloadToString()?.ToLowerInvariant())
+                    {
+                        case "on":
+                            await _controller.ActivatePilotWireShutdownModeAsync(endpoint, cancellationToken);
+                            break;
+
+                        case "off":
+                            await _controller.CancelPilotWireShutdownModeAsync(endpoint, cancellationToken);
+                            break;
+                    }
+                    break;
+                }
+
+                case OpenNettyMqttAttributes.Scenario when operation is OpenNettyMqttOperation.Set:
+                {
+                    var parameters = TryParseAsJsonObject(message.ConvertPayloadToString());
+
+                    switch ((string?) parameters?["event_type"] ?? message.ConvertPayloadToString()?.ToLowerInvariant())
+                    {
+                        case "action":
+                            await _controller.DispatchActionScenarioAsync(endpoint,
+                                OpenNettyModels.ScenariosPlus.ActionScenarioType.Action, cancellationToken);
+                            break;
+
+                        case "dimming":
+                        {
+                            await _controller.DispatchDimmingScenarioAsync(endpoint,
+                                (short?) parameters?["dimming_step"] ?? throw new InvalidDataException(SR.GetResourceString(SR.ID0068)), cancellationToken);
+                            break;
+                        }
+
+                        case "end_of_extended_pressure":
+                            await _controller.DispatchPressureScenarioPlusAsync(endpoint,
+                                OpenNettyModels.ScenariosPlus.PressureScenarioType.EndOfExtendedPressure,
+                                (byte?) parameters?["button"], cancellationToken);
+                            break;
+
+                        case "extended_pressure" when ((string?) parameters?["scenario_type"]) is "evolved":
+                            await _controller.DispatchPressureScenarioAsync(endpoint,
+                                OpenNettyModels.Scenarios.PressureScenarioType.ExtendedPressure,
+                                (byte?) parameters?["button"] ?? throw new InvalidDataException(SR.GetResourceString(SR.ID0068)), cancellationToken);
+                            break;
+
+                        case "extended_pressure" when ((string?) parameters?["scenario_type"]) is "plus":
+                            await _controller.DispatchPressureScenarioPlusAsync(endpoint,
+                                OpenNettyModels.ScenariosPlus.PressureScenarioType.ExtendedPressure,
+                                (byte?) parameters?["button"], cancellationToken);
+                            break;
+
+                        case "pressure":
+                            await _controller.DispatchPressureScenarioAsync(endpoint,
+                                OpenNettyModels.Scenarios.PressureScenarioType.Pressure,
+                                (byte?) parameters?["button"] ?? throw new InvalidDataException(SR.GetResourceString(SR.ID0068)), cancellationToken);
+                            break;
+
+                        case "progressive_action":
+                        {
+                            if (!TimeSpan.TryParse((string?) parameters?["duration"], CultureInfo.InvariantCulture, out var duration))
+                            {
+                                throw new InvalidDataException(SR.GetResourceString(SR.ID0068));
+                            }
+
+                            await _controller.DispatchProgressiveScenarioAsync(endpoint, duration, cancellationToken);
+                            break;
+                        }
+
+                        case "release_after_short_pressure":
+                            await _controller.DispatchPressureScenarioAsync(endpoint,
+                                OpenNettyModels.Scenarios.PressureScenarioType.ReleaseAfterShortPressure,
+                                (byte?) parameters?["button"] ?? throw new InvalidDataException(SR.GetResourceString(SR.ID0068)), cancellationToken);
+                            break;
+
+                        case "release_after_extended_pressure":
+                            await _controller.DispatchPressureScenarioAsync(endpoint,
+                                OpenNettyModels.Scenarios.PressureScenarioType.ReleaseAfterExtendedPressure,
+                                (byte?) parameters?["button"] ?? throw new InvalidDataException(SR.GetResourceString(SR.ID0068)), cancellationToken);
+                            break;
+
+                        case "short_pressure":
+                            await _controller.DispatchPressureScenarioPlusAsync(endpoint,
+                                OpenNettyModels.ScenariosPlus.PressureScenarioType.ShortPressure,
+                                (byte?) parameters?["button"] ?? throw new InvalidDataException(SR.GetResourceString(SR.ID0068)), cancellationToken);
+                            break;
+
+                        case "shutter_down":
+                            await _controller.DispatchStopUpDownScenarioAsync(endpoint,
+                                OpenNettyModels.Automation.StopUpDownScenarioType.Down, cancellationToken);
+                            break;
+
+                        case "shutter_stop":
+                            await _controller.DispatchStopUpDownScenarioAsync(endpoint,
+                                OpenNettyModels.Automation.StopUpDownScenarioType.Stop, cancellationToken);
+                            break;
+
+                        case "shutter_up":
+                            await _controller.DispatchStopUpDownScenarioAsync(endpoint,
+                                OpenNettyModels.Automation.StopUpDownScenarioType.Up, cancellationToken);
+                            break;
+
+                        case "start_of_extended_pressure":
+                            await _controller.DispatchPressureScenarioPlusAsync(endpoint,
+                                OpenNettyModels.ScenariosPlus.PressureScenarioType.StartOfExtendedPressure,
+                                (byte?) parameters?["button"], cancellationToken);
+                            break;
+
+                        case "stop_action":
+                            await _controller.DispatchActionScenarioAsync(endpoint,
+                                OpenNettyModels.ScenariosPlus.ActionScenarioType.StopAction, cancellationToken);
+                            break;
+
+                        case "switch_on":
+                            await _controller.DispatchOnOffScenarioAsync(endpoint,
+                                OpenNettyModels.Lighting.OnOffScenarioType.On, cancellationToken);
+                            break;
+
+                        case "switch_off":
+                            await _controller.DispatchOnOffScenarioAsync(endpoint,
+                                OpenNettyModels.Lighting.OnOffScenarioType.Off, cancellationToken);
+                            break;
+
+                        case "timed_action":
+                        {
+                            if (!TimeSpan.TryParse((string?) parameters?["duration"], CultureInfo.InvariantCulture, out var duration))
+                            {
+                                throw new InvalidDataException(SR.GetResourceString(SR.ID0068));
+                            }
+
+                            await _controller.DispatchTimedScenarioAsync(endpoint, duration, cancellationToken);
+                            break;
+                        }
+                    }
+                    break;
+                }
+
+                case OpenNettyMqttAttributes.ShutterPosition when operation is OpenNettyMqttOperation.Get:
+                {
+                    _ = await _controller.EnumerateShutterPositionsAsync(endpoint, cancellationToken).ToListAsync(cancellationToken);
+                    break;
+                }
+
+                case OpenNettyMqttAttributes.ShutterPosition when operation is OpenNettyMqttOperation.Set:
+                {
+                    if (!byte.TryParse(message.PayloadSegment, CultureInfo.InvariantCulture, out var position))
+                    {
+                        throw new InvalidDataException(SR.GetResourceString(SR.ID0068));
+                    }
+
+                    await _controller.SetShutterPositionAsync(endpoint, position, cancellationToken);
+                    break;
+                }
+
+                case OpenNettyMqttAttributes.ShutterState when operation is OpenNettyMqttOperation.Get:
+                {
+                    _ = await _controller.EnumerateShutterStatesAsync(endpoint, cancellationToken).ToListAsync(cancellationToken);
+                    break;
+                }
+
+                case OpenNettyMqttAttributes.ShutterState when operation is OpenNettyMqttOperation.Set:
+                {
+                    switch (message.ConvertPayloadToString()?.ToLowerInvariant())
+                    {
+                        case "close":
+                            await _controller.MoveShutterDownAsync(endpoint, cancellationToken);
+                            break;
+
+                        case "open":
+                            await _controller.MoveShutterUpAsync(endpoint, cancellationToken);
+                            break;
+
+                        case "stop":
+                            await _controller.StopShutterAsync(endpoint, cancellationToken);
+                            break;
+                    }
+                    break;
+                }
+
+                case OpenNettyMqttAttributes.SmartMeterBaseIndex        when operation is OpenNettyMqttOperation.Get:
+                case OpenNettyMqttAttributes.SmartMeterBlueIndex        when operation is OpenNettyMqttOperation.Get:
+                case OpenNettyMqttAttributes.SmartMeterPeakOffPeakIndex when operation is OpenNettyMqttOperation.Get:
+                case OpenNettyMqttAttributes.SmartMeterRedIndex         when operation is OpenNettyMqttOperation.Get:
+                case OpenNettyMqttAttributes.SmartMeterSubscriptionType when operation is OpenNettyMqttOperation.Get:
+                case OpenNettyMqttAttributes.SmartMeterWhiteIndex       when operation is OpenNettyMqttOperation.Get:
+                {
+                    _ = await _controller.GetSmartMeterIndexesAsync(endpoint, cancellationToken);
+                    break;
+                }
+
+                case OpenNettyMqttAttributes.SmartMeterPowerCutMode or OpenNettyMqttAttributes.SmartMeterRateType
+                    when operation is OpenNettyMqttOperation.Get:
+                {
+                    _ = await _controller.GetSmartMeterInformationAsync(endpoint, cancellationToken);
+                    break;
+                }
+
+                case OpenNettyMqttAttributes.StartupDate when operation is OpenNettyMqttOperation.Get:
+                {
+                    _ = await _controller.GetUptimeAsync(endpoint, cancellationToken);
+                    break;
+                }
+
+                case OpenNettyMqttAttributes.SwitchState when operation is OpenNettyMqttOperation.Get:
+                {
+                    _ = await _controller.EnumerateSwitchStatesAsync(endpoint, cancellationToken).ToListAsync(cancellationToken);
+                    break;
+                }
+
+                case OpenNettyMqttAttributes.SwitchState when operation is OpenNettyMqttOperation.Set:
+                {
+                    switch (message.ConvertPayloadToString()?.ToLowerInvariant())
+                    {
+                        case "on":
+                            await _controller.SwitchOnAsync(endpoint, cancellationToken);
+                            break;
+
+                        case "off":
+                            await _controller.SwitchOffAsync(endpoint, cancellationToken);
+                            break;
+
+                        case "toggle":
+                            await _controller.ToggleAsync(endpoint, cancellationToken);
+                            break;
+                    }
+                    break;
+                }
+
+                case OpenNettyMqttAttributes.WaterHeaterSetpointMode when operation is OpenNettyMqttOperation.Set:
+                {
+                    switch (message.ConvertPayloadToString()?.ToLowerInvariant())
+                    {
+                        case "forced_off":
+                            await _controller.SetWaterHeaterSetpointModeAsync(endpoint,
+                                OpenNettyModels.TemperatureControl.WaterHeaterMode.ForcedOff, cancellationToken);
+                            break;
+
+                        case "forced_on":
+                            await _controller.SetWaterHeaterSetpointModeAsync(endpoint,
+                                OpenNettyModels.TemperatureControl.WaterHeaterMode.ForcedOn, cancellationToken);
+                            break;
+
+                        case "automatic":
+                            await _controller.SetWaterHeaterSetpointModeAsync(endpoint,
+                                OpenNettyModels.TemperatureControl.WaterHeaterMode.Automatic, cancellationToken);
+                            break;
+                    }
+                    break;
+                }
+
+                case OpenNettyMqttAttributes.WaterHeaterState when operation is OpenNettyMqttOperation.Get:
+                {
+                    _ = await _controller.GetWaterHeaterStateAsync(endpoint, cancellationToken);
+                    break;
+                }
+
+                case OpenNettyMqttAttributes.ZigbeeBinding when operation is OpenNettyMqttOperation.Set:
+                {
+                    switch (message.ConvertPayloadToString()?.ToLowerInvariant())
+                    {
+                        case "bind":
+                            await _controller.BindAsync(endpoint, cancellationToken);
+                            break;
+
+                        case "unbind":
+                            await _controller.UnbindAsync(endpoint, cancellationToken);
+                            break;
+                    }
+                    break;
+                }
+
+                case OpenNettyMqttAttributes.ZigbeeChannel when operation is OpenNettyMqttOperation.Get:
+                {
+                    _ = await _controller.GetZigbeeChannelAsync(endpoint, cancellationToken);
+                    break;
+                }
+
+                case OpenNettyMqttAttributes.ZigbeeDevicesCount when operation is OpenNettyMqttOperation.Get:
+                {
+                    _ = await _controller.CountZigbeeDevicesAsync(endpoint, cancellationToken);
+                    break;
+                }
+
+                case OpenNettyMqttAttributes.ZigbeeNetwork when operation is OpenNettyMqttOperation.Set:
+                {
+                    switch (message.ConvertPayloadToString()?.ToLowerInvariant())
+                    {
+                        case "close":
+                            await _controller.CloseZigbeeNetworkAsync(endpoint, cancellationToken);
+                            break;
+
+                        case "create":
+                            await _controller.CreateZigbeeNetworkAsync(endpoint, cancellationToken);
+                            break;
+
+                        case "join":
+                            await _controller.JoinZigbeeNetworkAsync(endpoint, cancellationToken);
+                            break;
+
+                        case "leave":
+                            await _controller.LeaveZigbeeNetworkAsync(endpoint, cancellationToken);
+                            break;
+
+                        case "open":
+                            await _controller.OpenZigbeeNetworkAsync(endpoint, cancellationToken);
+                            break;
+                    }
+                    break;
+                }
+
+                case OpenNettyMqttAttributes.ZigbeeSupervision when operation is OpenNettyMqttOperation.Set:
+                {
+                    switch (message.ConvertPayloadToString()?.ToLowerInvariant())
+                    {
+                        case "disable":
+                            await _controller.DisableSupervisionAsync(endpoint, cancellationToken);
+                            break;
+
+                        case "enable":
+                            await _controller.EnableSupervisionAsync(endpoint, cancellationToken);
+                            break;
+                    }
+                    break;
+                }
+            }
+
+            static JsonObject? TryParseAsJsonObject(string value)
+            {
+                try
+                {
+                    return JsonObject.Parse(value)?.AsObject();
+                }
+
+                catch (JsonException)
+                {
+                    return null;
+                }
             }
         }
     }
@@ -799,8 +807,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 GetLocalizedString(SR.ID8001, culture) : GetLocalizedString(SR.ID8000, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
                                 .Where(SupportsLightOrSwitchEntity)
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
@@ -866,10 +873,9 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 name    : GetLocalizedString(SR.ID8002, culture),
                                 endpoint: endpoint,
                                 culture : culture,
-                                count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                    .Where(endpoint => endpoint.Device == device)
+                                count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
                                     .Where(SupportsLightOrSwitchEntity)
-                                    .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
+                                    .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
                                     .CountAsync(cancellationToken)),
                             ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                             ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SwitchState}/get",
@@ -889,11 +895,10 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 name    : GetLocalizedString(SR.ID8003, culture),
                                 endpoint: endpoint,
                                 culture : culture,
-                                count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                    .Where(endpoint => endpoint.Device == device)
+                                count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
                                     .Where(SupportsLightOrSwitchEntity)
-                                    .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) ||
-                                                       endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
+                                    .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) ||
+                                                              endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
                                     .CountAsync(cancellationToken)),
                             ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                             ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Brightness}/get",
@@ -915,8 +920,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 name    : GetLocalizedString(SR.ID8004, culture),
                                 endpoint: endpoint,
                                 culture : culture,
-                                count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                    .Where(endpoint => endpoint.Device == device)
+                                count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
                                     .Where(SupportsCoverEntity)
                                     .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
@@ -952,11 +956,10 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 name    : GetLocalizedString(SR.ID8005, culture),
                                 endpoint: endpoint,
                                 culture : culture,
-                                count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                    .Where(endpoint => endpoint.Device == device)
+                                count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
                                     .Where(SupportsCoverEntity)
-                                    .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState) ||
-                                                       endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
+                                    .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState) ||
+                                                              endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
                                     .CountAsync(cancellationToken)),
                             ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                             ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ShutterState}/get",
@@ -975,10 +978,9 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 name    : GetLocalizedString(SR.ID8006, culture),
                                 endpoint: endpoint,
                                 culture : culture,
-                                count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                    .Where(endpoint => endpoint.Device == device)
+                                count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
                                     .Where(SupportsCoverEntity)
-                                    .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
+                                    .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
                                     .CountAsync(cancellationToken)),
                             ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                             ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ShutterPosition}/get",
@@ -1063,17 +1065,17 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8007, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioEvent)       ||
-                                                   endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioEvent)      ||
-                                                   endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioEvent)        ||
-                                                   endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioEvent)     ||
-                                                   endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioPlusEvent) ||
-                                                   endpoint.HasCapability(OpenNettyCapabilities.ProgressiveScenarioEvent)  ||
-                                                   endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioEvent)   ||
-                                                   endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioEvent)        ||
-                                                   endpoint.HasCapability(OpenNettyCapabilities.ToggleScenarioEvent))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint =>
+                                    endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioEvent)       ||
+                                    endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioEvent)      ||
+                                    endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioEvent)        ||
+                                    endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioEvent)     ||
+                                    endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioPlusEvent) ||
+                                    endpoint.HasCapability(OpenNettyCapabilities.ProgressiveScenarioEvent)  ||
+                                    endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioEvent)   ||
+                                    endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioEvent)        ||
+                                    endpoint.HasCapability(OpenNettyCapabilities.ToggleScenarioEvent))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}",
@@ -1099,9 +1101,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8008, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioActivation))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioActivation))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
@@ -1116,9 +1117,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8025, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioActivation))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioActivation))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
@@ -1137,9 +1137,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8111, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioActivation))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioActivation))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
@@ -1155,9 +1154,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8112, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioActivation))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioActivation))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
@@ -1176,9 +1174,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8009, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioActivation))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioActivation))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
@@ -1193,9 +1190,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8010, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioActivation))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioActivation))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
@@ -1224,9 +1220,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                     name    : string.Format(GetLocalizedString(SR.ID8011, culture), button.ToString(CultureInfo.InvariantCulture)),
                                     endpoint: endpoint,
                                     culture : culture,
-                                    count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                        .Where(endpoint => endpoint.Device == device)
-                                        .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
+                                    count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                        .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
                                         .CountAsync(cancellationToken)),
                                 ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                                 ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
@@ -1245,9 +1240,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                     name    : string.Format(GetLocalizedString(SR.ID8012, culture), button.ToString(CultureInfo.InvariantCulture)),
                                     endpoint: endpoint,
                                     culture : culture,
-                                    count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                        .Where(endpoint => endpoint.Device == device)
-                                        .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
+                                    count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                        .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
                                         .CountAsync(cancellationToken)),
                                 ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                                 ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
@@ -1266,9 +1260,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                     name    : string.Format(GetLocalizedString(SR.ID8013, culture), button.ToString(CultureInfo.InvariantCulture)),
                                     endpoint: endpoint,
                                     culture : culture,
-                                    count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                        .Where(endpoint => endpoint.Device == device)
-                                        .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
+                                    count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                        .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
                                         .CountAsync(cancellationToken)),
                                 ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                                 ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
@@ -1287,9 +1280,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                     name    : string.Format(GetLocalizedString(SR.ID8014, culture), button.ToString(CultureInfo.InvariantCulture)),
                                     endpoint: endpoint,
                                     culture : culture,
-                                    count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                        .Where(endpoint => endpoint.Device == device)
-                                        .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
+                                    count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                        .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
                                         .CountAsync(cancellationToken)),
                                 ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                                 ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
@@ -1308,9 +1300,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 name    : GetLocalizedString(SR.ID8015, culture),
                                 endpoint: endpoint,
                                 culture : culture,
-                                count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                    .Where(endpoint => endpoint.Device == device)
-                                    .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
+                                count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                    .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
                                     .CountAsync(cancellationToken)),
                             ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                             ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
@@ -1325,9 +1316,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 name    : GetLocalizedString(SR.ID8016, culture),
                                 endpoint: endpoint,
                                 culture : culture,
-                                count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                    .Where(endpoint => endpoint.Device == device)
-                                    .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
+                                count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                    .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
                                     .CountAsync(cancellationToken)),
                             ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                             ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
@@ -1342,9 +1332,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 name    : GetLocalizedString(SR.ID8017, culture),
                                 endpoint: endpoint,
                                 culture : culture,
-                                count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                    .Where(endpoint => endpoint.Device == device)
-                                    .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
+                                count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                    .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
                                     .CountAsync(cancellationToken)),
                             ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                             ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
@@ -1359,9 +1348,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 name    : GetLocalizedString(SR.ID8018, culture),
                                 endpoint: endpoint,
                                 culture : culture,
-                                count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                    .Where(endpoint => endpoint.Device == device)
-                                    .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
+                                count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                    .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
                                     .CountAsync(cancellationToken)),
                             ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                             ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
@@ -1391,9 +1379,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                     name    : string.Format(GetLocalizedString(SR.ID8019, culture), button.ToString(CultureInfo.InvariantCulture)),
                                     endpoint: endpoint,
                                     culture : culture,
-                                    count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                        .Where(endpoint => endpoint.Device == device)
-                                        .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
+                                    count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                        .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
                                         .CountAsync(cancellationToken)),
                                 ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                                 ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
@@ -1412,9 +1399,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                     name    : string.Format(GetLocalizedString(SR.ID8020, culture), button.ToString(CultureInfo.InvariantCulture)),
                                     endpoint: endpoint,
                                     culture : culture,
-                                    count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                        .Where(endpoint => endpoint.Device == device)
-                                        .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
+                                    count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                        .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
                                         .CountAsync(cancellationToken)),
                                 ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                                 ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
@@ -1433,9 +1419,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                     name    : string.Format(GetLocalizedString(SR.ID8014, culture), button.ToString(CultureInfo.InvariantCulture)),
                                     endpoint: endpoint,
                                     culture : culture,
-                                    count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                        .Where(endpoint => endpoint.Device == device)
-                                        .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
+                                    count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                        .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
                                         .CountAsync(cancellationToken)),
                                 ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                                 ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
@@ -1454,9 +1439,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                     name    : string.Format(GetLocalizedString(SR.ID8021, culture), button.ToString(CultureInfo.InvariantCulture)),
                                     endpoint: endpoint,
                                     culture : culture,
-                                    count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                        .Where(endpoint => endpoint.Device == device)
-                                        .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
+                                    count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                        .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
                                         .CountAsync(cancellationToken)),
                                 ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                                 ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
@@ -1475,9 +1459,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 name    : GetLocalizedString(SR.ID8022, culture),
                                 endpoint: endpoint,
                                 culture : culture,
-                                count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                    .Where(endpoint => endpoint.Device == device)
-                                    .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
+                                count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                    .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
                                     .CountAsync(cancellationToken)),
                             ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                             ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
@@ -1492,9 +1475,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 name    : GetLocalizedString(SR.ID8023, culture),
                                 endpoint: endpoint,
                                 culture : culture,
-                                count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                    .Where(endpoint => endpoint.Device == device)
-                                    .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
+                                count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                    .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
                                     .CountAsync(cancellationToken)),
                             ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                             ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
@@ -1509,9 +1491,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 name    : GetLocalizedString(SR.ID8018, culture),
                                 endpoint: endpoint,
                                 culture : culture,
-                                count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                    .Where(endpoint => endpoint.Device == device)
-                                    .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
+                                count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                    .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
                                     .CountAsync(cancellationToken)),
                             ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                             ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
@@ -1526,9 +1507,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 name    : GetLocalizedString(SR.ID8024, culture),
                                 endpoint: endpoint,
                                 culture : culture,
-                                count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                    .Where(endpoint => endpoint.Device == device)
-                                    .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
+                                count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                    .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))
                                     .CountAsync(cancellationToken)),
                             ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                             ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
@@ -1547,9 +1527,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8026, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioActivation))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioActivation))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
@@ -1564,9 +1543,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8027, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioActivation))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioActivation))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
@@ -1581,9 +1559,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8028, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioActivation))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioActivation))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}/set",
@@ -1604,9 +1581,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8029, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.BatteryAlert))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.BatteryAlert))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.BatteryAlert}"
@@ -1622,9 +1598,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8030, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.BatteryAlert))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.BatteryAlert))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.BatteryAlert}/set",
@@ -1645,9 +1620,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8031, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.BatteryLevel))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.BatteryLevel))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.BatteryLevel}"
@@ -1665,9 +1639,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8032, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.FirmwareVersion))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.FirmwareVersion))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.FirmwareVersion}"
@@ -1683,9 +1656,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8033, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.FirmwareVersion))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.FirmwareVersion))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.FirmwareVersion}/get",
@@ -1704,9 +1676,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8034, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.HardwareVersion))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.HardwareVersion))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.HardwareVersion}"
@@ -1722,9 +1693,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8035, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.HardwareVersion))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.HardwareVersion))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.HardwareVersion}/get",
@@ -1743,9 +1713,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8036, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.MacAddress))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.MacAddress))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.MacAddress}"
@@ -1761,9 +1730,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8037, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.MacAddress))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.MacAddress))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.MacAddress}/get",
@@ -1785,10 +1753,9 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 name    : GetLocalizedString(SR.ID8038, culture),
                                 endpoint: endpoint,
                                 culture : culture,
-                                count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                    .Where(endpoint => endpoint.Device == device)
-                                    .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchControl))
-                                    .Where(endpoint => endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
+                                count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                    .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchControl))
+                                    .Where(static endpoint => endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
                                     .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SwitchState}/set",
@@ -1807,9 +1774,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8039, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireControl))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireControl))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.PilotWireSetpointMode}/set",
@@ -1853,9 +1819,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8062, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireControl))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireControl))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.PilotWireSetpointMode}/get",
@@ -1874,9 +1839,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8045, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireDerogation))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireDerogation))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.PilotWireDerogationMode}/set",
@@ -1953,9 +1917,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8063, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireDerogation))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireDerogation))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.PilotWireDerogationMode}/get",
@@ -1974,9 +1937,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8113, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireShutdown))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireShutdown))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.PilotWireShutdownMode}/set",
@@ -1992,9 +1954,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8114, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireShutdown))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireShutdown))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.PilotWireShutdownMode}/get",
@@ -2015,9 +1976,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8064, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterBaseIndex}",
@@ -2035,9 +1995,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8065, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterBlueIndex}",
@@ -2055,9 +2014,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8115, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterBlueIndex}",
@@ -2075,9 +2033,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8066, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterPeakOffPeakIndex}",
@@ -2095,9 +2052,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8116, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterPeakOffPeakIndex}",
@@ -2115,9 +2071,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8067, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterRedIndex}",
@@ -2135,9 +2090,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8117, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterRedIndex}",
@@ -2155,9 +2109,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8068, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterWhiteIndex}",
@@ -2175,9 +2128,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8118, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterWhiteIndex}",
@@ -2194,9 +2146,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8069, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterSubscriptionType}",
@@ -2224,9 +2175,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8073, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterBaseIndex}/get",
@@ -2246,9 +2196,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8074, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterRateType}",
@@ -2272,9 +2221,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8077, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterPowerCutMode}"
@@ -2289,9 +2237,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8078, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterRateType}/get",
@@ -2307,9 +2254,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8079, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SmartMeterPowerCutMode}/get",
@@ -2329,9 +2275,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8080, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.Uptime))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.Uptime))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.StartupDate}",
@@ -2346,9 +2291,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name: GetLocalizedString(SR.ID8081, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.Uptime))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.Uptime))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.StartupDate}/get",
@@ -2367,9 +2311,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8109, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.WaterHeaterSetpointMode}/set",
@@ -2408,9 +2351,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8085, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.WaterHeaterState}",
@@ -2427,9 +2369,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8110, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.WaterHeaterSetpointMode}/get",
@@ -2445,9 +2386,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8086, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.WaterHeaterState}/get",
@@ -2467,9 +2407,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8087, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.WirelessBurglarAlarmState))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.WirelessBurglarAlarmState))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.WirelessBurglarAlarmState}",
@@ -2509,9 +2448,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8107, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeBinding))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeBinding))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeBinding}",
@@ -2535,9 +2473,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8094, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeBinding))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeBinding))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeBinding}/set",
@@ -2554,9 +2491,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8095, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeBinding))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeBinding))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeBinding}/set",
@@ -2577,9 +2513,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8108, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeNetwork}",
@@ -2605,9 +2540,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8096, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeChannel}",
@@ -2623,9 +2557,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8105, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeDevicesCount}",
@@ -2641,9 +2574,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8097, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeChannel}/get",
@@ -2660,9 +2592,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8106, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeDevicesCount}/get",
@@ -2678,9 +2609,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8098, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeNetwork}/set",
@@ -2696,9 +2626,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8099, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeNetwork}/set",
@@ -2714,9 +2643,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8100, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeNetwork}/set",
@@ -2733,9 +2661,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8101, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeNetwork}/set",
@@ -2751,9 +2678,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8102, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeNetwork}/set",
@@ -2769,9 +2695,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8103, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeSupervision}/set",
@@ -2787,9 +2712,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             name    : GetLocalizedString(SR.ID8104, culture),
                             endpoint: endpoint,
                             culture : culture,
-                            count   : await _manager.EnumerateEndpointsAsync(cancellationToken)
-                                .Where(endpoint => endpoint.Device == device)
-                                .Where(endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
                                 .CountAsync(cancellationToken)),
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeSupervision}/set",
@@ -2976,15 +2900,15 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
         }
     }
 
-    static (string? FriendlyName, string? attribute, OpenNettyMqttOperation? Operation) ExtractParameters(MqttApplicationMessage message)
+    static (MqttApplicationMessage Message, string? Name, string? Attribute, OpenNettyMqttOperation? Operation) ExtractParameters(MqttApplicationMessage message)
         => message.Topic.Split('/', StringSplitOptions.RemoveEmptyEntries) switch
         {
             [_, .. string[] topics, string attribute, "get"]
-                => (string.Join('/', topics), attribute, OpenNettyMqttOperation.Get),
+                => (message, string.Join('/', topics), attribute, OpenNettyMqttOperation.Get),
 
             [_, .. string[] topics, string attribute, "set"]
-                => (string.Join('/', topics), attribute, OpenNettyMqttOperation.Set),
+                => (message, string.Join('/', topics), attribute, OpenNettyMqttOperation.Set),
 
-            _ => (null, null, null)
+            _ => (message, null, null, null)
         };
 }

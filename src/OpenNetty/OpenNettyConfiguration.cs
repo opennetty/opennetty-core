@@ -185,7 +185,7 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
                 case null or { Length: 0 } when endpoint.HasCapability(OpenNettyCapabilities.ConfigurablePushButtonNumbers):
                     return ValidateOptionsResult.Fail(SR.FormatID2015(endpoint.Name));
 
-                case string text when text.Split(',', StringSplitOptions.RemoveEmptyEntries) is not [_, ..] array ||
+                case string numbers when numbers.Split(',', StringSplitOptions.RemoveEmptyEntries) is not [_, ..] array ||
                     array.Any(number => !byte.TryParse(number, CultureInfo.InvariantCulture, out _)):
                     return ValidateOptionsResult.Fail(SR.FormatID2016(endpoint.Name));
             }
