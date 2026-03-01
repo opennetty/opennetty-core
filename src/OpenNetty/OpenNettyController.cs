@@ -731,30 +731,28 @@ public class OpenNettyController
                     options          : GetTransmissionOptions(endpoint),
                     cancellationToken: cancellationToken);
 
-                await foreach (var result in messages
+                await foreach (var message in messages
                     .TakeWhile(static message => message.Type is not (OpenNettyMessageType.Acknowledgement             or
                                                                       OpenNettyMessageType.BusyNegativeAcknowledgement or
                                                                       OpenNettyMessageType.NegativeAcknowledgement))
                     .Where(static message => message.Dimension == OpenNettyDimensions.Lighting.DimmerLevelSpeed ||
                                              message.Dimension == OpenNettyDimensions.Lighting.DimmerStatus)
                     .Timeout(TimeSpan.FromSeconds(10))
-                    .ToAsyncEnumerable()
-                    .Select(async (message, cancellationToken) => (
-                        Values  : message.Values,
-                        Endpoint: await _manager.FindEndpointByAddressAsync(endpoint.Gateway, message.Address!.Value, cancellationToken)))
-                    .Where(static arguments => arguments.Endpoint is not null)
-                    .Where(static arguments => arguments.Endpoint!.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
-                    .Where(arguments => set.Add(arguments.Endpoint!))
-                    .Select(static arguments => (arguments.Endpoint!,
-                        (byte) (byte.Parse(arguments.Values[0], CultureInfo.InvariantCulture) - 100))))
+                    .ToAsyncEnumerable())
                 {
-                    yield return result;
+                    await foreach (var endpoint in _manager.FindEndpointsByAddressAsync(endpoint.Gateway, message.Address!.Value, cancellationToken))
+                    {
+                        if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState) && set.Add(endpoint))
+                        {
+                            yield return (endpoint, (byte) (byte.Parse(message.Values[0], CultureInfo.InvariantCulture) - 100));
+                        }
+                    }
                 }
             }
 
             if (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState))
             {
-                var results = _service.EnumerateStatusesAsync(
+                await foreach (var (address, command) in _service.EnumerateStatusesAsync(
                     protocol         : endpoint.Protocol,
                     category         : OpenNettyCategories.Lighting,
                     address          : endpoint.Address,
@@ -774,28 +772,25 @@ public class OpenNettyController
                         command == OpenNettyCommands.Lighting.On100),
                     gateway          : endpoint.Gateway,
                     options          : GetTransmissionOptions(endpoint),
-                    cancellationToken: cancellationToken);
-
-                await foreach (var result in results
-                    .Select(async (arguments, cancellationToken) => (
-                        Command : arguments.Command,
-                        Endpoint: await _manager.FindEndpointByAddressAsync(endpoint.Gateway, arguments.Address, cancellationToken)))
-                    .Where(static arguments => arguments.Endpoint is not null)
-                    .Where(static arguments => arguments.Endpoint!.HasCapability(OpenNettyCapabilities.BasicDimmingState))
-                    .Where(arguments => set.Add(arguments.Endpoint!))
-                    .Select(static arguments => (arguments.Endpoint!,
-                        arguments.Command == OpenNettyCommands.Lighting.Off   ? (byte) 0   :
-                        arguments.Command == OpenNettyCommands.Lighting.On    ? (byte) 100 :
-                        arguments.Command == OpenNettyCommands.Lighting.On20  ? (byte) 20  :
-                        arguments.Command == OpenNettyCommands.Lighting.On30  ? (byte) 30  :
-                        arguments.Command == OpenNettyCommands.Lighting.On40  ? (byte) 40  :
-                        arguments.Command == OpenNettyCommands.Lighting.On50  ? (byte) 50  :
-                        arguments.Command == OpenNettyCommands.Lighting.On60  ? (byte) 60  :
-                        arguments.Command == OpenNettyCommands.Lighting.On70  ? (byte) 70  :
-                        arguments.Command == OpenNettyCommands.Lighting.On80  ? (byte) 80  :
-                        arguments.Command == OpenNettyCommands.Lighting.On90  ? (byte) 90  : (byte) 100)))
+                    cancellationToken: cancellationToken))
                 {
-                    yield return result;
+                    await foreach (var endpoint in _manager.FindEndpointsByAddressAsync(endpoint.Gateway, address, cancellationToken))
+                    {
+                        if (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) && set.Add(endpoint))
+                        {
+                            yield return (endpoint,
+                                command == OpenNettyCommands.Lighting.Off  ? (byte) 0   :
+                                command == OpenNettyCommands.Lighting.On   ? (byte) 100 :
+                                command == OpenNettyCommands.Lighting.On20 ? (byte) 20  :
+                                command == OpenNettyCommands.Lighting.On30 ? (byte) 30  :
+                                command == OpenNettyCommands.Lighting.On40 ? (byte) 40  :
+                                command == OpenNettyCommands.Lighting.On50 ? (byte) 50  :
+                                command == OpenNettyCommands.Lighting.On60 ? (byte) 60  :
+                                command == OpenNettyCommands.Lighting.On70 ? (byte) 70  :
+                                command == OpenNettyCommands.Lighting.On80 ? (byte) 80  :
+                                command == OpenNettyCommands.Lighting.On90 ? (byte) 90  : (byte) 100);
+                        }
+                    }
                 }
             }
         }
@@ -840,26 +835,33 @@ public class OpenNettyController
                     .Select(position => (endpoint, position));
 
             default:
-                var dimensions = _service.EnumerateDimensionsAsync(
-                    protocol         : endpoint.Protocol,
-                    dimension        : OpenNettyDimensions.Automation.ShutterStatus,
-                    gateway          : endpoint.Gateway,
-                    options          : GetTransmissionOptions(endpoint),
-                    cancellationToken: cancellationToken);
+                return ExecuteAsync(cancellationToken);
+        }
 
-                return dimensions
-                    .Select(async (message, cancellationToken) => (
-                        Values  : message.Values,
-                        Endpoint: await _manager.FindEndpointByAddressAsync(endpoint.Gateway, message.Address, cancellationToken)))
-                    .Where(static arguments => arguments.Endpoint is not null)
-                    .Where(static arguments => arguments.Endpoint!.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
-                    .Select(static arguments => (arguments.Endpoint!, byte.Parse(arguments.Values[1], CultureInfo.InvariantCulture) switch
+        async IAsyncEnumerable<(OpenNettyEndpoint Endpoint, byte? Position)> ExecuteAsync(
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            await foreach (var (address, values) in _service.EnumerateDimensionsAsync(
+                protocol         : endpoint.Protocol,
+                dimension        : OpenNettyDimensions.Automation.ShutterStatus,
+                gateway          : endpoint.Gateway,
+                options          : GetTransmissionOptions(endpoint),
+                cancellationToken: cancellationToken))
+            {
+                await foreach (var endpoint in _manager.FindEndpointsByAddressAsync(endpoint.Gateway, address, cancellationToken))
+                {
+                    if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
                     {
-                              0       => (byte?) 0,
-                             100      => (byte?) 100,
-                             255      => null,
-                        byte position => position
-                    }));
+                        yield return (endpoint, byte.Parse(values[1], CultureInfo.InvariantCulture) switch
+                        {
+                                 0        => (byte?) 0,
+                                 100      => (byte?) 100,
+                                 255      => null,
+                            byte position => position
+                        });
+                    }
+                }
+            }
         }
     }
 
@@ -919,44 +921,41 @@ public class OpenNettyController
 
             if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
             {
-                var dimensions = _service.EnumerateDimensionsAsync(
+                await foreach (var (address, values) in _service.EnumerateDimensionsAsync(
                     protocol         : endpoint.Protocol,
                     dimension        : OpenNettyDimensions.Automation.ShutterStatus,
                     gateway          : endpoint.Gateway,
                     options          : GetTransmissionOptions(endpoint),
-                    cancellationToken: cancellationToken);
-
-                await foreach (var result in dimensions
-                    .Select(async (message, cancellationToken) => (
-                        Values  : message.Values,
-                        Endpoint: await _manager.FindEndpointByAddressAsync(endpoint.Gateway, message.Address, cancellationToken)))
-                    .Where(static arguments => arguments.Endpoint is not null)
-                    .Where(static arguments => arguments.Endpoint!.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
-                    .Where(arguments => set.Add(arguments.Endpoint!))
-                    .Select(static arguments => (arguments.Endpoint!, arguments.Values switch
-                    {
-                        ["10", string position, ..] => byte.Parse(position, CultureInfo.InvariantCulture) switch
-                        {
-                                   0        => OpenNettyModels.Automation.ShutterState.Closed,
-                            >= 1 and <= 100 => OpenNettyModels.Automation.ShutterState.Open,
-                                  255       => OpenNettyModels.Automation.ShutterState.Stopped,
-
-                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
-                        },
-
-                        ["11" or "13", ..] => OpenNettyModels.Automation.ShutterState.Opening,
-                        ["12" or "14", ..] => OpenNettyModels.Automation.ShutterState.Closing,
-
-                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
-                    })))
+                    cancellationToken: cancellationToken))
                 {
-                    yield return result;
+                    await foreach (var endpoint in _manager.FindEndpointsByAddressAsync(endpoint.Gateway, address, cancellationToken))
+                    {
+                        if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState) && set.Add(endpoint))
+                        {
+                            yield return (endpoint, values switch
+                            {
+                                ["10", string position, ..] => byte.Parse(position, CultureInfo.InvariantCulture) switch
+                                {
+                                           0        => OpenNettyModels.Automation.ShutterState.Closed,
+                                    >= 1 and <= 100 => OpenNettyModels.Automation.ShutterState.Open,
+                                          255       => OpenNettyModels.Automation.ShutterState.Stopped,
+
+                                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+                                },
+
+                                ["11" or "13", ..] => OpenNettyModels.Automation.ShutterState.Opening,
+                                ["12" or "14", ..] => OpenNettyModels.Automation.ShutterState.Closing,
+
+                                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+                            });
+                        }
+                    }
                 }
             }
 
             if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState))
             {
-                var results = _service.EnumerateStatusesAsync(
+                await foreach (var (address, command) in _service.EnumerateStatusesAsync(
                     protocol         : endpoint.Protocol,
                     category         : OpenNettyCategories.Automation,
                     address          : endpoint.Address,
@@ -968,22 +967,19 @@ public class OpenNettyController
                         command == OpenNettyCommands.Automation.Down),
                     gateway          : endpoint.Gateway,
                     options          : GetTransmissionOptions(endpoint),
-                    cancellationToken: cancellationToken);
-
-                await foreach (var result in results
-                    .Select(async (arguments, cancellationToken) => (
-                        Command : arguments.Command,
-                        Endpoint: await _manager.FindEndpointByAddressAsync(endpoint.Gateway, arguments.Address, cancellationToken)))
-                    .Where(static arguments => arguments.Endpoint is not null)
-                    .Where(static arguments => arguments.Endpoint!.HasCapability(OpenNettyCapabilities.BasicShutterState))
-                    .Where(arguments => set.Add(arguments.Endpoint!))
-                    .Select(static arguments => (arguments.Endpoint!,
-                        arguments.Command == OpenNettyCommands.Automation.Stop ? OpenNettyModels.Automation.ShutterState.Stopped :
-                        arguments.Command == OpenNettyCommands.Automation.Up   ? OpenNettyModels.Automation.ShutterState.Opening :
-                        arguments.Command == OpenNettyCommands.Automation.Down ? OpenNettyModels.Automation.ShutterState.Closing :
-                        throw new InvalidDataException(SR.GetResourceString(SR.ID0068)))))
+                    cancellationToken: cancellationToken))
                 {
-                    yield return result;
+                    await foreach (var endpoint in _manager.FindEndpointsByAddressAsync(endpoint.Gateway, address, cancellationToken))
+                    {
+                        if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState) && set.Add(endpoint))
+                        {
+                            yield return (endpoint,
+                                command == OpenNettyCommands.Automation.Stop ? OpenNettyModels.Automation.ShutterState.Stopped :
+                                command == OpenNettyCommands.Automation.Up   ? OpenNettyModels.Automation.ShutterState.Opening :
+                                command == OpenNettyCommands.Automation.Down ? OpenNettyModels.Automation.ShutterState.Closing :
+                                throw new InvalidDataException(SR.GetResourceString(SR.ID0068)));
+                        }
+                    }
                 }
             }
         }
@@ -1028,37 +1024,44 @@ public class OpenNettyController
                     .Select(state => (endpoint, state));
 
             default:
-                var results = _service.EnumerateStatusesAsync(
-                    protocol         : endpoint.Protocol,
-                    category         : OpenNettyCategories.Lighting,
-                    address          : endpoint.Address,
-                    medium           : endpoint.Medium,
-                    mode             : null,
-                    filter           : static command => ValueTask.FromResult(
-                        command == OpenNettyCommands.Lighting.Off  ||
-                        command == OpenNettyCommands.Lighting.On   ||
-                        command == OpenNettyCommands.Lighting.On20 ||
-                        command == OpenNettyCommands.Lighting.On30 ||
-                        command == OpenNettyCommands.Lighting.On40 ||
-                        command == OpenNettyCommands.Lighting.On50 ||
-                        command == OpenNettyCommands.Lighting.On60 ||
-                        command == OpenNettyCommands.Lighting.On70 ||
-                        command == OpenNettyCommands.Lighting.On80 ||
-                        command == OpenNettyCommands.Lighting.On90 ||
-                        command == OpenNettyCommands.Lighting.On100),
-                    gateway          : endpoint.Gateway,
-                    options          : GetTransmissionOptions(endpoint),
-                    cancellationToken: cancellationToken);
+                return ExecuteAsync(cancellationToken);
+        }
 
-                return results
-                    .Select(async (arguments, cancellationToken) => (
-                        Command : arguments.Command,
-                        Endpoint: await _manager.FindEndpointByAddressAsync(endpoint.Gateway, arguments.Address, cancellationToken)))
-                    .Where(static arguments => arguments.Endpoint is not null)
-                    .Where(static arguments => arguments.Endpoint!.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
-                    .Select(static arguments => (arguments.Endpoint!, arguments.Command != OpenNettyCommands.Lighting.Off ?
-                        OpenNettyModels.Lighting.SwitchState.On :
-                        OpenNettyModels.Lighting.SwitchState.Off));
+        async IAsyncEnumerable<(OpenNettyEndpoint Endpoint, OpenNettyModels.Lighting.SwitchState State)> ExecuteAsync(
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            await foreach (var (address, command) in _service.EnumerateStatusesAsync(
+                protocol         : endpoint.Protocol,
+                category         : OpenNettyCategories.Lighting,
+                address          : endpoint.Address,
+                medium           : endpoint.Medium,
+                mode             : null,
+                filter           : static command => ValueTask.FromResult(
+                    command == OpenNettyCommands.Lighting.Off  ||
+                    command == OpenNettyCommands.Lighting.On   ||
+                    command == OpenNettyCommands.Lighting.On20 ||
+                    command == OpenNettyCommands.Lighting.On30 ||
+                    command == OpenNettyCommands.Lighting.On40 ||
+                    command == OpenNettyCommands.Lighting.On50 ||
+                    command == OpenNettyCommands.Lighting.On60 ||
+                    command == OpenNettyCommands.Lighting.On70 ||
+                    command == OpenNettyCommands.Lighting.On80 ||
+                    command == OpenNettyCommands.Lighting.On90 ||
+                    command == OpenNettyCommands.Lighting.On100),
+                gateway          : endpoint.Gateway,
+                options          : GetTransmissionOptions(endpoint),
+                cancellationToken: cancellationToken))
+            {
+                await foreach (var endpoint in _manager.FindEndpointsByAddressAsync(endpoint.Gateway, address, cancellationToken))
+                {
+                    if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
+                    {
+                        yield return (endpoint, command != OpenNettyCommands.Lighting.Off
+                            ? OpenNettyModels.Lighting.SwitchState.On
+                            : OpenNettyModels.Lighting.SwitchState.Off);
+                    }
+                }
+            }
         }
     }
 
