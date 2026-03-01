@@ -1970,6 +1970,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "6c83787a-3537-49fa-b409-dc15d5c37b43"u8),
                         ["device_class"] = "energy",
+                        ["state_class"] = "total_increasing",
                         ["unit_of_measurement"] = "kWh",
                         ["suggested_display_precision"] = 0,
                         ["name"] = ComputeEntityName(
@@ -1989,6 +1990,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "0a9d909b-8449-496e-b38c-4dc3e2653288"u8),
                         ["device_class"] = "energy",
+                        ["state_class"] = "total_increasing",
                         ["unit_of_measurement"] = "kWh",
                         ["suggested_display_precision"] = 0,
                         ["name"] = ComputeEntityName(
@@ -2008,6 +2010,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "ccf0ce01-7b31-4eb6-995f-94038c186d20"u8),
                         ["device_class"] = "energy",
+                        ["state_class"] = "total_increasing",
                         ["unit_of_measurement"] = "kWh",
                         ["suggested_display_precision"] = 0,
                         ["name"] = ComputeEntityName(
@@ -2027,6 +2030,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "2661d8db-085a-41bb-bab6-a1627cbf91d0"u8),
                         ["device_class"] = "energy",
+                        ["state_class"] = "total_increasing",
                         ["unit_of_measurement"] = "kWh",
                         ["suggested_display_precision"] = 0,
                         ["name"] = ComputeEntityName(
@@ -2046,6 +2050,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "b087f0f1-db08-4a51-897a-dd5427590ad8"u8),
                         ["device_class"] = "energy",
+                        ["state_class"] = "total_increasing",
                         ["unit_of_measurement"] = "kWh",
                         ["suggested_display_precision"] = 0,
                         ["name"] = ComputeEntityName(
@@ -2065,6 +2070,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "7dcf846c-fbdd-4457-9a17-9cbc0a7c072b"u8),
                         ["device_class"] = "energy",
+                        ["state_class"] = "total_increasing",
                         ["unit_of_measurement"] = "kWh",
                         ["suggested_display_precision"] = 0,
                         ["name"] = ComputeEntityName(
@@ -2084,6 +2090,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "7efb6978-3112-4ef6-86f9-fe9127a4411d"u8),
                         ["device_class"] = "energy",
+                        ["state_class"] = "total_increasing",
                         ["unit_of_measurement"] = "kWh",
                         ["suggested_display_precision"] = 0,
                         ["name"] = ComputeEntityName(
@@ -2103,6 +2110,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "1de29bc5-70b6-4302-aa27-8ecbcce13ec9"u8),
                         ["device_class"] = "energy",
+                        ["state_class"] = "total_increasing",
                         ["unit_of_measurement"] = "kWh",
                         ["suggested_display_precision"] = 0,
                         ["name"] = ComputeEntityName(
@@ -2122,6 +2130,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "89b5ff55-499a-45f0-948a-28e74e02bc6f"u8),
                         ["device_class"] = "energy",
+                        ["state_class"] = "total_increasing",
                         ["unit_of_measurement"] = "kWh",
                         ["suggested_display_precision"] = 0,
                         ["name"] = ComputeEntityName(
