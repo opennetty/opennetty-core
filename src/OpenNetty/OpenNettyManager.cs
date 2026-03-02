@@ -252,7 +252,7 @@ public class OpenNettyManager
 
         await foreach (var endpoint in EnumerateEndpointsAsync(cancellationToken))
         {
-            if (endpoint.Gateway == device.Gateway && endpoint.Device == device)
+            if (endpoint.Device == device)
             {
                 yield return endpoint;
             }

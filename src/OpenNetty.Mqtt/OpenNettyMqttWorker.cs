@@ -2279,7 +2279,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["platform"] = "sensor",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "46c1f892-f9bf-46b6-8658-fed1d7eb177b"u8),
                         ["entity_category"] = "diagnostic",
-                        ["device_class"] = "date",
+                        ["device_class"] = "timestamp",
                         ["name"] = ComputeEntityName(
                             name    : GetLocalizedString(SR.ID8080, culture),
                             endpoint: endpoint,
