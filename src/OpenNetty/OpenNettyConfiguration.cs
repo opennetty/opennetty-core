@@ -135,19 +135,11 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
 
             switch (endpoint.GetBooleanSetting(OpenNettySettings.ActionValidation))
             {
-                case null: break;
+                case not null when endpoint.Protocol is not OpenNettyProtocol.Nitoo:
+                    return ValidateOptionsResult.Fail(SR.GetResourceString(SR.ID2010));
 
-                case not null:
-                    if (endpoint.Protocol is not OpenNettyProtocol.Nitoo)
-                    {
-                        return ValidateOptionsResult.Fail(SR.GetResourceString(SR.ID2010));
-                    }
-
-                    if (endpoint.Address is null)
-                    {
-                        return ValidateOptionsResult.Fail(SR.GetResourceString(SR.ID2011));
-                    }
-                    break;
+                case not null when endpoint.Address is null:
+                    return ValidateOptionsResult.Fail(SR.GetResourceString(SR.ID2011));
             }
 
             switch (endpoint.GetStringSetting(OpenNettySettings.FunctionType))

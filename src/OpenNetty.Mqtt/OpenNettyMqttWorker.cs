@@ -763,8 +763,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["support_url"] = "https://github.com/opennetty/opennetty-core"
                 },
                 ["device"] = CreateDeviceNode(device, culture),
-                ["components"] = components,
-                ["qos"] = 2
+                ["qos"] = 2,
+                ["components"] = components
             };
 
             await foreach (var endpoint in _manager.FindEndpointsByDeviceAsync(device, cancellationToken))
