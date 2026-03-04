@@ -2286,6 +2286,39 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
             })
             .Do(onError: exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
             .Retry()
+            .SubscribeAsync(static notification => ValueTask.CompletedTask),
+
+        // Note: this event handler is responsible for reporting incoming device communications.
+        await _pipeline.OfType<OpenNettyNotification, OpenNettyNotifications.MessageReceived>()
+            .Where(static notification => notification.Message.Address?.Type is OpenNettyAddressType.Nitoo or OpenNettyAddressType.Zigbee)
+            .Do(onNext: async notification =>
+            {
+                var endpoints = notification.Message.Address switch
+                {
+                    // Note: for Nitoo addresses, report a device communication for any message
+                    // directly received by the device itself (i.e unit 0) or by any of its units.
+                    { Type: OpenNettyAddressType.Nitoo } address
+                        when OpenNettyAddress.ToNitooAddress(address) is { Identifier: uint identifier }
+                        => _manager.FindEndpointsByAddressAsync(notification.Gateway, OpenNettyAddress.FromNitooAddress(identifier, 0))
+                            .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.OutgoingCommunication)),
+                        
+                    // Note: for Zigbee addresses, report a device communication for any message
+                    // directly received by the device itself (i.e unit 0) or by any of its units.
+                    { Type: OpenNettyAddressType.Zigbee } address
+                        when OpenNettyAddress.ToZigbeeAddress(address) is { Identifier: uint identifier }
+                        => _manager.FindEndpointsByAddressAsync(notification.Gateway, OpenNettyAddress.FromDecimalZigbeeAddress(identifier, 0))
+                            .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.OutgoingCommunication)),
+
+                    _ => AsyncEnumerable.Empty<OpenNettyEndpoint>()
+                };
+
+                await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                {
+                    await _events.PublishAsync(new DeviceCommunicationReportedEventArgs(endpoint, notification.Message), cancellationToken);
+                });
+            })
+            .Do(onError: exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
+            .Retry()
             .SubscribeAsync(static notification => ValueTask.CompletedTask)
     ]);
 }

@@ -834,7 +834,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
 
                 "zigbee" when (uint?) node["identifier"]?.AsValue() is uint identifier &&
                               (byte?) node["unit"]?.AsValue()       is var unit
-                    => OpenNettyAddress.FromZigbeeAddress(OpenNettyDeviceIdentifier.FromZigbeeSerialNumber(identifier), unit ?? 0),
+                    => OpenNettyAddress.FromDecimalZigbeeAddress(identifier, unit ?? 0),
 
                 "scs_light_point" when (byte?) node["extension"]?.AsValue() is var extension &&
                                        (bool?) node["general"]?.AsValue()   is var general &&

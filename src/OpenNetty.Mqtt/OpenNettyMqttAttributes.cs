@@ -47,6 +47,11 @@ public static class OpenNettyMqttAttributes
     public const string IncomingMessage = "incoming_message";
 
     /// <summary>
+    /// Last communication date.
+    /// </summary>
+    public const string LastCommunicationDate = "last_communication_date";
+
+    /// <summary>
     /// MAC address.
     /// </summary>
     public const string MacAddress = "mac_address";

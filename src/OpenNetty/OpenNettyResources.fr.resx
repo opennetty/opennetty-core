@@ -447,9 +447,6 @@
   <data name="ID8109" xml:space="preserve">
     <value>Consigne eau chaude sanitaire</value>
   </data>
-  <data name="ID8110" xml:space="preserve">
-    <value>Récupérer consigne eau chaude sanitaire</value>
-  </data>
   <data name="ID8111" xml:space="preserve">
     <value>Activer scénario gradation+</value>
   </data>
@@ -473,5 +470,8 @@
   </data>
   <data name="ID8118" xml:space="preserve">
     <value>Index blanc [heures creuses]</value>
+  </data>
+  <data name="ID8119" xml:space="preserve">
+    <value>Date de la dernière communication</value>
   </data>
 </root>

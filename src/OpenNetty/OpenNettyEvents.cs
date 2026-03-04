@@ -101,6 +101,12 @@ public sealed class OpenNettyEvents : IDisposable
         => _observable.OfType<EventArgs, BrightnessReportedEventArgs>();
 
     /// <summary>
+    /// Gets an event triggered when a device communication is reported.
+    /// </summary>
+    public IAsyncObservable<DeviceCommunicationReportedEventArgs> DeviceCommunicationReported
+        => _observable.OfType<EventArgs, DeviceCommunicationReportedEventArgs>();
+
+    /// <summary>
     /// Gets an event triggered when a device description is reported.
     /// </summary>
     public IAsyncObservable<DeviceDescriptionReportedEventArgs> DeviceDescriptionReported
@@ -352,6 +358,14 @@ public sealed class OpenNettyEvents : IDisposable
     /// <param name="Endpoint">The endpoint.</param>
     /// <param name="Level">The brightness level, from 0 to 100.</param>
     public sealed record class BrightnessReportedEventArgs(OpenNettyEndpoint Endpoint, byte Level) : EventArgs(Endpoint);
+
+    /// <summary>
+    /// Represents event arguments used when a device communication is reported.
+    /// </summary>
+    /// <param name="Endpoint">The endpoint.</param>
+    /// <param name="Message">The message received from the remote device.</param>
+    public sealed record class DeviceCommunicationReportedEventArgs(OpenNettyEndpoint Endpoint,
+        OpenNettyMessage Message) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when a device description is reported.

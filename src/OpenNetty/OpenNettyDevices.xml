@@ -16,6 +16,7 @@
 
     <Capability Name="Device description" />
     <Capability Name="Firmware version" />
+    <Capability Name="Outgoing communication" />
 
     <Unit Id="1" AssociatedUnitId="3">
       <Capability Name="Dimming scenario activation" />
@@ -76,6 +77,7 @@
 
     <Capability Name="Device description" />
     <Capability Name="Firmware version" />
+    <Capability Name="Outgoing communication" />
 
     <Unit Id="1">
       <Capability Name="Action scenario activation" />
@@ -170,6 +172,7 @@
 
     <Capability Name="Device description" />
     <Capability Name="Firmware version" />
+    <Capability Name="Outgoing communication" />
 
     <Unit Id="1">
       <Capability Name="Memory reading" />
@@ -199,6 +202,7 @@
       <Description Culture="fr" Value="Alarme intrusion sans fil" />
     </Identity>
 
+    <Capability Name="Outgoing communication" />
     <Capability Name="Wireless burglar alarm state" />
 
     <Unit Id="1">
@@ -307,6 +311,7 @@
 
     <Capability Name="Device description" />
     <Capability Name="Firmware version" />
+    <Capability Name="Outgoing communication" />
 
     <Unit Id="1" AssociatedUnitId="2">
       <Capability Name="Dimming scenario activation" />
@@ -352,6 +357,7 @@
 
     <Capability Name="Device description" />
     <Capability Name="Firmware version" />
+    <Capability Name="Outgoing communication" />
 
     <Unit Id="1" AssociatedUnitId="3">
       <Capability Name="Dimming scenario activation" />
@@ -412,6 +418,7 @@
 
     <Capability Name="Device description" />
     <Capability Name="Firmware version" />
+    <Capability Name="Outgoing communication" />
 
     <Unit Id="1">
       <Capability Name="Dimming scenario activation" />
@@ -474,6 +481,7 @@
 
     <Capability Name="Device description" />
     <Capability Name="Firmware version" />
+    <Capability Name="Outgoing communication" />
 
     <Unit Id="1" AssociatedUnitId="4">
       <Capability Name="Dimming scenario activation" />
@@ -544,6 +552,7 @@
 
     <Capability Name="Device description" />
     <Capability Name="Firmware version" />
+    <Capability Name="Outgoing communication" />
 
     <Unit Id="1" AssociatedUnitId="3">
       <Capability Name="Timed scenario activation" />
@@ -585,6 +594,7 @@
 
     <Capability Name="Device description" />
     <Capability Name="Firmware version" />
+    <Capability Name="Outgoing communication" />
 
     <Unit Id="1" AssociatedUnitId="2">
       <Capability Name="Dimming scenario activation" />
@@ -625,6 +635,7 @@
 
     <Capability Name="Device description" />
     <Capability Name="Firmware version" />
+    <Capability Name="Outgoing communication" />
 
     <Unit Id="1" AssociatedUnitId="4">
       <Capability Name="Dimming scenario activation" />
@@ -695,6 +706,7 @@
 
     <Capability Name="Device description" />
     <Capability Name="Firmware version" />
+    <Capability Name="Outgoing communication" />
 
     <Unit Id="1">
       <Capability Name="Action scenario activation" />
@@ -765,6 +777,7 @@
     </Identity>
 
     <Capability Name="Battery alert" />
+    <Capability Name="Outgoing communication" />
 
     <Unit Id="1">
       <Capability Name="Action scenario activation" />
@@ -824,6 +837,7 @@
 
     <Capability Name="Device description" />
     <Capability Name="Firmware version" />
+    <Capability Name="Outgoing communication" />
 
     <Unit Id="1">
       <Capability Name="Memory reading" />
@@ -851,6 +865,7 @@
 
     <Capability Name="Device description" />
     <Capability Name="Firmware version" />
+    <Capability Name="Outgoing communication" />
 
     <Unit Id="1">
       <Capability Name="Memory reading" />
@@ -872,7 +887,6 @@
 
     <Unit Id="1">
       <Capability Name="On/off switch control" />
-      <Capability Name="Unit description" />
 
       <Description Culture="en" Value="Output" />
       <Description Culture="fr" Value="Sortie" />
@@ -886,6 +900,7 @@
     </Identity>
 
     <Capability Name="Battery alert" />
+    <Capability Name="Outgoing communication" />
 
     <!--
       Note: the physical button labelled "4" is bound to unit 1.
@@ -1433,6 +1448,7 @@
     <Capability Name="Battery level" />
     <Capability Name="Firmware version" />
     <Capability Name="Hardware version" />
+    <Capability Name="Outgoing communication" />
     <Capability Name="Zigbee end device" />
 
     <Unit Id="1">
@@ -1456,6 +1472,7 @@
     <Capability Name="Battery level" />
     <Capability Name="Firmware version" />
     <Capability Name="Hardware version" />
+    <Capability Name="Outgoing communication" />
     <Capability Name="Zigbee end device" />
 
     <Unit Id="1">
@@ -1490,6 +1507,7 @@
     <Capability Name="Battery level" />
     <Capability Name="Firmware version" />
     <Capability Name="Hardware version" />
+    <Capability Name="Outgoing communication" />
     <Capability Name="Zigbee end device" />
 
     <!--
@@ -1519,6 +1537,7 @@
 
     <Capability Name="Firmware version" />
     <Capability Name="Hardware version" />
+    <Capability Name="Outgoing communication" />
     <Capability Name="Zigbee router" />
 
     <Unit Id="1">
@@ -1543,6 +1562,7 @@
 
     <Capability Name="Firmware version" />
     <Capability Name="Hardware version" />
+    <Capability Name="Outgoing communication" />
     <Capability Name="Zigbee router" />
 
     <Unit Id="1">
@@ -1581,6 +1601,7 @@
     <Capability Name="Battery level" />
     <Capability Name="Firmware version" />
     <Capability Name="Hardware version" />
+    <Capability Name="Outgoing communication" />
     <Capability Name="Zigbee end device" />
 
     <Unit Id="1">
@@ -1604,6 +1625,7 @@
     <Capability Name="Battery level" />
     <Capability Name="Firmware version" />
     <Capability Name="Hardware version" />
+    <Capability Name="Outgoing communication" />
     <Capability Name="Zigbee end device" />
 
     <Unit Id="1">
@@ -1667,6 +1689,7 @@
 
     <Capability Name="Firmware version" />
     <Capability Name="Hardware version" />
+    <Capability Name="Outgoing communication" />
     <Capability Name="Zigbee router" />
 
     <Unit Id="1">
@@ -1717,6 +1740,7 @@
     <Capability Name="Battery level" />
     <Capability Name="Firmware version" />
     <Capability Name="Hardware version" />
+    <Capability Name="Outgoing communication" />
     <Capability Name="Zigbee end device" />
 
     <!--
@@ -1758,6 +1782,7 @@
 
     <Capability Name="Firmware version" />
     <Capability Name="Hardware version" />
+    <Capability Name="Outgoing communication" />
     <Capability Name="Zigbee router" />
 
     <Unit Id="1">
