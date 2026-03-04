@@ -1683,12 +1683,17 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
 
                         if (endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit.Definition.AssociatedUnitId: byte unit })
                         {
+                            // Note: on endpoints that don't support dimming, a "SCENARIO ACTION", "SCENARIO ACTION IN TIME" or
+                            // "SCENARIO ACTION FOR TIME" BUS COMMAND always results in the associated unit being switched on.
+                            //
+                            // For endpoints that support dimming, the actual brightness level is retrieved asynchronously
+                            // by a dedicated event handler to ensure the exact brightness level is correctly reported.
                             var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway,
                                 OpenNettyAddress.FromNitooAddress(
                                     OpenNettyAddress.ToNitooAddress(message.Address.Value).Identifier, unit), cancellationToken)
                                 .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
-                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) ||
-                                                          endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState));
+                                .Where(static endpoint => !endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) &&
+                                                          !endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState));
 
                             tasks.Add(Parallel.ForEachAsync(endpoints, cancellationToken, ReportOnStateAsync));
                         }
