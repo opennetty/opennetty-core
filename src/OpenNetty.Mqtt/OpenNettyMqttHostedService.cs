@@ -128,6 +128,16 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
+            await _events.DeviceCommunicationReported
+                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.LastCommunicationDate, builder =>
+                {
+                    builder.WithPayload(TimeProvider.System.GetUtcNow().ToString("o", CultureInfo.InvariantCulture));
+                    builder.WithRetainFlag();
+                }))
+                .Retry()
+                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
+
             await _events.DimmingScenarioReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>

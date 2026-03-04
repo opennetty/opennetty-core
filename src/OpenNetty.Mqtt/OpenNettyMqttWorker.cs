@@ -1199,6 +1199,26 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     }));
                 }
 
+                if (endpoint.HasCapability(OpenNettyCapabilities.OutgoingCommunication))
+                {
+                    components.Add(CreateEntityNode(new JsonObject
+                    {
+                        ["platform"] = "sensor",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "9563390d-24c4-48f0-a0de-61fef1e58eca"u8),
+                        ["entity_category"] = "diagnostic",
+                        ["device_class"] = "timestamp",
+                        ["name"] = ComputeEntityName(
+                            name    : GetLocalizedString(SR.ID8119, culture),
+                            endpoint: endpoint,
+                            culture : culture,
+                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.OutgoingCommunication))
+                                .CountAsync(cancellationToken)),
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.LastCommunicationDate}",
+                    }));
+                }
+
                 if (endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation) &&
                     endpoint.GetStringSetting(OpenNettySettings.FunctionType) is OpenNettySettings.FunctionTypes.ScheduledScenario)
                 {
@@ -2367,23 +2387,6 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.WaterHeaterState}",
                         ["payload_on"] = "heating",
                         ["payload_off"] = "idle"
-                    }));
-
-                    components.Add(CreateEntityNode(new JsonObject
-                    {
-                        ["platform"] = "button",
-                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "9aa4633b-c253-4623-a80c-54ba9d681777"u8),
-                        ["entity_category"] = "diagnostic",
-                        ["name"] = ComputeEntityName(
-                            name    : GetLocalizedString(SR.ID8110, culture),
-                            endpoint: endpoint,
-                            culture : culture,
-                            count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
-                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))
-                                .CountAsync(cancellationToken)),
-                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
-                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.WaterHeaterSetpointMode}/get",
-                        ["payload_press"] = string.Empty
                     }));
 
                     components.Add(CreateEntityNode(new JsonObject

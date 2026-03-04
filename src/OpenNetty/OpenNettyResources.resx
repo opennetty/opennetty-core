@@ -939,9 +939,6 @@
   <data name="ID8109" xml:space="preserve">
     <value>Hot water setpoint mode</value>
   </data>
-  <data name="ID8110" xml:space="preserve">
-    <value>Get hot water setpoint mode</value>
-  </data>
   <data name="ID8111" xml:space="preserve">
     <value>Dispatch dimming+ scenario</value>
   </data>
@@ -965,5 +962,8 @@
   </data>
   <data name="ID8118" xml:space="preserve">
     <value>White index [off-peak]</value>
+  </data>
+  <data name="ID8119" xml:space="preserve">
+    <value>Last communication date</value>
   </data>
 </root>

@@ -182,6 +182,11 @@ public static class OpenNettyCapabilities
     public static readonly OpenNettyCapability OpenWebNetGenericSession = new("OpenWebNet generic session");
 
     /// <summary>
+    /// Outgoing communication.
+    /// </summary>
+    public static readonly OpenNettyCapability OutgoingCommunication = new("Outgoing communication");
+
+    /// <summary>
     /// Pilot wire control.
     /// </summary>
     public static readonly OpenNettyCapability PilotWireControl = new("Pilot wire control");
