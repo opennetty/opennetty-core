@@ -2693,12 +2693,6 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
 
-        // If the endpoint was configured to use the special switch mode, OFF commands are not valid.
-        if (endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
-        {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
-        }
-
         return _service.ExecuteCommandAsync(
             protocol         : endpoint.Protocol,
             command          : OpenNettyCommands.Lighting.Off,
@@ -2742,10 +2736,10 @@ public class OpenNettyController
             gateway          : endpoint.Gateway,
             options          : GetTransmissionOptions(endpoint) with
             {
-                // If the endpoint was configured to use the push-button mode, always disable retransmissions
-                // as ON commands are not idempotent when using this mode, which may result in unwanted results.
-                DisallowRetransmissions = endpoint.GetStringSetting(OpenNettySettings.SwitchMode)
-                    is OpenNettySettings.SwitchModes.PushButton
+                // If the endpoint was configured to use the push-button mode, always disable retransmissions for Nitoo
+                // devices as ON commands are not idempotent when using this mode, which may result in unwanted results.
+                DisallowUnsafeRetransmissions = endpoint.Protocol is OpenNettyProtocol.Nitoo &&
+                    endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton
             },
             cancellationToken: cancellationToken);
     }
@@ -2779,11 +2773,6 @@ public class OpenNettyController
         if (endpoint.Protocol is OpenNettyProtocol.Nitoo or OpenNettyProtocol.Scs)
         {
             if (!endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
-            {
-                throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
-            }
-
-            if (endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
             {
                 throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
             }
