@@ -230,10 +230,11 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                             await _events.PublishAsync(new SwitchStateReportedEventArgs(endpoint,
                                 OpenNettyModels.Lighting.SwitchState.On), cancellationToken);
 
-                            // Note: if the endpoint was configured to use the push-button mode, dispatch an OFF state
+                            // Note: if a Nitoo endpoint was configured to use the push-button mode, dispatch an OFF state
                             // event immediately after switching it on (or receiving a notification indicating it was
                             // switched on), as Nitoo devices using this mode don't automatically report the OFF state.
-                            if (endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
+                            if (endpoint.Protocol is OpenNettyProtocol.Nitoo &&
+                                endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
                             {
                                 await _events.PublishAsync(new SwitchStateReportedEventArgs(endpoint,
                                     OpenNettyModels.Lighting.SwitchState.Off), cancellationToken);
@@ -245,7 +246,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                             await _events.PublishAsync(new SwitchStateReportedEventArgs(endpoint,
                                 OpenNettyModels.Lighting.SwitchState.Off), cancellationToken);
                         }
-                        
+
                         // Note: for Nitoo devices supporting dimming, an ON command always changes the brightness to 100%.
                         if (message.Command == OpenNettyCommands.Lighting.On && endpoint.Protocol is OpenNettyProtocol.Nitoo &&
                            (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) ||
@@ -1753,9 +1754,11 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         await _events.PublishAsync(new SwitchStateReportedEventArgs(endpoint,
                             OpenNettyModels.Lighting.SwitchState.On), cancellationToken);
 
-                        // Note: if the endpoint was configured to use the push-button mode,
-                        // dispatch an "OFF state" event immediately after switching it on.
-                        if (endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
+                        // Note: if a Nitoo endpoint was configured to use the push-button mode, dispatch an OFF state
+                        // event immediately after switching it on (or receiving a notification indicating it was
+                        // switched on), as Nitoo devices using this mode don't automatically report the OFF state.
+                        if (endpoint.Protocol is OpenNettyProtocol.Nitoo &&
+                            endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
                         {
                             await _events.PublishAsync(new SwitchStateReportedEventArgs(endpoint,
                                 OpenNettyModels.Lighting.SwitchState.Off), cancellationToken);

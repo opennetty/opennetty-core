@@ -723,9 +723,6 @@
   <data name="ID8037" xml:space="preserve">
     <value>Get MAC address</value>
   </data>
-  <data name="ID8038" xml:space="preserve">
-    <value>Push button</value>
-  </data>
   <data name="ID8039" xml:space="preserve">
     <value>Setpoint mode</value>
   </data>

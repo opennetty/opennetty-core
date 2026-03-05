@@ -606,10 +606,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.SwitchState, builder =>
                 {
                     builder.WithPayload(arguments.State is OpenNettyModels.Lighting.SwitchState.Off ? "OFF": "ON");
-
-                    // Note: the retain flag is only added when the special push mode is not used.
-                    builder.WithRetainFlag(arguments.Endpoint.GetStringSetting(OpenNettySettings.SwitchMode)
-                        is not OpenNettySettings.SwitchModes.PushButton);
+                    builder.WithRetainFlag();
                 }))
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),

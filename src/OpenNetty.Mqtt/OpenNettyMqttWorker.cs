@@ -773,9 +773,17 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                 if (SupportsLightOrSwitchEntity(endpoint))
                 {
-                    // Note: by default, endpoints that support ON/OFF switching are always treated as light entities.
-                    var platform = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantEntityType)
-                        ?? OpenNettySettings.HomeAssistantEntityTypes.Light;
+                    var platform = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantEntityType) switch
+                    {
+                        { Length: > 0 } value => value,
+
+                        // If the endpoint has a switch mode setting attached, represent it as a switch by default.
+                        _ when !string.IsNullOrEmpty(endpoint.GetStringSetting(OpenNettySettings.SwitchMode))
+                            => OpenNettySettings.HomeAssistantEntityTypes.Switch,
+
+                        // Endpoints that support ON/OFF switching are always treated as light entities by default.
+                        _ => OpenNettySettings.HomeAssistantEntityTypes.Light
+                    };
 
                     if (platform is not (OpenNettySettings.HomeAssistantEntityTypes.Light or OpenNettySettings.HomeAssistantEntityTypes.Switch))
                     {
@@ -1756,30 +1764,6 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.MacAddress}/get",
                         ["payload_press"] = string.Empty
-                    }));
-                }
-
-                if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchControl) &&
-                    endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
-                {
-                    // Note: endpoints that use the "push button" mode are always represented as buttons instead of light entities.
-                    components.Add(CreateEntityNode(new JsonObject
-                    {
-                        ["platform"] = "button",
-                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "5c207503-bbc7-47dc-a4a7-8833c5bf058f"u8),
-                        ["icon"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantButtonIcon) ?? "mdi:button-pointer",
-                        ["name"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantButtonName) ??
-                            ComputeEntityName(
-                                name    : GetLocalizedString(SR.ID8038, culture),
-                                endpoint: endpoint,
-                                culture : culture,
-                                count   : await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
-                                    .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchControl))
-                                    .Where(static endpoint => endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
-                                    .CountAsync(cancellationToken)),
-                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
-                        ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.SwitchState}/set",
-                        ["payload_press"] = "ON"
                     }));
                 }
 
@@ -2899,13 +2883,6 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 }
 
                 return type is OpenNettySettings.FunctionTypes.LightActuator;
-            }
-
-            // If the endpoint is configured to use the special "push button" mode, do not consider
-            // it suitable for a light entity. Instead, it will be represented as a dedicated button.
-            if (endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
-            {
-                return false;
             }
 
             return true;

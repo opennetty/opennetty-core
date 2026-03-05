@@ -24,7 +24,7 @@ public sealed record OpenNettyTransmissionOptions
     /// Gets or sets a boolean indicating whether the message
     /// can be replayed if an error occurs while sending it.
     /// </summary>
-    public required bool DisallowRetransmissions { get; init; }
+    public required bool DisallowUnsafeRetransmissions { get; init; }
 
     /// <summary>
     /// Gets or sets the frame acknowledgement timeout.
@@ -91,7 +91,7 @@ public sealed record OpenNettyTransmissionOptions
         return new()
         {
             ActionValidationTimeout          = device.Definition.Protocol is OpenNettyProtocol.Nitoo ? TimeSpan.FromSeconds(2) : TimeSpan.Zero,
-            DisallowRetransmissions          = false,
+            DisallowUnsafeRetransmissions    = false,
             FrameAcknowledgementTimeout      = TimeSpan.FromSeconds(5),
             IgnoreAcknowledgementValidation  = false,
             IgnoreActionValidation           = false,
@@ -175,14 +175,14 @@ public sealed record OpenNettyTransmissionOptions
                                                         OpenNettyErrorCode.NoDimensionReceived or
                                                         OpenNettyErrorCode.NoStatusReceived }
                             when message.Medium is OpenNettyMedium.Powerline or OpenNettyMedium.Radio
-                            => !options.DisallowRetransmissions && arguments.AttemptNumber is < 2,
+                            => !options.DisallowUnsafeRetransmissions && arguments.AttemptNumber is < 2,
 
                         // For messages sent via a dedicated bus, retry only once if the error was caused
                         // by a missing reply from the end device, unless the sender explicitly specified
                         // that unsafe retransmissions are not allowed for this message.
                         OpenNettyException { ErrorCode: OpenNettyErrorCode.InvalidFrame or OpenNettyErrorCode.GatewayBusy }
                             when message.Medium is OpenNettyMedium.Bus
-                            => !options.DisallowRetransmissions && arguments.AttemptNumber is < 1,
+                            => !options.DisallowUnsafeRetransmissions && arguments.AttemptNumber is < 1,
 
                         _ => false
                     });
