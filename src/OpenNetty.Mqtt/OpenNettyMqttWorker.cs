@@ -1088,7 +1088,11 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}",
                         ["json_attributes_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Scenario}",
-                        ["event_types"] = new JsonArray([.. types])
+                        ["event_types"] = new JsonArray([.. types]),
+                        // Unlike Nitoo devices that emit observable scenarios without requiring any preliminary configuration,
+                        // Zigbee devices must be explicitly bound to the OpenWebNet gateway via a push-and-learn binding for
+                        // scenarios to be triggered. As such, scenario entities are not enabled by default for Zigbee devices.
+                        ["enabled_by_default"] = endpoint.Protocol is not OpenNettyProtocol.Zigbee
                     };
 
                     if (endpoint.GetStringSetting(OpenNettySettings.HomeAssistantScenarioDeviceClass) is string type)
