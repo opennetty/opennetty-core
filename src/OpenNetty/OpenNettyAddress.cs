@@ -462,7 +462,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
     /// <summary>
     /// Creates a Zigbee address based on the specified device identifier and unit.
     /// </summary>
-    /// <param name="identifier">The device identifier.</param>
+    /// <param name="identifier">The device identifier, or <see langword="null"/> to represent a non-device-specific address.</param>
     /// <param name="unit">The unit, or 0 to represent a device address that doesn't point to a specific unit.</param>
     /// <returns>A Zigbee address based on the specified device identifier and unit.</returns>
     /// <exception cref="ArgumentException">The identifier is not a valid hexadecimal string.</exception>

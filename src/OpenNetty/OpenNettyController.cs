@@ -37,10 +37,12 @@ public class OpenNettyController
     /// Activates the pilot wire shutdown mode for the specified endpoint.
     /// </summary>
     /// <param name="endpoint">The endpoint.</param>
+    /// <param name="options">The pilot wire transmission options.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
     public virtual ValueTask ActivatePilotWireShutdownModeAsync(
         OpenNettyEndpoint endpoint,
+        OpenNettyModels.TemperatureControl.PilotWireTransmissionOptions? options = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(endpoint);
@@ -55,7 +57,7 @@ public class OpenNettyController
             command          : OpenNettyCommands.TemperatureControl.WirePilotShutdownMode,
             address          : endpoint.Address,
             medium           : endpoint.Medium,
-            mode             : OpenNettyMode.Multicast,
+            mode             : options?.ExcludeAssociatedDevices is not true ? OpenNettyMode.Multicast : null,
             gateway          : endpoint.Gateway,
             options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
@@ -193,10 +195,12 @@ public class OpenNettyController
     /// Cancels the pilot wire derogation mode currently enforced by the specified endpoint.
     /// </summary>
     /// <param name="endpoint">The endpoint.</param>
+    /// <param name="options">The pilot wire transmission options.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
     public virtual ValueTask CancelPilotWireDerogationModeAsync(
         OpenNettyEndpoint endpoint,
+        OpenNettyModels.TemperatureControl.PilotWireTransmissionOptions? options = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(endpoint);
@@ -211,7 +215,7 @@ public class OpenNettyController
             command          : OpenNettyCommands.TemperatureControl.CancelWirePilotDerogationMode,
             address          : endpoint.Address,
             medium           : endpoint.Medium,
-            mode             : OpenNettyMode.Multicast,
+            mode             : options?.ExcludeAssociatedDevices is not true ? OpenNettyMode.Multicast : null,
             gateway          : endpoint.Gateway,
             options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
@@ -221,10 +225,12 @@ public class OpenNettyController
     /// Cancels the pilot wire shutdown mode currently enforced by the specified endpoint.
     /// </summary>
     /// <param name="endpoint">The endpoint.</param>
+    /// <param name="options">The pilot wire transmission options.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
     public virtual ValueTask CancelPilotWireShutdownModeAsync(
         OpenNettyEndpoint endpoint,
+        OpenNettyModels.TemperatureControl.PilotWireTransmissionOptions? options = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(endpoint);
@@ -239,7 +245,7 @@ public class OpenNettyController
             command          : OpenNettyCommands.TemperatureControl.CancelWirePilotShutdownMode,
             address          : endpoint.Address,
             medium           : endpoint.Medium,
-            mode             : OpenNettyMode.Multicast,
+            mode             : options?.ExcludeAssociatedDevices is not true ? OpenNettyMode.Multicast : null,
             gateway          : endpoint.Gateway,
             options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
@@ -2464,12 +2470,14 @@ public class OpenNettyController
     /// <param name="endpoint">The endpoint.</param>
     /// <param name="mode">The derogation mode.</param>
     /// <param name="duration">The derogation duration.</param>
+    /// <param name="options">The pilot wire transmission options.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
     public virtual ValueTask SetPilotWireDerogationModeAsync(
         OpenNettyEndpoint endpoint,
         OpenNettyModels.TemperatureControl.PilotWireMode mode,
         OpenNettyModels.TemperatureControl.PilotWireDerogationDuration duration,
+        OpenNettyModels.TemperatureControl.PilotWireTransmissionOptions? options = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(endpoint);
@@ -2510,7 +2518,7 @@ public class OpenNettyController
                 /* MODE: */ value.ToString(CultureInfo.InvariantCulture)),
             address          : endpoint.Address,
             medium           : endpoint.Medium,
-            mode             : OpenNettyMode.Multicast,
+            mode             : options?.ExcludeAssociatedDevices is not true ? OpenNettyMode.Multicast : null,
             gateway          : endpoint.Gateway,
             options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
@@ -2521,11 +2529,13 @@ public class OpenNettyController
     /// </summary>
     /// <param name="endpoint">The endpoint.</param>
     /// <param name="mode">The setpoint mode.</param>
+    /// <param name="options">The pilot wire transmission options.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
     public virtual ValueTask SetPilotWireSetpointModeAsync(
         OpenNettyEndpoint endpoint,
         OpenNettyModels.TemperatureControl.PilotWireMode mode,
+        OpenNettyModels.TemperatureControl.PilotWireTransmissionOptions? options = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(endpoint);
@@ -2552,7 +2562,7 @@ public class OpenNettyController
                 /* MODE: */ value.ToString(CultureInfo.InvariantCulture)),
             address          : endpoint.Address,
             medium           : endpoint.Medium,
-            mode             : OpenNettyMode.Multicast,
+            mode             : options?.ExcludeAssociatedDevices is not true ? OpenNettyMode.Multicast : null,
             gateway          : endpoint.Gateway,
             options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);

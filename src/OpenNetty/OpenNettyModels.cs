@@ -239,6 +239,19 @@ public static class OpenNettyModels
         }
 
         /// <summary>
+        /// Pilot wire transmission options.
+        /// </summary>
+        public sealed record class PilotWireTransmissionOptions
+        {
+            /// <summary>
+            /// Gets or sets a boolean indicating whether devices previously associated via a Push&amp;Learn binding
+            /// should be prevented from applying the request sent to the targeted endpoint (for instance, to prevent
+            /// pilot wire cable outlets from transitioning to the same state as a pilot wire derogation command device).
+            /// </summary>
+            public bool ExcludeAssociatedDevices { get; init; }
+        }
+
+        /// <summary>
         /// Smart meter index.
         /// </summary>
         public sealed record class SmartMeterIndex
