@@ -260,97 +260,97 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     switch (message.ConvertPayloadToString()?.ToLowerInvariant())
                     {
                         case "none":
-                            await _controller.CancelPilotWireDerogationModeAsync(endpoint, cancellationToken);
+                            await _controller.CancelPilotWireDerogationModeAsync(endpoint, null, cancellationToken);
                             break;
 
                         case "comfort":
                             await _controller.SetPilotWireDerogationModeAsync(endpoint,
                                 OpenNettyModels.TemperatureControl.PilotWireMode.Comfort,
-                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None, cancellationToken);
+                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None, null, cancellationToken);
                             break;
 
                         case "comfort:4h":
                             await _controller.SetPilotWireDerogationModeAsync(endpoint,
                                 OpenNettyModels.TemperatureControl.PilotWireMode.Comfort,
-                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours, cancellationToken);
+                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours, null, cancellationToken);
                             break;
 
                         case "comfort:8h":
                             await _controller.SetPilotWireDerogationModeAsync(endpoint,
                                 OpenNettyModels.TemperatureControl.PilotWireMode.Comfort,
-                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours, cancellationToken);
+                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours, null, cancellationToken);
                             break;
 
                         case "comfort-1":
                             await _controller.SetPilotWireDerogationModeAsync(endpoint,
                                 OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusOne,
-                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None, cancellationToken);
+                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None, null, cancellationToken);
                             break;
 
                         case "comfort-1:4h":
                             await _controller.SetPilotWireDerogationModeAsync(endpoint,
                                 OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusOne,
-                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours, cancellationToken);
+                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours, null, cancellationToken);
                             break;
 
                         case "comfort-1:8h":
                             await _controller.SetPilotWireDerogationModeAsync(endpoint,
                                 OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusOne,
-                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours, cancellationToken);
+                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours, null, cancellationToken);
                             break;
 
                         case "comfort-2":
                             await _controller.SetPilotWireDerogationModeAsync(endpoint,
                                 OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusTwo,
-                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None, cancellationToken);
+                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None, null, cancellationToken);
                             break;
 
                         case "comfort-2:4h":
                             await _controller.SetPilotWireDerogationModeAsync(endpoint,
                                 OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusTwo,
-                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours, cancellationToken);
+                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours, null, cancellationToken);
                             break;
 
                         case "comfort-2:8h":
                             await _controller.SetPilotWireDerogationModeAsync(endpoint,
                                 OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusTwo,
-                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours, cancellationToken);
+                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours, null, cancellationToken);
                             break;
 
                         case "eco":
                             await _controller.SetPilotWireDerogationModeAsync(endpoint,
                                 OpenNettyModels.TemperatureControl.PilotWireMode.Eco,
-                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None, cancellationToken);
+                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None, null, cancellationToken);
                             break;
 
                         case "eco:4h":
                             await _controller.SetPilotWireDerogationModeAsync(endpoint,
                                 OpenNettyModels.TemperatureControl.PilotWireMode.Eco,
-                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours, cancellationToken);
+                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours, null, cancellationToken);
                             break;
 
                         case "eco:8h":
                             await _controller.SetPilotWireDerogationModeAsync(endpoint,
                                 OpenNettyModels.TemperatureControl.PilotWireMode.Eco,
-                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours, cancellationToken);
+                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours, null, cancellationToken);
                             break;
 
                         case "frost_protection":
                             await _controller.SetPilotWireDerogationModeAsync(endpoint,
                                 OpenNettyModels.TemperatureControl.PilotWireMode.FrostProtection,
-                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None, cancellationToken);
+                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.None, null, cancellationToken);
                             break;
 
                         case "frost_protection:4h":
                             await _controller.SetPilotWireDerogationModeAsync(endpoint,
                                 OpenNettyModels.TemperatureControl.PilotWireMode.FrostProtection,
-                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours, cancellationToken);
+                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.FourHours, null, cancellationToken);
                             break;
 
                         case "frost_protection:8h":
                             await _controller.SetPilotWireDerogationModeAsync(endpoint,
                                 OpenNettyModels.TemperatureControl.PilotWireMode.FrostProtection,
-                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours, cancellationToken);
+                                OpenNettyModels.TemperatureControl.PilotWireDerogationDuration.EightHours, null, cancellationToken);
                             break;
                     }
                     break;
@@ -362,27 +362,27 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     {
                         case "comfort":
                             await _controller.SetPilotWireSetpointModeAsync(endpoint,
-                                OpenNettyModels.TemperatureControl.PilotWireMode.Comfort, cancellationToken);
+                                OpenNettyModels.TemperatureControl.PilotWireMode.Comfort, null, cancellationToken);
                             break;
 
                         case "comfort-1":
                             await _controller.SetPilotWireSetpointModeAsync(endpoint,
-                                OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusOne, cancellationToken);
+                                OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusOne, null, cancellationToken);
                             break;
 
                         case "comfort-2":
                             await _controller.SetPilotWireSetpointModeAsync(endpoint,
-                                OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusTwo, cancellationToken);
+                                OpenNettyModels.TemperatureControl.PilotWireMode.ComfortMinusTwo, null, cancellationToken);
                             break;
 
                         case "eco":
                             await _controller.SetPilotWireSetpointModeAsync(endpoint,
-                                OpenNettyModels.TemperatureControl.PilotWireMode.Eco, cancellationToken);
+                                OpenNettyModels.TemperatureControl.PilotWireMode.Eco, null, cancellationToken);
                             break;
 
                         case "frost_protection":
                             await _controller.SetPilotWireSetpointModeAsync(endpoint,
-                                OpenNettyModels.TemperatureControl.PilotWireMode.FrostProtection, cancellationToken);
+                                OpenNettyModels.TemperatureControl.PilotWireMode.FrostProtection, null, cancellationToken);
                             break;
                     }
                     break;
@@ -393,11 +393,11 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     switch (message.ConvertPayloadToString()?.ToLowerInvariant())
                     {
                         case "on":
-                            await _controller.ActivatePilotWireShutdownModeAsync(endpoint, cancellationToken);
+                            await _controller.ActivatePilotWireShutdownModeAsync(endpoint, null, cancellationToken);
                             break;
 
                         case "off":
-                            await _controller.CancelPilotWireShutdownModeAsync(endpoint, cancellationToken);
+                            await _controller.CancelPilotWireShutdownModeAsync(endpoint, null, cancellationToken);
                             break;
                     }
                     break;
