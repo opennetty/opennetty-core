@@ -323,8 +323,16 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
                     Transaction = transaction
                 });
 
-                // Note: these exceptions may indicate the session is stale and are re-thrown to ensure it is discarded.
-                throw;
+                // Note: these exceptions may indicate that the session is stale. In this case, unless the service has
+                // explicitly requested to ignore missing acknowledgments (e.g because a gateway is known to return them
+                // inconsistently for specific commands), these exceptions are re-thrown to ensure the session is discarded.
+
+                if (!options.KeepSessionAliveOnMissingAcknowledgement)
+                {
+                    throw;
+                }
+
+                return;
             }
 
             catch (OpenNettyException exception) when (exception.ErrorCode is OpenNettyErrorCode.InvalidFrame)

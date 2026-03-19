@@ -197,7 +197,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                         .FirstOrDefault(static message => message.Type is OpenNettyMessageType.Acknowledgement             or
                                                                           OpenNettyMessageType.BusyNegativeAcknowledgement or
                                                                           OpenNettyMessageType.NegativeAcknowledgement)
-                        .Timeout(options.FrameAcknowledgementTimeout, AsyncObservable.Return<OpenNettyMessage?>(null))
+                        .Timeout(options.AcknowledgementTimeout, AsyncObservable.Return<OpenNettyMessage?>(null))
                         .RunAsync(cancellationToken))
                     {
                         case null:
@@ -207,7 +207,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                             // Wait for the NACK frame to be returned before throwing an exception.
                             throw await messages
                                 .FirstOrDefault(static message => message.Type is OpenNettyMessageType.NegativeAcknowledgement)
-                                .Timeout(options.FrameAcknowledgementTimeout, AsyncObservable.Return<OpenNettyMessage?>(null))
+                                .Timeout(options.AcknowledgementTimeout, AsyncObservable.Return<OpenNettyMessage?>(null))
                                 .RunAsync(cancellationToken) switch
                                 {
                                     null => new OpenNettyException(OpenNettyErrorCode.NoAcknowledgementReceived, SR.GetResourceString(SR.ID0012)),

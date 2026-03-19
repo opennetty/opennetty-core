@@ -607,7 +607,7 @@
     <value>An error occurred while processing an outgoing MQTT message for topic {Topic} (payload: {Payload}).</value>
   </data>
   <data name="ID6024" xml:space="preserve">
-    <value>An outgoing message is about to be sent by gateway {Gateway} using session {Session}: {Message}.</value>
+    <value>An outgoing message is being sent by gateway {Gateway} using session {Session}: {Message}.</value>
   </data>
   <data name="ID8000" xml:space="preserve">
     <value>Switch</value>

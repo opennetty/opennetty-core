@@ -333,9 +333,9 @@ public class OpenNettyController
         // acknowledgment frame after the operation is complete. To ensure the gateway is
         // given enough time to create the network, the timeouts are increased if necessary.
         var options = GetTransmissionOptions(endpoint);
-        if (options.FrameAcknowledgementTimeout < TimeSpan.FromSeconds(20))
+        if (options.AcknowledgementTimeout < TimeSpan.FromSeconds(20))
         {
-            options = options with { FrameAcknowledgementTimeout = TimeSpan.FromSeconds(20) };
+            options = options with { AcknowledgementTimeout = TimeSpan.FromSeconds(20) };
         }
 
         if (options.OutgoingMessageProcessingTimeout < TimeSpan.FromSeconds(30))
@@ -1309,27 +1309,33 @@ public class OpenNettyController
             return description.Version;
         }
 
-        // Note: retrieving the firmware version of a battery-powered Zigbee endpoint
-        // can take a while. To ensure the operation is not aborted before the endpoint
-        // has a chance to respond, the timeouts are manually increased here.
         var options = GetTransmissionOptions(endpoint);
 
+        // Note: retrieving the firmware version of a battery-powered Zigbee endpoint can take
+        // a while: in this case, the acknowledgment frame is never returned immediately (and
+        // may not be returned at all if the end device doesn't reply). To ensure the operation
+        // is not aborted before the device has a chance to wake up and reply, the timeouts are
+        // slightly increased but missing acknowledgment frames are explicitly ignored to ensure
+        // the session will not be discarded by the worker if no acknowledgment frame is returned.
         if (endpoint.Address is not null && endpoint.HasCapability(OpenNettyCapabilities.ZigbeeEndDevice))
         {
-            if (options.FrameAcknowledgementTimeout < TimeSpan.FromSeconds(45))
+            options = options with
             {
-                options = options with { FrameAcknowledgementTimeout = TimeSpan.FromSeconds(45) };
-            }
+                DisallowAllRetransmissions = true,
+                KeepSessionAliveOnMissingAcknowledgement = true,
 
-            if (options.OutgoingMessageProcessingTimeout < TimeSpan.FromSeconds(45))
-            {
-                options = options with { OutgoingMessageProcessingTimeout = TimeSpan.FromSeconds(45) };
-            }
+                AcknowledgementTimeout = options.AcknowledgementTimeout < TimeSpan.FromSeconds(10)
+                    ? TimeSpan.FromSeconds(10)
+                    : options.AcknowledgementTimeout,
 
-            if (options.UniqueDimensionReplyTimeout < TimeSpan.FromSeconds(45))
-            {
-                options = options with { UniqueDimensionReplyTimeout = TimeSpan.FromSeconds(45) };
-            }
+                OutgoingMessageProcessingTimeout = options.OutgoingMessageProcessingTimeout < TimeSpan.FromSeconds(20)
+                    ? TimeSpan.FromSeconds(20)
+                    : options.OutgoingMessageProcessingTimeout,
+
+                UniqueDimensionReplyTimeout = options.UniqueDimensionReplyTimeout < TimeSpan.FromSeconds(10)
+                    ? TimeSpan.FromSeconds(10)
+                    : options.UniqueDimensionReplyTimeout
+            };
         }
 
         var values = await _service.GetDimensionAsync(
@@ -1368,27 +1374,33 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
-        // Note: retrieving the hardware version of a battery-powered Zigbee endpoint
-        // can take a while. To ensure the operation is not aborted before the endpoint
-        // has a chance to respond, the timeouts are manually increased here.
         var options = GetTransmissionOptions(endpoint);
 
+        // Note: retrieving the hardware version of a battery-powered Zigbee endpoint can take
+        // a while: in this case, the acknowledgment frame is never returned immediately (and
+        // may not be returned at all if the end device doesn't reply). To ensure the operation
+        // is not aborted before the device has a chance to wake up and reply, the timeouts are
+        // slightly increased but missing acknowledgment frames are explicitly ignored to ensure
+        // the session will not be discarded by the worker if no acknowledgment frame is returned.
         if (endpoint.Address is not null && endpoint.HasCapability(OpenNettyCapabilities.ZigbeeEndDevice))
         {
-            if (options.FrameAcknowledgementTimeout < TimeSpan.FromSeconds(45))
+            options = options with
             {
-                options = options with { FrameAcknowledgementTimeout = TimeSpan.FromSeconds(45) };
-            }
+                DisallowAllRetransmissions = true,
+                KeepSessionAliveOnMissingAcknowledgement = true,
 
-            if (options.OutgoingMessageProcessingTimeout < TimeSpan.FromSeconds(45))
-            {
-                options = options with { OutgoingMessageProcessingTimeout = TimeSpan.FromSeconds(45) };
-            }
+                AcknowledgementTimeout = options.AcknowledgementTimeout < TimeSpan.FromSeconds(10)
+                    ? TimeSpan.FromSeconds(10)
+                    : options.AcknowledgementTimeout,
 
-            if (options.UniqueDimensionReplyTimeout < TimeSpan.FromSeconds(45))
-            {
-                options = options with { UniqueDimensionReplyTimeout = TimeSpan.FromSeconds(45) };
-            }
+                OutgoingMessageProcessingTimeout = options.OutgoingMessageProcessingTimeout < TimeSpan.FromSeconds(20)
+                    ? TimeSpan.FromSeconds(20)
+                    : options.OutgoingMessageProcessingTimeout,
+
+                UniqueDimensionReplyTimeout = options.UniqueDimensionReplyTimeout < TimeSpan.FromSeconds(10)
+                    ? TimeSpan.FromSeconds(10)
+                    : options.UniqueDimensionReplyTimeout
+            };
         }
 
         var values = await _service.GetDimensionAsync(
@@ -2075,9 +2087,9 @@ public class OpenNettyController
         // acknowledgment frame after the operation is complete. To ensure the gateway is
         // given enough time to join the network, the timeouts are increased if necessary.
         var options = GetTransmissionOptions(endpoint);
-        if (options.FrameAcknowledgementTimeout < TimeSpan.FromSeconds(20))
+        if (options.AcknowledgementTimeout < TimeSpan.FromSeconds(20))
         {
-            options = options with { FrameAcknowledgementTimeout = TimeSpan.FromSeconds(20) };
+            options = options with { AcknowledgementTimeout = TimeSpan.FromSeconds(20) };
         }
 
         if (options.OutgoingMessageProcessingTimeout < TimeSpan.FromSeconds(30))
@@ -2117,9 +2129,9 @@ public class OpenNettyController
         // acknowledgment frame after the operation is complete. To ensure the gateway is
         // given enough time to leave the network, the timeouts are increased if necessary.
         var options = GetTransmissionOptions(endpoint);
-        if (options.FrameAcknowledgementTimeout < TimeSpan.FromSeconds(20))
+        if (options.AcknowledgementTimeout < TimeSpan.FromSeconds(20))
         {
-            options = options with { FrameAcknowledgementTimeout = TimeSpan.FromSeconds(20) };
+            options = options with { AcknowledgementTimeout = TimeSpan.FromSeconds(20) };
         }
 
         if (options.OutgoingMessageProcessingTimeout < TimeSpan.FromSeconds(30))

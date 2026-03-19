@@ -16,32 +16,44 @@ namespace OpenNetty;
 public sealed record OpenNettyTransmissionOptions
 {
     /// <summary>
+    /// Gets or sets the acknowledgement timeout.
+    /// </summary>
+    public required TimeSpan AcknowledgementTimeout { get; init; }
+
+    /// <summary>
     /// Gets or sets the action validation timeout (Nitoo only).
     /// </summary>
     public required TimeSpan ActionValidationTimeout { get; init; }
 
     /// <summary>
     /// Gets or sets a boolean indicating whether the message
-    /// can be replayed if an error occurs while sending it.
+    /// can be replayed if any error occurs while sending it.
+    /// </summary>
+    public required bool DisallowAllRetransmissions { get; init; }
+
+    /// <summary>
+    /// Gets or sets a boolean indicating whether the message can be replayed if an error
+    /// indicating that the message couldn't be sent to the gateway occurs while sending it.
     /// </summary>
     public required bool DisallowUnsafeRetransmissions { get; init; }
 
     /// <summary>
-    /// Gets or sets the frame acknowledgement timeout.
-    /// </summary>
-    public required TimeSpan FrameAcknowledgementTimeout { get; init; }
-
-    /// <summary>
-    /// Gets or sets a boolean indicating whether OpenNetty should
+    /// Gets or sets a boolean indicating whether OpenNetty should not
     /// wait for the gateway to return an ACK, BUSY NACK or NACK frame.
     /// </summary>
     public required bool IgnoreAcknowledgementValidation { get; init; }
 
     /// <summary>
-    /// Gets or sets a boolean indicating whether OpenNetty should wait for the
+    /// Gets or sets a boolean indicating whether OpenNetty should not wait for the
     /// end device to reply with a VALID ACTION or INVALID ACTION frame (Nitoo only).
     /// </summary>
     public required bool IgnoreActionValidation { get; init; }
+
+    /// <summary>
+    /// Gets or sets a value indicating whether the session should remain active
+    /// even if no acknowledgement frame was received from the gateway.
+    /// </summary>
+    public required bool KeepSessionAliveOnMissingAcknowledgement { get; init; }
 
     /// <summary>
     /// Gets or sets the reply timeout used when multiple dimensions should be returned.
@@ -90,17 +102,19 @@ public sealed record OpenNettyTransmissionOptions
 
         return new()
         {
-            ActionValidationTimeout          = device.Definition.Protocol is OpenNettyProtocol.Nitoo ? TimeSpan.FromSeconds(2) : TimeSpan.Zero,
-            DisallowUnsafeRetransmissions    = false,
-            FrameAcknowledgementTimeout      = TimeSpan.FromSeconds(5),
-            IgnoreAcknowledgementValidation  = false,
-            IgnoreActionValidation           = false,
-            MultipleDimensionReplyTimeout    = device.Definition.Protocol is OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee ? TimeSpan.FromSeconds(10) : TimeSpan.Zero,
-            MultipleStatusReplyTimeout       = device.Definition.Protocol is OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee ? TimeSpan.FromSeconds(10) : TimeSpan.Zero,
-            OutgoingMessageProcessingTimeout = TimeSpan.FromSeconds(10),
-            PostSendingDelay                 = device.Definition.Protocol is OpenNettyProtocol.Nitoo ? TimeSpan.FromMilliseconds(150) : TimeSpan.Zero,
-            UniqueDimensionReplyTimeout      = TimeSpan.FromSeconds(2),
-            UniqueStatusReplyTimeout         = TimeSpan.FromSeconds(2),
+            AcknowledgementTimeout                   = TimeSpan.FromSeconds(5),
+            ActionValidationTimeout                  = device.Definition.Protocol is OpenNettyProtocol.Nitoo ? TimeSpan.FromSeconds(2) : TimeSpan.Zero,
+            DisallowAllRetransmissions               = false,
+            DisallowUnsafeRetransmissions            = false,
+            IgnoreAcknowledgementValidation          = false,
+            IgnoreActionValidation                   = false,
+            KeepSessionAliveOnMissingAcknowledgement = false,
+            MultipleDimensionReplyTimeout            = device.Definition.Protocol is OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee ? TimeSpan.FromSeconds(10) : TimeSpan.Zero,
+            MultipleStatusReplyTimeout               = device.Definition.Protocol is OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee ? TimeSpan.FromSeconds(10) : TimeSpan.Zero,
+            OutgoingMessageProcessingTimeout         = TimeSpan.FromSeconds(10),
+            PostSendingDelay                         = device.Definition.Protocol is OpenNettyProtocol.Nitoo ? TimeSpan.FromMilliseconds(150) : TimeSpan.Zero,
+            UniqueDimensionReplyTimeout              = TimeSpan.FromSeconds(2),
+            UniqueStatusReplyTimeout                 = TimeSpan.FromSeconds(2),
 
             OutgoingMessageResiliencePipeline = new ResiliencePipelineBuilder().AddRetry(new RetryStrategyOptions
             {
@@ -153,6 +167,10 @@ public sealed record OpenNettyTransmissionOptions
 
                     return ValueTask.FromResult(arguments.Outcome.Exception switch
                     {
+                        // Never retry sending the message if the sender explicitly specified that
+                        // all retransmissions (even safe ones) are disallowed for this message.
+                        _ when options.DisallowAllRetransmissions => false,
+
                         // Nitoo gateways are known for returning NACK frames when sending multiple messages
                         // in a row. In this case, always retry sending the message 3 times before giving up.
                         OpenNettyException { ErrorCode: OpenNettyErrorCode.InvalidFrame }
