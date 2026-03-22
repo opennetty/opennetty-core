@@ -19,8 +19,7 @@ To this date, 3 variants of OpenWebNet have been developed by the two companies:
 
 OpenNetty offers both low-level primitives to represent OpenWebNet messages and communicate with OpenWebNet
 gateways and a higher-level MQTT integration that can be directly used with home automation software like
-[Home Assistant](https://www.home-assistant.io/), [Jeedom](https://jeedom.com/),
-[FHEM](https://fhem.de/) or [openHAB](https://www.openhab.org/).
+[Home Assistant](https://www.home-assistant.io/), [openHAB](https://www.openhab.org/) or [FHEM](https://fhem.de/).
 
 > [!IMPORTANT]
 > **An OpenWebNet gateway is required by OpenNetty to be able to interact with BTicino and Legrand devices**:
@@ -142,10 +141,9 @@ server/port/username/password attributes to match the values used by your MQTT b
 > Using a code editor like [Visual Studio Code](https://code.visualstudio.com/) greatly simplifies writing the configuration file.
 
 > [!TIP]
-> For increased security, OpenNetty supports MQTTS and TLS client authentication: to use TLS, add the necessary `.crt` and `.key` files to the OpenNetty
-> folder and set the `TlsServerCertificateAuthorityFile`, `TlsClientCertificateFile` and `TlsClientCertificatePrivateKeyFile` attributes.
->
-> If necessary, a custom `TlsServerTargetHost` value – required when using Jeedom's `MQTT Manager` plugin and the default configuration – can be set:
+> For increased security, OpenNetty supports MQTTS and TLS client authentication: to use TLS, add the necessary `.crt` and `.key` files
+> to the OpenNetty folder and set the `TlsServerCertificateAuthorityFile`, `TlsClientCertificateFile` and `TlsClientCertificatePrivateKeyFile`
+> attributes. If necessary, a custom `TlsServerTargetHost` value can also be set:
 >
 > ```xml
 > <Configuration>
@@ -154,7 +152,7 @@ server/port/username/password attributes to match the values used by your MQTT b
 >         TlsServerCertificateAuthorityFile="ca.crt"
 >         TlsClientCertificateFile="client.crt"
 >         TlsClientCertificatePrivateKeyFile="client.key"
->         TlsServerTargetHost="jeedom-mosquitto" />
+>         TlsServerTargetHost="mosquitto" />
 > 
 > </Configuration>
 > ```
