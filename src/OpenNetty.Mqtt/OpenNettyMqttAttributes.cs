@@ -17,9 +17,19 @@ public static class OpenNettyMqttAttributes
     public const string Availability = "availability";
 
     /// <summary>
+    /// Discovery scan.
+    /// </summary>
+    public const string DiscoveryScan = "discovery_scan";
+
+    /// <summary>
     /// Battery alert.
     /// </summary>
     public const string BatteryAlert = "battery_alert";
+
+    /// <summary>
+    /// Device name.
+    /// </summary>
+    public const string DeviceName = "device_name";
 
     /// <summary>
     /// Battery level.

@@ -1593,6 +1593,55 @@
   </Device>
 
   <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
+    <Identity Brand="Legrand" Collection="Céliane" Model="67277">
+      <Description Culture="en" Value="Shutter actuator" />
+      <Description Culture="fr" Value="Actionneur de volet roulant" />
+    </Identity>
+
+    <Capability Name="Firmware version" />
+    <Capability Name="Hardware version" />
+    <Capability Name="Outgoing communication" />
+    <Capability Name="Zigbee router" />
+
+    <Unit Id="1">
+      <Capability Name="Basic shutter control" />
+      <Capability Name="Basic shutter state" />
+      <Capability Name="Stop/up/down scenario event" />
+      <Capability Name="Zigbee binding" />
+
+      <Description Culture="en" Value="Output" />
+      <Description Culture="fr" Value="Sortie" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+    </Unit>
+  </Device>
+
+  <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
+    <Identity Brand="Legrand" Collection="Céliane" Model="67227">
+      <Description Culture="en" Value="Wireless shutter control switch" />
+      <Description Culture="fr" Value="Interrupteur de volet roulant sans fil" />
+    </Identity>
+
+    <Capability Name="Battery level" />
+    <Capability Name="Firmware version" />
+    <Capability Name="Hardware version" />
+    <Capability Name="Outgoing communication" />
+    <Capability Name="Zigbee end device" />
+
+    <Unit Id="1">
+      <Capability Name="Stop/up/down scenario event" />
+      <Capability Name="Zigbee binding" />
+
+      <Description Culture="en" Value="Stop/up/down scenario" />
+      <Description Culture="fr" Value="Scénario stop/montée/descente" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+    </Unit>
+  </Device>
+
+  <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
     <Identity Brand="Legrand" Collection="Céliane" Model="67265">
       <Description Culture="en" Value="Wireless shutter control switch" />
       <Description Culture="fr" Value="Interrupteur de volet roulant sans fil" />

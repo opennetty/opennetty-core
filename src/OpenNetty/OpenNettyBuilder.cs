@@ -520,6 +520,16 @@ public sealed class OpenNettyBuilder
                         ?? throw new InvalidOperationException(SR.FormatID0106(definition.Protocol))
                 };
 
+            var settings = GetSettings(element);
+
+            // If a custom Name attribute is present on the Device element,
+            // store it as a Home Assistant device name setting.
+            var customName = (string?) element.Attribute("Name");
+            if (!string.IsNullOrEmpty(customName))
+            {
+                settings = settings.SetItem(OpenNettySettings.HomeAssistantDeviceName, customName);
+            }
+
             return new OpenNettyDevice
             {
                 Definition = definition,
@@ -527,7 +537,7 @@ public sealed class OpenNettyBuilder
                 Identifier = GetIdentifier(definition, element),
                 Identity = definition.Identities.Single(identity =>
                     identity.Brand == Enum.Parse<OpenNettyBrand>(brand) && identity.Model == model),
-                Settings = GetSettings(element),
+                Settings = settings,
                 Units = [.. element.Elements("Unit").Select(static element =>
                     GetUnit(element, (byte?) (uint?) element.Attribute("Id")
                         ?? throw new InvalidOperationException(SR.FormatID0078("Id"))))]
