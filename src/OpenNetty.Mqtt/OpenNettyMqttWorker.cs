@@ -2753,6 +2753,72 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["command_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ZigbeeSupervision}/set",
                         ["payload_press"] = "disable"
                     }));
+
+                    // Add a "Discover devices" button to the gateway device that triggers
+                    // a Zigbee network scan and auto-registers any new devices found.
+                    components.Add(CreateEntityNode(new JsonObject
+                    {
+                        ["platform"] = "button",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "c8b3a1d0-5e7f-4c2a-9b6d-3f8e1a2c4d5b"u8),
+                        ["icon"] = "mdi:radar",
+                        ["name"] = "Discover devices",
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
+                        ["command_topic"] = $"{options.RootTopic}/system/{OpenNettyMqttAttributes.DiscoveryScan}/set",
+                        ["payload_press"] = "SCAN"
+                    }));
+
+                    // Add a sensor to display the last discovery scan result.
+                    components.Add(CreateEntityNode(new JsonObject
+                    {
+                        ["platform"] = "sensor",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "a7f2e4b1-3c8d-4a5e-b9d0-6f1c2e3a4b5c"u8),
+                        ["entity_category"] = "diagnostic",
+                        ["icon"] = "mdi:radar",
+                        ["name"] = "Discovery scan status",
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
+                        ["state_topic"] = $"{options.RootTopic}/system/{OpenNettyMqttAttributes.DiscoveryScan}",
+                        ["value_template"] = "{{ value_json.status if value_json is mapping else value }}"
+                    }));
+                }
+            }
+
+            // Add a "Device name" text entity to every device, allowing users
+            // to rename devices directly from the Home Assistant UI.
+            {
+                // Use the first endpoint's topic as the base for the device name command topic.
+                var firstEndpoint = await _manager.FindEndpointsByDeviceAsync(device, cancellationToken)
+                    .FirstOrDefaultAsync(cancellationToken);
+
+                if (firstEndpoint is not null)
+                {
+                    var deviceNameTopic = firstEndpoint.GetStringSetting(OpenNettySettings.MqttTopic)
+                        ?? firstEndpoint.Name.ToLowerInvariant();
+
+                    var currentName = device.GetStringSetting(OpenNettySettings.HomeAssistantDeviceName)
+                        ?? $"{Enum.GetName(device.Identity.Brand)} {device.Identity.Model} ({device.Identifier})";
+
+                    components.Add(CreateEntityNode(new JsonObject
+                    {
+                        ["platform"] = "text",
+                        ["unique_id"] = ComputeEntityUniqueId(firstEndpoint, "d4e5f6a7-b8c9-4d0e-a1f2-3b4c5d6e7f8a"u8),
+                        ["entity_category"] = "config",
+                        ["icon"] = "mdi:rename",
+                        ["name"] = "Device name",
+                        ["availability_topic"] = $"{options.RootTopic}/{deviceNameTopic}/{OpenNettyMqttAttributes.Availability}",
+                        ["command_topic"] = $"{options.RootTopic}/{deviceNameTopic}/{OpenNettyMqttAttributes.DeviceName}/set",
+                        ["state_topic"] = $"{options.RootTopic}/{deviceNameTopic}/{OpenNettyMqttAttributes.DeviceName}",
+                        ["min"] = 1,
+                        ["max"] = 100
+                    }));
+
+                    // Publish the current device name so the text entity shows the current value.
+                    await client.EnqueueAsync(new MqttApplicationMessageBuilder()
+                        .WithPayload(currentName)
+                        .WithPayloadFormatIndicator(MqttPayloadFormatIndicator.CharacterData)
+                        .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
+                        .WithRetainFlag()
+                        .WithTopic($"{options.RootTopic}/{deviceNameTopic}/{OpenNettyMqttAttributes.DeviceName}")
+                        .Build());
                 }
             }
 
