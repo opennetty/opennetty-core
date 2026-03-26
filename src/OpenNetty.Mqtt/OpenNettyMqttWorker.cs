@@ -5,6 +5,7 @@
  */
 
 using System.Buffers.Text;
+using System.Collections.Immutable;
 using System.Globalization;
 using System.IO.Hashing;
 using System.Net.Mime;
@@ -16,6 +17,7 @@ using System.Text;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading.Channels;
+using System.Xml.Linq;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
 using MQTTnet;
@@ -33,6 +35,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
     private readonly ILogger<OpenNettyMqttWorker> _logger;
     private readonly OpenNettyManager _manager;
     private readonly IOptionsMonitor<OpenNettyMqttOptions> _options;
+    private readonly IOptionsMonitor<OpenNettyOptions> _openNettyOptions;
+    private readonly IOpenNettyService _service;
 
     /// <summary>
     /// Creates a new instance of the <see cref="OpenNettyMqttWorker"/> class.
@@ -41,16 +45,22 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
     /// <param name="logger">The OpenNetty logger.</param>
     /// <param name="manager">The OpenNetty manager.</param>
     /// <param name="options">The OpenNetty MQTT options.</param>
+    /// <param name="openNettyOptions">The OpenNetty options.</param>
+    /// <param name="service">The OpenNetty service.</param>
     public OpenNettyMqttWorker(
         OpenNettyController controller,
         ILogger<OpenNettyMqttWorker> logger,
         OpenNettyManager manager,
-        IOptionsMonitor<OpenNettyMqttOptions> options)
+        IOptionsMonitor<OpenNettyMqttOptions> options,
+        IOptionsMonitor<OpenNettyOptions> openNettyOptions,
+        IOpenNettyService service)
     {
         _controller = controller ?? throw new ArgumentNullException(nameof(controller));
         _logger = logger ?? throw new ArgumentNullException(nameof(logger));
         _manager = manager ?? throw new ArgumentNullException(nameof(manager));
         _options = options ?? throw new ArgumentNullException(nameof(options));
+        _openNettyOptions = openNettyOptions ?? throw new ArgumentNullException(nameof(openNettyOptions));
+        _service = service ?? throw new ArgumentNullException(nameof(service));
     }
 
     /// <inheritdoc/>
@@ -67,6 +77,17 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
             .GroupBy(static parameters => parameters.Name)
             .Do(async group => await group.ObserveOn(TaskPoolAsyncScheduler.Default).Do(async parameters =>
             {
+                // Handle the system-level discovery scan topic
+                // (e.g. opennetty/system/discovery_scan/set with payload "SCAN").
+                if (string.Equals(parameters.Name, "system", StringComparison.OrdinalIgnoreCase) &&
+                    string.Equals(parameters.Attribute, OpenNettyMqttAttributes.DiscoveryScan, StringComparison.OrdinalIgnoreCase) &&
+                    parameters.Operation is OpenNettyMqttOperation.Set &&
+                    string.Equals(parameters.Message.ConvertPayloadToString(), "SCAN", StringComparison.OrdinalIgnoreCase))
+                {
+                    await PerformDiscoveryScanAsync(client, cancellationToken);
+                    return;
+                }
+
                 var endpoints = from endpoint in _manager.EnumerateEndpointsAsync(cancellationToken)
                                 let topic = endpoint.GetStringSetting(OpenNettySettings.MqttTopic) ?? endpoint.Name.ToLowerInvariant()
                                 where string.Equals(topic, parameters.Name, StringComparison.Ordinal)
@@ -708,6 +729,19 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         case "enable":
                             await _controller.EnableSupervisionAsync(endpoint, cancellationToken);
                             break;
+                    }
+                    break;
+                }
+
+                case OpenNettyMqttAttributes.DeviceName when operation is OpenNettyMqttOperation.Set:
+                {
+                    var newName = message.ConvertPayloadToString();
+                    if (!string.IsNullOrEmpty(newName) && endpoint.Device is OpenNettyDevice device)
+                    {
+                        RenameDevice(device, newName);
+
+                        // Re-announce the endpoints to update Home Assistant.
+                        await AnnounceEndpointsAsync(client, cancellationToken);
                     }
                     break;
                 }
@@ -2763,7 +2797,9 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 ["manufacturer"] = Enum.GetName(device.Identity.Brand),
                 ["model_id"] = device.Identity.Model,
                 ["serial_number"] = device.Identifier.ToString(),
-                ["name"] = $"{Enum.GetName(device.Identity.Brand)} {device.Identity.Model} ({device.Identifier})"
+                ["name"] = device.GetStringSetting(OpenNettySettings.HomeAssistantDeviceName) is { Length: > 0 } customName
+                    ? customName
+                    : $"{Enum.GetName(device.Identity.Brand)} {device.Identity.Model} ({device.Identifier})"
             };
 
             var description = device.Identity.GetDescription(culture);
@@ -2890,6 +2926,370 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
             }
 
             return true;
+        }
+    }
+
+    /// <summary>
+    /// Performs a Zigbee network discovery scan by querying the gateway for all
+    /// known device identifiers, creating any new devices found, and publishing
+    /// Home Assistant MQTT Discovery payloads for them.
+    /// </summary>
+    private async Task PerformDiscoveryScanAsync(IManagedMqttClient client, CancellationToken cancellationToken)
+    {
+        _logger.LogInformation("Starting Zigbee discovery scan...");
+
+        var options = _openNettyOptions.CurrentValue;
+
+        // Publish a status message to indicate the scan is in progress.
+        await client.EnqueueAsync(new MqttApplicationMessageBuilder()
+            .WithPayload("scanning")
+            .WithPayloadFormatIndicator(MqttPayloadFormatIndicator.CharacterData)
+            .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
+            .WithTopic($"{_options.CurrentValue.RootTopic}/system/{OpenNettyMqttAttributes.DiscoveryScan}")
+            .Build());
+
+        var discoveredCount = 0;
+
+        try
+        {
+            // Find the Zigbee gateway endpoint to use for sending discovery frames.
+            OpenNettyGateway? zigbeeGateway = null;
+
+            await foreach (var gateway in _manager.EnumerateGatewaysAsync(cancellationToken))
+            {
+                if (gateway.Protocol is OpenNettyProtocol.Zigbee)
+                {
+                    zigbeeGateway = gateway;
+                    break;
+                }
+            }
+
+            if (zigbeeGateway is null)
+            {
+                _logger.LogWarning("No Zigbee gateway found. Discovery scan aborted.");
+
+                await client.EnqueueAsync(new MqttApplicationMessageBuilder()
+                    .WithPayload("error:no_gateway")
+                    .WithPayloadFormatIndicator(MqttPayloadFormatIndicator.CharacterData)
+                    .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
+                    .WithTopic($"{_options.CurrentValue.RootTopic}/system/{OpenNettyMqttAttributes.DiscoveryScan}")
+                    .Build());
+
+                return;
+            }
+
+            // Query the gateway for all device identifiers using the DeviceIdentifier dimension (WHO=13, DIM=27).
+            var discoveredIds = new List<string>();
+
+            await foreach (var (address, values) in _service.EnumerateDimensionsAsync(
+                protocol: OpenNettyProtocol.Zigbee,
+                dimension: OpenNettyDimensions.Management.DeviceIdentifier,
+                address: null,
+                medium: OpenNettyMedium.Radio,
+                gateway: zigbeeGateway,
+                cancellationToken: cancellationToken))
+            {
+                // The response contains the device identifier as a decimal string.
+                // Convert it to an 8-character hex string (Zigbee serial number format).
+                if (values.Length > 0 && uint.TryParse(values[0], CultureInfo.InvariantCulture, out var decimalId))
+                {
+                    var hexId = decimalId.ToString("X8", CultureInfo.InvariantCulture);
+                    discoveredIds.Add(hexId);
+                }
+            }
+
+            _logger.LogInformation("Discovery scan found {Count} device identifier(s).", discoveredIds.Count);
+
+            foreach (var hexId in discoveredIds)
+            {
+                // Check if a device with this identifier already exists.
+                var identifier = OpenNettyDeviceIdentifier.FromZigbeeSerialNumber(hexId);
+                if (options.Devices.Exists(device => device.Identifier == identifier))
+                {
+                    continue;
+                }
+
+                // Skip the gateway device itself.
+                if (zigbeeGateway.Device.Identifier == identifier)
+                {
+                    continue;
+                }
+
+                // Try to identify the device by querying its device description.
+                OpenNettyDeviceDefinition? definition = null;
+                try
+                {
+                    var descValues = await _service.GetDimensionAsync(
+                        protocol: OpenNettyProtocol.Zigbee,
+                        dimension: OpenNettyDimensions.Diagnostics.DeviceDescription,
+                        address: OpenNettyAddress.FromZigbeeAddress(identifier, unit: 0),
+                        medium: OpenNettyMedium.Radio,
+                        gateway: zigbeeGateway,
+                        cancellationToken: cancellationToken);
+
+                    if (descValues.Length >= 2)
+                    {
+                        // Parse the brand and model from the device description.
+                        // The device description typically returns [brand_id, model, ...].
+                        var brandValue = descValues[0];
+                        var modelValue = descValues[1];
+
+                        // Try to map known brand IDs to OpenNettyBrand values.
+                        var brand = brandValue switch
+                        {
+                            "1" => OpenNettyBrand.BTicino,
+                            "2" => OpenNettyBrand.Legrand,
+                            _ => OpenNettyBrand.Legrand // Default to Legrand for Zigbee devices
+                        };
+
+                        definition = OpenNettyDevices.GetDeviceByModel(brand, modelValue);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Could not retrieve device description for {Identifier}, skipping model identification.", hexId);
+                }
+
+                if (definition is null)
+                {
+                    _logger.LogInformation("Could not identify device {Identifier}, skipping.", hexId);
+                    continue;
+                }
+
+                // Create the device and inject it into the running application.
+                var identity = definition.Identities.FirstOrDefault();
+                if (identity.Model is null)
+                {
+                    continue;
+                }
+
+                var newDevice = new OpenNettyDevice
+                {
+                    Definition = definition,
+                    Gateway = zigbeeGateway,
+                    Identifier = identifier,
+                    Identity = identity,
+                    Settings = ImmutableDictionary.Create<OpenNettySetting, string>(),
+                    Units = [.. definition.Units.Select(static unitDef => new OpenNettyUnit
+                    {
+                        Definition = unitDef,
+                        Scenarios = [],
+                        Settings = ImmutableDictionary.Create<OpenNettySetting, string>()
+                    })]
+                };
+
+                options.Devices.Add(newDevice);
+
+                // Create the implicit device-level endpoint.
+                options.Endpoints.Add(new OpenNettyEndpoint
+                {
+                    Address = OpenNettyAddress.FromZigbeeAddress(identifier, unit: 0),
+                    Capabilities = ImmutableHashSet.Create<OpenNettyCapability>(),
+                    Device = newDevice,
+                    Gateway = zigbeeGateway,
+                    Medium = definition.Medium,
+                    Name = $"Zigbee/{hexId}",
+                    Protocol = OpenNettyProtocol.Zigbee,
+                    Settings = ImmutableDictionary.Create<OpenNettySetting, string>()
+                });
+
+                // Create implicit unit-level endpoints.
+                foreach (var unitDef in definition.Units)
+                {
+                    var unit = newDevice.Units.SingleOrDefault(u => u.Definition == unitDef) ?? new OpenNettyUnit
+                    {
+                        Definition = unitDef,
+                        Scenarios = [],
+                        Settings = ImmutableDictionary.Create<OpenNettySetting, string>()
+                    };
+
+                    options.Endpoints.Add(new OpenNettyEndpoint
+                    {
+                        Address = OpenNettyAddress.FromZigbeeAddress(identifier, unit: unitDef.Id),
+                        Capabilities = ImmutableHashSet.Create<OpenNettyCapability>(),
+                        Device = newDevice,
+                        Gateway = zigbeeGateway,
+                        Medium = definition.Medium,
+                        Name = $"Zigbee/{hexId}/{unitDef.Id}",
+                        Protocol = OpenNettyProtocol.Zigbee,
+                        Settings = ImmutableDictionary.Create<OpenNettySetting, string>(),
+                        Unit = unit
+                    });
+                }
+
+                // Persist the new device to the XML configuration file.
+                PersistNewDeviceToXml(newDevice);
+
+                discoveredCount++;
+
+                _logger.LogInformation("Discovered and registered new Zigbee device: {Brand} {Model} ({Identifier}).",
+                    identity.Brand, identity.Model, hexId);
+            }
+
+            // Re-announce all endpoints to publish MQTT discovery for new devices.
+            if (discoveredCount > 0)
+            {
+                await AnnounceEndpointsAsync(client, cancellationToken);
+            }
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(exception, "An error occurred during the Zigbee discovery scan.");
+        }
+
+        // Publish a status message indicating the scan is complete.
+        await client.EnqueueAsync(new MqttApplicationMessageBuilder()
+            .WithPayload(new JsonObject
+            {
+                ["status"] = "complete",
+                ["discovered"] = discoveredCount
+            }.ToJsonString())
+            .WithPayloadFormatIndicator(MqttPayloadFormatIndicator.CharacterData)
+            .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
+            .WithTopic($"{_options.CurrentValue.RootTopic}/system/{OpenNettyMqttAttributes.DiscoveryScan}")
+            .Build());
+
+        _logger.LogInformation("Zigbee discovery scan complete. Discovered {Count} new device(s).", discoveredCount);
+    }
+
+    /// <summary>
+    /// Persists a newly discovered device to the OpenNettyConfiguration.xml file.
+    /// </summary>
+    private void PersistNewDeviceToXml(OpenNettyDevice device)
+    {
+        try
+        {
+            var path = Path.Combine(AppContext.BaseDirectory, "OpenNettyConfiguration.xml");
+            if (!File.Exists(path))
+            {
+                return;
+            }
+
+            var document = XDocument.Load(path);
+            if (document.Root is null)
+            {
+                return;
+            }
+
+            // Check if a device with this identifier already exists in the XML.
+            var serialNumber = device.Identifier.ToString();
+            foreach (var existingElement in document.Root.Elements("Device"))
+            {
+                var existingSn = (string?) existingElement.Attribute("SerialNumber");
+                var existingMac = (string?) existingElement.Attribute("MacAddress");
+
+                if ((!string.IsNullOrEmpty(existingSn) && string.Equals(existingSn, serialNumber, StringComparison.OrdinalIgnoreCase)) ||
+                    (!string.IsNullOrEmpty(existingMac) && string.Equals(existingMac, serialNumber, StringComparison.OrdinalIgnoreCase)))
+                {
+                    return; // Device already exists, skip.
+                }
+            }
+
+            // Create a new Device element.
+            var deviceElement = new XElement("Device",
+                new XAttribute("Brand", Enum.GetName(device.Identity.Brand)!),
+                new XAttribute("Model", device.Identity.Model),
+                new XAttribute("SerialNumber", serialNumber));
+
+            document.Root.Add(deviceElement);
+            document.Save(path);
+
+            _logger.LogInformation("Persisted new device {Brand} {Model} ({SerialNumber}) to OpenNettyConfiguration.xml.",
+                device.Identity.Brand, device.Identity.Model, serialNumber);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(exception, "An error occurred while persisting a new device to the XML configuration file.");
+        }
+    }
+
+    /// <summary>
+    /// Renames a device by updating its in-memory settings and persisting
+    /// the change to the XML configuration file if it exists.
+    /// </summary>
+    private void RenameDevice(OpenNettyDevice device, string name)
+    {
+        var options = _openNettyOptions.CurrentValue;
+
+        // Create a new device instance with the updated name setting.
+        var updatedDevice = new OpenNettyDevice
+        {
+            Definition = device.Definition,
+            Gateway = device.Gateway,
+            Identifier = device.Identifier,
+            Identity = device.Identity,
+            Settings = device.Settings.SetItem(OpenNettySettings.HomeAssistantDeviceName, name),
+            Units = device.Units
+        };
+
+        // Replace the device in the options list.
+        var deviceIndex = options.Devices.IndexOf(device);
+        if (deviceIndex >= 0)
+        {
+            options.Devices[deviceIndex] = updatedDevice;
+        }
+
+        // Update all endpoints that reference this device.
+        for (var i = 0; i < options.Endpoints.Count; i++)
+        {
+            if (options.Endpoints[i].Device == device)
+            {
+                options.Endpoints[i] = new OpenNettyEndpoint
+                {
+                    Address = options.Endpoints[i].Address,
+                    Capabilities = options.Endpoints[i].Capabilities,
+                    Description = options.Endpoints[i].Description,
+                    Device = updatedDevice,
+                    Gateway = options.Endpoints[i].Gateway,
+                    Medium = options.Endpoints[i].Medium,
+                    Name = options.Endpoints[i].Name,
+                    Protocol = options.Endpoints[i].Protocol,
+                    Settings = options.Endpoints[i].Settings,
+                    Unit = options.Endpoints[i].Unit
+                };
+            }
+        }
+
+        PersistDeviceNameToXml(device.Identifier, name);
+    }
+
+    /// <summary>
+    /// Persists a device name change to the OpenNettyConfiguration.xml file.
+    /// </summary>
+    private void PersistDeviceNameToXml(OpenNettyDeviceIdentifier identifier, string name)
+    {
+        try
+        {
+            var path = Path.Combine(AppContext.BaseDirectory, "OpenNettyConfiguration.xml");
+            if (!File.Exists(path))
+            {
+                return;
+            }
+
+            var document = XDocument.Load(path);
+            if (document.Root is null)
+            {
+                return;
+            }
+
+            foreach (var element in document.Root.Elements("Device"))
+            {
+                var serialNumber = (string?) element.Attribute("SerialNumber");
+                var macAddress = (string?) element.Attribute("MacAddress");
+
+                if ((!string.IsNullOrEmpty(serialNumber) && string.Equals(serialNumber, identifier.ToString(), StringComparison.OrdinalIgnoreCase)) ||
+                    (!string.IsNullOrEmpty(macAddress) && string.Equals(macAddress, identifier.ToString(), StringComparison.OrdinalIgnoreCase)))
+                {
+                    element.SetAttributeValue("Name", name);
+                    break;
+                }
+            }
+
+            document.Save(path);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(exception, "An error occurred while persisting the device name to the XML configuration file.");
         }
     }
 
