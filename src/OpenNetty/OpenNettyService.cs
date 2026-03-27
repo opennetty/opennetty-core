@@ -109,10 +109,12 @@ public class OpenNettyService : IOpenNettyService
                     when message.Protocol == protocol
                         => AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)>((session, message)),
 
+                // Note: for Zigbee, the address check is deliberately omitted as Zigbee gateways
+                // may respond to management dimension requests with empty WHERE fields (no address).
+                // Session matching (below) ensures responses are correlated to the correct request.
                 OpenNettyNotifications.MessageReceived {
                     Session: { Protocol : OpenNettyProtocol.Zigbee, Type: OpenNettySessionType.Generic } session,
                     Message: { Type     : OpenNettyMessageType.DimensionRead,
-                               Address  : not null,
                                Dimension: not null } message }
                     when message.Protocol == protocol && message.Dimension == dimension
                         => AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)>((session, message)),
@@ -156,7 +158,7 @@ public class OpenNettyService : IOpenNettyService
                     throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0014));
             }
 
-            yield return (notification.Value.Message.Address!.Value, notification.Value.Message.Values);
+            yield return (notification.Value.Message.Address ?? default, notification.Value.Message.Values);
         }
     }
 
@@ -375,11 +377,21 @@ public class OpenNettyService : IOpenNettyService
                     when message.Protocol == protocol && message.Address == address && message.Dimension == dimension
                         => AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)>((session, message)),
 
+                // Note: for Zigbee, the address matching is relaxed to also accept responses with a
+                // null address, as Zigbee gateways may respond to management dimension requests
+                // with empty WHERE fields even when the request includes a specific address.
                 OpenNettyNotifications.MessageReceived {
-                    Session: { Protocol : OpenNettyProtocol.Nitoo or OpenNettyProtocol.Zigbee, Type: OpenNettySessionType.Generic } session,
+                    Session: { Protocol : OpenNettyProtocol.Nitoo, Type: OpenNettySessionType.Generic } session,
                     Message: { Type     : OpenNettyMessageType.DimensionRead,
                                Dimension: not null } message }
                     when message.Protocol == protocol && message.Address == address && message.Dimension == dimension
+                        => AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)>((session, message)),
+
+                OpenNettyNotifications.MessageReceived {
+                    Session: { Protocol : OpenNettyProtocol.Zigbee, Type: OpenNettySessionType.Generic } session,
+                    Message: { Type     : OpenNettyMessageType.DimensionRead,
+                               Dimension: not null } message }
+                    when message.Protocol == protocol && (message.Address == address || message.Address is null) && message.Dimension == dimension
                         => AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)>((session, message)),
 
                 _ => AsyncObservable.Empty<(OpenNettySession Session, OpenNettyMessage Message)>()
