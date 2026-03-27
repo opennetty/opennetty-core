@@ -556,7 +556,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                 tasks.Add(_events.PublishAsync(new StopUpDownScenarioReportedEventArgs(endpoint, 
                                     message.Command == OpenNettyCommands.Automation.Stop ? OpenNettyModels.Automation.StopUpDownScenarioType.Stop :
                                     message.Command == OpenNettyCommands.Automation.Up   ? OpenNettyModels.Automation.StopUpDownScenarioType.Up   :
-                                    message.Command == OpenNettyCommands.Automation.Up   ? OpenNettyModels.Automation.StopUpDownScenarioType.Down :
+                                    message.Command == OpenNettyCommands.Automation.Down   ? OpenNettyModels.Automation.StopUpDownScenarioType.Down :
                                     throw new InvalidDataException(SR.GetResourceString(SR.ID0068))), cancellationToken).AsTask());
                             }
                         }
