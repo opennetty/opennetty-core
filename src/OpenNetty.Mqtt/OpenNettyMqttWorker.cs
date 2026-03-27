@@ -1012,12 +1012,19 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                     if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState))
                     {
-                        component["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ShutterState}";
-                        
-                        // Home Assistant Hack: Force the state to always evaluate as 'stopped'.
-                        // This prevents Home Assistant from strictly assuming the cover is 100% open or 0% closed,
-                        // ensuring that the Up and Down buttons are never greyed out in the UI.
-                        component["value_template"] = "{{ 'stopped' }}";
+                        if (!endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
+                        {
+                            // Trick Home Assistant into thinking the shutter is always exactly at 50%.
+                            // This guarantees that the UP and DOWN buttons are NEVER greyed out,
+                            // allowing the user to freely open/close from a half-open physical state.
+                            component["position_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ShutterState}";
+                            component["position_template"] = "50";
+                        }
+                        else
+                        {
+                            // If the device supports advanced state, fall back to standard state reporting
+                            component["state_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.ShutterState}";
+                        }
                     }
 
                     if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterControl))
