@@ -3010,7 +3010,6 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
         var options = _openNettyOptions.CurrentValue;
 
-        // Publish a status message to indicate the scan is in progress.
         await client.EnqueueAsync(new MqttApplicationMessageBuilder()
             .WithPayload("scanning")
             .WithPayloadFormatIndicator(MqttPayloadFormatIndicator.CharacterData)
@@ -3022,7 +3021,6 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
         try
         {
-            // Find the Zigbee gateway endpoint to use for sending discovery frames.
             OpenNettyGateway? zigbeeGateway = null;
 
             await foreach (var gateway in _manager.EnumerateGatewaysAsync(cancellationToken))
@@ -3048,7 +3046,6 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 return;
             }
 
-            // Find the gateway endpoint with ZigbeeNetworkManagement capability.
             OpenNettyEndpoint? gatewayEndpoint = null;
 
             await foreach (var ep in _manager.FindEndpointsByGatewayAsync(zigbeeGateway, cancellationToken))
@@ -3074,8 +3071,6 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 return;
             }
 
-            // Trigger a Zigbee network scan using the SCAN command (WHO=13, WHAT=65).
-            // This instructs the gateway to scan the Zigbee network for registered devices.
             _logger.LogInformation("Sending Zigbee network scan command...");
             await _service.ExecuteCommandAsync(
                 protocol: OpenNettyProtocol.Zigbee,
@@ -3085,14 +3080,10 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 gateway: zigbeeGateway,
                 cancellationToken: cancellationToken);
 
-            // Query the number of registered products (WHO=13, DIM=67).
             var deviceCount = await _controller.CountZigbeeDevicesAsync(gatewayEndpoint, cancellationToken);
             _logger.LogInformation("Gateway reports {Count} registered Zigbee device(s).", deviceCount);
 
-            // Query each product's info using DIM=66 (ProductInfo) with the product index.
-            // The request frame format is *#13**66*<index>## (dimension read with product index as value).
-            // The gateway responds with the device's Zigbee address in the WHERE field.
-            // Dictionary to aggregate device types and units across all index responses.
+            // Aggregate device types and units across all responses
             // Key: hexId, Value: (Type, MaxUnit)
             var discoveredDevices = new Dictionary<string, (string Type, byte MaxUnit)>();
 
@@ -3109,9 +3100,9 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                     var (address, values) = result.Value;
 
-                    // Extract the device identifier and unit from the response address (Zigbee WHERE field).
                     string? hexId = null;
                     byte unit = 0;
+
                     if (address is not null)
                     {
                         var zigbeeAddr = OpenNettyAddress.ToZigbeeAddress(address.Value);
@@ -3122,7 +3113,6 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         }
                     }
 
-                    // If no address in response, try to extract identifier from values.
                     if (hexId is null && values.Length > 0 &&
                         uint.TryParse(values[0], CultureInfo.InvariantCulture, out var decimalId) && decimalId != 0)
                     {
@@ -3131,7 +3121,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                     if (hexId is not null)
                     {
-                        // In Zigbee DIM=66 response, the Type is often the second value (e.g., 256 for switch, 513 for shutter).
+                        // values[1] holds the device type marker (e.g. 513 for Shutter, 256 for Switch)
                         var type = values.Length > 1 ? values[1] : string.Empty;
 
                         if (discoveredDevices.TryGetValue(hexId, out var existing))
@@ -3163,12 +3153,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 var type = kvp.Value.Type;
                 var maxUnit = kvp.Value.MaxUnit;
 
-                // Check if a device with this identifier already exists.
                 var identifier = OpenNettyDeviceIdentifier.FromZigbeeSerialNumber(hexId);
-                if (options.Devices.Exists(device => device.Identifier == identifier))
-                {
-                    continue;
-                }
 
                 // Skip the gateway device itself.
                 if (zigbeeGateway.Device.Identifier == identifier)
@@ -3176,80 +3161,128 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     continue;
                 }
 
-                // Try to identify the device by querying its device description.
-                OpenNettyDeviceDefinition? definition = null;
-                try
-                {
-                    var descValues = await _service.GetDimensionAsync(
-                        protocol: OpenNettyProtocol.Zigbee,
-                        dimension: OpenNettyDimensions.Diagnostics.DeviceDescription,
-                        address: OpenNettyAddress.FromZigbeeAddress(identifier, unit: 0),
-                        medium: OpenNettyMedium.Radio,
-                        gateway: zigbeeGateway,
-                        cancellationToken: cancellationToken);
+                // Default to 1-gang switch (67233)
+                var model = "67233"; 
 
-                    if (descValues.Length >= 2)
-                    {
-                        var brand = descValues[0] switch
-                        {
-                            "1" => OpenNettyBrand.BTicino,
-                            "2" => OpenNettyBrand.Legrand,
-                            _ => OpenNettyBrand.Legrand
-                        };
-
-                        definition = OpenNettyDevices.GetDeviceByModel(brand, descValues[1]);
-                    }
-                }
-                catch (OpenNettyException ex)
+                // Type 513 corresponds to a Shutter actuator
+                if (type == "513")
                 {
-                    _logger.LogWarning(ex, "Gateway rejected device description request for {Identifier}. Falling back to default model.", hexId);
+                    model = "67277"; 
                 }
-                catch (Exception ex)
+                // Type 256 with multiple units corresponds to a 2-gang switch
+                else if (type == "256" && maxUnit >= 2)
                 {
-                    _logger.LogWarning(ex, "Could not retrieve device description for {Identifier}, skipping model identification.", hexId);
+                    model = "67234";
                 }
 
-                // If definition is null due to rejection or unknown model, fallback to a sensible default.
+                var definition = OpenNettyDevices.GetDeviceByModel(OpenNettyBrand.Legrand, model);
                 if (definition is null)
                 {
-                    var model = "67233"; // Default 1-gang switch (Type 256)
-
-                    // Fallback heuristics mirroring OpenHAB's discovery logic:
-                    // Type 513 corresponds to a Shutter actuator
-                    if (type == "513")
-                    {
-                        model = "67277"; 
-                    }
-                    // Type 256 with multiple units corresponds to a 2-gang switch
-                    else if (type == "256" && maxUnit >= 2)
-                    {
-                        model = "67234";
-                    }
-
-                    _logger.LogInformation("Could not explicitly identify device {Identifier} via DIM=51. Mapped to Legrand {Model} based on type '{Type}' and max unit '{MaxUnit}'.", hexId, model, type, maxUnit);
-                    definition = OpenNettyDevices.GetDeviceByModel(OpenNettyBrand.Legrand, model);
-                    
-                    if (definition is null)
-                    {
-                        _logger.LogWarning("Fallback definition not found. Skipping device {Identifier}.", hexId);
-                        continue;
-                    }
+                    _logger.LogWarning("Definition not found for model {Model}. Skipping device {Identifier}.", model, hexId);
+                    continue;
                 }
 
-                // Create the device and inject it into the running application.
                 var identity = definition.Identities.FirstOrDefault();
                 if (identity.Model is null)
                 {
                     continue;
                 }
 
+                // Prepare decimal device ID for MQTT display name
+                var decimalId = uint.Parse(hexId, NumberStyles.HexNumber, CultureInfo.InvariantCulture).ToString(CultureInfo.InvariantCulture);
+                var defaultName = $"{identity.Brand} {identity.Model} ({decimalId})";
+
+                var existingDevice = options.Devices.Find(device => device.Identifier == identifier);
+                
+                // Existing Device Update Logic
+                if (existingDevice is not null)
+                {
+                    if (existingDevice.Identity.Model != model)
+                    {
+                        _logger.LogInformation("Updating existing device {Identifier} from model {OldModel} to {NewModel}.", hexId, existingDevice.Identity.Model, model);
+                        
+                        var updatedUnits = definition.Units.Select(unitDef => 
+                            existingDevice.Units.FirstOrDefault(u => u.Definition.Id == unitDef.Id) ?? new OpenNettyUnit
+                            {
+                                Definition = unitDef,
+                                Scenarios = [],
+                                Settings = ImmutableDictionary.Create<OpenNettySetting, string>()
+                            }
+                        );
+
+                        var updatedDevice = new OpenNettyDevice
+                        {
+                            Definition = definition,
+                            Gateway = existingDevice.Gateway,
+                            Identifier = existingDevice.Identifier,
+                            Identity = identity,
+                            Settings = existingDevice.Settings,
+                            Units = [.. updatedUnits]
+                        };
+
+                        var deviceIndex = options.Devices.IndexOf(existingDevice);
+                        if (deviceIndex >= 0)
+                        {
+                            options.Devices[deviceIndex] = updatedDevice;
+                        }
+
+                        // Relink existing endpoints to the updated device instance
+                        for (var i = 0; i < options.Endpoints.Count; i++)
+                        {
+                            if (options.Endpoints[i].Device == existingDevice)
+                            {
+                                options.Endpoints[i] = new OpenNettyEndpoint
+                                {
+                                    Address = options.Endpoints[i].Address,
+                                    Capabilities = options.Endpoints[i].Capabilities,
+                                    Description = options.Endpoints[i].Description,
+                                    Device = updatedDevice,
+                                    Gateway = options.Endpoints[i].Gateway,
+                                    Medium = options.Endpoints[i].Medium,
+                                    Name = options.Endpoints[i].Name,
+                                    Protocol = options.Endpoints[i].Protocol,
+                                    Settings = options.Endpoints[i].Settings,
+                                    Unit = options.Endpoints[i].Unit is not null 
+                                        ? updatedDevice.Units.FirstOrDefault(u => u.Definition.Id == options.Endpoints[i].Unit!.Definition.Id) 
+                                        : null
+                                };
+                            }
+                        }
+
+                        // Add any missing new endpoints (e.g. upgrading from 1-gang to 2-gang switch)
+                        foreach (var unitDef in definition.Units)
+                        {
+                            if (!options.Endpoints.Exists(e => e.Device == updatedDevice && e.Unit?.Definition.Id == unitDef.Id))
+                            {
+                                options.Endpoints.Add(new OpenNettyEndpoint
+                                {
+                                    Address = OpenNettyAddress.FromZigbeeAddress(identifier, unit: unitDef.Id),
+                                    Capabilities = ImmutableHashSet.Create<OpenNettyCapability>(),
+                                    Device = updatedDevice,
+                                    Gateway = zigbeeGateway,
+                                    Medium = definition.Medium,
+                                    Name = $"Zigbee/{hexId}/{unitDef.Id}",
+                                    Protocol = OpenNettyProtocol.Zigbee,
+                                    Settings = ImmutableDictionary.Create<OpenNettySetting, string>(),
+                                    Unit = updatedDevice.Units.FirstOrDefault(u => u.Definition.Id == unitDef.Id)
+                                });
+                            }
+                        }
+
+                        UpdateDeviceModelInXml(identifier, model);
+                        discoveredCount++;
+                    }
+                    continue;
+                }
+
+                // New Device Creation Logic
                 var newDevice = new OpenNettyDevice
                 {
                     Definition = definition,
                     Gateway = zigbeeGateway,
                     Identifier = identifier,
                     Identity = identity,
-                    Settings = ImmutableDictionary.Create<OpenNettySetting, string>(),
+                    Settings = ImmutableDictionary.Create<OpenNettySetting, string>().Add(OpenNettySettings.HomeAssistantDeviceName, defaultName),
                     Units = [.. definition.Units.Select(static unitDef => new OpenNettyUnit
                     {
                         Definition = unitDef,
@@ -3260,7 +3293,6 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                 options.Devices.Add(newDevice);
 
-                // Create the implicit device-level endpoint.
                 options.Endpoints.Add(new OpenNettyEndpoint
                 {
                     Address = OpenNettyAddress.FromZigbeeAddress(identifier, unit: 0),
@@ -3273,7 +3305,6 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     Settings = ImmutableDictionary.Create<OpenNettySetting, string>()
                 });
 
-                // Create implicit unit-level endpoints.
                 foreach (var unitDef in definition.Units)
                 {
                     var unit = newDevice.Units.SingleOrDefault(u => u.Definition == unitDef) ?? new OpenNettyUnit
@@ -3297,16 +3328,13 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     });
                 }
 
-                // Persist the new device to the XML configuration file.
-                PersistNewDeviceToXml(newDevice);
-
+                PersistNewDeviceToXml(newDevice, defaultName);
                 discoveredCount++;
 
-                _logger.LogInformation("Discovered and registered new Zigbee device: {Brand} {Model} ({Identifier}).",
-                    identity.Brand, identity.Model, hexId);
+                _logger.LogInformation("Discovered and registered new Zigbee device: {Brand} {Model} ({Identifier}) as {Name}.",
+                    identity.Brand, identity.Model, hexId, defaultName);
             }
 
-            // Re-announce all endpoints to publish MQTT discovery for new devices.
             if (discoveredCount > 0)
             {
                 await AnnounceEndpointsAsync(client, cancellationToken);
@@ -3317,7 +3345,6 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
             _logger.LogWarning(exception, "An error occurred during the Zigbee discovery scan.");
         }
 
-        // Publish a status message indicating the scan is complete.
         await client.EnqueueAsync(new MqttApplicationMessageBuilder()
             .WithPayload(new JsonObject
             {
@@ -3329,9 +3356,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
             .WithTopic($"{_options.CurrentValue.RootTopic}/system/{OpenNettyMqttAttributes.DiscoveryScan}")
             .Build());
 
-        _logger.LogInformation("Zigbee discovery scan complete. Discovered {Count} new device(s).", discoveredCount);
+        _logger.LogInformation("Zigbee discovery scan complete. Interacted with {Count} device(s).", discoveredCount);
     }
-
     /// <summary>
     /// Queries the gateway for product info at the specified index using the ProductInfo dimension (WHO=13, DIM=66).
     /// The request frame format is *#13**66*index## which is specific to Zigbee USB gateways.
@@ -3383,7 +3409,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
     /// <summary>
     /// Persists a newly discovered device to the OpenNettyConfiguration.xml file.
     /// </summary>
-    private void PersistNewDeviceToXml(OpenNettyDevice device)
+    private void PersistNewDeviceToXml(OpenNettyDevice device, string defaultName)
     {
         try
         {
@@ -3399,7 +3425,6 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 return;
             }
 
-            // Check if a device with this identifier already exists in the XML.
             var serialNumber = device.Identifier.ToString();
             foreach (var existingElement in document.Root.Elements("Device"))
             {
@@ -3409,15 +3434,15 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 if ((!string.IsNullOrEmpty(existingSn) && string.Equals(existingSn, serialNumber, StringComparison.OrdinalIgnoreCase)) ||
                     (!string.IsNullOrEmpty(existingMac) && string.Equals(existingMac, serialNumber, StringComparison.OrdinalIgnoreCase)))
                 {
-                    return; // Device already exists, skip.
+                    return; 
                 }
             }
 
-            // Create a new Device element.
             var deviceElement = new XElement("Device",
                 new XAttribute("Brand", Enum.GetName(device.Identity.Brand)!),
                 new XAttribute("Model", device.Identity.Model),
-                new XAttribute("SerialNumber", serialNumber));
+                new XAttribute("SerialNumber", serialNumber),
+                new XAttribute("Name", defaultName));
 
             document.Root.Add(deviceElement);
             document.Save(path);
@@ -3430,6 +3455,48 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
             _logger.LogWarning(exception, "An error occurred while persisting a new device to the XML configuration file.");
         }
     }
+
+    /// <summary>
+    /// Updates the model of an existing device in the OpenNettyConfiguration.xml file.
+    /// </summary>
+    private void UpdateDeviceModelInXml(OpenNettyDeviceIdentifier identifier, string newModel)
+    {
+        try
+        {
+            var path = Path.Combine(AppContext.BaseDirectory, "OpenNettyConfiguration.xml");
+            if (!File.Exists(path))
+            {
+                return;
+            }
+
+            var document = XDocument.Load(path);
+            if (document.Root is null)
+            {
+                return;
+            }
+
+            var targetId = identifier.ToString();
+            foreach (var element in document.Root.Elements("Device"))
+            {
+                var sn = (string?) element.Attribute("SerialNumber");
+                var mac = (string?) element.Attribute("MacAddress");
+
+                if ((!string.IsNullOrEmpty(sn) && string.Equals(sn, targetId, StringComparison.OrdinalIgnoreCase)) ||
+                    (!string.IsNullOrEmpty(mac) && string.Equals(mac, targetId, StringComparison.OrdinalIgnoreCase)))
+                {
+                    element.SetAttributeValue("Model", newModel);
+                    break;
+                }
+            }
+
+            document.Save(path);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(exception, "An error occurred while updating the device model in the XML configuration file.");
+        }
+    }
+
 
     /// <summary>
     /// Renames a device by updating its in-memory settings and persisting
