@@ -87,14 +87,14 @@ public class OpenNettyService : IOpenNettyService
             .SelectMany(notification => notification switch
             {
                 OpenNettyNotifications.MessageReceived {
-                    Session: { Protocol: OpenNettyProtocol.Scs, Type: OpenNettySessionType.Command } session,
+                    Session: { Protocol: OpenNettyProtocol.Scs, Type: not OpenNettySessionType.Event } session,
                     Message: { Type    : OpenNettyMessageType.Acknowledgement or
                                          OpenNettyMessageType.NegativeAcknowledgement } message }
                     when message.Protocol == protocol
                         => AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)>((session, message)),
 
                 OpenNettyNotifications.MessageReceived {
-                    Session: { Protocol : OpenNettyProtocol.Scs, Type: OpenNettySessionType.Command } session,
+                    Session: { Protocol : OpenNettyProtocol.Scs, Type: not OpenNettySessionType.Event } session,
                     Message: { Type     : OpenNettyMessageType.DimensionRead,
                                Address  : not null,
                                Dimension: not null } message }
@@ -102,7 +102,7 @@ public class OpenNettyService : IOpenNettyService
                         => AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)>((session, message)),
 
                 OpenNettyNotifications.MessageReceived {
-                    Session: { Protocol: OpenNettyProtocol.Zigbee, Type: OpenNettySessionType.Generic } session,
+                    Session: { Protocol: OpenNettyProtocol.Zigbee, Type: not OpenNettySessionType.Event } session,
                     Message: { Type    : OpenNettyMessageType.Acknowledgement             or
                                          OpenNettyMessageType.BusyNegativeAcknowledgement or
                                          OpenNettyMessageType.NegativeAcknowledgement } message }
@@ -110,7 +110,7 @@ public class OpenNettyService : IOpenNettyService
                         => AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)>((session, message)),
 
                 OpenNettyNotifications.MessageReceived {
-                    Session: { Protocol : OpenNettyProtocol.Zigbee, Type: OpenNettySessionType.Generic } session,
+                    Session: { Protocol : OpenNettyProtocol.Zigbee, Type: not OpenNettySessionType.Event } session,
                     Message: { Type     : OpenNettyMessageType.DimensionRead,
                                Address  : not null,
                                Dimension: not null } message }
@@ -208,14 +208,14 @@ public class OpenNettyService : IOpenNettyService
             .SelectMany(async notification => notification switch
             {
                 OpenNettyNotifications.MessageReceived {
-                    Session: { Protocol: OpenNettyProtocol.Scs, Type: OpenNettySessionType.Command } session,
+                    Session: { Protocol: OpenNettyProtocol.Scs, Type: not OpenNettySessionType.Event } session,
                     Message: { Type    : OpenNettyMessageType.Acknowledgement or
                                          OpenNettyMessageType.NegativeAcknowledgement } message }
                     when message.Protocol == protocol
                         => AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)>((session, message)),
 
                 OpenNettyNotifications.MessageReceived {
-                    Session: { Protocol: OpenNettyProtocol.Scs, Type: OpenNettySessionType.Command } session,
+                    Session: { Protocol: OpenNettyProtocol.Scs, Type: not OpenNettySessionType.Event } session,
                     Message: { Type    : OpenNettyMessageType.BusCommand,
                                Command : not null,
                                Address : not null } message }
@@ -225,7 +225,7 @@ public class OpenNettyService : IOpenNettyService
                         => AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)>((session, message)),
 
                 OpenNettyNotifications.MessageReceived {
-                    Session: { Protocol: OpenNettyProtocol.Zigbee, Type: OpenNettySessionType.Generic } session,
+                    Session: { Protocol: OpenNettyProtocol.Zigbee, Type: not OpenNettySessionType.Event } session,
                     Message: { Type    : OpenNettyMessageType.Acknowledgement             or
                                          OpenNettyMessageType.BusyNegativeAcknowledgement or
                                          OpenNettyMessageType.NegativeAcknowledgement } message }
@@ -233,7 +233,7 @@ public class OpenNettyService : IOpenNettyService
                         => AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)>((session, message)),
 
                 OpenNettyNotifications.MessageReceived {
-                    Session: { Protocol: OpenNettyProtocol.Zigbee, Type: OpenNettySessionType.Generic } session,
+                    Session: { Protocol: OpenNettyProtocol.Zigbee, Type: not OpenNettySessionType.Event } session,
                     Message: { Type    : OpenNettyMessageType.BusCommand,
                                Command : not null,
                                Address : not null } message }
@@ -369,14 +369,14 @@ public class OpenNettyService : IOpenNettyService
             .SelectMany(notification => notification switch
             {
                 OpenNettyNotifications.MessageReceived {
-                    Session: { Protocol : OpenNettyProtocol.Scs, Type: OpenNettySessionType.Command } session,
+                    Session: { Protocol : OpenNettyProtocol.Scs, Type: not OpenNettySessionType.Event } session,
                     Message: { Type     : OpenNettyMessageType.DimensionRead,
                                Dimension: not null } message }
                     when message.Protocol == protocol && message.Address == address && message.Dimension == dimension
                         => AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)>((session, message)),
 
                 OpenNettyNotifications.MessageReceived {
-                    Session: { Protocol : OpenNettyProtocol.Nitoo or OpenNettyProtocol.Zigbee, Type: OpenNettySessionType.Generic } session,
+                    Session: { Protocol : OpenNettyProtocol.Nitoo or OpenNettyProtocol.Zigbee, Type: not OpenNettySessionType.Event } session,
                     Message: { Type     : OpenNettyMessageType.DimensionRead,
                                Dimension: not null } message }
                     when message.Protocol == protocol && message.Address == address && message.Dimension == dimension
@@ -450,7 +450,7 @@ public class OpenNettyService : IOpenNettyService
             .SelectMany(async notification => notification switch
             {
                 OpenNettyNotifications.MessageReceived {
-                    Session: { Protocol : OpenNettyProtocol.Scs, Type: OpenNettySessionType.Command } session,
+                    Session: { Protocol : OpenNettyProtocol.Scs, Type: not OpenNettySessionType.Event } session,
                     Message: { Type     : OpenNettyMessageType.BusCommand,
                                Command  : OpenNettyCommand command } message }
                     when message.Protocol == protocol && message.Address == address &&
@@ -459,7 +459,7 @@ public class OpenNettyService : IOpenNettyService
                         => AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)>((session, message)),
 
                 OpenNettyNotifications.MessageReceived {
-                    Session: { Protocol : OpenNettyProtocol.Nitoo or OpenNettyProtocol.Zigbee, Type: OpenNettySessionType.Generic } session,
+                    Session: { Protocol : OpenNettyProtocol.Nitoo or OpenNettyProtocol.Zigbee, Type: not OpenNettySessionType.Event } session,
                     Message: { Type     : OpenNettyMessageType.BusCommand,
                                Command  : OpenNettyCommand command } message }
                     when message.Protocol == protocol && message.Address == address &&
