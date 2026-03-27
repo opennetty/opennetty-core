@@ -125,6 +125,11 @@ public static class OpenNettyDimensions
         public static readonly OpenNettyDimension DeviceIdentifier = new(OpenNettyCategories.Management, "27");
 
         /// <summary>
+        /// Product info (DIMENSION = 66).
+        /// </summary>
+        public static readonly OpenNettyDimension ProductInfo = new(OpenNettyCategories.Management, "66");
+
+        /// <summary>
         /// Number of products (DIMENSION = 67).
         /// </summary>
         public static readonly OpenNettyDimension NumberOfProducts = new(OpenNettyCategories.Management, "67");

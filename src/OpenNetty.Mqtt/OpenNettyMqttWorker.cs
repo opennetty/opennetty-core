@@ -36,6 +36,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
     private readonly OpenNettyManager _manager;
     private readonly IOptionsMonitor<OpenNettyMqttOptions> _options;
     private readonly IOptionsMonitor<OpenNettyOptions> _openNettyOptions;
+    private readonly IOpenNettyPipeline _pipeline;
     private readonly IOpenNettyService _service;
 
     /// <summary>
@@ -46,6 +47,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
     /// <param name="manager">The OpenNetty manager.</param>
     /// <param name="options">The OpenNetty MQTT options.</param>
     /// <param name="openNettyOptions">The OpenNetty options.</param>
+    /// <param name="pipeline">The OpenNetty notification pipeline.</param>
     /// <param name="service">The OpenNetty service.</param>
     public OpenNettyMqttWorker(
         OpenNettyController controller,
@@ -53,6 +55,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
         OpenNettyManager manager,
         IOptionsMonitor<OpenNettyMqttOptions> options,
         IOptionsMonitor<OpenNettyOptions> openNettyOptions,
+        IOpenNettyPipeline pipeline,
         IOpenNettyService service)
     {
         _controller = controller ?? throw new ArgumentNullException(nameof(controller));
@@ -60,6 +63,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
         _manager = manager ?? throw new ArgumentNullException(nameof(manager));
         _options = options ?? throw new ArgumentNullException(nameof(options));
         _openNettyOptions = openNettyOptions ?? throw new ArgumentNullException(nameof(openNettyOptions));
+        _pipeline = pipeline ?? throw new ArgumentNullException(nameof(pipeline));
         _service = service ?? throw new ArgumentNullException(nameof(service));
     }
 
@@ -3044,8 +3048,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 return;
             }
 
-            // Find the gateway endpoint with ZigbeeNetworkManagement capability to use its address
-            // for targeted queries (broadcast queries with address: null are rejected by the gateway).
+            // Find the gateway endpoint with ZigbeeNetworkManagement capability.
             OpenNettyEndpoint? gatewayEndpoint = null;
 
             await foreach (var ep in _manager.FindEndpointsByGatewayAsync(zigbeeGateway, cancellationToken))
@@ -3071,29 +3074,66 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 return;
             }
 
-            // Query the number of registered products for informational purposes.
-            var deviceCount = await _controller.CountZigbeeDevicesAsync(gatewayEndpoint, cancellationToken);
-            _logger.LogInformation("Gateway reports {Count} registered Zigbee device(s).", deviceCount);
-
-            // Query the gateway for all device identifiers using the DeviceIdentifier dimension (WHO=13, DIM=27).
-            // The gateway endpoint address is used to send a targeted request instead of a broadcast,
-            // as broadcast requests (address: null) are rejected by the Zigbee USB gateway with NACK.
-            var discoveredIds = new List<string>();
-
-            await foreach (var (address, values) in _service.EnumerateDimensionsAsync(
+            // Trigger a Zigbee network scan using the SCAN command (WHO=13, WHAT=65).
+            // This instructs the gateway to scan the Zigbee network for registered devices.
+            _logger.LogInformation("Sending Zigbee network scan command...");
+            await _service.ExecuteCommandAsync(
                 protocol: OpenNettyProtocol.Zigbee,
-                dimension: OpenNettyDimensions.Management.DeviceIdentifier,
+                command: OpenNettyCommands.Management.ScanZigbeeNetwork,
                 address: gatewayEndpoint.Address,
                 medium: OpenNettyMedium.Radio,
                 gateway: zigbeeGateway,
-                cancellationToken: cancellationToken))
+                cancellationToken: cancellationToken);
+
+            // Query the number of registered products (WHO=13, DIM=67).
+            var deviceCount = await _controller.CountZigbeeDevicesAsync(gatewayEndpoint, cancellationToken);
+            _logger.LogInformation("Gateway reports {Count} registered Zigbee device(s).", deviceCount);
+
+            // Query each product's info using DIM=66 (ProductInfo) with the product index.
+            // The request frame format is *#13**66*<index>## (dimension read with product index as value).
+            // The gateway responds with the device's Zigbee address in the WHERE field.
+            var discoveredIds = new List<string>();
+
+            for (var index = 0; index < deviceCount; index++)
             {
-                // The response contains the device identifier as a decimal string.
-                // Convert it to an 8-character hex string (Zigbee serial number format).
-                if (values.Length > 0 && uint.TryParse(values[0], CultureInfo.InvariantCulture, out var decimalId))
+                try
                 {
-                    var hexId = decimalId.ToString("X8", CultureInfo.InvariantCulture);
-                    discoveredIds.Add(hexId);
+                    var result = await QueryProductInfoAsync(zigbeeGateway, index, cancellationToken);
+                    if (result is null)
+                    {
+                        _logger.LogDebug("No response for product index {Index}.", index);
+                        continue;
+                    }
+
+                    var (address, values) = result.Value;
+
+                    // Extract the device identifier from the response address (Zigbee WHERE field).
+                    string? hexId = null;
+                    if (address is not null)
+                    {
+                        var zigbeeAddr = OpenNettyAddress.ToZigbeeAddress(address.Value);
+                        if (zigbeeAddr.Identifier is not 0)
+                        {
+                            hexId = zigbeeAddr.Identifier.ToString("X8", CultureInfo.InvariantCulture);
+                        }
+                    }
+
+                    // If no address in response, try to extract identifier from values.
+                    if (hexId is null && values.Length > 0 &&
+                        uint.TryParse(values[0], CultureInfo.InvariantCulture, out var decimalId) && decimalId != 0)
+                    {
+                        hexId = decimalId.ToString("X8", CultureInfo.InvariantCulture);
+                    }
+
+                    if (hexId is not null)
+                    {
+                        discoveredIds.Add(hexId);
+                        _logger.LogDebug("Product index {Index}: device identifier {Identifier}.", index, hexId);
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogDebug(ex, "Could not retrieve product info for index {Index}, skipping.", index);
                 }
             }
 
@@ -3128,20 +3168,14 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                     if (descValues.Length >= 2)
                     {
-                        // Parse the brand and model from the device description.
-                        // The device description typically returns [brand_id, model, ...].
-                        var brandValue = descValues[0];
-                        var modelValue = descValues[1];
-
-                        // Try to map known brand IDs to OpenNettyBrand values.
-                        var brand = brandValue switch
+                        var brand = descValues[0] switch
                         {
                             "1" => OpenNettyBrand.BTicino,
                             "2" => OpenNettyBrand.Legrand,
-                            _ => OpenNettyBrand.Legrand // Default to Legrand for Zigbee devices
+                            _ => OpenNettyBrand.Legrand
                         };
 
-                        definition = OpenNettyDevices.GetDeviceByModel(brand, modelValue);
+                        definition = OpenNettyDevices.GetDeviceByModel(brand, descValues[1]);
                     }
                 }
                 catch (Exception ex)
@@ -3249,6 +3283,54 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
             .Build());
 
         _logger.LogInformation("Zigbee discovery scan complete. Discovered {Count} new device(s).", discoveredCount);
+    }
+
+    /// <summary>
+    /// Queries the gateway for product info at the specified index using the ProductInfo dimension (WHO=13, DIM=66).
+    /// The request frame format is *#13**66*index## which is specific to Zigbee USB gateways.
+    /// </summary>
+    private async Task<(OpenNettyAddress? Address, ImmutableArray<string> Values)?> QueryProductInfoAsync(
+        OpenNettyGateway gateway, int productIndex, CancellationToken cancellationToken)
+    {
+        // Build the raw ProductInfo request frame: *#13**66*<index>##
+        // This uses the DimensionRead format with the product index as a value,
+        // matching the frame format used by OpenWebNet USB Zigbee gateways.
+        var message = OpenNettyMessage.CreateFromFrame(
+            OpenNettyProtocol.Zigbee,
+            $"*#13**66*{productIndex.ToString(CultureInfo.InvariantCulture)}##");
+
+        // Subscribe to the notification pipeline for the DimensionRead response before sending,
+        // to avoid missing the response due to a race condition.
+        var notifications = _pipeline.Where(notification => notification.Gateway == gateway)
+            .SelectMany(notification => notification switch
+            {
+                OpenNettyNotifications.MessageReceived {
+                    Session: { Protocol: OpenNettyProtocol.Zigbee, Type: OpenNettySessionType.Generic },
+                    Message: { Type     : OpenNettyMessageType.DimensionRead,
+                               Dimension: { Value: "66" } } } received
+                        => AsyncObservable.Return(received.Message),
+
+                _ => AsyncObservable.Empty<OpenNettyMessage>()
+            })
+            .Replay();
+
+        await using var connection = await notifications.ConnectAsync();
+
+        // Send the ProductInfo request and wait for acknowledgement.
+        await _service.SendMessageAsync(message, gateway, cancellationToken: cancellationToken);
+
+        // Wait for the DimensionRead response with a timeout.
+        var response = await notifications
+            .Timeout(TimeSpan.FromSeconds(5), AsyncObservable.Empty<OpenNettyMessage>())
+            .ToAsyncEnumerable()
+            .FirstOrDefaultAsync(cancellationToken);
+
+        if (response is null)
+        {
+            return null;
+        }
+
+        return (response.Address, response.Values);
     }
 
     /// <summary>

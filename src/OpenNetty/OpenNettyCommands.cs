@@ -176,6 +176,11 @@ public static class OpenNettyCommands
         public static readonly OpenNettyCommand LeaveZigbeeNetwork = new(OpenNettyCategories.Management, "34");
 
         /// <summary>
+        /// Scan Zigbee network (WHAT = 65).
+        /// </summary>
+        public static readonly OpenNettyCommand ScanZigbeeNetwork = new(OpenNettyCategories.Management, "65");
+
+        /// <summary>
         /// Supervisor (WHAT = 66).
         /// </summary>
         public static readonly OpenNettyCommand Supervisor = new(OpenNettyCategories.Management, "66");
