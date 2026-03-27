@@ -3092,7 +3092,9 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
             // Query each product's info using DIM=66 (ProductInfo) with the product index.
             // The request frame format is *#13**66*<index>## (dimension read with product index as value).
             // The gateway responds with the device's Zigbee address in the WHERE field.
-            var discoveredIds = new List<string>();
+            // Dictionary to aggregate device types and units across all index responses.
+            // Key: hexId, Value: (Type, MaxUnit)
+            var discoveredDevices = new Dictionary<string, (string Type, byte MaxUnit)>();
 
             for (var index = 0; index < deviceCount; index++)
             {
@@ -3107,14 +3109,16 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                     var (address, values) = result.Value;
 
-                    // Extract the device identifier from the response address (Zigbee WHERE field).
+                    // Extract the device identifier and unit from the response address (Zigbee WHERE field).
                     string? hexId = null;
+                    byte unit = 0;
                     if (address is not null)
                     {
                         var zigbeeAddr = OpenNettyAddress.ToZigbeeAddress(address.Value);
                         if (zigbeeAddr.Identifier is not 0)
                         {
                             hexId = zigbeeAddr.Identifier.ToString("X8", CultureInfo.InvariantCulture);
+                            unit = zigbeeAddr.Unit;
                         }
                     }
 
@@ -3127,8 +3131,22 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                     if (hexId is not null)
                     {
-                        discoveredIds.Add(hexId);
-                        _logger.LogDebug("Product index {Index}: device identifier {Identifier}.", index, hexId);
+                        // In Zigbee DIM=66 response, the Type is often the second value (e.g., 256 for switch, 513 for shutter).
+                        var type = values.Length > 1 ? values[1] : string.Empty;
+
+                        if (discoveredDevices.TryGetValue(hexId, out var existing))
+                        {
+                            discoveredDevices[hexId] = (
+                                string.IsNullOrEmpty(type) ? existing.Type : type, 
+                                Math.Max(unit, existing.MaxUnit)
+                            );
+                        }
+                        else
+                        {
+                            discoveredDevices[hexId] = (type, unit);
+                        }
+
+                        _logger.LogDebug("Product index {Index}: device identifier {Identifier}, unit {Unit}, type {Type}.", index, hexId, unit, type);
                     }
                 }
                 catch (Exception ex)
@@ -3137,10 +3155,14 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 }
             }
 
-            _logger.LogInformation("Discovery scan found {Count} device identifier(s).", discoveredIds.Count);
+            _logger.LogInformation("Discovery scan found {Count} unique device identifier(s).", discoveredDevices.Count);
 
-            foreach (var hexId in discoveredIds)
+            foreach (var kvp in discoveredDevices)
             {
+                var hexId = kvp.Key;
+                var type = kvp.Value.Type;
+                var maxUnit = kvp.Value.MaxUnit;
+
                 // Check if a device with this identifier already exists.
                 var identifier = OpenNettyDeviceIdentifier.FromZigbeeSerialNumber(hexId);
                 if (options.Devices.Exists(device => device.Identifier == identifier))
@@ -3190,8 +3212,22 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 // If definition is null due to rejection or unknown model, fallback to a sensible default.
                 if (definition is null)
                 {
-                    _logger.LogInformation("Could not explicitly identify device {Identifier}, falling back to default Legrand model 67233.", hexId);
-                    definition = OpenNettyDevices.GetDeviceByModel(OpenNettyBrand.Legrand, "67233");
+                    var model = "67233"; // Default 1-gang switch (Type 256)
+
+                    // Fallback heuristics mirroring OpenHAB's discovery logic:
+                    // Type 513 corresponds to a Shutter actuator
+                    if (type == "513")
+                    {
+                        model = "67277"; 
+                    }
+                    // Type 256 with multiple units corresponds to a 2-gang switch
+                    else if (type == "256" && maxUnit >= 2)
+                    {
+                        model = "67234";
+                    }
+
+                    _logger.LogInformation("Could not explicitly identify device {Identifier} via DIM=51. Mapped to Legrand {Model} based on type '{Type}' and max unit '{MaxUnit}'.", hexId, model, type, maxUnit);
+                    definition = OpenNettyDevices.GetDeviceByModel(OpenNettyBrand.Legrand, model);
                     
                     if (definition is null)
                     {
