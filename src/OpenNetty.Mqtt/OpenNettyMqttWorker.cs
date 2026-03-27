@@ -749,6 +749,19 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     }
                     break;
                 }
+
+                case "endpoint_name" when operation is OpenNettyMqttOperation.Set:
+                {
+                    var newName = message.ConvertPayloadToString();
+                    if (!string.IsNullOrEmpty(newName))
+                    {
+                        RenameEndpoint(endpoint, newName);
+
+                        // Re-announce the endpoints to update Home Assistant.
+                        await AnnounceEndpointsAsync(client, cancellationToken);
+                    }
+                    break;
+                }
             }
 
             static JsonObject? TryParseAsJsonObject(string value)
@@ -908,6 +921,30 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                     components.Add(CreateEntityNode(component));
 
+                    // Add an Endpoint Name configuration entity
+                    components.Add(CreateEntityNode(new JsonObject
+                    {
+                        ["platform"] = "text",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "c5a24b10-dcba-4321-1098-fedcba654321"u8),
+                        ["entity_category"] = "config",
+                        ["icon"] = "mdi:rename",
+                        ["name"] = "Endpoint name",
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/endpoint_name/set",
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/endpoint_name",
+                        ["min"] = 1,
+                        ["max"] = 100
+                    }));
+
+                    // Publish current endpoint name to populate the text box
+                    await client.EnqueueAsync(new MqttApplicationMessageBuilder()
+                        .WithPayload(component["name"]!.GetValue<string>())
+                        .WithPayloadFormatIndicator(MqttPayloadFormatIndicator.CharacterData)
+                        .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
+                        .WithRetainFlag()
+                        .WithTopic($"{options.RootTopic}/{topic}/endpoint_name")
+                        .Build());
+
                     if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
                     {
                         components.Add(CreateEntityNode(new JsonObject
@@ -989,6 +1026,30 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     }
 
                     components.Add(CreateEntityNode(component));
+
+                    // Add an Endpoint Name configuration entity
+                    components.Add(CreateEntityNode(new JsonObject
+                    {
+                        ["platform"] = "text",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "c5a24b10-dcba-4321-1098-fedcba654321"u8),
+                        ["entity_category"] = "config",
+                        ["icon"] = "mdi:rename",
+                        ["name"] = "Endpoint name",
+                        ["availability_topic"] = $"{options.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}",
+                        ["command_topic"] = $"{options.RootTopic}/{topic}/endpoint_name/set",
+                        ["state_topic"] = $"{options.RootTopic}/{topic}/endpoint_name",
+                        ["min"] = 1,
+                        ["max"] = 100
+                    }));
+
+                    // Publish current endpoint name to populate the text box
+                    await client.EnqueueAsync(new MqttApplicationMessageBuilder()
+                        .WithPayload(component["name"]!.GetValue<string>())
+                        .WithPayloadFormatIndicator(MqttPayloadFormatIndicator.CharacterData)
+                        .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
+                        .WithRetainFlag()
+                        .WithTopic($"{options.RootTopic}/{topic}/endpoint_name")
+                        .Build());
 
                     if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState) ||
                         endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
@@ -3601,6 +3662,116 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
         catch (Exception exception)
         {
             _logger.LogWarning(exception, "An error occurred while persisting the device name to the XML configuration file.");
+        }
+    }
+
+    /// <summary>
+    /// Renames a specific endpoint (e.g., a single light output) by updating its in-memory settings 
+    /// and persisting the change to the XML configuration file.
+    /// </summary>
+    private void RenameEndpoint(OpenNettyEndpoint endpoint, string name)
+    {
+        var options = _openNettyOptions.CurrentValue;
+        
+        // Determine setting key based on endpoint capabilities
+        string settingKey = OpenNettySettings.HomeAssistantLightName; // default
+        if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterControl) || 
+            endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterControl))
+        {
+            settingKey = OpenNettySettings.HomeAssistantCoverName;
+        }
+        else if (endpoint.GetStringSetting(OpenNettySettings.HomeAssistantEntityType) == OpenNettySettings.HomeAssistantEntityTypes.Switch ||
+                 !string.IsNullOrEmpty(endpoint.GetStringSetting(OpenNettySettings.SwitchMode)))
+        {
+            settingKey = OpenNettySettings.HomeAssistantSwitchName;
+        }
+
+        var updatedEndpoint = new OpenNettyEndpoint
+        {
+            Address = endpoint.Address,
+            Capabilities = endpoint.Capabilities,
+            Description = endpoint.Description,
+            Device = endpoint.Device,
+            Gateway = endpoint.Gateway,
+            Medium = endpoint.Medium,
+            Name = endpoint.Name,
+            Protocol = endpoint.Protocol,
+            Settings = endpoint.Settings.SetItem(settingKey, name),
+            Unit = endpoint.Unit
+        };
+
+        var index = options.Endpoints.IndexOf(endpoint);
+        if (index >= 0)
+        {
+            options.Endpoints[index] = updatedEndpoint;
+        }
+
+        PersistEndpointNameToXml(endpoint, name);
+    }
+
+    /// <summary>
+    /// Persists an endpoint name change to the OpenNettyConfiguration.xml file.
+    /// </summary>
+    private void PersistEndpointNameToXml(OpenNettyEndpoint endpoint, string name)
+    {
+        try
+        {
+            var path = Path.Combine(AppContext.BaseDirectory, "OpenNettyConfiguration.xml");
+            if (!File.Exists(path))
+            {
+                return;
+            }
+
+            var document = XDocument.Load(path);
+            if (document.Root is null)
+            {
+                return;
+            }
+
+            var targetId = endpoint.Device.Identifier.ToString();
+            foreach (var deviceElement in document.Root.Elements("Device"))
+            {
+                var sn = (string?)deviceElement.Attribute("SerialNumber");
+                var mac = (string?)deviceElement.Attribute("MacAddress");
+
+                if ((!string.IsNullOrEmpty(sn) && string.Equals(sn, targetId, StringComparison.OrdinalIgnoreCase)) ||
+                    (!string.IsNullOrEmpty(mac) && string.Equals(mac, targetId, StringComparison.OrdinalIgnoreCase)))
+                {
+                    XElement targetParentElement = deviceElement;
+
+                    // If it has a unit, nest the endpoint inside a <Unit> element
+                    if (endpoint.Unit is not null)
+                    {
+                        var unitId = endpoint.Unit.Definition.Id.ToString(CultureInfo.InvariantCulture);
+                        var unitElement = deviceElement.Elements("Unit").FirstOrDefault(e => (string?)e.Attribute("Id") == unitId);
+                        
+                        if (unitElement is null)
+                        {
+                            unitElement = new XElement("Unit", new XAttribute("Id", unitId));
+                            deviceElement.Add(unitElement);
+                        }
+                        targetParentElement = unitElement;
+                    }
+
+                    // Find or create the <Endpoint> element
+                    var endpointElement = targetParentElement.Element("Endpoint");
+                    if (endpointElement is null)
+                    {
+                        endpointElement = new XElement("Endpoint");
+                        targetParentElement.Add(endpointElement);
+                    }
+
+                    endpointElement.SetAttributeValue("Name", name);
+                    break;
+                }
+            }
+
+            document.Save(path);
+            _logger.LogInformation("Persisted endpoint name '{Name}' for endpoint {EndpointName} to OpenNettyConfiguration.xml.", name, endpoint.Name);
+        }
+        catch (Exception exception)
+        {
+            _logger.LogWarning(exception, "An error occurred while persisting the endpoint name to the XML configuration file.");
         }
     }
 
