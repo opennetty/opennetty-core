@@ -2798,8 +2798,16 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     var deviceNameTopic = firstEndpoint.GetStringSetting(OpenNettySettings.MqttTopic)
                         ?? firstEndpoint.Name.ToLowerInvariant();
 
+                    // Parse the hexadecimal Zigbee identifier to a decimal string
+                    var defaultId = device.Identifier.ToString();
+                    if (device.Definition.Protocol == OpenNettyProtocol.Zigbee && 
+                        uint.TryParse(defaultId, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var decimalId))
+                    {
+                        defaultId = decimalId.ToString(CultureInfo.InvariantCulture);
+                    }
+
                     var currentName = device.GetStringSetting(OpenNettySettings.HomeAssistantDeviceName)
-                        ?? $"{Enum.GetName(device.Identity.Brand)} {device.Identity.Model} ({device.Identifier})";
+                        ?? $"{Enum.GetName(device.Identity.Brand)} {device.Identity.Model} ({defaultId})";
 
                     components.Add(CreateEntityNode(new JsonObject
                     {
@@ -2861,6 +2869,14 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
         static JsonObject CreateDeviceNode(OpenNettyDevice device, CultureInfo culture)
         {
+            // Parse the hexadecimal Zigbee identifier to a decimal string for the fallback name
+            var defaultId = device.Identifier.ToString();
+            if (device.Definition.Protocol == OpenNettyProtocol.Zigbee && 
+                uint.TryParse(defaultId, NumberStyles.HexNumber, CultureInfo.InvariantCulture, out var decimalId))
+            {
+                defaultId = decimalId.ToString(CultureInfo.InvariantCulture);
+            }
+
             var node = new JsonObject
             {
                 ["identifiers"] = new JsonArray([ComputeDeviceUniqueId(device)]),
@@ -2869,7 +2885,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 ["serial_number"] = device.Identifier.ToString(),
                 ["name"] = device.GetStringSetting(OpenNettySettings.HomeAssistantDeviceName) is { Length: > 0 } customName
                     ? customName
-                    : $"{Enum.GetName(device.Identity.Brand)} {device.Identity.Model} ({device.Identifier})"
+                    : $"{Enum.GetName(device.Identity.Brand)} {device.Identity.Model} ({defaultId})"
             };
 
             var description = device.Identity.GetDescription(culture);
