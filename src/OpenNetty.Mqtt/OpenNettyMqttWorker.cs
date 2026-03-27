@@ -3044,13 +3044,46 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 return;
             }
 
+            // Find the gateway endpoint with ZigbeeNetworkManagement capability to use its address
+            // for targeted queries (broadcast queries with address: null are rejected by the gateway).
+            OpenNettyEndpoint? gatewayEndpoint = null;
+
+            await foreach (var ep in _manager.FindEndpointsByGatewayAsync(zigbeeGateway, cancellationToken))
+            {
+                if (ep.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+                {
+                    gatewayEndpoint = ep;
+                    break;
+                }
+            }
+
+            if (gatewayEndpoint is null)
+            {
+                _logger.LogWarning("No Zigbee network management endpoint found. Discovery scan aborted.");
+
+                await client.EnqueueAsync(new MqttApplicationMessageBuilder()
+                    .WithPayload("error:no_endpoint")
+                    .WithPayloadFormatIndicator(MqttPayloadFormatIndicator.CharacterData)
+                    .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
+                    .WithTopic($"{_options.CurrentValue.RootTopic}/system/{OpenNettyMqttAttributes.DiscoveryScan}")
+                    .Build());
+
+                return;
+            }
+
+            // Query the number of registered products for informational purposes.
+            var deviceCount = await _controller.CountZigbeeDevicesAsync(gatewayEndpoint, cancellationToken);
+            _logger.LogInformation("Gateway reports {Count} registered Zigbee device(s).", deviceCount);
+
             // Query the gateway for all device identifiers using the DeviceIdentifier dimension (WHO=13, DIM=27).
+            // The gateway endpoint address is used to send a targeted request instead of a broadcast,
+            // as broadcast requests (address: null) are rejected by the Zigbee USB gateway with NACK.
             var discoveredIds = new List<string>();
 
             await foreach (var (address, values) in _service.EnumerateDimensionsAsync(
                 protocol: OpenNettyProtocol.Zigbee,
                 dimension: OpenNettyDimensions.Management.DeviceIdentifier,
-                address: null,
+                address: gatewayEndpoint.Address,
                 medium: OpenNettyMedium.Radio,
                 gateway: zigbeeGateway,
                 cancellationToken: cancellationToken))
