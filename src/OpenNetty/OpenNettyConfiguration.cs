@@ -45,12 +45,6 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
                     Protocol = device.Definition.Protocol,
                     Settings = ImmutableDictionary.Create<OpenNettySetting, string>()
                 });
-
-                static string ComputeDefaultEndpointName(OpenNettyDevice device)
-                    => new StringBuilder(Enum.GetName(device.Definition.Protocol))
-                        .Append('/')
-                        .Append(new string(device.Identifier.ToString().Where(char.IsAsciiHexDigit).ToArray()))
-                        .ToString();
             }
 
             // Add implicit endpoints for all the units that have not been explicitly added by the user.
@@ -58,8 +52,9 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
             {
                 foreach (var definition in device.Definition.Units)
                 {
-                    // If an endpoint targeting the unit was configured by the user, do not override it.
-                    if (options.Endpoints.Exists(endpoint => endpoint.Device == device && endpoint.Unit?.Definition == definition))
+                    // If an endpoint targeting the unit was configured by the user (either explicitly or loaded from XML), do not override it.
+                    // We check by Unit.Definition.Id to ensure we match the specific hardware output correctly, regardless of the endpoint's current string Name.
+                    if (options.Endpoints.Exists(endpoint => endpoint.Device == device && endpoint.Unit?.Definition.Id == definition.Id))
                     {
                         continue;
                     }
@@ -88,16 +83,22 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
                             Settings = ImmutableDictionary.Create<OpenNettySetting, string>()
                         }
                     });
-
-                    static string ComputeDefaultEndpointName(OpenNettyDevice device, OpenNettyUnitDefinition unit)
-                        => new StringBuilder(Enum.GetName(device.Definition.Protocol))
-                            .Append('/')
-                            .Append(new string(device.Identifier.ToString().Where(char.IsAsciiHexDigit).ToArray()))
-                            .Append('/')
-                            .Append(unit.Id)
-                            .ToString();
                 }
             }
+        }
+        
+        static string ComputeDefaultEndpointName(OpenNettyDevice device, OpenNettyUnitDefinition? unit = null)
+        {
+            var builder = new StringBuilder(Enum.GetName(device.Definition.Protocol))
+                .Append('/')
+                .Append(new string(device.Identifier.ToString().Where(char.IsAsciiHexDigit).ToArray()));
+
+            if (unit is not null)
+            {
+                builder.Append('/').Append(unit.Id);
+            }
+
+            return builder.ToString().ToLowerInvariant(); // Lowercase to ensure MQTT topic compatibility
         }
     }
 
