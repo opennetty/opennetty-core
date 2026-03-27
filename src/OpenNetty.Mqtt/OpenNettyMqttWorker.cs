@@ -3178,15 +3178,26 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         definition = OpenNettyDevices.GetDeviceByModel(brand, descValues[1]);
                     }
                 }
+                catch (OpenNettyException ex)
+                {
+                    _logger.LogWarning(ex, "Gateway rejected device description request for {Identifier}. Falling back to default model.", hexId);
+                }
                 catch (Exception ex)
                 {
-                    _logger.LogDebug(ex, "Could not retrieve device description for {Identifier}, skipping model identification.", hexId);
+                    _logger.LogWarning(ex, "Could not retrieve device description for {Identifier}, skipping model identification.", hexId);
                 }
 
+                // If definition is null due to rejection or unknown model, fallback to a sensible default.
                 if (definition is null)
                 {
-                    _logger.LogInformation("Could not identify device {Identifier}, skipping.", hexId);
-                    continue;
+                    _logger.LogInformation("Could not explicitly identify device {Identifier}, falling back to default Legrand model 67233.", hexId);
+                    definition = OpenNettyDevices.GetDeviceByModel(OpenNettyBrand.Legrand, "67233");
+                    
+                    if (definition is null)
+                    {
+                        _logger.LogWarning("Fallback definition not found. Skipping device {Identifier}.", hexId);
+                        continue;
+                    }
                 }
 
                 // Create the device and inject it into the running application.
