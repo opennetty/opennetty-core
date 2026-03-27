@@ -55,7 +55,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
         await _pipeline.SelectMany(static notification => notification switch
         {
             OpenNettyNotifications.MessageReceived {
-                Session.Type: OpenNettySessionType.Generic,
+                Session.Type: not OpenNettySessionType.Command,
                 Message: {
                     Protocol: OpenNettyProtocol.Nitoo,
                     Type    : OpenNettyMessageType.BusCommand    or
@@ -64,7 +64,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 => AsyncObservable.Return<(OpenNettyNotification Notification, OpenNettyMessage Message)>((notification, message)),
 
             OpenNettyNotifications.MessageReceived {
-                Session.Type: OpenNettySessionType.Event,
+                Session.Type: not OpenNettySessionType.Command,
                 Message: {
                     Protocol: OpenNettyProtocol.Scs,
                     Type    : OpenNettyMessageType.BusCommand    or
@@ -73,7 +73,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 => AsyncObservable.Return<(OpenNettyNotification Notification, OpenNettyMessage Message)>((notification, message)),
 
             OpenNettyNotifications.MessageReceived {
-                Session.Type: OpenNettySessionType.Generic,
+                Session.Type: not OpenNettySessionType.Command,
                 Message: {
                     Protocol: OpenNettyProtocol.Zigbee,
                     Type    : OpenNettyMessageType.BusCommand    or
@@ -87,7 +87,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
             // and DIMENSION SET messages that have been acknowledged by the gateway (and optionally validated
             // by the remote device using a special "VALID ACTION" BUS COMMAND message) are monitored here.
             OpenNettyNotifications.MessageSent {
-                Session.Type: OpenNettySessionType.Generic,
+                Session.Type: not OpenNettySessionType.Command,
                 Message: {
                     Protocol: OpenNettyProtocol.Nitoo,
                     Type    : OpenNettyMessageType.BusCommand or OpenNettyMessageType.DimensionSet } message }
@@ -101,7 +101,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
             // To mitigate these limitations, the outgoing Zigbee BUS COMMAND and DIMENSION SET messages that
             // have been acknowledged by the gateway are monitored so that changes can be reported immediately.
             OpenNettyNotifications.MessageSent {
-                Session.Type: OpenNettySessionType.Generic,
+                Session.Type: not OpenNettySessionType.Command,
                 Message: {
                     Protocol: OpenNettyProtocol.Zigbee,
                     Type    : OpenNettyMessageType.BusCommand or OpenNettyMessageType.DimensionSet } message }
@@ -1785,7 +1785,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
             // when using a STATUS REQUEST). To avoid that, this event handler monitors all the ON% BUS COMMAND
             // frames and retrieves the exact brightness level using a "DIMMER LEVEL SPEED" DIMENSION REQUEST.
             OpenNettyNotifications.MessageReceived {
-                Session.Type: OpenNettySessionType.Event,
+                Session.Type: not OpenNettySessionType.Command,
                 Message: {
                     Protocol: OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee,
                     Type    : OpenNettyMessageType.BusCommand,
@@ -1807,7 +1807,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
             // the dimmer moves to the specified level and emits a SCENARIO ACTION frame but doesn't specify the
             // actual value, that must be retrieved separately using a DIMENSION REQUEST to determine the exact level.
             OpenNettyNotifications.MessageReceived {
-                Session.Type: OpenNettySessionType.Generic,
+                Session.Type: not OpenNettySessionType.Command,
                 Message: {
                     Protocol: OpenNettyProtocol.Nitoo,
                     Type    : OpenNettyMessageType.BusCommand,
@@ -1818,7 +1818,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     => AsyncObservable.Return<(OpenNettyNotification Notification, OpenNettyMessage Message)>((notification, message)),
 
             OpenNettyNotifications.MessageReceived {
-                Session.Type: OpenNettySessionType.Generic,
+                Session.Type: not OpenNettySessionType.Command,
                 Message: {
                     Protocol: OpenNettyProtocol.Nitoo,
                     Type    : OpenNettyMessageType.BusCommand,
@@ -1830,7 +1830,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     => AsyncObservable.Return<(OpenNettyNotification Notification, OpenNettyMessage Message)>((notification, message)),
 
             OpenNettyNotifications.MessageReceived {
-                Session.Type: OpenNettySessionType.Generic,
+                Session.Type: not OpenNettySessionType.Command,
                 Message: {
                     Protocol: OpenNettyProtocol.Nitoo,
                     Type    : OpenNettyMessageType.BusCommand,
@@ -1848,7 +1848,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
             // method is sadly very imprecise. To avoid that, "DIM STEP" frames are monitored and the
             // exact brightness is retrieved from the Nitoo device itself using a DIMENSION REQUEST.
             OpenNettyNotifications.MessageReceived {
-                Session.Type: OpenNettySessionType.Generic,
+                Session.Type: not OpenNettySessionType.Command,
                 Message: {
                     Protocol : OpenNettyProtocol.Nitoo,
                     Type     : OpenNettyMessageType.DimensionSet,
@@ -1965,7 +1965,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
         await _pipeline.SelectMany(static notification => notification switch
         {
             OpenNettyNotifications.MessageReceived {
-                Session.Type: OpenNettySessionType.Generic,
+                Session.Type: not OpenNettySessionType.Command,
                 Message: {
                     Protocol: OpenNettyProtocol.Nitoo,
                     Type    : OpenNettyMessageType.BusCommand,
@@ -2036,7 +2036,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
         await _pipeline.SelectMany(static notification => notification switch
         {
             OpenNettyNotifications.MessageReceived {
-                Session.Type: OpenNettySessionType.Generic,
+                Session.Type: not OpenNettySessionType.Command,
                 Message: {
                     Protocol: OpenNettyProtocol.Nitoo,
                     Type    : OpenNettyMessageType.BusCommand,
@@ -2048,7 +2048,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     => AsyncObservable.Return<(OpenNettyNotification Notification, OpenNettyMessage Message)>((notification, message)),
 
             OpenNettyNotifications.MessageReceived {
-                Session.Type: OpenNettySessionType.Generic,
+                Session.Type: not OpenNettySessionType.Command,
                 Message: {
                     Protocol: OpenNettyProtocol.Nitoo,
                     Type    : OpenNettyMessageType.BusCommand,
@@ -2059,7 +2059,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     => AsyncObservable.Return<(OpenNettyNotification Notification, OpenNettyMessage Message)>((notification, message)),
 
             OpenNettyNotifications.MessageSent {
-                Session.Type: OpenNettySessionType.Generic,
+                Session.Type: not OpenNettySessionType.Command,
                 Message: {
                     Protocol: OpenNettyProtocol.Nitoo,
                     Type    : OpenNettyMessageType.BusCommand,
@@ -2070,7 +2070,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                      => AsyncObservable.Return<(OpenNettyNotification Notification, OpenNettyMessage Message)>((notification, message)),
 
             OpenNettyNotifications.MessageSent {
-                Session.Type: OpenNettySessionType.Generic,
+                Session.Type: not OpenNettySessionType.Command,
                 Message: {
                     Protocol: OpenNettyProtocol.Nitoo,
                     Type    : OpenNettyMessageType.BusCommand,
@@ -2106,7 +2106,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
         await _pipeline.SelectMany(static notification => notification switch
         {
             OpenNettyNotifications.MessageReceived {
-                Session.Type: OpenNettySessionType.Generic,
+                Session.Type: not OpenNettySessionType.Command,
                 Message: {
                     Protocol : OpenNettyProtocol.Nitoo,
                     Type     : OpenNettyMessageType.DimensionRead,
@@ -2174,7 +2174,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
         await _pipeline.SelectMany(static notification => notification switch
         {
             OpenNettyNotifications.MessageSent {
-                Session.Type: OpenNettySessionType.Generic,
+                Session.Type: not OpenNettySessionType.Command,
                 Message: {
                     Protocol : OpenNettyProtocol.Nitoo,
                     Type     : OpenNettyMessageType.DimensionSet,
@@ -2210,12 +2210,10 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
         // state of all the OpenNetty endpoints by monitoring the session open/closed events.
         await _pipeline.SelectMany(static notification => notification switch
         {
-            OpenNettyNotifications.SessionOpen {
-                Session.Type: OpenNettySessionType.Event or OpenNettySessionType.Generic }
+            OpenNettyNotifications.SessionOpen { Session.Type: not OpenNettySessionType.Command }
                 => AsyncObservable.Return(notification),
 
-            OpenNettyNotifications.SessionClosed {
-                Session.Type: OpenNettySessionType.Event or OpenNettySessionType.Generic }
+            OpenNettyNotifications.SessionClosed { Session.Type: not OpenNettySessionType.Command }
                 => AsyncObservable.Return(notification),
 
             _ => AsyncObservable.Empty<OpenNettyNotification>()
