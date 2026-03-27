@@ -3321,9 +3321,9 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
         // Wait for the DimensionRead response with a timeout.
         var response = await notifications
-            .Timeout(TimeSpan.FromSeconds(5), AsyncObservable.Empty<OpenNettyMessage>())
-            .ToAsyncEnumerable()
-            .FirstOrDefaultAsync(cancellationToken);
+            .FirstOrDefault()
+            .Timeout(TimeSpan.FromSeconds(5), AsyncObservable.Return<OpenNettyMessage>(null!))
+            .RunAsync(cancellationToken);
 
         if (response is null)
         {
