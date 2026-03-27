@@ -3674,7 +3674,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
         var options = _openNettyOptions.CurrentValue;
         
         // Determine setting key based on endpoint capabilities
-        string settingKey = OpenNettySettings.HomeAssistantLightName; // default
+        OpenNettySetting settingKey = OpenNettySettings.HomeAssistantLightName; // default
         if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterControl) || 
             endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterControl))
         {
@@ -3714,6 +3714,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
     /// </summary>
     private void PersistEndpointNameToXml(OpenNettyEndpoint endpoint, string name)
     {
+        // Compiler fix: Ensure the device is not null before accessing its identifier
+        if (endpoint.Device is null)
+        {
+            return;
+        }
+
         try
         {
             var path = Path.Combine(AppContext.BaseDirectory, "OpenNettyConfiguration.xml");
