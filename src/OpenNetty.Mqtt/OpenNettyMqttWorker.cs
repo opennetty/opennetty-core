@@ -2763,7 +2763,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 ["manufacturer"] = Enum.GetName(device.Identity.Brand),
                 ["model_id"] = device.Identity.Model,
                 ["serial_number"] = device.Identifier.ToString(),
-                ["name"] = $"{Enum.GetName(device.Identity.Brand)} {device.Identity.Model} ({device.Identifier})"
+                ["name"] = device.GetStringSetting(OpenNettySettings.HomeAssistantDeviceName) switch
+                {
+                    { Length: > 0 } name => name,
+
+                    _ => $"{Enum.GetName(device.Identity.Brand)} {device.Identity.Model} ({device.Identifier})"
+                }
             };
 
             var description = device.Identity.GetDescription(culture);
