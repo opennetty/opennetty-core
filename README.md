@@ -54,14 +54,26 @@ gateway on any x64, ARM32 or ARM64 Linux distribution that supports .NET 10.0 an
 > MQTT discovery (like Home Assistant or openHAB) as it allows importing all the devices configured in OpenNetty
 > automatically without requiring any additional configuration in the home automation software.
 
+### Install the `libicu` package
+
+.NET relies on the `libicu` package to support globalization features. To ensure OpenNetty works
+correctly, make sure to install the latest version of `libicu` available for your distribution.
+
+For instance, on [Debian 13/Trixie](https://packages.debian.org/search?searchon=names&keywords=libicu),
+you can use the following command to install `libicu` version 76:
+
+```bash
+sudo apt install libicu76
+```
+
 ### Deploy the daemon
 
 Compiled binaries packaged as .zip archives can be found in the
 [opennetty-resources](https://github.com/opennetty/opennetty-resources) repository, under the releases folder.
 
 > [!NOTE]
-> These archives are self-contained .NET applications that embed all the required dependencies so you don't
-> have to install any global package on the machine on which OpenNetty is deployed.
+> These archives are self-contained .NET applications that embed all the required dependencies so you
+> don't need to install any .NET package, SDK or runtime on the machine on which OpenNetty is deployed.
 
 > [!TIP]
 > Make sure you select the correct architecture when downloading the archive:
