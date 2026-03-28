@@ -42,6 +42,11 @@ public static class OpenNettySettings
     public static readonly OpenNettySetting HomeAssistantCoverName = new("Home Assistant cover name");
 
     /// <summary>
+    /// Home Assistant device name.
+    /// </summary>
+    public static readonly OpenNettySetting HomeAssistantDeviceName = new("Home Assistant device name");
+
+    /// <summary>
     /// Home Assistant discovery.
     /// </summary>
     public static readonly OpenNettySetting HomeAssistantDiscovery = new("Home Assistant discovery");
