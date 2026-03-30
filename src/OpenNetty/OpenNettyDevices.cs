@@ -17,6 +17,8 @@ namespace OpenNetty;
 /// </summary>
 public static class OpenNettyDevices
 {
+    private readonly static Lazy<ImmutableArray<OpenNettyDeviceDefinition>> _devices = new(CreateDeviceDefinitions);
+
     /// <summary>
     /// Resolves the device definition corresponding to the specified brand and model.
     /// </summary>
@@ -36,26 +38,14 @@ public static class OpenNettyDevices
             throw new ArgumentException(SR.GetResourceString(SR.ID0006), nameof(brand));
         }
 
-        using var stream = Assembly.GetAssembly(typeof(OpenNettyDevices))?.GetManifestResourceStream(
-            "OpenNetty.OpenNettyDevices.xml") ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0066));
-
-        var document = XDocument.Load(stream);
-        if (document.Root is null)
+        foreach (var device in _devices.Value)
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0066));
-        }
-
-        foreach (var device in document.Root.Elements("Device"))
-        {
-            foreach (var identity in device.Elements("Identity"))
+            foreach (var identity in device.Identities)
             {
-                if ((string) identity.Attribute("Brand")! != Enum.GetName(brand) ||
-                    !string.Equals((string) identity.Attribute("Model")!, model, StringComparison.OrdinalIgnoreCase))
+                if (identity.Brand == brand && string.Equals(identity.Model, model, StringComparison.OrdinalIgnoreCase))
                 {
-                    continue;
+                    return device;
                 }
-
-                return CreateDeviceDefinition(device);
             }
         }
 
@@ -77,14 +67,35 @@ public static class OpenNettyDevices
     public static OpenNettyUnitDefinition? GetUnitByModel(OpenNettyBrand brand, string model, byte id)
     {
         ArgumentException.ThrowIfNullOrEmpty(model);
-        ArgumentOutOfRangeException.ThrowIfLessThan(id, 1u);
-        ArgumentOutOfRangeException.ThrowIfGreaterThan(id, 15u);
+        ArgumentOutOfRangeException.ThrowIfZero(id);
 
         if (!Enum.IsDefined(brand))
         {
             throw new ArgumentException(SR.GetResourceString(SR.ID0006), nameof(brand));
         }
 
+        foreach (var device in _devices.Value)
+        {
+            foreach (var identity in device.Identities)
+            {
+                if (identity.Brand == brand && string.Equals(identity.Model, model, StringComparison.OrdinalIgnoreCase))
+                {
+                    foreach (var unit in device.Units)
+                    {
+                        if (unit.Id == id)
+                        {
+                            return unit;
+                        }
+                    }
+                }
+            }
+        }
+
+        return null;
+    }
+
+    private static ImmutableArray<OpenNettyDeviceDefinition> CreateDeviceDefinitions()
+    {
         using var stream = Assembly.GetAssembly(typeof(OpenNettyDevices))?.GetManifestResourceStream(
             "OpenNetty.OpenNettyDevices.xml") ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0066));
 
@@ -94,29 +105,14 @@ public static class OpenNettyDevices
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0066));
         }
 
+        var builder = ImmutableArray.CreateBuilder<OpenNettyDeviceDefinition>();
+
         foreach (var device in document.Root.Elements("Device"))
         {
-            foreach (var identity in device.Elements("Identity"))
-            {
-                if ((string) identity.Attribute("Brand")! != Enum.GetName(brand) ||
-                    !string.Equals((string) identity.Attribute("Model")!, model, StringComparison.OrdinalIgnoreCase))
-                {
-                    continue;
-                }
-
-                foreach (var unit in device.Elements("Unit"))
-                {
-                    if ((uint) unit.Attribute("Id")! != id)
-                    {
-                        continue;
-                    }
-
-                    return CreateUnitDefinition(unit);
-                }
-            }
+            builder.Add(CreateDeviceDefinition(device));
         }
 
-        return null;
+        return builder.ToImmutable();
     }
 
     private static OpenNettyDeviceDefinition CreateDeviceDefinition(XElement node)

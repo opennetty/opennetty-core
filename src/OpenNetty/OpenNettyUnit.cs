@@ -28,8 +28,7 @@ public sealed class OpenNettyUnit : IEquatable<OpenNettyUnit>
     /// <summary>
     /// Gets or sets the user-defined settings associated with the unit, if applicable.
     /// </summary>
-    public ImmutableDictionary<OpenNettySetting, string> Settings { get; init; } =
-        ImmutableDictionary<OpenNettySetting, string>.Empty;
+    public ImmutableDictionary<OpenNettySetting, string> Settings { get; init; } = [];
 
     /// <summary>
     /// Resolves the specified boolean setting from the settings.
