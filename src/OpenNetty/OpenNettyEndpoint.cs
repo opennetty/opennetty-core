@@ -62,8 +62,7 @@ public sealed class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
     /// <summary>
     /// Gets or sets the settings associated with the endpoint.
     /// </summary>
-    public ImmutableDictionary<OpenNettySetting, string> Settings { get; init; } =
-        ImmutableDictionary<OpenNettySetting, string>.Empty;
+    public ImmutableDictionary<OpenNettySetting, string> Settings { get; init; } = [];
 
     /// <summary>
     /// Gets or sets the unit associated with the endpoint, if applicable.

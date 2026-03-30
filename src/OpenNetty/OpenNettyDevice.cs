@@ -50,8 +50,7 @@ public sealed class OpenNettyDevice : IEquatable<OpenNettyDevice>
     /// <summary>
     /// Gets or sets the user-defined settings associated with the device, if applicable.
     /// </summary>
-    public ImmutableDictionary<OpenNettySetting, string> Settings { get; init; } =
-        ImmutableDictionary<OpenNettySetting, string>.Empty;
+    public ImmutableDictionary<OpenNettySetting, string> Settings { get; init; } = [];
 
     /// <summary>
     /// Gets or sets the units associated with the device.

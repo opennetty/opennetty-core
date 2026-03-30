@@ -37,8 +37,7 @@ public sealed class OpenNettyUnitDefinition : IEquatable<OpenNettyUnitDefinition
     /// <summary>
     /// Gets or sets the OpenNetty-defined settings associated with the unit definition.
     /// </summary>
-    public ImmutableDictionary<OpenNettySetting, string> Settings { get; init; } =
-        ImmutableDictionary<OpenNettySetting, string>.Empty;
+    public ImmutableDictionary<OpenNettySetting, string> Settings { get; init; } = [];
 
     /// <inheritdoc/>
     public bool Equals(OpenNettyUnitDefinition? other)
