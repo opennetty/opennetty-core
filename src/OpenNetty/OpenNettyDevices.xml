@@ -1,4 +1,4 @@
-﻿<Devices>
+<Devices>
 
   <!--
                     ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
@@ -1035,6 +1035,54 @@
 
       <Description Culture="en" Value="Output 2" />
       <Description Culture="fr" Value="Sortie 2" />
+    </Unit>
+  </Device>
+
+  <Device Series="MyHome" Protocol="Scs" Medium="Bus">
+    <Identity Brand="BTicino" Model="F411/4">
+      <Description Culture="en" Value="4-gang DIN rail switch" />
+      <Description Culture="fr" Value="Interrupteur modulaire à 4 sorties" />
+    </Identity>
+
+    <Identity Brand="Legrand" Model="03844">
+      <Description Culture="en" Value="4-gang DIN rail switch" />
+      <Description Culture="fr" Value="Interrupteur modulaire à 4 sorties" />
+    </Identity>
+
+    <Unit Id="1">
+      <Capability Name="Basic shutter control" />
+      <Capability Name="Basic shutter state" />
+      <Capability Name="On/off switch state" />
+      <Capability Name="On/off switch control" />
+
+      <Description Culture="en" Value="Output 1" />
+      <Description Culture="fr" Value="Sortie 1" />
+    </Unit>
+
+    <Unit Id="2">
+      <Capability Name="On/off switch state" />
+      <Capability Name="On/off switch control" />
+
+      <Description Culture="en" Value="Output 2" />
+      <Description Culture="fr" Value="Sortie 2" />
+    </Unit>
+
+    <Unit Id="3">
+      <Capability Name="Basic shutter control" />
+      <Capability Name="Basic shutter state" />
+      <Capability Name="On/off switch state" />
+      <Capability Name="On/off switch control" />
+
+      <Description Culture="en" Value="Output 3" />
+      <Description Culture="fr" Value="Sortie 3" />
+    </Unit>
+
+    <Unit Id="4">
+      <Capability Name="On/off switch state" />
+      <Capability Name="On/off switch control" />
+
+      <Description Culture="en" Value="Output 4" />
+      <Description Culture="fr" Value="Sortie 4" />
     </Unit>
   </Device>
 
