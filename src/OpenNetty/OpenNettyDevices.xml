@@ -1039,7 +1039,7 @@
   </Device>
 
   <Device Series="MyHome" Protocol="Scs" Medium="Bus">
-    <Identity Brand="BTicino" Model="F411U4">
+    <Identity Brand="BTicino" Model="F411/4">
       <Description Culture="en" Value="4-gang DIN rail switch" />
       <Description Culture="fr" Value="Interrupteur modulaire quadruple" />
     </Identity>
