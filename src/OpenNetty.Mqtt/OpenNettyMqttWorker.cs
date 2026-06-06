@@ -865,7 +865,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     else if (platform is OpenNettySettings.HomeAssistantEntityTypes.Switch)
                     {
                         component["device_class"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantSwitchDeviceClass)
-                            ?? OpenNettySettings.HomeAssistantDeviceClasses.Switch;
+                            ?? OpenNettySettings.HomeAssistantDeviceClasses.Switches.Switch;
                     }
 
                     components.Add(CreateEntityNode(component));
@@ -922,7 +922,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["platform"] = "cover",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "9b138d62-bb0d-49cb-8624-1d85f9e86a6e"u8),
                         ["device_class"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantCoverDeviceClass)
-                            ?? OpenNettySettings.HomeAssistantDeviceClasses.Shutter,
+                            ?? OpenNettySettings.HomeAssistantDeviceClasses.Covers.Shutter,
                         ["name"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantCoverName) ??
                             ComputeEntityName(
                                 name    : GetLocalizedString(SR.ID8004, culture),
@@ -1011,6 +1011,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                     if (endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioEvent))
                     {
+                        if (endpoint.GetStringSetting(OpenNettySettings.HomeAssistantScenarioDeviceClass)
+                            is OpenNettySettings.HomeAssistantDeviceClasses.Events.Doorbell)
+                        {
+                            types.Add("ring");
+                        }
+
                         types.Add("action");
                         types.Add("stop_action");
                     }
@@ -1028,6 +1034,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                     if (endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioEvent))
                     {
+                        if (endpoint.GetStringSetting(OpenNettySettings.HomeAssistantScenarioDeviceClass)
+                            is OpenNettySettings.HomeAssistantDeviceClasses.Events.Doorbell)
+                        {
+                            types.Add("ring");
+                        }
+
                         types.Add("pressure");
                         types.Add("release_after_short_pressure");
                         types.Add("release_after_extended_pressure");
@@ -1036,6 +1048,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                     if (endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioPlusEvent))
                     {
+                        if (endpoint.GetStringSetting(OpenNettySettings.HomeAssistantScenarioDeviceClass)
+                            is OpenNettySettings.HomeAssistantDeviceClasses.Events.Doorbell)
+                        {
+                            types.Add("ring");
+                        }
+
                         types.Add("short_pressure");
                         types.Add("start_of_extended_pressure");
                         types.Add("extended_pressure");

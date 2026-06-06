@@ -63,22 +63,42 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
         [
             await _events.ActionScenarioReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
+                .Do(async arguments =>
                 {
-                    var node = new JsonObject
+                    // Note: if the device class is "doorbell", a standard "ring" event is also sent for action scenarios.
+                    if (arguments.Type is OpenNettyModels.ScenariosPlus.ActionScenarioType.Action &&
+                        arguments.Endpoint.GetStringSetting(OpenNettySettings.HomeAssistantScenarioDeviceClass)
+                            is OpenNettySettings.HomeAssistantDeviceClasses.Events.Doorbell)
                     {
-                        ["event_type"] = arguments.Type switch
+                        await ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
                         {
-                            OpenNettyModels.ScenariosPlus.ActionScenarioType.Action     => "action",
-                            OpenNettyModels.ScenariosPlus.ActionScenarioType.StopAction => "stop_action",
+                            var node = new JsonObject
+                            {
+                                ["event_type"] = "ring"
+                            };
 
-                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
-                        }
-                    };
+                            builder.WithContentType(MediaTypeNames.Application.Json);
+                            builder.WithPayload(node.ToJsonString());
+                        });
+                    }
 
-                    builder.WithContentType(MediaTypeNames.Application.Json);
-                    builder.WithPayload(node.ToJsonString());
-                }))
+                    await ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
+                    {
+                        var node = new JsonObject
+                        {
+                            ["event_type"] = arguments.Type switch
+                            {
+                                OpenNettyModels.ScenariosPlus.ActionScenarioType.Action     => "action",
+                                OpenNettyModels.ScenariosPlus.ActionScenarioType.StopAction => "stop_action",
+
+                                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+                            }
+                        };
+
+                        builder.WithContentType(MediaTypeNames.Application.Json);
+                        builder.WithPayload(node.ToJsonString());
+                    });
+                })
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
@@ -358,51 +378,95 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
 
             await _events.PressureScenarioReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
+                .Do(async arguments =>
                 {
-                    var node = new JsonObject
+                    // Note: if the device class is "doorbell", a standard "ring" event is also sent for short pressure scenarios.
+                    if (arguments.Type is OpenNettyModels.Scenarios.PressureScenarioType.Pressure &&
+                        arguments.Endpoint.GetStringSetting(OpenNettySettings.HomeAssistantScenarioDeviceClass)
+                            is OpenNettySettings.HomeAssistantDeviceClasses.Events.Doorbell)
                     {
-                        ["event_type"] = arguments.Type switch
+                        await ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
                         {
-                            OpenNettyModels.Scenarios.PressureScenarioType.Pressure                     => "pressure",
-                            OpenNettyModels.Scenarios.PressureScenarioType.ReleaseAfterShortPressure    => "release_after_short_pressure",
-                            OpenNettyModels.Scenarios.PressureScenarioType.ReleaseAfterExtendedPressure => "release_after_extended_pressure",
-                            OpenNettyModels.Scenarios.PressureScenarioType.ExtendedPressure             => "extended_pressure",
+                            var node = new JsonObject
+                            {
+                                ["event_type"] = "ring",
+                                ["scenario_type"] = "evolved",
+                                ["button"] = arguments.Button
+                            };
 
-                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
-                        },
-                        ["scenario_type"] = "evolved",
-                        ["button"] = arguments.Button
-                    };
+                            builder.WithContentType(MediaTypeNames.Application.Json);
+                            builder.WithPayload(node.ToJsonString());
+                        });
+                    }
 
-                    builder.WithContentType(MediaTypeNames.Application.Json);
-                    builder.WithPayload(node.ToJsonString());
-                }))
+                    await ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
+                    {
+                        var node = new JsonObject
+                        {
+                            ["event_type"] = arguments.Type switch
+                            {
+                                OpenNettyModels.Scenarios.PressureScenarioType.Pressure                     => "pressure",
+                                OpenNettyModels.Scenarios.PressureScenarioType.ReleaseAfterShortPressure    => "release_after_short_pressure",
+                                OpenNettyModels.Scenarios.PressureScenarioType.ReleaseAfterExtendedPressure => "release_after_extended_pressure",
+                                OpenNettyModels.Scenarios.PressureScenarioType.ExtendedPressure             => "extended_pressure",
+
+                                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+                            },
+                            ["scenario_type"] = "evolved",
+                            ["button"] = arguments.Button
+                        };
+
+                        builder.WithContentType(MediaTypeNames.Application.Json);
+                        builder.WithPayload(node.ToJsonString());
+                    });
+                })
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.PressureScenarioPlusReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
+                .Do(async arguments =>
                 {
-                    var node = new JsonObject
+                    // Note: if the device class is "doorbell", a standard "ring" event is also sent for short pressure scenarios.
+                    if (arguments.Type is OpenNettyModels.ScenariosPlus.PressureScenarioType.ShortPressure &&
+                        arguments.Endpoint.GetStringSetting(OpenNettySettings.HomeAssistantScenarioDeviceClass)
+                            is OpenNettySettings.HomeAssistantDeviceClasses.Events.Doorbell)
                     {
-                        ["event_type"] = arguments.Type switch
+                        await ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
                         {
-                            OpenNettyModels.ScenariosPlus.PressureScenarioType.ShortPressure           => "short_pressure",
-                            OpenNettyModels.ScenariosPlus.PressureScenarioType.StartOfExtendedPressure => "start_of_extended_pressure",
-                            OpenNettyModels.ScenariosPlus.PressureScenarioType.ExtendedPressure        => "extended_pressure",
-                            OpenNettyModels.ScenariosPlus.PressureScenarioType.EndOfExtendedPressure   => "end_of_extended_pressure",
+                            var node = new JsonObject
+                            {
+                                ["event_type"] = "ring",
+                                ["scenario_type"] = "plus",
+                                ["button"] = arguments.Button
+                            };
 
-                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
-                        },
-                        ["scenario_type"] = "plus",
-                        ["button"] = arguments.Button
-                    };
+                            builder.WithContentType(MediaTypeNames.Application.Json);
+                            builder.WithPayload(node.ToJsonString());
+                        });
+                    }
 
-                    builder.WithContentType(MediaTypeNames.Application.Json);
-                    builder.WithPayload(node.ToJsonString());
-                }))
+                    await ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
+                    {
+                        var node = new JsonObject
+                        {
+                            ["event_type"] = arguments.Type switch
+                            {
+                                OpenNettyModels.ScenariosPlus.PressureScenarioType.ShortPressure           => "short_pressure",
+                                OpenNettyModels.ScenariosPlus.PressureScenarioType.StartOfExtendedPressure => "start_of_extended_pressure",
+                                OpenNettyModels.ScenariosPlus.PressureScenarioType.ExtendedPressure        => "extended_pressure",
+                                OpenNettyModels.ScenariosPlus.PressureScenarioType.EndOfExtendedPressure   => "end_of_extended_pressure",
+
+                                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+                            },
+                            ["scenario_type"] = "plus",
+                            ["button"] = arguments.Button
+                        };
+
+                        builder.WithContentType(MediaTypeNames.Application.Json);
+                        builder.WithPayload(node.ToJsonString());
+                    });
+                })
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
