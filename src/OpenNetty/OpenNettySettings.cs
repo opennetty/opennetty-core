@@ -228,14 +228,97 @@ public static class OpenNettySettings
     public static class HomeAssistantDeviceClasses
     {
         /// <summary>
-        /// Shutter.
+        /// Device classes for cover entities.
         /// </summary>
-        public const string Shutter = "shutter";
+        public static class Covers
+        {
+            /// <summary>
+            /// Awning.
+            /// </summary>
+            public const string Awning = "awning";
+
+            /// <summary>
+            /// Blind.
+            /// </summary>
+            public const string Blind = "blind";
+
+            /// <summary>
+            /// Curtain.
+            /// </summary>
+            public const string Curtain = "curtain";
+
+            /// <summary>
+            /// Damper.
+            /// </summary>
+            public const string Damper = "damper";
+
+            /// <summary>
+            /// Door.
+            /// </summary>
+            public const string Door = "door";
+
+            /// <summary>
+            /// Garage.
+            /// </summary>
+            public const string Garage = "garage";
+
+            /// <summary>
+            /// Gate.
+            /// </summary>
+            public const string Gate = "gate";
+
+            /// <summary>
+            /// Shade.
+            /// </summary>
+            public const string Shade = "shade";
+
+            /// <summary>
+            /// Shutter.
+            /// </summary>
+            public const string Shutter = "shutter";
+
+            /// <summary>
+            /// Window.
+            /// </summary>
+            public const string Window = "window";
+        }
 
         /// <summary>
-        /// Switch.
+        /// Device classes for event entities.
         /// </summary>
-        public const string Switch = "switch";
+        public static class Events
+        {
+            /// <summary>
+            /// Button.
+            /// </summary>
+            public const string Button = "button";
+
+            /// <summary>
+            /// Doorbell.
+            /// </summary>
+            public const string Doorbell = "doorbell";
+
+            /// <summary>
+            /// Motion.
+            /// </summary>
+            public const string Motion = "motion";
+        }
+
+        /// <summary>
+        /// Device classes for switch entities.
+        /// </summary>
+        public static class Switches
+        {
+            /// <summary>
+            /// Outlet.
+            /// </summary>
+            public const string Outlet = "outlet";
+
+            /// <summary>
+            /// Switch.
+            /// </summary>
+            public const string Switch = "switch";
+        }
     }
 
     /// <summary>
