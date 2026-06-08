@@ -18,6 +18,7 @@ namespace OpenNetty;
 [EditorBrowsable(EditorBrowsableState.Never)]
 public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOptions>, IValidateOptions<OpenNettyOptions>
 {
+    /// <inheritdoc/>
     public void PostConfigure(string? name, OpenNettyOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
@@ -106,13 +107,15 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
     {
         ArgumentNullException.ThrowIfNull(options);
 
+        var builder = new ValidateOptionsResultBuilder();
+
         if (options.Devices.GroupBy(static device => device.Identifier)
             .Where(static group => group.Count() is > 1)
             .Select(static group => group.Key)
             .OfType<OpenNettyDeviceIdentifier?>()
             .FirstOrDefault() is OpenNettyDeviceIdentifier identifier)
         {
-            return ValidateOptionsResult.Fail(SR.FormatID2012(identifier.ToString()));
+            builder.AddError(SR.FormatID2012(identifier.ToString()));
         }
 
         if (options.Endpoints.GroupBy(static endpoint => endpoint.Name)
@@ -121,7 +124,7 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
             .OfType<string?>()
             .FirstOrDefault() is string value)
         {
-            return ValidateOptionsResult.Fail(SR.FormatID2013(value));
+            builder.AddError(SR.FormatID2013(value));
         }
 
         foreach (var endpoint in options.Endpoints)
@@ -130,16 +133,18 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
                 (endpoint.Name.Contains('+', StringComparison.OrdinalIgnoreCase) ||
                  endpoint.Name.Contains('*', StringComparison.OrdinalIgnoreCase)))
             {
-                return ValidateOptionsResult.Fail(SR.FormatID2000(endpoint.Name));
+                builder.AddError(SR.FormatID2000(endpoint.Name));
             }
 
             switch (endpoint.GetBooleanSetting(OpenNettySettings.ActionValidation))
             {
                 case not null when endpoint.Protocol is not OpenNettyProtocol.Nitoo:
-                    return ValidateOptionsResult.Fail(SR.GetResourceString(SR.ID2010));
+                    builder.AddError(SR.GetResourceString(SR.ID2010));
+                    break;
 
                 case not null when endpoint.Address is null:
-                    return ValidateOptionsResult.Fail(SR.GetResourceString(SR.ID2011));
+                    builder.AddError(SR.GetResourceString(SR.ID2011));
+                    break;
             }
 
             switch (endpoint.GetStringSetting(OpenNettySettings.FunctionType))
@@ -147,21 +152,24 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
                 // If the endpoint supports both lighting and automation commands,
                 // require that the function type be configured via the dedicated setting.
                 case null or { Length: 0 } when SupportsLightControl(endpoint) && SupportsShutterControl(endpoint):
-                    return ValidateOptionsResult.Fail(SR.FormatID2002(endpoint.Name));
+                    builder.AddError(SR.FormatID2002(endpoint.Name));
+                    break;
 
                 // If the endpoint supports both pressure scenarios and pressure scenarios plus,
                 // require that the function type be configured via the dedicated setting.
                 case null or { Length: 0 } when
                     endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioEvent) &&
                     endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioPlusEvent):
-                    return ValidateOptionsResult.Fail(SR.FormatID2014(endpoint.Name));
+                    builder.AddError(SR.FormatID2014(endpoint.Name));
+                    break;
 
                 case string type when type is not (
                     OpenNettySettings.FunctionTypes.AutomationActuator or
                     OpenNettySettings.FunctionTypes.LightActuator      or 
                     OpenNettySettings.FunctionTypes.ScheduledScenario  or
                     OpenNettySettings.FunctionTypes.ScheduledScenarioPlus):
-                    return ValidateOptionsResult.Fail(SR.FormatID2003(endpoint.Name, type));
+                    builder.AddError(SR.FormatID2003(endpoint.Name, type));
+                    break;
             }
 
             switch (endpoint.GetStringSetting(OpenNettySettings.SwitchMode))
@@ -169,17 +177,20 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
                 case string mode when mode is not (
                     OpenNettySettings.SwitchModes.Default or
                     OpenNettySettings.SwitchModes.PushButton):
-                    return ValidateOptionsResult.Fail(SR.FormatID2004(endpoint.Name, mode));
+                    builder.AddError(SR.FormatID2004(endpoint.Name, mode));
+                    break;
             }
 
             switch (endpoint.GetStringSetting(OpenNettySettings.PushButtonNumbers))
             {
                 case null or { Length: 0 } when endpoint.HasCapability(OpenNettyCapabilities.ConfigurablePushButtonNumbers):
-                    return ValidateOptionsResult.Fail(SR.FormatID2015(endpoint.Name));
+                    builder.AddError(SR.FormatID2015(endpoint.Name));
+                    break;
 
                 case string numbers when numbers.Split(',', StringSplitOptions.RemoveEmptyEntries) is not [_, ..] array ||
                     array.Any(number => !byte.TryParse(number, CultureInfo.InvariantCulture, out _)):
-                    return ValidateOptionsResult.Fail(SR.FormatID2016(endpoint.Name));
+                    builder.AddError(SR.FormatID2016(endpoint.Name));
+                    break;
             }
 
             static bool SupportsLightControl(OpenNettyEndpoint endpoint) =>
@@ -192,6 +203,6 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
                 endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterControl);
         }
 
-        return ValidateOptionsResult.Success;
+        return builder.Build();
     }
 }

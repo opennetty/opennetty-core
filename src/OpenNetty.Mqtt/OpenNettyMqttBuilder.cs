@@ -4,6 +4,7 @@
  * the license and the contributors participating to this project.
  */
 
+using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Globalization;
 using System.Security.Cryptography.X509Certificates;
@@ -31,6 +32,17 @@ public sealed class OpenNettyMqttBuilder
     /// </summary>
     [EditorBrowsable(EditorBrowsableState.Never)]
     public IServiceCollection Services { get; }
+
+    /// <summary>
+    /// Enables validation of options during application startup.
+    /// </summary>
+    /// <returns>The <see cref="OpenNettyMqttBuilder"/> instance.</returns>
+    public OpenNettyMqttBuilder ValidateOnStart()
+    {
+        Services.AddOptionsWithValidateOnStart<OpenNettyMqttOptions>();
+
+        return this;
+    }
 
     /// <summary>
     /// Amends the default OpenNetty MQTT configuration.
@@ -75,102 +87,87 @@ public sealed class OpenNettyMqttBuilder
     }
 
     /// <summary>
-    /// Imports the OpenNetty MQTT configuration from the specified <paramref name="file"/>.
+    /// Imports the OpenNetty MQTT configuration from the specified <paramref name="files"/>.
     /// </summary>
-    /// <param name="file">The file.</param>
+    /// <param name="files">The files.</param>
     /// <returns>The <see cref="OpenNettyMqttBuilder"/> instance.</returns>
-    public OpenNettyMqttBuilder ImportFromXmlConfiguration(IFileInfo file)
+    public OpenNettyMqttBuilder ImportFromXmlConfiguration(params ImmutableArray<IFileInfo> files)
     {
-        ArgumentNullException.ThrowIfNull(file);
-
-        if (!file.Exists)
+        if (files.Any(static file => !file.Exists))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0070));
+            throw new FileNotFoundException(SR.GetResourceString(SR.ID0070));
         }
 
-        using var stream = file.CreateReadStream();
-        return ImportFromXmlConfiguration(stream);
+        var builder = ImmutableArray.CreateBuilder<XDocument>(files.Length);
+
+        foreach (var file in files)
+        {
+            using var stream = file.CreateReadStream();
+
+            builder.Add(XDocument.Load(stream));
+        }
+
+        return ImportFromXmlConfiguration(builder.ToImmutable());
     }
 
     /// <summary>
-    /// Imports the OpenNetty MQTT configuration from the specified <paramref name="path"/>.
+    /// Imports the OpenNetty MQTT configuration from the specified <paramref name="documents"/>.
     /// </summary>
-    /// <param name="path">The file path.</param>
+    /// <param name="documents">The document.</param>
     /// <returns>The <see cref="OpenNettyMqttBuilder"/> instance.</returns>
-    public OpenNettyMqttBuilder ImportFromXmlConfiguration(string path)
+    public OpenNettyMqttBuilder ImportFromXmlConfiguration(params ImmutableArray<XDocument> documents)
     {
-        ArgumentException.ThrowIfNullOrEmpty(path);
-
-        if (!File.Exists(path))
+        if (documents.Any(static document => document.Root?.Name != "Configuration"))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0070));
+            throw new InvalidOperationException(SR.FormatID0071("Configuration"));
         }
 
-        return ImportFromXmlConfiguration(XDocument.Load(path));
-    }
+        var configuration = documents
+            .Select(static document => document.Root!.Element("Mqtt"))
+            .Where(static element => element is not null)
+            .ToList() switch
+            {
+                [XElement element] => element,
 
-    /// <summary>
-    /// Imports the OpenNetty MQTT configuration from the specified <paramref name="stream"/>.
-    /// </summary>
-    /// <param name="stream">The stream.</param>
-    /// <returns>The <see cref="OpenNettyMqttBuilder"/> instance.</returns>
-    public OpenNettyMqttBuilder ImportFromXmlConfiguration(Stream stream)
-    {
-        ArgumentNullException.ThrowIfNull(stream);
+                [] => throw new InvalidOperationException(SR.FormatID0090("Mqtt")),
+                _  => throw new InvalidOperationException(SR.FormatID0123("Mqtt"))
+            };
 
-        return ImportFromXmlConfiguration(XDocument.Load(stream));
-    }
-
-    /// <summary>
-    /// Imports the OpenNetty MQTT configuration from the specified <paramref name="document"/>.
-    /// </summary>
-    /// <param name="document">The document.</param>
-    /// <returns>The <see cref="OpenNettyMqttBuilder"/> instance.</returns>
-    public OpenNettyMqttBuilder ImportFromXmlConfiguration(XDocument document)
-    {
-        ArgumentNullException.ThrowIfNull(document);
-
-        if (document.Root?.Name != "Configuration")
-        {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0071));
-        }
-
-        var element = document.Root.Element("Mqtt") ?? throw new InvalidOperationException(SR.FormatID0090("Mqtt"));
         var builder = new MqttClientOptionsBuilder();
 
         builder.WithTcpServer(
-            host: (string?) element.Attribute("Server") ?? throw new InvalidOperationException(SR.FormatID0091("Server")),
-            port: (int?) element.Attribute("Port"));
+            host: (string?) configuration.Attribute("Server") ?? throw new InvalidOperationException(SR.FormatID0091("Server")),
+            port: (int?) configuration.Attribute("Port"));
 
         builder.WithProtocolVersion(MqttProtocolVersion.V500);
 
-        if ((string?) element.Attribute("Username") is { Length: > 0 } username &&
-            (string?) element.Attribute("Password") is { Length: > 0 } password)
+        if ((string?) configuration.Attribute("Username") is { Length: > 0 } username &&
+            (string?) configuration.Attribute("Password") is { Length: > 0 } password)
         {
             builder.WithCredentials(username, password);
         }
 
-        if ((string?) element.Attribute("ClientId") is { Length: > 0 } identifier)
+        if ((string?) configuration.Attribute("ClientId") is { Length: > 0 } identifier)
         {
             builder.WithClientId(identifier);
         }
 
         builder.WithTlsOptions(builder =>
         {
-            var certificates = GetServerCertificates(element);
+            var certificates = GetServerCertificates(configuration);
             if (certificates is { Count: > 0 })
             {
                 builder.UseTls()
                     .WithRevocationMode(X509RevocationMode.NoCheck)
                     .WithTrustChain(certificates);
 
-                var host = (string?) element.Attribute("TlsServerTargetHost");
+                var host = (string?) configuration.Attribute("TlsServerTargetHost");
                 if (!string.IsNullOrEmpty(host))
                 {
                     builder.WithTargetHost(host);
                 }
 
-                certificates = GetClientCertificates(element);
+                certificates = GetClientCertificates(configuration);
                 if (certificates is { Count: > 0 })
                 {
                     builder.WithClientCertificates(certificates);
@@ -185,11 +182,11 @@ public sealed class OpenNettyMqttBuilder
 
         return Configure(options =>
         {
-            options.DisableHomeAssistantDiscovery = (bool?) element.Attribute("DisableHomeAssistantDiscovery") ?? false;
+            options.DisableHomeAssistantDiscovery = (bool?) configuration.Attribute("DisableHomeAssistantDiscovery") ?? false;
 
             var topics = (
-                RootTopic: (string?) element.Attribute("RootTopic"),
-                DiscoveryRootTopic: (string?) element.Attribute("HomeAssistantDiscoveryRootTopic"));
+                RootTopic: (string?) configuration.Attribute("RootTopic"),
+                DiscoveryRootTopic: (string?) configuration.Attribute("HomeAssistantDiscoveryRootTopic"));
 
             if (!string.IsNullOrEmpty(topics.RootTopic))
             {
@@ -201,7 +198,7 @@ public sealed class OpenNettyMqttBuilder
                 options.HomeAssistantDiscoveryRootTopic = topics.DiscoveryRootTopic;
             }
 
-            var culture = (string?) element.Attribute("HomeAssistantDiscoveryUICulture");
+            var culture = (string?) configuration.Attribute("HomeAssistantDiscoveryUICulture");
             if (!string.IsNullOrEmpty(culture))
             {
                 options.HomeAssistantDiscoveryUICulture = CultureInfo.GetCultureInfo(culture);
@@ -245,11 +242,7 @@ public sealed class OpenNettyMqttBuilder
             // Note: on Windows, the client certificate is exported and re-imported to work around a limitation
             // of the cryptographic stack that doesn't allow using an ephemeral key for TLS client authentication.
             return OperatingSystem.IsWindows() ?
-#if SUPPORTS_CERTIFICATE_LOADER
                 [X509CertificateLoader.LoadPkcs12(certificate.Export(X509ContentType.Pkcs12), password: null)] :
-#else
-                [new X509Certificate2(certificate.Export(X509ContentType.Pkcs12))] :
-#endif
                 [certificate];
         }
     }

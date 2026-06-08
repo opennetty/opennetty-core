@@ -325,10 +325,10 @@
     <value>The specified endpoint doesn't have the capability required to perform this action.</value>
   </data>
   <data name="ID0070" xml:space="preserve">
-    <value>The specified OpenNetty configuration file was not found.</value>
+    <value>The specified file was not found.</value>
   </data>
   <data name="ID0071" xml:space="preserve">
-    <value>The specified OpenNetty configuration file is malformed. Make sure it specifies a 'Configuration' root node.</value>
+    <value>One of the configuration files is malformed. Make sure the configuration files specify a '{0}' root node.</value>
   </data>
   <data name="ID0072" xml:space="preserve">
     <value>The channel was closed by the hosted service.</value>
@@ -385,7 +385,7 @@
     <value>The gateway '{0}' doesn't exist or is not valid.</value>
   </data>
   <data name="ID0090" xml:space="preserve">
-    <value>The '{0}' node required when enabling the MQTT integration was not found in the configuration file.</value>
+    <value>The '{0}' node required when enabling the MQTT integration was not found in the configuration files.</value>
   </data>
   <data name="ID0091" xml:space="preserve">
     <value>A non-null '{0}' attribute is required for the MQTT configuration node.</value>
@@ -482,6 +482,9 @@
   </data>
   <data name="ID0122" xml:space="preserve">
     <value>The specified JSON payload is invalid, doesn't include a required parameter or is of an unsupported type.</value>
+  </data>
+  <data name="ID0123" xml:space="preserve">
+    <value>The '{0}' node cannot be specified more than once in the configuration files.</value>
   </data>
   <data name="ID2000" xml:space="preserve">
     <value>The endpoint name '{0}' is not valid. Endpoint names cannot contain the '+' or '*' characters.</value>
