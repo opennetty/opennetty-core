@@ -15,25 +15,9 @@ namespace OpenNetty.Mqtt;
 /// </summary>
 [EditorBrowsable(EditorBrowsableState.Never)]
 public sealed class OpenNettyMqttConfiguration : IPostConfigureOptions<OpenNettyMqttOptions>,
-    IValidateOptions<OpenNettyOptions>,
-    IValidateOptions<OpenNettyMqttOptions>
+                                                 IValidateOptions<OpenNettyOptions>,
+                                                 IValidateOptions<OpenNettyMqttOptions>
 {
-    /// <inheritdoc/>
-    public ValidateOptionsResult Validate(string? name, OpenNettyOptions options)
-    {
-        foreach (var endpoint in options.Endpoints)
-        {
-            if (endpoint.GetStringSetting(OpenNettySettings.MqttTopic) is string topic &&
-                (topic.Contains('+', StringComparison.OrdinalIgnoreCase) ||
-                 topic.Contains('*', StringComparison.OrdinalIgnoreCase)))
-            {
-                return ValidateOptionsResult.Fail(SR.FormatID2005(topic));
-            }
-        }
-
-        return ValidateOptionsResult.Success;
-    }
-
     /// <inheritdoc/>
     public void PostConfigure(string? name, OpenNettyMqttOptions options)
     {
@@ -53,31 +37,53 @@ public sealed class OpenNettyMqttConfiguration : IPostConfigureOptions<OpenNetty
     }
 
     /// <inheritdoc/>
+    public ValidateOptionsResult Validate(string? name, OpenNettyOptions options)
+    {
+        ArgumentNullException.ThrowIfNull(options);
+
+        var builder = new ValidateOptionsResultBuilder();
+
+        foreach (var endpoint in options.Endpoints)
+        {
+            if (endpoint.GetStringSetting(OpenNettySettings.MqttTopic) is string topic &&
+                (topic.Contains('+', StringComparison.OrdinalIgnoreCase) ||
+                 topic.Contains('*', StringComparison.OrdinalIgnoreCase)))
+            {
+                builder.AddError(SR.FormatID2005(topic));
+            }
+        }
+
+        return builder.Build();
+    }
+
+    /// <inheritdoc/>
     public ValidateOptionsResult Validate(string? name, OpenNettyMqttOptions options)
     {
         ArgumentNullException.ThrowIfNull(options);
 
+        var builder = new ValidateOptionsResultBuilder();
+
         if (options.RootTopic.Contains('+', StringComparison.OrdinalIgnoreCase) ||
             options.RootTopic.Contains('*', StringComparison.OrdinalIgnoreCase))
         {
-            return ValidateOptionsResult.Fail(SR.GetResourceString(SR.ID2001));
+            builder.AddError(SR.GetResourceString(SR.ID2001));
         }
 
         if (options.RootTopic.EndsWith("/", StringComparison.OrdinalIgnoreCase))
         {
-            return ValidateOptionsResult.Fail(SR.GetResourceString(SR.ID2007));
+            builder.AddError(SR.GetResourceString(SR.ID2007));
         }
 
         if (options.HomeAssistantDiscoveryRootTopic.EndsWith("/", StringComparison.OrdinalIgnoreCase))
         {
-            return ValidateOptionsResult.Fail(SR.GetResourceString(SR.ID2008));
+            builder.AddError(SR.GetResourceString(SR.ID2008));
         }
 
         if (string.Equals(options.HomeAssistantDiscoveryRootTopic, options.RootTopic, StringComparison.OrdinalIgnoreCase))
         {
-            return ValidateOptionsResult.Fail(SR.GetResourceString(SR.ID2009));
+            builder.AddError(SR.GetResourceString(SR.ID2009));
         }
 
-        return ValidateOptionsResult.Success;
+        return builder.Build();
     }
 }
