@@ -471,4 +471,19 @@
   <data name="ID8119" xml:space="preserve">
     <value>Date de la dernière communication</value>
   </data>
+  <data name="ID8120" xml:space="preserve">
+    <value>Point de terminaison virtuel</value>
+  </data>
+  <data name="ID8121" xml:space="preserve">
+    <value>Point de terminaison virtuel Nitoo</value>
+  </data>
+  <data name="ID8122" xml:space="preserve">
+    <value>Point de terminaison virtuel Zigbee</value>
+  </data>
+  <data name="ID8123" xml:space="preserve">
+    <value>Point de terminaison virtuel SCS point de lumière</value>
+  </data>
+  <data name="ID8124" xml:space="preserve">
+    <value>Point de terminaison virtuel SCS scénario plus</value>
+  </data>
 </root>

@@ -76,9 +76,12 @@ public sealed class OpenNettyBuilder
     /// </summary>
     /// <param name="devices">The devices.</param>
     /// <returns>The <see cref="OpenNettyBuilder"/> instance.</returns>
-    public OpenNettyBuilder AddDevices(IEnumerable<OpenNettyDevice> devices)
+    public OpenNettyBuilder AddDevices(params ImmutableArray<OpenNettyDevice> devices)
     {
-        ArgumentNullException.ThrowIfNull(devices);
+        if (devices.Any(static device => device is null))
+        {
+            throw new ArgumentException(SR.GetResourceString(SR.ID0124), nameof(devices));
+        }
 
         return Configure(options => options.Devices.AddRange(devices));
     }
@@ -100,9 +103,12 @@ public sealed class OpenNettyBuilder
     /// </summary>
     /// <param name="endpoints">The endpoints.</param>
     /// <returns>The <see cref="OpenNettyBuilder"/> instance.</returns>
-    public OpenNettyBuilder AddEndpoints(IEnumerable<OpenNettyEndpoint> endpoints)
+    public OpenNettyBuilder AddEndpoints(params ImmutableArray<OpenNettyEndpoint> endpoints)
     {
-        ArgumentNullException.ThrowIfNull(endpoints);
+        if (endpoints.Any(static endpoint => endpoint is null))
+        {
+            throw new ArgumentException(SR.GetResourceString(SR.ID0124), nameof(endpoints));
+        }
 
         return Configure(options => options.Endpoints.AddRange(endpoints));
     }
@@ -124,9 +130,12 @@ public sealed class OpenNettyBuilder
     /// </summary>
     /// <param name="gateways">The gateways.</param>
     /// <returns>The <see cref="OpenNettyBuilder"/> instance.</returns>
-    public OpenNettyBuilder AddGateways(IEnumerable<OpenNettyGateway> gateways)
+    public OpenNettyBuilder AddGateways(params ImmutableArray<OpenNettyGateway> gateways)
     {
-        ArgumentNullException.ThrowIfNull(gateways);
+        if (gateways.Any(static gateway => gateway is null))
+        {
+            throw new ArgumentException(SR.GetResourceString(SR.ID0124), nameof(gateways));
+        }
 
         return Configure(options => options.Gateways.AddRange(gateways));
     }
@@ -264,7 +273,7 @@ public sealed class OpenNettyBuilder
                 });
             }
 
-            foreach (var device in documents.SelectMany(static document => document.Root?.Elements("Device") ?? []))
+            foreach (var device in documents.SelectMany(static document => document.Root!.Elements("Device")))
             {
                 options.Devices.Add(GetDevice(options.Gateways, device));
             }

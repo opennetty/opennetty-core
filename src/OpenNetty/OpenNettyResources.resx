@@ -486,6 +486,9 @@
   <data name="ID0123" xml:space="preserve">
     <value>The '{0}' node cannot be specified more than once in the configuration files.</value>
   </data>
+  <data name="ID0124" xml:space="preserve">
+    <value>The specified collection contains null elements, which is not valid for this operation.</value>
+  </data>
   <data name="ID2000" xml:space="preserve">
     <value>The endpoint name '{0}' is not valid. Endpoint names cannot contain the '+' or '*' characters.</value>
   </data>
@@ -965,5 +968,20 @@
   </data>
   <data name="ID8119" xml:space="preserve">
     <value>Last communication date</value>
+  </data>
+  <data name="ID8120" xml:space="preserve">
+    <value>Virtual endpoint</value>
+  </data>
+  <data name="ID8121" xml:space="preserve">
+    <value>Virtual Nitoo endpoint</value>
+  </data>
+  <data name="ID8122" xml:space="preserve">
+    <value>Virtual Zigbee endpoint</value>
+  </data>
+  <data name="ID8123" xml:space="preserve">
+    <value>Virtual SCS light point endpoint</value>
+  </data>
+  <data name="ID8124" xml:space="preserve">
+    <value>Virtual SCS scenario plus endpoint</value>
   </data>
 </root>
