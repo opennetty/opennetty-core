@@ -202,7 +202,6 @@ public sealed class OpenNettyGateway
         var device = new OpenNettyDevice
         {
             Definition = definition,
-            Gateway = null,
             Identifier = identifier,
             Identity = definition.Identities.Single(identity => identity.Brand == brand && identity.Model == model)
         };
@@ -238,7 +237,6 @@ public sealed class OpenNettyGateway
         var device = new OpenNettyDevice
         {
             Definition = definition,
-            Gateway = null,
             Identifier = identifier,
             Identity = definition.Identities.Single(identity => identity.Brand == brand && identity.Model == model)
         };
