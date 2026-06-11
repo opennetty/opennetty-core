@@ -37,15 +37,23 @@ public sealed class OpenNettyDevice : IEquatable<OpenNettyDevice>
     public OpenNettyGateway? Gateway { get; init; }
 
     /// <summary>
-    /// Gets or sets the unique identifier associated with the
-    /// device (typically, a serial number or a MAC address).
+    /// Gets or sets the unique identifier associated with the device,
+    /// if applicable (typically, a serial number or a MAC address).
     /// </summary>
-    public required OpenNettyDeviceIdentifier Identifier { get; init; }
+    /// <remarks>
+    /// Note: some devices may not have a unique identifier (e.g, legacy SCS devices).
+    /// </remarks>
+    public OpenNettyDeviceIdentifier? Identifier { get; init; }
 
     /// <summary>
     /// Gets or sets the identity associated with the device.
     /// </summary>
     public required OpenNettyDeviceIdentity Identity { get; init; }
+
+    /// <summary>
+    /// Gets or sets the name associated with the device.
+    /// </summary>
+    public required string Name { get; init; }
 
     /// <summary>
     /// Gets or sets the user-defined settings associated with the device, if applicable.
@@ -111,6 +119,7 @@ public sealed class OpenNettyDevice : IEquatable<OpenNettyDevice>
             Gateway == other.Gateway &&
             Identifier == other.Identifier &&
             Identity == other.Identity &&
+            string.Equals(Name, other.Name, StringComparison.OrdinalIgnoreCase) &&
             Settings.Count == other.Settings.Count && !Settings.Except(other.Settings).Any() &&
             Units.Length == other.Units.Length && !Units.Except(other.Units).Any();
     }
@@ -126,6 +135,7 @@ public sealed class OpenNettyDevice : IEquatable<OpenNettyDevice>
         hash.Add(Gateway);
         hash.Add(Identifier);
         hash.Add(Identity);
+        hash.Add(Name);
 
         hash.Add(Settings.Count);
         foreach (var (name, value) in Settings)
@@ -147,7 +157,7 @@ public sealed class OpenNettyDevice : IEquatable<OpenNettyDevice>
     /// Computes the <see cref="string"/> representation of the current device.
     /// </summary>
     /// <returns>The <see cref="string"/> representation of the current device.</returns>
-    public override string ToString() => Identifier.ToString();
+    public override string ToString() => Name ?? string.Empty;
 
     /// <summary>
     /// Determines whether two <see cref="OpenNettyDevice"/> instances are equal.

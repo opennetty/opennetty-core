@@ -5,6 +5,7 @@
  */
 
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
 using System.Xml.Linq;
@@ -29,45 +30,26 @@ public static class OpenNettyDevices
     /// <see langword="null"/> if the device definition couldn't be found in the database.
     /// </returns>
     /// <exception cref="ArgumentException">The model is null or empty or the brand is not valid.</exception>
-    public static OpenNettyDeviceDefinition? GetDeviceByModel(OpenNettyBrand brand, string model)
-    {
-        ArgumentException.ThrowIfNullOrEmpty(model);
-
-        if (!Enum.IsDefined(brand))
-        {
-            throw new ArgumentException(SR.GetResourceString(SR.ID0006), nameof(brand));
-        }
-
-        foreach (var device in _devices.Value)
-        {
-            foreach (var identity in device.Identities)
-            {
-                if (identity.Brand == brand && string.Equals(identity.Model, model, StringComparison.OrdinalIgnoreCase))
-                {
-                    return device;
-                }
-            }
-        }
-
-        return null;
-    }
+    public static OpenNettyDeviceDefinition GetDeviceDefinitionByModel(OpenNettyBrand brand, string model)
+        => TryGetDeviceDefinitionByModel(brand, model, out OpenNettyDeviceDefinition? definition)
+            ? definition
+            : throw new InvalidOperationException(SR.FormatID0085(brand, model));
 
     /// <summary>
-    /// Resolves the unit definition corresponding to the specified brand, model and unit identifier.
+    /// Resolves the device definition corresponding to the specified brand and model.
     /// </summary>
     /// <param name="brand">The device brand.</param>
     /// <param name="model">The device model.</param>
-    /// <param name="id">The unit identifier.</param>
+    /// <param name="definition">The device definition.</param>
     /// <returns>
-    /// The unit definition corresponding to the specified brand, model and unit identifier or
-    /// <see langword="null"/> if the unit definition couldn't be found in the database.
+    /// <see langword="true"/> if the device definition corresponding to the
+    /// specified brand and model was found; otherwise, <see langword="false"/>.
     /// </returns>
     /// <exception cref="ArgumentException">The model is null or empty or the brand is not valid.</exception>
-    /// <exception cref="ArgumentOutOfRangeException">The unit identifier is out of range.</exception>
-    public static OpenNettyUnitDefinition? GetUnitByModel(OpenNettyBrand brand, string model, byte id)
+    public static bool TryGetDeviceDefinitionByModel(OpenNettyBrand brand,
+        string model, [NotNullWhen(true)] out OpenNettyDeviceDefinition? definition)
     {
         ArgumentException.ThrowIfNullOrEmpty(model);
-        ArgumentOutOfRangeException.ThrowIfZero(id);
 
         if (!Enum.IsDefined(brand))
         {
@@ -80,18 +62,14 @@ public static class OpenNettyDevices
             {
                 if (identity.Brand == brand && string.Equals(identity.Model, model, StringComparison.OrdinalIgnoreCase))
                 {
-                    foreach (var unit in device.Units)
-                    {
-                        if (unit.Id == id)
-                        {
-                            return unit;
-                        }
-                    }
+                    definition = device;
+                    return true;
                 }
             }
         }
 
-        return null;
+        definition = null;
+        return false;
     }
 
     private static ImmutableArray<OpenNettyDeviceDefinition> CreateDeviceDefinitions()

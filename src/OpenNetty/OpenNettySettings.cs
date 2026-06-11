@@ -77,6 +77,11 @@ public static class OpenNettySettings
     public static readonly OpenNettySetting HomeAssistantLightName = new("Home Assistant light name");
 
     /// <summary>
+    /// Home Assistant object ID.
+    /// </summary>
+    public static readonly OpenNettySetting HomeAssistantObjectId = new("Home Assistant object ID");
+
+    /// <summary>
     /// Home Assistant scenario device class.
     /// </summary>
     public static readonly OpenNettySetting HomeAssistantScenarioDeviceClass = new("Home Assistant scenario device class");

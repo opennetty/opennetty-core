@@ -4,10 +4,8 @@
  * the license and the contributors participating to this project.
  */
 
-using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Globalization;
-using System.Text;
 using Microsoft.Extensions.Options;
 
 namespace OpenNetty;
@@ -25,33 +23,34 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
 
         foreach (var device in options.Devices)
         {
-            // If an endpoint targeting the device was configured by the user, do not override it.
+            if (device.Identifier is null)
+            {
+                continue;
+            }
+
+            // If an endpoint targeting the device was configured by the user, do not overwrite it.
             if (!options.Endpoints.Exists(endpoint => endpoint.Device == device && endpoint.Unit is null))
             {
+                var address = device.Definition.Protocol switch
+                {
+                    OpenNettyProtocol.Nitoo  => OpenNettyAddress.FromNitooAddress(device.Identifier.Value,  unit: 0),
+                    OpenNettyProtocol.Zigbee => OpenNettyAddress.FromZigbeeAddress(device.Identifier.Value, unit: 0),
+
+                    _ => null as OpenNettyAddress?
+                };
+
                 options.Endpoints.Add(new OpenNettyEndpoint
                 {
-                    Address = device.Definition.Protocol switch
-                    {
-                        OpenNettyProtocol.Nitoo  => OpenNettyAddress.FromNitooAddress(device.Identifier,  unit: 0),
-                        OpenNettyProtocol.Zigbee => OpenNettyAddress.FromZigbeeAddress(device.Identifier, unit: 0),
-
-                        _ => null
-                    },
+                    Address = address,
                     Capabilities = [],
                     Device = device,
                     Gateway = device.Gateway ?? options.Gateways.FirstOrDefault(gateway => gateway.Device == device)
                         ?? throw new InvalidOperationException(SR.FormatID0107("Gateway")),
                     Medium = device.Definition.Medium,
-                    Name = ComputeDefaultEndpointName(device),
+                    Name = OpenNettyUtilities.ComputeDefaultEndpointName(device.Definition.Protocol, address, device, unit: null),
                     Protocol = device.Definition.Protocol,
-                    Settings = ImmutableDictionary.Create<OpenNettySetting, string>()
+                    Settings = []
                 });
-
-                static string ComputeDefaultEndpointName(OpenNettyDevice device)
-                    => new StringBuilder(Enum.GetName(device.Definition.Protocol))
-                        .Append('/')
-                        .Append(new string(device.Identifier.ToString().Where(char.IsAsciiHexDigit).ToArray()))
-                        .ToString();
             }
 
             // Add implicit endpoints for all the units that have not been explicitly added by the user.
@@ -65,38 +64,34 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
                         continue;
                     }
 
+                    var address = device.Definition.Protocol switch
+                    {
+                        OpenNettyProtocol.Nitoo  => OpenNettyAddress.FromNitooAddress(device.Identifier.Value,  unit: definition.Id),
+                        OpenNettyProtocol.Zigbee => OpenNettyAddress.FromZigbeeAddress(device.Identifier.Value, unit: definition.Id),
+
+                        _ => null as OpenNettyAddress?
+                    };
+
+                    var unit = device.Units.SingleOrDefault(unit => unit.Definition == definition) ?? new OpenNettyUnit
+                    {
+                        Definition = definition,
+                        Scenarios = [],
+                        Settings = []
+                    };
+
                     options.Endpoints.Add(new OpenNettyEndpoint
                     {
-                        Address = device.Definition.Protocol switch
-                        {
-                            OpenNettyProtocol.Nitoo  => OpenNettyAddress.FromNitooAddress(device.Identifier,  unit: definition.Id),
-                            OpenNettyProtocol.Zigbee => OpenNettyAddress.FromZigbeeAddress(device.Identifier, unit: definition.Id),
-
-                            _ => null
-                        },
+                        Address = address,
                         Capabilities = [],
                         Device = device,
                         Gateway = device.Gateway ?? options.Gateways.FirstOrDefault(gateway => gateway.Device == device)
                             ?? throw new InvalidOperationException(SR.FormatID0107("Gateway")),
                         Medium = device.Definition.Medium,
-                        Name = ComputeDefaultEndpointName(device, definition),
+                        Name = OpenNettyUtilities.ComputeDefaultEndpointName(device.Definition.Protocol, address, device, unit),
                         Protocol = device.Definition.Protocol,
-                        Settings = ImmutableDictionary.Create<OpenNettySetting, string>(),
-                        Unit = device.Units.SingleOrDefault(unit => unit.Definition == definition) ?? new OpenNettyUnit
-                        {
-                            Definition = definition,
-                            Scenarios = [],
-                            Settings = ImmutableDictionary.Create<OpenNettySetting, string>()
-                        }
+                        Settings = [],
+                        Unit = unit
                     });
-
-                    static string ComputeDefaultEndpointName(OpenNettyDevice device, OpenNettyUnitDefinition unit)
-                        => new StringBuilder(Enum.GetName(device.Definition.Protocol))
-                            .Append('/')
-                            .Append(new string(device.Identifier.ToString().Where(char.IsAsciiHexDigit).ToArray()))
-                            .Append('/')
-                            .Append(unit.Id)
-                            .ToString();
                 }
             }
         }
@@ -111,34 +106,69 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
 
         if (options.Gateways.Count is 0)
         {
-            builder.AddError(SR.GetResourceString(SR.ID0126));
+            builder.AddError(SR.GetResourceString(SR.ID2017));
         }
 
-        if (options.Devices.GroupBy(static device => device.Identifier)
+        switch (options.Devices.GroupBy(static device => device.Identifier)
+            .Where(static group => group.Key is not null)
             .Where(static group => group.Count() is > 1)
             .Select(static group => group.Key)
             .OfType<OpenNettyDeviceIdentifier?>()
-            .FirstOrDefault() is OpenNettyDeviceIdentifier identifier)
+            .FirstOrDefault())
         {
-            builder.AddError(SR.FormatID2012(identifier.ToString()));
+            case OpenNettyDeviceIdentifier value:
+                builder.AddError(SR.FormatID2012(value.ToString()));
+                break;
         }
 
-        if (options.Endpoints.GroupBy(static endpoint => endpoint.Name)
+        switch (options.Devices.GroupBy(static device => device.Name)
+            .Where(static device => device.Count() is > 1)
+            .Select(static device => device.Key)
+            .OfType<string?>()
+            .FirstOrDefault())
+        {
+            case string value:
+                builder.AddError(SR.FormatID2019(value));
+                break;
+        }
+
+        switch (options.Endpoints.GroupBy(static endpoint => endpoint.Name)
             .Where(static endpoint => endpoint.Count() is > 1)
             .Select(static endpoint => endpoint.Key)
             .OfType<string?>()
-            .FirstOrDefault() is string value)
+            .FirstOrDefault())
         {
-            builder.AddError(SR.FormatID2013(value));
+            case string value:
+                builder.AddError(SR.FormatID2013(value));
+                break;
+        }
+
+        foreach (var device in options.Devices)
+        {
+            switch (device.Name)
+            {
+                case string value when value.Contains('+', StringComparison.OrdinalIgnoreCase) ||
+                                       value.Contains('*', StringComparison.OrdinalIgnoreCase):
+                    builder.AddError(SR.FormatID2020(device.Name));
+                    break;
+            }
+
+            switch (device.GetBooleanSetting(OpenNettySettings.ActionValidation))
+            {
+                case not null when device.Definition.Protocol is not OpenNettyProtocol.Nitoo:
+                    builder.AddError(SR.GetResourceString(SR.ID2010));
+                    break;
+            }
         }
 
         foreach (var endpoint in options.Endpoints)
         {
-            if (!string.IsNullOrEmpty(endpoint.Name) &&
-                (endpoint.Name.Contains('+', StringComparison.OrdinalIgnoreCase) ||
-                 endpoint.Name.Contains('*', StringComparison.OrdinalIgnoreCase)))
+            switch (endpoint.Name)
             {
-                builder.AddError(SR.FormatID2000(endpoint.Name));
+                case string value when value.Contains('+', StringComparison.OrdinalIgnoreCase) ||
+                                       value.Contains('*', StringComparison.OrdinalIgnoreCase):
+                    builder.AddError(SR.FormatID2000(endpoint.Name));
+                    break;
             }
 
             switch (endpoint.GetBooleanSetting(OpenNettySettings.ActionValidation))
@@ -168,21 +198,21 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
                     builder.AddError(SR.FormatID2014(endpoint.Name));
                     break;
 
-                case string type when type is not (
+                case string value when value is not (
                     OpenNettySettings.FunctionTypes.AutomationActuator or
                     OpenNettySettings.FunctionTypes.LightActuator      or 
                     OpenNettySettings.FunctionTypes.ScheduledScenario  or
                     OpenNettySettings.FunctionTypes.ScheduledScenarioPlus):
-                    builder.AddError(SR.FormatID2003(endpoint.Name, type));
+                    builder.AddError(SR.FormatID2003(endpoint.Name, value));
                     break;
             }
 
             switch (endpoint.GetStringSetting(OpenNettySettings.SwitchMode))
             {
-                case string mode when mode is not (
+                case string value when value is not (
                     OpenNettySettings.SwitchModes.Default or
                     OpenNettySettings.SwitchModes.PushButton):
-                    builder.AddError(SR.FormatID2004(endpoint.Name, mode));
+                    builder.AddError(SR.FormatID2004(endpoint.Name, value));
                     break;
             }
 
@@ -192,14 +222,14 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
                     builder.AddError(SR.FormatID2015(endpoint.Name));
                     break;
 
-                case string numbers when numbers.Split(',', StringSplitOptions.RemoveEmptyEntries) is not [_, ..] array ||
+                case string value when value.Split(',', StringSplitOptions.RemoveEmptyEntries) is not [_, ..] array ||
                     array.Any(number => !byte.TryParse(number, CultureInfo.InvariantCulture, out _)):
                     builder.AddError(SR.FormatID2016(endpoint.Name));
                     break;
             }
 
             static bool SupportsLightControl(OpenNettyEndpoint endpoint) =>
-                endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchControl) ||
+                endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchControl)  ||
                 endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingControl) ||
                 endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingControl);
 

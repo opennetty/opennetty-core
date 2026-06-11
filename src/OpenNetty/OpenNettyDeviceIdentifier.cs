@@ -182,7 +182,7 @@ public readonly struct OpenNettyDeviceIdentifier : IEquatable<OpenNettyDeviceIde
         else if (identifier.Type is OpenNettyDeviceIdentifierType.ScsSerialNumber or
                                     OpenNettyDeviceIdentifierType.ZigbeeSerialNumber)
         {
-            return $"00:04:74:00:{identifier.Value}";
+            return $"00:04:74:00:{string.Join(":", Enumerable.Range(0, 4).Select(index => identifier.Value.Substring(index * 2, 2)))}";
         }
 
         throw new ArgumentException(SR.GetResourceString(SR.ID0110), nameof(identifier));
@@ -222,7 +222,7 @@ public readonly struct OpenNettyDeviceIdentifier : IEquatable<OpenNettyDeviceIde
                 throw new ArgumentException(SR.GetResourceString(SR.ID0112), nameof(identifier));
             }
 
-            return identifier.Value["00:04:74:00:".Length..];
+            return identifier.Value["00:04:74:00:".Length..].Replace(":", "");
         }
 
         throw new ArgumentException(SR.GetResourceString(SR.ID0112), nameof(identifier));
@@ -247,7 +247,7 @@ public readonly struct OpenNettyDeviceIdentifier : IEquatable<OpenNettyDeviceIde
                 throw new ArgumentException(SR.GetResourceString(SR.ID0113), nameof(identifier));
             }
 
-            return identifier.Value["00:04:74:00:".Length..];
+            return identifier.Value["00:04:74:00:".Length..].Replace(":", "");
         }
 
         throw new ArgumentException(SR.GetResourceString(SR.ID0113), nameof(identifier));

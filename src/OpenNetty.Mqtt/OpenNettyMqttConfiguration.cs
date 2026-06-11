@@ -45,15 +45,26 @@ public sealed class OpenNettyMqttConfiguration : IPostConfigureOptions<OpenNetty
 
         foreach (var endpoint in options.Endpoints)
         {
-            if (endpoint.GetStringSetting(OpenNettySettings.MqttTopic) is string topic &&
-                (topic.Contains('+', StringComparison.OrdinalIgnoreCase) ||
-                 topic.Contains('*', StringComparison.OrdinalIgnoreCase)))
+            switch (endpoint.GetStringSetting(OpenNettySettings.MqttTopic))
             {
-                builder.AddError(SR.FormatID2005(topic));
+                case string value when value.Contains('+', StringComparison.OrdinalIgnoreCase) ||
+                                       value.Contains('*', StringComparison.OrdinalIgnoreCase):
+                    builder.AddError(SR.FormatID2005(value));
+                    break;
+            }
+
+            switch (endpoint.GetStringSetting(OpenNettySettings.HomeAssistantObjectId))
+            {
+                case string value when !IsValidObjectIdentifier(value):
+                    builder.AddError(SR.FormatID2018(value));
+                    break;
             }
         }
 
         return builder.Build();
+
+        static bool IsValidObjectIdentifier(string identifier) => identifier.All(static character =>
+            char.IsAsciiLetterOrDigit(character) || character is '_' or '-');
     }
 
     /// <inheritdoc/>

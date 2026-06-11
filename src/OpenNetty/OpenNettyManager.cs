@@ -72,6 +72,46 @@ public class OpenNettyManager
     }
 
     /// <summary>
+    /// Resolves a device using the specified name.
+    /// </summary>
+    /// <remarks>
+    /// Note: the name lookup is case-sensitive.
+    /// </remarks>
+    /// <param name="name">The device name.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>
+    /// A <see cref="ValueTask{TResult}"/> that can be used to monitor the asynchronous operation and whose result
+    /// contains the resolved device, or <see langword="null"/> if no matching device could be resolved.
+    /// </returns>
+    public virtual ValueTask<OpenNettyDevice?> FindDeviceByNameAsync(string name, CancellationToken cancellationToken = default)
+    {
+        ArgumentException.ThrowIfNullOrEmpty(name);
+
+        OpenNettyDevice? device = null;
+
+        for (var index = 0; index < _options.CurrentValue.Devices.Count; index++)
+        {
+            if (cancellationToken.IsCancellationRequested)
+            {
+                return ValueTask.FromCanceled<OpenNettyDevice?>(cancellationToken);
+            }
+
+            if (string.Equals(_options.CurrentValue.Devices[index].Name, name, StringComparison.Ordinal))
+            {
+                if (device is not null)
+                {
+                    return ValueTask.FromException<OpenNettyDevice?>(
+                        new InvalidOperationException(SR.GetResourceString(SR.ID0126)));
+                }
+
+                device = _options.CurrentValue.Devices[index];
+            }
+        }
+
+        return ValueTask.FromResult(device);
+    }
+
+    /// <summary>
     /// Resolves an endpoint using the specified name.
     /// </summary>
     /// <remarks>

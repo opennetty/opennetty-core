@@ -376,7 +376,7 @@
     <value>A non-null '{0}' attribute is required for endpoint, device or unit settings.</value>
   </data>
   <data name="ID0087" xml:space="preserve">
-    <value>The unit '{0}' is not valid for the device {1} '{2}'.</value>
+    <value>The unit '{0}' is not valid for this device.</value>
   </data>
   <data name="ID0088" xml:space="preserve">
     <value>A non-null '{0}' attribute is required for Nitoo scenarios.</value>
@@ -439,7 +439,7 @@
     <value>Gateway devices must declare a '{0}' node with the gateway details.</value>
   </data>
   <data name="ID0108" xml:space="preserve">
-    <value>Device nodes must include a '{0}' or '{1}' attribute.</value>
+    <value>Device nodes must include a '{0}' attribute when the '{1}' or '{2}' attributes are not specified.</value>
   </data>
   <data name="ID0109" xml:space="preserve">
     <value>The specified MAC address contains invalid characters or uses an invalid format.</value>
@@ -493,7 +493,10 @@
     <value>No configuration file was found. For the OpenNetty daemon to work correctly, a configuration file named '{0}' must be present in the application directory. Alternatively, one or more configuration files ending with '{1}' can be placed in the '{2}' directory.</value>
   </data>
   <data name="ID0126" xml:space="preserve">
-    <value>At least one OpenWebNet gateway must be configured.</value>
+    <value>Multiple endpoints matching the specified criteria were found.</value>
+  </data>
+  <data name="ID0127" xml:space="preserve">
+    <value>The specified identity is not valid for this device.</value>
   </data>
   <data name="ID2000" xml:space="preserve">
     <value>The endpoint name '{0}' is not valid. Endpoint names cannot contain the '+' or '*' characters.</value>
@@ -545,6 +548,18 @@
   </data>
   <data name="ID2016" xml:space="preserve">
     <value>The endpoint '{0}' has an invalid list of push button numbers attached.</value>
+  </data>
+  <data name="ID2017" xml:space="preserve">
+    <value>At least one OpenWebNet gateway must be configured.</value>
+  </data>
+  <data name="ID2018" xml:space="preserve">
+    <value>The Home Assistant object identifier '{0}' is not fvalid: object identifiers can only contain ASCII letters, digits, underscores, and hyphens.</value>
+  </data>
+  <data name="ID2019" xml:space="preserve">
+    <value>Multiple devices with the name '{0}' have been added.</value>
+  </data>
+  <data name="ID2020" xml:space="preserve">
+    <value>The device name '{0}' is not valid. Device names cannot contain the '+' or '*' characters.</value>
   </data>
   <data name="ID6000" xml:space="preserve">
     <value>The OpenNetty hosted service is starting.</value>
