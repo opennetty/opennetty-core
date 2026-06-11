@@ -206,30 +206,26 @@ socket to initiate OpenWebNet sessions:
 
   <!-- In One by Legrand gateway -->
 
-  <Device Brand="Legrand" Model="88213" SerialNumber="148366">
+  <Device Brand="Legrand" Model="88213">
     <Gateway Name="OPEN-Nitoo gateway" Type="Serial"
              Port="/dev/serial/by-id/usb-Btcino_Terraneo_Mod._SFERA_Tele_Loop-if00" />
   </Device>
 
   <!-- MyHome Play gateway -->
 
-  <Device Brand="Legrand" Model="88328" SerialNumber="0026BD26">
+  <Device Brand="Legrand" Model="88328">
     <Gateway Name="OPEN-Zigbee gateway" Type="Serial"
              Port="/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0" />
   </Device>
 
   <!-- MyHome Up gateway -->
 
-  <Device Brand="BTicino" Model="F454" MacAddress="00:03:50:A2:27:1B">
+  <Device Brand="BTicino" Model="F454">
     <Gateway Name="OPEN-SCS gateway" Type="Tcp" Server="192.168.5.10" Password="aJhYiBHk8" />
   </Device>
 
 </Configuration>
 ```
-
-> [!TIP]
-> If you don't know the serial number of your MyHome Play gateway, you can temporarily specify a fake one and request the MAC
-> address via MQTT. For instance, if the EUI-64 MAC address is `00:04:74:00:00:26:BD:26`, its serial number will be `0026BD26`.
 
 > [!IMPORTANT]
 > OpenNetty natively supports both the legacy "OPEN authentication" method and the newer – and safer –
@@ -244,7 +240,7 @@ socket to initiate OpenWebNet sessions:
 To be able to communicate with "In One by Legrand", "MyHome Play" and "MyHome Up" devices, OpenNetty requires listing them in the configuration file.
 
 For that, you need to add a `Device` node with the correct brand/model attributes for each device present in the installation:
-  - The serial number (or MAC address for Ethernet gateways) is required for all devices.
+  - The serial number (or MAC address for Ethernet gateways) is optional but strongly recommended when possible to help identify devices in Home Assistant.
 
   - The unit node - also known as a "module" in MyHome Suite - is generally required for an endpoint, except when targeting a feature exposed by the device
   itself and not one of its units: in this case, the endpoint must appear directly under the `Device` node and not under a `Unit` node.
@@ -569,6 +565,8 @@ builder.Services.AddOpenNetty(options =>
 
     options.AddGateway(gateway);
 
+    var definition = OpenNettyDevices.GetDeviceDefinitionByModel(OpenNettyBrand.BTicino, "F418U2");
+
     options.AddEndpoint(new OpenNettyEndpoint
     {
         // SCS light point point-to-point address:
@@ -580,21 +578,15 @@ builder.Services.AddOpenNetty(options =>
             point    : 3),
         Device = new OpenNettyDevice
         {
-            Definition = OpenNettyDevices.GetDeviceByModel(OpenNettyBrand.BTicino, "F418U2")
-                ?? throw new InvalidOperationException("The specified product is not supported."),
-            Identity = new OpenNettyDeviceIdentity
-            {
-                Brand = OpenNettyBrand.BTicino,
-                Collection = null,
-                Description = "2-gang DIN rail dimmer switch",
-                Model = "F418U2"
-            }
+            Definition = definition,
+            Identifier = OpenNettyDeviceIdentifier.FromScsSerialNumber("00B582A5"),
+            Identity = definition.GetIdentity(OpenNettyBrand.BTicino, "F418U2"),
+            Name = "BTicino F418U2 (00B582A5)"
         },
         Gateway = gateway,
         Unit = new OpenNettyUnit
         {
-            Definition = OpenNettyDevices.GetUnitByModel(OpenNettyBrand.BTicino, "F418U2", 1)
-                ?? throw new InvalidOperationException("The specified product is not supported.")
+            Definition = definition.GetUnitDefinition(1)
         },
         Name = "Bathroom/Recessed light",
         Protocol = OpenNettyProtocol.Scs
@@ -785,20 +777,17 @@ Settings can be attached programmatically or via the configuration file to devic
 ```
 
 ```csharp
+var definition = OpenNettyDevices.GetDeviceDefinitionByModel(OpenNettyBrand.Legrand, "67222");
+
 options.AddEndpoint(new OpenNettyEndpoint
 {
     Address = OpenNettyAddress.FromNitooAddress(identifier: 487932, unit: 4),
     Device = new OpenNettyDevice
     {
-        Definition = OpenNettyDevices.GetDeviceByModel(OpenNettyBrand.Legrand, "67222")!,
+        Definition = definition,
         Identifier = OpenNettyDeviceIdentifier.FromNitooSerialNumber(487932),
-        Identity = new OpenNettyDeviceIdentity
-        {
-            Brand = OpenNettyBrand.Legrand,
-            Collection = "Céliane",
-            Description = "Dimmable switched outlet",
-            Model = "67222"
-        },
+        Identity = definition.GetIdentity(OpenNettyBrand.Legrand, "67222"),
+        Name = "Legrand 67222 (487932)",
         Settings = ImmutableDictionary.Create<OpenNettySetting, string>()
             .Add(OpenNettySettings.ActionValidation, bool.FalseString)
     },
@@ -807,7 +796,7 @@ options.AddEndpoint(new OpenNettyEndpoint
     Protocol = OpenNettyProtocol.Nitoo,
     Unit = new OpenNettyUnit
     {
-        Definition = OpenNettyDevices.GetUnitByModel(OpenNettyBrand.Legrand, "67222", 4)!
+        Definition = definition.GetUnitDefinition(4)
     }
 });
 ```

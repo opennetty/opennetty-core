@@ -5,6 +5,7 @@
  */
 
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 
 namespace OpenNetty;
 
@@ -107,6 +108,27 @@ public sealed class OpenNettyDeviceDefinition : IEquatable<OpenNettyDeviceDefini
     }
 
     /// <summary>
+    /// Resolves the identity corresponding to the specified brand and model.
+    /// </summary>
+    /// <param name="brand">The device brand.</param>
+    /// <param name="model">The device model.</param>
+    /// <returns>The resolved identity.</returns>
+    public OpenNettyDeviceIdentity GetIdentity(OpenNettyBrand brand, string model)
+        => TryGetIdentity(brand, model, out OpenNettyDeviceIdentity? identity)
+            ? identity.Value
+            : throw new InvalidOperationException(SR.GetResourceString(SR.ID0127));
+
+    /// <summary>
+    /// Resolves the unit corresponding to the specified identifier.
+    /// </summary>
+    /// <param name="identifier">The unit identifier.</param>
+    /// <returns>The definition of the resolved unit.</returns>
+    public OpenNettyUnitDefinition GetUnitDefinition(byte identifier)
+        => TryGetUnitDefinition(identifier, out OpenNettyUnitDefinition? unit)
+            ? unit
+            : throw new InvalidOperationException(SR.FormatID0087(identifier));
+
+    /// <summary>
     /// Determines whether the device has the specified capability.
     /// </summary>
     /// <param name="capability">The capability name.</param>
@@ -133,14 +155,71 @@ public sealed class OpenNettyDeviceDefinition : IEquatable<OpenNettyDeviceDefini
 
         ArgumentException.ThrowIfNullOrEmpty(model);
 
-        foreach (var identity in Identities)
+        for (var index = 0; index < Identities.Length; index++)
         {
-            if (identity.Brand == brand && string.Equals(identity.Model, model, StringComparison.OrdinalIgnoreCase))
+            if (Identities[index].Brand == brand &&
+                string.Equals(Identities[index].Model, model, StringComparison.OrdinalIgnoreCase))
             {
                 return true;
             }
         }
 
+        return false;
+    }
+
+    /// <summary>
+    /// Tries to resolve the identity corresponding to the specified brand and model.
+    /// </summary>
+    /// <param name="brand">The device brand.</param>
+    /// <param name="model">The device model.</param>
+    /// <param name="identity">The resolved identity if found, <see langword="null"/> otherwise.</param>
+    /// <returns>
+    /// <see langword="true"/> if the device has an identity matching the
+    /// specified brand and model, <see langword="false"/> otherwise.
+    /// </returns>
+    public bool TryGetIdentity(OpenNettyBrand brand, string model, [NotNullWhen(true)] out OpenNettyDeviceIdentity? identity)
+    {
+        if (!Enum.IsDefined(brand))
+        {
+            throw new ArgumentException(SR.GetResourceString(SR.ID0006), nameof(brand));
+        }
+
+        ArgumentException.ThrowIfNullOrEmpty(model);
+
+        for (var index = 0; index < Identities.Length; index++)
+        {
+            if (Identities[index].Brand == brand &&
+                string.Equals(Identities[index].Model, model, StringComparison.OrdinalIgnoreCase))
+            {
+                identity = Identities[index];
+                return true;
+            }
+        }
+
+        identity = null;
+        return false;
+    }
+
+    /// <summary>
+    /// Tries to resolve the unit corresponding to the specified identifier.
+    /// </summary>
+    /// <param name="identifier">The unit identifier.</param>
+    /// <param name="definition">The definition of the resolved unit if found, <see langword="null"/> otherwise.</param>
+    /// <returns>
+    /// <see langword="true"/> if the device has a unit matching the specified identifier, <see langword="false"/> otherwise.
+    /// </returns>
+    public bool TryGetUnitDefinition(byte identifier, [NotNullWhen(true)] out OpenNettyUnitDefinition? definition)
+    {
+        for (var index = 0; index < Units.Length; index++)
+        {
+            if (Units[index].Id == identifier)
+            {
+                definition = Units[index];
+                return true;
+            }
+        }
+
+        definition = null;
         return false;
     }
 

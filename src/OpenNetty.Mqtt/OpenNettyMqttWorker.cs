@@ -801,7 +801,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     .Append('/')
                     .Append("opennetty-").Append(Enum.GetName(device.Definition.Protocol)!.ToLowerInvariant())
                     .Append('/')
-                    .Append([.. device.Identifier.ToString().Where(IsValidNodeIdCharacter)])
+                    .Append(device.GetStringSetting(OpenNettySettings.HomeAssistantObjectId)
+                        ?? SanitizeDiscoveryObjectId(device.Name))
                     .Append('/')
                     .Append("config")
                     .ToString())
@@ -856,7 +857,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     .Append('/')
                     .Append("opennetty-").Append(Enum.GetName(endpoint.Protocol)!.ToLowerInvariant())
                     .Append('/')
-                    .Append(ComputeVirtualDeviceUniqueId(endpoint))
+                    .Append(endpoint.GetStringSetting(OpenNettySettings.HomeAssistantObjectId)
+                        ?? SanitizeDiscoveryObjectId(endpoint.Name))
                     .Append('/')
                     .Append("config")
                     .ToString())
@@ -906,7 +908,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 {
                     ["platform"] = platform,
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "feb44223-4814-4652-933c-53dbbaabac3f"u8),
-                    ["name"] = name ?? ComputeEntityName(
+                    ["name"] = name ?? ComputeEntityDisplayName(
                         name    : platform is OpenNettySettings.HomeAssistantEntityTypes.Light ?
                             GetLocalizedString(SR.ID8001, culture) : GetLocalizedString(SR.ID8000, culture),
                         endpoint: endpoint,
@@ -971,7 +973,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "3a10d925-c599-41a9-8a7e-30a04aefec86"u8),
                         ["entity_category"] = "diagnostic",
-                        ["name"] = ComputeEntityName(
+                        ["name"] = ComputeEntityDisplayName(
                             name    : GetLocalizedString(SR.ID8002, culture),
                             endpoint: endpoint,
                             culture : culture,
@@ -991,7 +993,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "f05ecfb8-70d5-4116-b0a8-2f6d9d02090f"u8),
                         ["entity_category"] = "diagnostic",
-                        ["name"] = ComputeEntityName(
+                        ["name"] = ComputeEntityDisplayName(
                             name    : GetLocalizedString(SR.ID8003, culture),
                             endpoint: endpoint,
                             culture : culture,
@@ -1014,7 +1016,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["device_class"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantCoverDeviceClass)
                         ?? OpenNettySettings.HomeAssistantDeviceClasses.Covers.Shutter,
                     ["name"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantCoverName) ??
-                        ComputeEntityName(
+                        ComputeEntityDisplayName(
                             name    : GetLocalizedString(SR.ID8004, culture),
                             endpoint: endpoint,
                             culture : culture,
@@ -1048,7 +1050,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "3a760f9d-ca89-4c9e-9ad4-8ba40ad36f59"u8),
                         ["entity_category"] = "diagnostic",
-                        ["name"] = ComputeEntityName(
+                        ["name"] = ComputeEntityDisplayName(
                             name    : GetLocalizedString(SR.ID8005, culture),
                             endpoint: endpoint,
                             culture : culture,
@@ -1068,7 +1070,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "5731274c-e498-4c7b-8671-6de8c448eb99"u8),
                         ["entity_category"] = "diagnostic",
-                        ["name"] = ComputeEntityName(
+                        ["name"] = ComputeEntityDisplayName(
                             name    : GetLocalizedString(SR.ID8006, culture),
                             endpoint: endpoint,
                             culture : culture,
@@ -1171,7 +1173,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "event",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "7faeaa9a-ae51-43f4-af82-65d2e24e14d0"u8),
                     ["icon"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantScenarioIcon) ?? "mdi:lightning-bolt",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8007, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -1209,7 +1211,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 {
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "63485e4c-a3bd-4fc9-831d-b96bacddade9"u8),
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8008, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -1223,7 +1225,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 {
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "bca953c0-7598-4baa-91df-f14ddc30450f"u8),
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8025, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -1241,7 +1243,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 {
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "f47365e3-86fa-449f-b84e-a06acc3484b1"u8),
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8111, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -1256,7 +1258,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 {
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "5c2db171-97b3-451e-a502-8800928b4335"u8),
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8112, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -1274,7 +1276,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 {
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "f053a594-66fa-42a6-9237-64d570b2bd57"u8),
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8009, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -1288,7 +1290,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 {
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "d292636e-00d3-442e-b1db-73d60b4085ec"u8),
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8010, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -1307,7 +1309,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "9563390d-24c4-48f0-a0de-61fef1e58eca"u8),
                     ["entity_category"] = "diagnostic",
                     ["device_class"] = "timestamp",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8119, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -1334,7 +1336,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .. "be2887c3-f4ae-4935-bad6-1ffb1227d28b"u8,
                                 .. Encoding.UTF8.GetBytes(button.ToString(CultureInfo.InvariantCulture))
                             ]),
-                            ["name"] = ComputeEntityName(
+                            ["name"] = ComputeEntityDisplayName(
                                 name    : string.Format(GetLocalizedString(SR.ID8011, culture), button.ToString(CultureInfo.InvariantCulture)),
                                 endpoint: endpoint,
                                 culture : culture,
@@ -1352,7 +1354,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .. "81e3f75a-fab3-4842-bb5e-1531d20290dd"u8,
                                 .. Encoding.UTF8.GetBytes(button.ToString(CultureInfo.InvariantCulture))
                             ]),
-                            ["name"] = ComputeEntityName(
+                            ["name"] = ComputeEntityDisplayName(
                                 name    : string.Format(GetLocalizedString(SR.ID8012, culture), button.ToString(CultureInfo.InvariantCulture)),
                                 endpoint: endpoint,
                                 culture : culture,
@@ -1370,7 +1372,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .. "3f069e7f-7c8f-4730-b067-9a944f61700b"u8,
                                 .. Encoding.UTF8.GetBytes(button.ToString(CultureInfo.InvariantCulture))
                             ]),
-                            ["name"] = ComputeEntityName(
+                            ["name"] = ComputeEntityDisplayName(
                                 name    : string.Format(GetLocalizedString(SR.ID8013, culture), button.ToString(CultureInfo.InvariantCulture)),
                                 endpoint: endpoint,
                                 culture : culture,
@@ -1388,7 +1390,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .. "23e04eeb-8b35-44c8-87da-aed3829ce07d"u8,
                                 .. Encoding.UTF8.GetBytes(button.ToString(CultureInfo.InvariantCulture))
                             ]),
-                            ["name"] = ComputeEntityName(
+                            ["name"] = ComputeEntityDisplayName(
                                 name    : string.Format(GetLocalizedString(SR.ID8014, culture), button.ToString(CultureInfo.InvariantCulture)),
                                 endpoint: endpoint,
                                 culture : culture,
@@ -1406,7 +1408,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "be2887c3-f4ae-4935-bad6-1ffb1227d28b"u8),
-                        ["name"] = ComputeEntityName(
+                        ["name"] = ComputeEntityDisplayName(
                             name    : GetLocalizedString(SR.ID8015, culture),
                             endpoint: endpoint,
                             culture : culture,
@@ -1420,7 +1422,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "81e3f75a-fab3-4842-bb5e-1531d20290dd"u8),
-                        ["name"] = ComputeEntityName(
+                        ["name"] = ComputeEntityDisplayName(
                             name    : GetLocalizedString(SR.ID8016, culture),
                             endpoint: endpoint,
                             culture : culture,
@@ -1434,7 +1436,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "3f069e7f-7c8f-4730-b067-9a944f61700b"u8),
-                        ["name"] = ComputeEntityName(
+                        ["name"] = ComputeEntityDisplayName(
                             name    : GetLocalizedString(SR.ID8017, culture),
                             endpoint: endpoint,
                             culture : culture,
@@ -1448,7 +1450,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "23e04eeb-8b35-44c8-87da-aed3829ce07d"u8),
-                        ["name"] = ComputeEntityName(
+                        ["name"] = ComputeEntityDisplayName(
                             name    : GetLocalizedString(SR.ID8018, culture),
                             endpoint: endpoint,
                             culture : culture,
@@ -1477,7 +1479,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .. "63a92ba4-bec3-453e-a44a-9219e4f4d478"u8,
                                 .. Encoding.UTF8.GetBytes(button.ToString(CultureInfo.InvariantCulture))
                             ]),
-                            ["name"] = ComputeEntityName(
+                            ["name"] = ComputeEntityDisplayName(
                                 name    : string.Format(GetLocalizedString(SR.ID8019, culture), button.ToString(CultureInfo.InvariantCulture)),
                                 endpoint: endpoint,
                                 culture : culture,
@@ -1495,7 +1497,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .. "e524f94b-9862-4da4-8f57-82c220e4560c"u8,
                                 .. Encoding.UTF8.GetBytes(button.ToString(CultureInfo.InvariantCulture))
                             ]),
-                            ["name"] = ComputeEntityName(
+                            ["name"] = ComputeEntityDisplayName(
                                 name    : string.Format(GetLocalizedString(SR.ID8020, culture), button.ToString(CultureInfo.InvariantCulture)),
                                 endpoint: endpoint,
                                 culture : culture,
@@ -1513,7 +1515,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .. "bf90ede8-9078-4817-8ec4-ef762c3e2077"u8,
                                 .. Encoding.UTF8.GetBytes(button.ToString(CultureInfo.InvariantCulture))
                             ]),
-                            ["name"] = ComputeEntityName(
+                            ["name"] = ComputeEntityDisplayName(
                                 name    : string.Format(GetLocalizedString(SR.ID8014, culture), button.ToString(CultureInfo.InvariantCulture)),
                                 endpoint: endpoint,
                                 culture : culture,
@@ -1531,7 +1533,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .. "73ff2263-9962-443a-89a1-f209fba81948"u8,
                                 .. Encoding.UTF8.GetBytes(button.ToString(CultureInfo.InvariantCulture))
                             ]),
-                            ["name"] = ComputeEntityName(
+                            ["name"] = ComputeEntityDisplayName(
                                 name    : string.Format(GetLocalizedString(SR.ID8021, culture), button.ToString(CultureInfo.InvariantCulture)),
                                 endpoint: endpoint,
                                 culture : culture,
@@ -1549,7 +1551,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "63a92ba4-bec3-453e-a44a-9219e4f4d478"u8),
-                        ["name"] = ComputeEntityName(
+                        ["name"] = ComputeEntityDisplayName(
                             name    : GetLocalizedString(SR.ID8022, culture),
                             endpoint: endpoint,
                             culture : culture,
@@ -1563,7 +1565,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "e524f94b-9862-4da4-8f57-82c220e4560c"u8),
-                        ["name"] = ComputeEntityName(
+                        ["name"] = ComputeEntityDisplayName(
                             name    : GetLocalizedString(SR.ID8023, culture),
                             endpoint: endpoint,
                             culture : culture,
@@ -1577,7 +1579,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "bf90ede8-9078-4817-8ec4-ef762c3e2077"u8),
-                        ["name"] = ComputeEntityName(
+                        ["name"] = ComputeEntityDisplayName(
                             name    : GetLocalizedString(SR.ID8018, culture),
                             endpoint: endpoint,
                             culture : culture,
@@ -1591,7 +1593,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "73ff2263-9962-443a-89a1-f209fba81948"u8),
-                        ["name"] = ComputeEntityName(
+                        ["name"] = ComputeEntityDisplayName(
                             name    : GetLocalizedString(SR.ID8024, culture),
                             endpoint: endpoint,
                             culture : culture,
@@ -1609,7 +1611,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 {
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "9065ccb4-d2c6-47f5-b118-e3d2ecbe20c3"u8),
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8026, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -1623,7 +1625,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 {
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "4006cf9e-620c-49d4-81b3-ab060d376966"u8),
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8027, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -1637,7 +1639,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 {
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "d13fdcd2-c974-490a-b544-436a91785ffa"u8),
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8028, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -1657,7 +1659,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["entity_category"] = "diagnostic",
                     ["device_class"] = "battery",
                     ["off_delay"] = 3600,
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8029, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -1672,7 +1674,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "7f7625f0-2461-4804-9cae-829a1040cd93"u8),
                     ["entity_category"] = "diagnostic",
                     ["icon"] = "mdi:battery-check",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8030, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -1692,7 +1694,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["entity_category"] = "diagnostic",
                     ["device_class"] = "battery",
                     ["unit_of_measurement"] = "%",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8031, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -1709,7 +1711,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "sensor",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "3a92e77f-3910-4a20-9d19-caa1961dc33d"u8),
                     ["entity_category"] = "diagnostic",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8032, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -1724,7 +1726,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "e4fa32b3-9e9f-43b5-810a-cdb75acf44e5"u8),
                     ["entity_category"] = "diagnostic",
                     ["icon"] = "mdi:help",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8033, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -1742,7 +1744,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "sensor",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "1091f326-0c22-4c59-af04-d0a6ee429a0c"u8),
                     ["entity_category"] = "diagnostic",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8034, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -1757,7 +1759,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "0371ccbb-52fd-4288-a943-b2f04a7b1e8b"u8),
                     ["entity_category"] = "diagnostic",
                     ["icon"] = "mdi:help",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8035, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -1775,7 +1777,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "sensor",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "a8de45b2-0bb5-4375-b33b-0869623e40a7"u8),
                     ["entity_category"] = "diagnostic",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8036, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -1790,7 +1792,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "aa1968e6-f232-4b96-a29f-0e64de093bb0"u8),
                     ["entity_category"] = "diagnostic",
                     ["icon"] = "mdi:help",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8037, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -1808,7 +1810,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "select",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "205a01a1-ba4c-4e9b-a19a-c1589c445cbb"u8),
                     ["icon"] = "mdi:radiator",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8039, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -1851,7 +1853,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "7a9130b9-675a-437d-b806-cbfe6f6e20a6"u8),
                     ["entity_category"] = "diagnostic",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8062, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -1869,7 +1871,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "select",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "f5f57920-d758-4ca8-8161-2614d4abeef0"u8),
                     ["icon"] = "mdi:radiator",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8045, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -1945,7 +1947,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "787582e8-0c5f-4c97-9277-0ad23dab4024"u8),
                     ["entity_category"] = "diagnostic",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8063, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -1963,7 +1965,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "switch",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "178d9f9b-e87a-4ebf-8db3-80e1e1a091df"u8),
                     ["icon"] = "mdi:radiator-off",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8113, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -1978,7 +1980,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "ecc822a6-57ab-4352-8d2c-d85dc73df5da"u8),
                     ["entity_category"] = "diagnostic",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8114, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -1999,7 +2001,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["state_class"] = "total_increasing",
                     ["unit_of_measurement"] = "kWh",
                     ["suggested_display_precision"] = 0,
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8064, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2017,7 +2019,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["state_class"] = "total_increasing",
                     ["unit_of_measurement"] = "kWh",
                     ["suggested_display_precision"] = 0,
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8065, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2035,7 +2037,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["state_class"] = "total_increasing",
                     ["unit_of_measurement"] = "kWh",
                     ["suggested_display_precision"] = 0,
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8115, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2053,7 +2055,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["state_class"] = "total_increasing",
                     ["unit_of_measurement"] = "kWh",
                     ["suggested_display_precision"] = 0,
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8066, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2071,7 +2073,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["state_class"] = "total_increasing",
                     ["unit_of_measurement"] = "kWh",
                     ["suggested_display_precision"] = 0,
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8116, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2089,7 +2091,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["state_class"] = "total_increasing",
                     ["unit_of_measurement"] = "kWh",
                     ["suggested_display_precision"] = 0,
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8067, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2107,7 +2109,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["state_class"] = "total_increasing",
                     ["unit_of_measurement"] = "kWh",
                     ["suggested_display_precision"] = 0,
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8117, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2125,7 +2127,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["state_class"] = "total_increasing",
                     ["unit_of_measurement"] = "kWh",
                     ["suggested_display_precision"] = 0,
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8068, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2143,7 +2145,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["state_class"] = "total_increasing",
                     ["unit_of_measurement"] = "kWh",
                     ["suggested_display_precision"] = 0,
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8118, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2159,7 +2161,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "e07f0687-6ca1-47d9-a5b7-b20c0e79775a"u8),
                     ["device_class"] = "enum",
                     ["icon"] = "mdi:receipt-text-outline",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8069, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2186,7 +2188,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 {
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "2eddee8f-7c81-47ea-a775-785e9dfb5c26"u8),
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8073, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2205,7 +2207,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "31eda1f3-343f-4cd7-9f56-ea792fcaec7f"u8),
                     ["device_class"] = "enum",
                     ["icon"] = "mdi:receipt-text-outline",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8074, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2228,7 +2230,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "280fd1d1-4220-42ec-bf70-69936b728eb2"u8),
                     ["device_class"] = "running",
                     ["icon"] = "mdi:transmission-tower-off",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8077, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2242,7 +2244,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "91e32508-61fa-46e3-ba57-32166b2de116"u8),
                     ["entity_category"] = "diagnostic",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8078, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2257,7 +2259,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "df24321d-01e8-4d1a-9cca-92ece18934b4"u8),
                     ["entity_category"] = "diagnostic",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8079, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2276,7 +2278,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "46c1f892-f9bf-46b6-8658-fed1d7eb177b"u8),
                     ["entity_category"] = "diagnostic",
                     ["device_class"] = "timestamp",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8080, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2290,7 +2292,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "5e9b5094-b028-492c-8be4-5b73139e2c57"u8),
                     ["entity_category"] = "diagnostic",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name: GetLocalizedString(SR.ID8081, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2308,7 +2310,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "select",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "733d9bf6-fd89-4ce1-bd71-d12a1c6a846e"u8),
                     ["icon"] = "mdi:water-boiler",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8109, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2346,7 +2348,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "344b6548-196d-42de-b627-22530cc28f07"u8),
                     ["device_class"] = "running",
                     ["icon"] = "mdi:fire",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8085, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2362,7 +2364,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "bb186d7c-f49d-4aa2-8770-a0fdcf9de123"u8),
                     ["entity_category"] = "diagnostic",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8086, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2381,7 +2383,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "2dd476d5-a35a-442a-a3f2-4c2621dcf375"u8),
                     ["device_class"] = "enum",
                     ["icon"] = "mdi:shield-home-outline",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8087, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2420,7 +2422,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["entity_category"] = "diagnostic",
                     ["device_class"] = "running",
                     ["icon"] = "mdi:link-box",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8107, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2443,7 +2445,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "d04dc07d-b614-4e3e-aeac-ccaead40d919"u8),
                     ["entity_category"] = "config",
                     ["icon"] = "mdi:link",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8094, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2459,7 +2461,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "55a25c45-cb7a-4b74-baa4-7f9b87465d1a"u8),
                     ["entity_category"] = "config",
                     ["icon"] = "mdi:link-off",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8095, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2479,7 +2481,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["entity_category"] = "diagnostic",
                     ["device_class"] = "opening",
                     ["icon"] = "mdi:wifi-strength-lock-open-outline",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8108, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2504,7 +2506,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "5ea35f24-9a6c-4d62-b000-85e6a9ef5380"u8),
                     ["entity_category"] = "diagnostic",
                     ["icon"] = "mdi:sine-wave",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8096, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2519,7 +2521,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "abda41d7-1b4c-41cc-99b9-81b7bc5801d3"u8),
                     ["entity_category"] = "diagnostic",
                     ["icon"] = "mdi:counter",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8105, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2534,7 +2536,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "b7355e3d-0137-41e7-90fa-8b81b9530466"u8),
                     ["entity_category"] = "diagnostic",
                     ["icon"] = "mdi:sine-wave",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8097, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2550,7 +2552,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "6c550d13-cbd5-4a7a-b445-1c30e9b83c65"u8),
                     ["entity_category"] = "diagnostic",
                     ["icon"] = "mdi:counter",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8106, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2565,7 +2567,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "f366a06c-6d7f-4741-a99a-490fedeabf9f"u8),
                     ["icon"] = "mdi:new-box",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8098, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2580,7 +2582,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "1c56979a-3ad2-4b9b-9116-cd7321416b6a"u8),
                     ["icon"] = "mdi:download-network",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8099, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2595,7 +2597,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "63096c5c-3fba-4ea7-a30d-3568b0680e18"u8),
                     ["icon"] = "mdi:upload-network",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8100, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2611,7 +2613,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "09953b7d-0e18-4fc9-9b8c-2a11b52a15c5"u8),
                     ["icon"] = "mdi:lock-open",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8101, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2626,7 +2628,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "7e344b36-199e-4a43-987f-59fccacc859b"u8),
                     ["icon"] = "mdi:lock",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8102, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2641,7 +2643,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "f6a3d89f-a3a4-4776-a6b0-a0e3328183ee"u8),
                     ["icon"] = "mdi:eye-check",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8103, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2656,7 +2658,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "35f91e70-674d-4977-9475-ba231553051d"u8),
                     ["icon"] = "mdi:eye-remove",
-                    ["name"] = ComputeEntityName(
+                    ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8104, culture),
                         endpoint: endpoint,
                         culture : culture,
@@ -2683,13 +2685,18 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
         {
             var node = new JsonObject
             {
-                ["identifiers"] = new JsonArray([ComputeDeviceUniqueId(device)]),
+                ["identifiers"] = new JsonArray(
+                [
+                    // Use the device's object ID if set, otherwise fall back to the device name.
+                    device.GetStringSetting(OpenNettySettings.HomeAssistantObjectId)
+                        ?? SanitizeDiscoveryObjectId(device.Name)
+                ]),
                 ["manufacturer"] = Enum.GetName(device.Identity.Brand),
                 ["model_id"] = device.Identity.Model,
-                ["serial_number"] = device.Identifier.ToString(),
-                ["name"] = device.GetStringSetting(OpenNettySettings.HomeAssistantDeviceName) is { Length: > 0 } name
-                    ? name
-                    : $"{Enum.GetName(device.Identity.Brand)} {device.Identity.Model} ({device.Identifier})"
+                ["name"] = device.GetStringSetting(OpenNettySettings.HomeAssistantDeviceName)
+                    ?? (device.Identifier is not null
+                        ? $"{Enum.GetName(device.Identity.Brand)} {device.Identity.Model} ({device.Identifier})"
+                        : $"{Enum.GetName(device.Identity.Brand)} {device.Identity.Model}")
             };
 
             var description = device.Identity.GetDescription(culture);
@@ -2698,14 +2705,25 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 node["model"] = description;
             }
 
-            if (device.Identifier.Type is OpenNettyDeviceIdentifierType.MacAddress)
+            if (device.Identifier?.Type is OpenNettyDeviceIdentifierType.NitooSerialNumber or
+                                           OpenNettyDeviceIdentifierType.ScsSerialNumber or
+                                           OpenNettyDeviceIdentifierType.ZigbeeSerialNumber)
             {
-                node["connections"] = new JsonArray([new JsonArray(["mac", OpenNettyDeviceIdentifier.ToMacAddress(device.Identifier)])]);
+                node["serial_number"] = device.Identifier.Value.ToString();
+            }
+
+            if (device.Identifier?.Type is OpenNettyDeviceIdentifierType.MacAddress)
+            {
+                node["connections"] = new JsonArray(
+                [
+                    new JsonArray(["mac", OpenNettyDeviceIdentifier.ToMacAddress(device.Identifier.Value)])
+                ]);
             }
 
             if (device.Gateway is OpenNettyGateway gateway)
             {
-                node["via_device"] = ComputeDeviceUniqueId(gateway.Device);
+                node["via_device"] = gateway.Device.GetStringSetting(OpenNettySettings.HomeAssistantObjectId)
+                    ?? SanitizeDiscoveryObjectId(gateway.Device.Name);
             }
 
             if (device.GetStringSetting(OpenNettySettings.HomeAssistantSuggestedArea) is { Length: > 0 } area)
@@ -2720,10 +2738,14 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
         {
             var node = new JsonObject
             {
-                ["identifiers"] = new JsonArray([ComputeVirtualDeviceUniqueId(endpoint)]),
-                ["name"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantDeviceName) is { Length: > 0 } name
-                    ? name
-                    : endpoint.Address?.Type switch
+                ["identifiers"] = new JsonArray(
+                [
+                    // Use the endpoint's object ID if set, otherwise fall back to the endpoint name.
+                    endpoint.GetStringSetting(OpenNettySettings.HomeAssistantObjectId)
+                        ?? SanitizeDiscoveryObjectId(endpoint.Name)
+                ]),
+                ["name"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantDeviceName)
+                    ?? endpoint.Address?.Type switch
                     {
                         OpenNettyAddressType.Nitoo           => GetLocalizedString(SR.ID8121, culture),
                         OpenNettyAddressType.Zigbee          => GetLocalizedString(SR.ID8122, culture),
@@ -2736,7 +2758,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
             if (endpoint.Gateway is OpenNettyGateway gateway)
             {
-                node["via_device"] = ComputeDeviceUniqueId(gateway.Device);
+                node["via_device"] = gateway.Device.GetStringSetting(OpenNettySettings.HomeAssistantObjectId)
+                    ?? SanitizeDiscoveryObjectId(gateway.Device.Name);
             }
 
             if (endpoint.GetStringSetting(OpenNettySettings.HomeAssistantSuggestedArea) is { Length: > 0 } area)
@@ -2747,19 +2770,6 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
             return node;
         }
 
-        static string ComputeDeviceUniqueId(OpenNettyDevice device)
-        {
-            var hash = new XxHash128();
-            hash.Append(MemoryMarshal.AsBytes<char>(Enum.GetName(device.Definition.Protocol)));
-            hash.Append(MemoryMarshal.AsBytes<char>(Enum.GetName(device.Identifier.Type)));
-            hash.Append(MemoryMarshal.AsBytes<char>(device.Identifier.ToString()));
-
-            return Base64Url.EncodeToString(hash.GetCurrentHash());
-        }
-
-        static string ComputeVirtualDeviceUniqueId(OpenNettyEndpoint endpoint)
-            => Base64Url.EncodeToString(XxHash128.Hash(MemoryMarshal.AsBytes<char>(endpoint.Name)));
-
         static string ComputeEntityUniqueId(OpenNettyEndpoint endpoint, ReadOnlySpan<byte> discriminator)
         {
             var hash = new XxHash128();
@@ -2769,7 +2779,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
             return Base64Url.EncodeToString(hash.GetCurrentHash());
         }
 
-        static string ComputeEntityName(string name, OpenNettyEndpoint endpoint, CultureInfo culture, int count)
+        static string ComputeEntityDisplayName(string name, OpenNettyEndpoint endpoint, CultureInfo culture, int count)
         {
             if (count is < 2)
             {
@@ -2792,7 +2802,58 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
             return name;
         }
 
-        static bool IsValidNodeIdCharacter(char character) => char.IsLetterOrDigit(character) || character is '-' or '_';
+        static string SanitizeDiscoveryObjectId(string name)
+        {
+            var builder = new StringBuilder(name.Length);
+            var separator = true;
+
+            foreach (var character in name.Normalize(NormalizationForm.FormD))
+            {
+                if (CharUnicodeInfo.GetUnicodeCategory(character) is UnicodeCategory.NonSpacingMark)
+                {
+                    continue;
+                }
+
+                switch (character)
+                {
+                    case 'ß':
+                        builder.Append("ss");
+                        separator = false;
+                        continue;
+
+                    case 'æ':
+                    case 'Æ':
+                        builder.Append("ae");
+                        separator = false;
+                        continue;
+
+                    case 'œ':
+                    case 'Œ':
+                        builder.Append("oe");
+                        separator = false;
+                        continue;
+                }
+
+                if (char.IsAsciiLetterOrDigit(character))
+                {
+                    builder.Append(char.ToLowerInvariant(character));
+                    separator = false;
+                }
+
+                else if (!separator)
+                {
+                    builder.Append('-');
+                    separator = true;
+                }
+            }
+
+            if (builder.Length is > 0 && builder[^1] is '-')
+            {
+                builder.Length--;
+            }
+
+            return builder.ToString();
+        }
 
         static string GetLocalizedString(string name, CultureInfo culture) => SR.ResourceManager.GetString(name, culture)!;
 
