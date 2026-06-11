@@ -137,9 +137,9 @@ sudo systemctl enable opennetty
 
 ### Create the configuration file
 
-The OpenNetty daemon relies on a configuration file to locate the OpenWebNet gateways and devices. For that, create
-a new XML file named `OpenNettyConfiguration.xml` locally with the following content and replace the
-server/port/username/password attributes to match the values used by your MQTT broker:
+The OpenNetty daemon relies on a configuration file to locate the OpenWebNet gateways and devices. For that,
+create a new XML file named `configuration.xml` (**make sure to respect the case**) with the following content
+and replace the server/port/username/password attributes to match the values used by your MQTT broker:
 
 ```xml
 <Configuration>
@@ -168,6 +168,11 @@ server/port/username/password attributes to match the values used by your MQTT b
 > 
 > </Configuration>
 > ```
+
+> [!TIP]
+> Instead of having a single configuration file, you can also split the configuration into multiple files
+> and store them under the `/usr/local/bin/opennetty/configuration` directory: OpenNetty will automatically
+> load all the `.xml` files present in this directory and merge their content together at runtime.
 
 ### If necessary, change the UI culture used in the MQTT discovery payloads
 
@@ -642,7 +647,7 @@ var builder = Host.CreateApplicationBuilder();
 
 builder.Services.AddOpenNetty(options =>
 {
-    var file = builder.Environment.ContentRootFileProvider.GetFileInfo("OpenNettyConfiguration.xml");
+    var file = builder.Environment.ContentRootFileProvider.GetFileInfo("configuration.xml");
     options.ImportFromXmlConfiguration(file);
 });
 
@@ -719,7 +724,7 @@ change MUST include one or more `<Scenario>` node(s) indicating the name of the 
 > 
 > builder.Services.AddOpenNetty(options =>
 > {
->     var file = builder.Environment.ContentRootFileProvider.GetFileInfo("OpenNettyConfiguration.xml");
+>     var file = builder.Environment.ContentRootFileProvider.GetFileInfo("configuration.xml");
 >     options.ImportFromXmlConfiguration(file);
 > });
 > 

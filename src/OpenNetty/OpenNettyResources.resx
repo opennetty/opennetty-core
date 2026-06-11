@@ -489,6 +489,12 @@
   <data name="ID0124" xml:space="preserve">
     <value>The specified collection contains null elements, which is not valid for this operation.</value>
   </data>
+  <data name="ID0125" xml:space="preserve">
+    <value>No configuration file was found. For the OpenNetty daemon to work correctly, a configuration file named '{0}' must be present in the application directory. Alternatively, one or more configuration files ending with '{1}' can be placed in the '{2}' directory.</value>
+  </data>
+  <data name="ID0126" xml:space="preserve">
+    <value>At least one OpenWebNet gateway must be configured.</value>
+  </data>
   <data name="ID2000" xml:space="preserve">
     <value>The endpoint name '{0}' is not valid. Endpoint names cannot contain the '+' or '*' characters.</value>
   </data>

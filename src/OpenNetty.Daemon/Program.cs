@@ -6,6 +6,7 @@
 
 using System.Collections.Immutable;
 using System.Reactive.Linq;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.FileProviders;
 using Microsoft.Extensions.Hosting;
@@ -22,22 +23,28 @@ builder.Services.AddSystemd();
 
 builder.Services.AddOpenNetty(options =>
 {
-    // Load the configuration files from the content root and the "Configuration" directory, if available.
-    ImmutableArray<IFileInfo> files = [.. GetConfigurationFiles(builder.Environment.ContentRootFileProvider)];
+    // Load the configuration files from the specified location(s).
+    ImmutableArray<IFileInfo> files = [.. GetConfigurationFiles(builder.Configuration, builder.Environment.ContentRootFileProvider)];
+    if (files.IsDefaultOrEmpty)
+    {
+        throw new InvalidOperationException(SR.FormatID0125(
+            builder.Configuration["ConfigurationFile"] ?? "configuration.xml", ".xml",
+            builder.Configuration["ConfigurationDirectory"] ?? "configuration"));
+    }
 
     options.ImportFromXmlConfiguration(files).ValidateOnStart();
 
     options.AddMqttIntegration(options => options.ImportFromXmlConfiguration(files).ValidateOnStart());
 
-    static IEnumerable<IFileInfo> GetConfigurationFiles(IFileProvider provider)
+    static IEnumerable<IFileInfo> GetConfigurationFiles(IConfiguration configuration, IFileProvider provider)
     {
-        var file = provider.GetFileInfo("OpenNettyConfiguration.xml");
+        var file = provider.GetFileInfo(configuration["ConfigurationFile"] ?? "configuration.xml");   
         if (file.Exists)
         {
             yield return file;
         }
 
-        var directory = provider.GetDirectoryContents("Configuration");
+        var directory = provider.GetDirectoryContents(configuration["ConfigurationDirectory"] ?? "configuration");
         if (directory.Exists)
         {
             using var enumerator = directory.OrderBy(static file => file.Name, StringComparer.Ordinal).GetEnumerator();

@@ -109,6 +109,11 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
 
         var builder = new ValidateOptionsResultBuilder();
 
+        if (options.Gateways.Count is 0)
+        {
+            builder.AddError(SR.GetResourceString(SR.ID0126));
+        }
+
         if (options.Devices.GroupBy(static device => device.Identifier)
             .Where(static group => group.Count() is > 1)
             .Select(static group => group.Key)
