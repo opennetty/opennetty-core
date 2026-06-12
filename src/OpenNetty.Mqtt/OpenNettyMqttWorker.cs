@@ -197,13 +197,11 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     switch (message.ConvertPayloadToString()?.ToLowerInvariant())
                     {
                         case "off":
-                            await client.EnqueueAsync(new MqttApplicationMessageBuilder()
-                                .WithPayloadFormatIndicator(MqttPayloadFormatIndicator.CharacterData)
-                                .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
-                                .WithTopic(message.Topic[..^4])
-                                .WithPayload("OFF")
-                                .WithRetainFlag()
-                                .Build());
+                            await ReportAsync(endpoint, OpenNettyMqttAttributes.BatteryAlert, builder =>
+                            {
+                                builder.WithPayload("OFF");
+                                builder.WithRetainFlag();
+                            });
                             break;
                     }
                     break;
@@ -211,6 +209,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                 case OpenNettyMqttAttributes.Brightness when operation is OpenNettyMqttOperation.Get:
                 {
+                    // Note: the response to this request is monitored by the hosted service and doesn't need to be reported here.
                     _ = await _controller.EnumerateBrightnessAsync(endpoint, cancellationToken).ToListAsync(cancellationToken);
                     break;
                 }
@@ -228,19 +227,34 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                 case OpenNettyMqttAttributes.FirmwareVersion when operation is OpenNettyMqttOperation.Get:
                 {
-                    _ = await _controller.GetFirmwareVersionAsync(endpoint, cancellationToken);
+                    var version = await _controller.GetFirmwareVersionAsync(endpoint, cancellationToken);
+                    await ReportAsync(endpoint, OpenNettyMqttAttributes.FirmwareVersion, builder =>
+                    {
+                        builder.WithPayload(version.ToString());
+                        builder.WithRetainFlag();
+                    });
                     break;
                 }
 
                 case OpenNettyMqttAttributes.HardwareVersion when operation is OpenNettyMqttOperation.Get:
                 {
-                    _ = await _controller.GetHardwareVersionAsync(endpoint, cancellationToken);
+                    var version = await _controller.GetHardwareVersionAsync(endpoint, cancellationToken);
+                    await ReportAsync(endpoint, OpenNettyMqttAttributes.HardwareVersion, builder =>
+                    {
+                        builder.WithPayload(version.ToString());
+                        builder.WithRetainFlag();
+                    });
                     break;
                 }
 
                 case OpenNettyMqttAttributes.MacAddress when operation is OpenNettyMqttOperation.Get:
                 {
-                    _ = await _controller.GetMacAddressAsync(endpoint, cancellationToken);
+                    var address = await _controller.GetMacAddressAsync(endpoint, cancellationToken);
+                    await ReportAsync(endpoint, OpenNettyMqttAttributes.MacAddress, builder =>
+                    {
+                        builder.WithPayload(address.ToString());
+                        builder.WithRetainFlag();
+                    });
                     break;
                 }
 
@@ -263,6 +277,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 case OpenNettyMqttAttributes.PilotWireSetpointMode when operation is OpenNettyMqttOperation.Get:
                 case OpenNettyMqttAttributes.PilotWireShutdownMode when operation is OpenNettyMqttOperation.Get:
                 {
+                    // Note: the response to this request is monitored by the hosted service and doesn't need to be reported here.
                     _ = await _controller.GetPilotWireConfigurationAsync(endpoint, cancellationToken);
                     break;
                 }
@@ -538,6 +553,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                 case OpenNettyMqttAttributes.ShutterPosition when operation is OpenNettyMqttOperation.Get:
                 {
+                    // Note: the response to this request is monitored by the hosted service and doesn't need to be reported here.
                     _ = await _controller.EnumerateShutterPositionsAsync(endpoint, cancellationToken).ToListAsync(cancellationToken);
                     break;
                 }
@@ -555,6 +571,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                 case OpenNettyMqttAttributes.ShutterState when operation is OpenNettyMqttOperation.Get:
                 {
+                    // Note: the response to this request is monitored by the hosted service and doesn't need to be reported here.
                     _ = await _controller.EnumerateShutterStatesAsync(endpoint, cancellationToken).ToListAsync(cancellationToken);
                     break;
                 }
@@ -585,25 +602,117 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 case OpenNettyMqttAttributes.SmartMeterSubscriptionType when operation is OpenNettyMqttOperation.Get:
                 case OpenNettyMqttAttributes.SmartMeterWhiteIndex       when operation is OpenNettyMqttOperation.Get:
                 {
-                    _ = await _controller.GetSmartMeterIndexesAsync(endpoint, cancellationToken);
+                    var indexes = await _controller.GetSmartMeterIndexesAsync(endpoint, cancellationToken);
+                    if (indexes.BaseIndex is not null)
+                    {
+                        await ReportAsync(endpoint, OpenNettyMqttAttributes.SmartMeterBaseIndex, builder =>
+                        {
+                            builder.WithPayload(indexes.BaseIndex.BaseIndex.ToString(CultureInfo.InvariantCulture));
+                            builder.WithRetainFlag();
+                        });
+                    }
+
+                    if (indexes.BlueIndex is not null)
+                    {
+                        await ReportAsync(endpoint, OpenNettyMqttAttributes.SmartMeterBlueIndex, builder =>
+                        {
+                            var node = new JsonObject
+                            {
+                                ["base_index"] = indexes.BlueIndex.BaseIndex,
+                                ["off_peak_index"] = indexes.BlueIndex.OffPeakIndex
+                            };
+
+                            builder.WithContentType(MediaTypeNames.Application.Json);
+                            builder.WithPayload(node.ToJsonString());
+                            builder.WithRetainFlag();
+                        });
+                    }
+
+                    if (indexes.PeakOffPeakIndex is not null)
+                    {
+                        await ReportAsync(endpoint, OpenNettyMqttAttributes.SmartMeterPeakOffPeakIndex, builder =>
+                        {
+                            var node = new JsonObject
+                            {
+                                ["base_index"] = indexes.PeakOffPeakIndex.BaseIndex,
+                                ["off_peak_index"] = indexes.PeakOffPeakIndex.OffPeakIndex
+                            };
+
+                            builder.WithContentType(MediaTypeNames.Application.Json);
+                            builder.WithPayload(node.ToJsonString());
+                            builder.WithRetainFlag();
+                        });
+                    }
+
+                    if (indexes.RedIndex is not null)
+                    {
+                        await ReportAsync(endpoint, OpenNettyMqttAttributes.SmartMeterRedIndex, builder =>
+                        {
+                            var node = new JsonObject
+                            {
+                                ["base_index"] = indexes.RedIndex.BaseIndex,
+                                ["off_peak_index"] = indexes.RedIndex.OffPeakIndex
+                            };
+
+                            builder.WithContentType(MediaTypeNames.Application.Json);
+                            builder.WithPayload(node.ToJsonString());
+                            builder.WithRetainFlag();
+                        });
+                    }
+
+                    if (indexes.WhiteIndex is not null)
+                    {
+                        await ReportAsync(endpoint, OpenNettyMqttAttributes.SmartMeterWhiteIndex, builder =>
+                        {
+                            var node = new JsonObject
+                            {
+                                ["base_index"] = indexes.WhiteIndex.BaseIndex,
+                                ["off_peak_index"] = indexes.WhiteIndex.OffPeakIndex
+                            };
+
+                            builder.WithContentType(MediaTypeNames.Application.Json);
+                            builder.WithPayload(node.ToJsonString());
+                            builder.WithRetainFlag();
+                        });
+                    }
+
+                    await ReportAsync(endpoint, OpenNettyMqttAttributes.SmartMeterSubscriptionType, builder =>
+                    {
+                        builder.WithPayload(indexes.SubscriptionType switch
+                        {
+                            OpenNettyModels.TemperatureControl.SmartMeterSubscriptionType.Base        => "base",
+                            OpenNettyModels.TemperatureControl.SmartMeterSubscriptionType.PeakOffPeak => "peak/off_peak",
+                            OpenNettyModels.TemperatureControl.SmartMeterSubscriptionType.Tempo       => "tempo",
+
+                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+                        });
+                        builder.WithRetainFlag();
+                    });
                     break;
                 }
 
                 case OpenNettyMqttAttributes.SmartMeterPowerCutMode or OpenNettyMqttAttributes.SmartMeterRateType
                     when operation is OpenNettyMqttOperation.Get:
                 {
+                    // Note: the response to this request is monitored by the hosted service and doesn't need to be reported here.
                     _ = await _controller.GetSmartMeterInformationAsync(endpoint, cancellationToken);
                     break;
                 }
 
                 case OpenNettyMqttAttributes.StartupDate when operation is OpenNettyMqttOperation.Get:
                 {
-                    _ = await _controller.GetUptimeAsync(endpoint, cancellationToken);
+                    var duration = await _controller.GetUptimeAsync(endpoint, cancellationToken);
+                    await ReportAsync(endpoint, OpenNettyMqttAttributes.StartupDate, builder =>
+                    {
+                        builder.WithPayload((TimeProvider.System.GetUtcNow() - duration).ToString("o", CultureInfo.InvariantCulture));
+                        builder.WithRetainFlag();
+                    });
                     break;
                 }
 
                 case OpenNettyMqttAttributes.SwitchState when operation is OpenNettyMqttOperation.Get:
                 {
+                    // Note: the response to this request is monitored by the hosted service and doesn't need to be reported here.
                     _ = await _controller.EnumerateSwitchStatesAsync(endpoint, cancellationToken).ToListAsync(cancellationToken);
                     break;
                 }
@@ -651,6 +760,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                 case OpenNettyMqttAttributes.WaterHeaterState when operation is OpenNettyMqttOperation.Get:
                 {
+                    // Note: the response to this request is monitored by the hosted service and doesn't need to be reported here.
                     _ = await _controller.GetWaterHeaterStateAsync(endpoint, cancellationToken);
                     break;
                 }
@@ -672,13 +782,23 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                 case OpenNettyMqttAttributes.ZigbeeChannel when operation is OpenNettyMqttOperation.Get:
                 {
-                    _ = await _controller.GetZigbeeChannelAsync(endpoint, cancellationToken);
+                    var channel = await _controller.GetZigbeeChannelAsync(endpoint, cancellationToken);
+                    await ReportAsync(endpoint, OpenNettyMqttAttributes.ZigbeeChannel, builder =>
+                    {
+                        builder.WithPayload(channel.ToString(CultureInfo.InvariantCulture));
+                        builder.WithRetainFlag();
+                    });
                     break;
                 }
 
                 case OpenNettyMqttAttributes.ZigbeeDevicesCount when operation is OpenNettyMqttOperation.Get:
                 {
-                    _ = await _controller.CountZigbeeDevicesAsync(endpoint, cancellationToken);
+                    var count = await _controller.CountZigbeeDevicesAsync(endpoint, cancellationToken);
+                    await ReportAsync(endpoint, OpenNettyMqttAttributes.ZigbeeDevicesCount, builder =>
+                    {
+                        builder.WithPayload(count.ToString(CultureInfo.InvariantCulture));
+                        builder.WithRetainFlag();
+                    });
                     break;
                 }
 
@@ -737,6 +857,26 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     return null;
                 }
             }
+
+            async ValueTask ReportAsync(OpenNettyEndpoint endpoint, string attribute, Action<MqttApplicationMessageBuilder> configuration)
+            {
+                var builder = new MqttApplicationMessageBuilder()
+                    .WithPayloadFormatIndicator(MqttPayloadFormatIndicator.CharacterData)
+                    .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
+                    .WithTopic(GetMessageTopic(endpoint, attribute));
+
+                configuration(builder);
+
+                await client.EnqueueAsync(builder.Build());
+            }
+
+            string GetMessageTopic(OpenNettyEndpoint endpoint, string attribute) => new StringBuilder()
+                .Append(_options.CurrentValue.RootTopic)
+                .Append('/')
+                .Append(endpoint.GetStringSetting(OpenNettySettings.MqttTopic) ?? endpoint.Name.ToLowerInvariant())
+                .Append('/')
+                .Append(attribute)
+                .ToString();
         }
     }
 

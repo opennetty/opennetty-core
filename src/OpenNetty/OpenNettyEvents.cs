@@ -107,40 +107,16 @@ public sealed class OpenNettyEvents : IDisposable
         => _observable.OfType<EventArgs, DeviceCommunicationReportedEventArgs>();
 
     /// <summary>
-    /// Gets an event triggered when a device description is reported.
-    /// </summary>
-    public IAsyncObservable<DeviceDescriptionReportedEventArgs> DeviceDescriptionReported
-        => _observable.OfType<EventArgs, DeviceDescriptionReportedEventArgs>();
-
-    /// <summary>
     /// Gets an event triggered when a dimming scenario is reported.
     /// </summary>
     public IAsyncObservable<DimmingScenarioReportedEventArgs> DimmingScenarioReported
         => _observable.OfType<EventArgs, DimmingScenarioReportedEventArgs>();
 
     /// <summary>
-    /// Gets an event triggered when a firmware version is reported.
-    /// </summary>
-    public IAsyncObservable<FirmwareVersionReportedEventArgs> FirmwareVersionReported
-        => _observable.OfType<EventArgs, FirmwareVersionReportedEventArgs>();
-
-    /// <summary>
-    /// Gets an event triggered when a hardware version is reported.
-    /// </summary>
-    public IAsyncObservable<HardwareVersionReportedEventArgs> HardwareVersionReported
-        => _observable.OfType<EventArgs, HardwareVersionReportedEventArgs>();
-
-    /// <summary>
     /// Gets an event triggered when an incoming message is reported.
     /// </summary>
     public IAsyncObservable<IncomingMessageReportedEventArgs> IncomingMessageReported
         => _observable.OfType<EventArgs, IncomingMessageReportedEventArgs>();
-
-    /// <summary>
-    /// Gets an event triggered when a MAC address is reported.
-    /// </summary>
-    public IAsyncObservable<MacAddressReportedEventArgs> MacAddressReported
-        => _observable.OfType<EventArgs, MacAddressReportedEventArgs>();
 
     /// <summary>
     /// Gets an event triggered when an ON/OFF scenario is reported.
@@ -203,12 +179,6 @@ public sealed class OpenNettyEvents : IDisposable
         => _observable.OfType<EventArgs, ShutterStateReportedEventArgs>();
 
     /// <summary>
-    /// Gets an event triggered when smart meter indexes are reported.
-    /// </summary>
-    public IAsyncObservable<SmartMeterIndexesReportedEventArgs> SmartMeterIndexesReported
-        => _observable.OfType<EventArgs, SmartMeterIndexesReportedEventArgs>();
-
-    /// <summary>
     /// Gets an event triggered when a smart meter power cut mode is reported.
     /// </summary>
     public IAsyncObservable<SmartMeterPowerCutModeReportedEventArgs> SmartMeterPowerCutModeReported
@@ -245,12 +215,6 @@ public sealed class OpenNettyEvents : IDisposable
         => _observable.OfType<EventArgs, ToggleScenarioReportedEventArgs>();
 
     /// <summary>
-    /// Gets an event triggered when an uptime duration is reported.
-    /// </summary>
-    public IAsyncObservable<UptimeReportedEventArgs> UptimeReported
-        => _observable.OfType<EventArgs, UptimeReportedEventArgs>();
-
-    /// <summary>
     /// Gets an event triggered when a water heater setpoint mode is reported.
     /// </summary>
     public IAsyncObservable<WaterHeaterSetpointModeReportedEventArgs> WaterHeaterSetpointModeReported
@@ -269,22 +233,10 @@ public sealed class OpenNettyEvents : IDisposable
         => _observable.OfType<EventArgs, WirelessBurglarAlarmStateReportedEventArgs>();
 
     /// <summary>
-    /// Gets an event triggered when a Zigbee channel is reported.
-    /// </summary>
-    public IAsyncObservable<ZigbeeChannelReportedEventArgs> ZigbeeChannelReported
-        => _observable.OfType<EventArgs, ZigbeeChannelReportedEventArgs>();
-
-    /// <summary>
     /// Gets an event triggered when a Zigbee binding event is reported.
     /// </summary>
     public IAsyncObservable<ZigbeeBindingEventReportedEventArgs> ZigbeeBindingEventReported
         => _observable.OfType<EventArgs, ZigbeeBindingEventReportedEventArgs>();
-
-    /// <summary>
-    /// Gets an event triggered when the number of Zigbee devices in the database is reported.
-    /// </summary>
-    public IAsyncObservable<ZigbeeDevicesCountReportedEventArgs> ZigbeeDevicesCountReported
-        => _observable.OfType<EventArgs, ZigbeeDevicesCountReportedEventArgs>();
 
     /// <summary>
     /// Gets an event triggered when a Zigbee network event is reported.
@@ -368,33 +320,11 @@ public sealed class OpenNettyEvents : IDisposable
         OpenNettyMessage Message) : EventArgs(Endpoint);
 
     /// <summary>
-    /// Represents event arguments used when a device description is reported.
-    /// </summary>
-    /// <param name="Endpoint">The endpoint.</param>
-    /// <param name="Description">The device description.</param>
-    public sealed record class DeviceDescriptionReportedEventArgs(OpenNettyEndpoint Endpoint,
-        OpenNettyModels.Diagnostics.DeviceDescription Description) : EventArgs(Endpoint);
-
-    /// <summary>
     /// Represents event arguments used when a dimming scenario is reported.
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
     /// <param name="Step">The dimming step (positive or negative).</param>
     public sealed record class DimmingScenarioReportedEventArgs(OpenNettyEndpoint Endpoint, short Step) : EventArgs(Endpoint);
-
-    /// <summary>
-    /// Represents event arguments used when a firmware version is reported.
-    /// </summary>
-    /// <param name="Endpoint">The endpoint.</param>
-    /// <param name="Version">The firmware version.</param>
-    public sealed record class FirmwareVersionReportedEventArgs(OpenNettyEndpoint Endpoint, Version Version) : EventArgs(Endpoint);
-
-    /// <summary>
-    /// Represents event arguments used when a hardware version is reported.
-    /// </summary>
-    /// <param name="Endpoint">The endpoint.</param>
-    /// <param name="Version">The hardware version.</param>
-    public sealed record class HardwareVersionReportedEventArgs(OpenNettyEndpoint Endpoint, Version Version) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when an incoming message is reported.
@@ -404,13 +334,6 @@ public sealed class OpenNettyEvents : IDisposable
     /// <param name="Session">The session that was used to receive the message.</param>
     public sealed record class IncomingMessageReportedEventArgs(OpenNettyEndpoint Endpoint,
         OpenNettyMessage Message, OpenNettySession Session) : EventArgs(Endpoint);
-
-    /// <summary>
-    /// Represents event arguments used when a MAC address is reported.
-    /// </summary>
-    /// <param name="Endpoint">The endpoint.</param>
-    /// <param name="Address">The MAC address.</param>
-    public sealed record class MacAddressReportedEventArgs(OpenNettyEndpoint Endpoint, string Address) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when an ON/OFF scenario is reported.
@@ -497,14 +420,6 @@ public sealed class OpenNettyEvents : IDisposable
         OpenNettyModels.Automation.ShutterState State) : EventArgs(Endpoint);
 
     /// <summary>
-    /// Represents event arguments used when smart meter indexes are reported.
-    /// </summary>
-    /// <param name="Endpoint">The endpoint.</param>
-    /// <param name="Indexes">The indexes.</param>
-    public sealed record class SmartMeterIndexesReportedEventArgs(OpenNettyEndpoint Endpoint,
-        OpenNettyModels.TemperatureControl.SmartMeterIndexes Indexes) : EventArgs(Endpoint);
-
-    /// <summary>
     /// Represents event arguments used when a smart meter power cut mode is reported.
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
@@ -549,13 +464,6 @@ public sealed class OpenNettyEvents : IDisposable
     public sealed record class ToggleScenarioReportedEventArgs(OpenNettyEndpoint Endpoint) : EventArgs(Endpoint);
 
     /// <summary>
-    /// Represents event arguments used when an uptime duration is reported.
-    /// </summary>
-    /// <param name="Endpoint">The endpoint.</param>
-    /// <param name="Duration">The uptime duration.</param>
-    public sealed record class UptimeReportedEventArgs(OpenNettyEndpoint Endpoint, TimeSpan Duration) : EventArgs(Endpoint);
-
-    /// <summary>
     /// Represents event arguments used when a water heater setpoint mode is reported.
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
@@ -580,26 +488,12 @@ public sealed class OpenNettyEvents : IDisposable
         OpenNettyModels.Alarm.WirelessBurglarAlarmState State) : EventArgs(Endpoint);
 
     /// <summary>
-    /// Represents event arguments used when a Zigbee channel is reported.
-    /// </summary>
-    /// <param name="Endpoint">The endpoint.</param>
-    /// <param name="Channel">The channel.</param>
-    public sealed record class ZigbeeChannelReportedEventArgs(OpenNettyEndpoint Endpoint, byte Channel) : EventArgs(Endpoint);
-
-    /// <summary>
     /// Represents event arguments used when a Zigbee binding event is reported.
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
     /// <param name="Type">The event type.</param>
     public sealed record class ZigbeeBindingEventReportedEventArgs(OpenNettyEndpoint Endpoint,
         OpenNettyModels.ScenariosPlus.ZigbeeBindingEventType Type) : EventArgs(Endpoint);
-
-    /// <summary>
-    /// Represents event arguments used when the number of Zigbee devices in the database is reported.
-    /// </summary>
-    /// <param name="Endpoint">The endpoint.</param>
-    /// <param name="Count">The number of Zigbee devices in the database.</param>
-    public sealed record class ZigbeeDevicesCountReportedEventArgs(OpenNettyEndpoint Endpoint, byte Count) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when a Zigbee network event is reported.
