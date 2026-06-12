@@ -174,26 +174,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
-            await _events.FirmwareVersionReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.FirmwareVersion, builder =>
-                {
-                    builder.WithPayload(arguments.Version.ToString());
-                    builder.WithRetainFlag();
-                }))
-                .Retry()
-                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
-
-            await _events.HardwareVersionReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.HardwareVersion, builder =>
-                {
-                    builder.WithPayload(arguments.Version.ToString());
-                    builder.WithRetainFlag();
-                }))
-                .Retry()
-                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
-
             await _events.IncomingMessageReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.IncomingMessage, builder =>
@@ -221,16 +201,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
 
                     builder.WithContentType(MediaTypeNames.Application.Json);
                     builder.WithPayload(node.ToJsonString());
-                }))
-                .Retry()
-                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
-
-            await _events.MacAddressReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.MacAddress, builder =>
-                {
-                    builder.WithPayload(arguments.Address.ToString());
-                    builder.WithRetainFlag();
                 }))
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
@@ -516,106 +486,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
-            await _events.SmartMeterIndexesReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Where(static arguments => arguments.Indexes.BaseIndex is not null)
-                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.SmartMeterBaseIndex, builder =>
-                {
-                    builder.WithPayload(arguments.Indexes.BaseIndex!.BaseIndex.ToString(CultureInfo.InvariantCulture));
-                    builder.WithRetainFlag();
-                }))
-                .Retry()
-                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
-
-            await _events.SmartMeterIndexesReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Where(static arguments => arguments.Indexes.BlueIndex is not null)
-                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.SmartMeterBlueIndex, builder =>
-                {
-                    var node = new JsonObject
-                    {
-                        ["base_index"] = arguments.Indexes.BlueIndex!.BaseIndex,
-                        ["off_peak_index"] = arguments.Indexes.BlueIndex!.OffPeakIndex
-                    };
-
-                    builder.WithContentType(MediaTypeNames.Application.Json);
-                    builder.WithPayload(node.ToJsonString());
-                    builder.WithRetainFlag();
-                }))
-                .Retry()
-                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
-
-            await _events.SmartMeterIndexesReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Where(static arguments => arguments.Indexes.PeakOffPeakIndex is not null)
-                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.SmartMeterPeakOffPeakIndex, builder =>
-                {
-                    var node = new JsonObject
-                    {
-                        ["base_index"] = arguments.Indexes.PeakOffPeakIndex!.BaseIndex,
-                        ["off_peak_index"] = arguments.Indexes.PeakOffPeakIndex!.OffPeakIndex
-                    };
-
-                    builder.WithContentType(MediaTypeNames.Application.Json);
-                    builder.WithPayload(node.ToJsonString());
-                    builder.WithRetainFlag();
-                }))
-                .Retry()
-                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
-
-            await _events.SmartMeterIndexesReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Where(static arguments => arguments.Indexes.RedIndex is not null)
-                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.SmartMeterRedIndex, builder =>
-                {
-                    var node = new JsonObject
-                    {
-                        ["base_index"] = arguments.Indexes.RedIndex!.BaseIndex,
-                        ["off_peak_index"] = arguments.Indexes.RedIndex!.OffPeakIndex
-                    };
-
-                    builder.WithContentType(MediaTypeNames.Application.Json);
-                    builder.WithPayload(node.ToJsonString());
-                    builder.WithRetainFlag();
-                }))
-                .Retry()
-                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
-
-            await _events.SmartMeterIndexesReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Where(static arguments => arguments.Indexes.WhiteIndex is not null)
-                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.SmartMeterWhiteIndex, builder =>
-                {
-                    var node = new JsonObject
-                    {
-                        ["base_index"] = arguments.Indexes.WhiteIndex!.BaseIndex,
-                        ["off_peak_index"] = arguments.Indexes.WhiteIndex!.OffPeakIndex
-                    };
-
-                    builder.WithContentType(MediaTypeNames.Application.Json);
-                    builder.WithPayload(node.ToJsonString());
-                    builder.WithRetainFlag();
-                }))
-                .Retry()
-                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
-
-            await _events.SmartMeterIndexesReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.SmartMeterSubscriptionType, builder =>
-                {
-                    builder.WithPayload(arguments.Indexes.SubscriptionType switch
-                    {
-                        OpenNettyModels.TemperatureControl.SmartMeterSubscriptionType.Base        => "base",
-                        OpenNettyModels.TemperatureControl.SmartMeterSubscriptionType.PeakOffPeak => "peak/off_peak",
-                        OpenNettyModels.TemperatureControl.SmartMeterSubscriptionType.Tempo       => "tempo",
-
-                        _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
-                    });
-                    builder.WithRetainFlag();
-                }))
-                .Retry()
-                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
-
             await _events.SmartMeterPowerCutModeReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.SmartMeterPowerCutMode, builder =>
@@ -706,16 +576,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
-            await _events.UptimeReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.StartupDate, builder =>
-                {
-                    builder.WithPayload((TimeProvider.System.GetUtcNow() - arguments.Duration).ToString("o", CultureInfo.InvariantCulture));
-                    builder.WithRetainFlag();
-                }))
-                .Retry()
-                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
-
             await _events.WaterHeaterSetpointModeReported
                 .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.WaterHeaterSetpointMode, builder =>
@@ -785,26 +645,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                         _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                     });
 
-                    builder.WithRetainFlag();
-                }))
-                .Retry()
-                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
-
-            await _events.ZigbeeChannelReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.ZigbeeChannel, builder =>
-                {
-                    builder.WithPayload(arguments.Channel.ToString(CultureInfo.InvariantCulture));
-                    builder.WithRetainFlag();
-                }))
-                .Retry()
-                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
-
-            await _events.ZigbeeDevicesCountReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
-                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.ZigbeeDevicesCount, builder =>
-                {
-                    builder.WithPayload(arguments.Count.ToString(CultureInfo.InvariantCulture));
                     builder.WithRetainFlag();
                 }))
                 .Retry()
