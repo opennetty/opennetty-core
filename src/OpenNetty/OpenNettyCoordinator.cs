@@ -1650,7 +1650,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 if (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) ||
                     endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
                 {
-                    tasks.Add(_controller.GetBrightnessAsync(endpoint, cancellationToken).AsTask());
+                    tasks.Add(_controller.EnumerateBrightnessAsync(endpoint, cancellationToken).ToListAsync(cancellationToken).AsTask());
                 }
 
                 if (endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit.Definition.AssociatedUnitId: byte unit })
@@ -1665,7 +1665,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                                   endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState));
 
                     tasks.Add(Parallel.ForEachAsync(endpoints, cancellationToken, async (endpoint, cancellationToken) =>
-                        await _controller.GetBrightnessAsync(endpoint, cancellationToken)));
+                        await _controller.EnumerateBrightnessAsync(endpoint, cancellationToken).ToListAsync(cancellationToken)));
                 }
 
                 if (message.Protocol  is OpenNettyProtocol.Nitoo                 &&
@@ -1683,7 +1683,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                                   endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState));
 
                     tasks.Add(Parallel.ForEachAsync(endpoints, cancellationToken, async (endpoint, cancellationToken) =>
-                        await _controller.GetBrightnessAsync(endpoint, cancellationToken)));
+                        await _controller.EnumerateBrightnessAsync(endpoint, cancellationToken).ToListAsync(cancellationToken)));
                 }
 
                 await Task.WhenAll(tasks);

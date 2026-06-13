@@ -62,7 +62,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
         return StableCompositeAsyncDisposable.Create(
         [
             await _events.ActionScenarioReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(async arguments =>
                 {
                     // Note: if the device class is "doorbell", a standard "ring" event is also sent for action scenarios.
@@ -103,7 +102,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.AvailabilityReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Availability, builder =>
                 {
                     builder.WithPayload(arguments.Availability switch
@@ -119,7 +117,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.BatteryAlertReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.BatteryAlert, builder =>
                 {
                     builder.WithPayload("ON");
@@ -129,7 +126,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.BatteryLevelReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.BatteryLevel, builder =>
                 {
                     builder.WithPayload(arguments.Level.ToString(CultureInfo.InvariantCulture));
@@ -139,7 +135,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.BrightnessReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Brightness, builder =>
                 {
                     builder.WithPayload(arguments.Level.ToString(CultureInfo.InvariantCulture));
@@ -149,7 +144,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.DeviceCommunicationReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.LastCommunicationDate, builder =>
                 {
                     builder.WithPayload(TimeProvider.System.GetUtcNow().ToString("o", CultureInfo.InvariantCulture));
@@ -159,7 +153,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.DimmingScenarioReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
                 {
                     var node = new JsonObject
@@ -175,7 +168,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.IncomingMessageReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.IncomingMessage, builder =>
                 {
                     var node = new JsonObject
@@ -206,7 +198,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.OnOffScenarioReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
                 {
                     var node = new JsonObject
@@ -227,7 +218,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.OutgoingMessageReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.OutgoingMessage, builder =>
                 {
                     var node = new JsonObject
@@ -258,7 +248,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.PilotWireDerogationModeReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.PilotWireDerogationMode, builder =>
                 {
                     builder.WithPayload(arguments.Mode switch
@@ -317,7 +306,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.PilotWireSetpointModeReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.PilotWireSetpointMode, builder =>
                 {
                     builder.WithPayload(arguments.Mode switch
@@ -337,7 +325,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.PilotWireShutdownModeReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.PilotWireShutdownMode, builder =>
                 {
                     builder.WithPayload(arguments.Active ? "ON" : "OFF");
@@ -347,7 +334,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.PressureScenarioReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(async arguments =>
                 {
                     // Note: if the device class is "doorbell", a standard "ring" event is also sent for short pressure scenarios.
@@ -394,7 +380,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.PressureScenarioPlusReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(async arguments =>
                 {
                     // Note: if the device class is "doorbell", a standard "ring" event is also sent for short pressure scenarios.
@@ -441,7 +426,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.ProgressiveScenarioReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
                 {
                     var node = new JsonObject
@@ -457,7 +441,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.ShutterPositionReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.ShutterPosition, builder =>
                 {
                     builder.WithPayload(arguments.Position.ToString(CultureInfo.InvariantCulture));
@@ -467,7 +450,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.ShutterStateReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.ShutterState, builder =>
                 {
                     builder.WithPayload(arguments.State switch
@@ -487,7 +469,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.SmartMeterPowerCutModeReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.SmartMeterPowerCutMode, builder =>
                 {
                     builder.WithPayload(arguments.Active ? "ON" : "OFF");
@@ -497,7 +478,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.SmartMeterRateTypeReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.SmartMeterRateType, builder =>
                 {
                     builder.WithPayload(arguments.Type switch
@@ -514,7 +494,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.StopUpDownScenarioReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
                 {
                     var node = new JsonObject
@@ -536,7 +515,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.SwitchStateReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.SwitchState, builder =>
                 {
                     builder.WithPayload(arguments.State is OpenNettyModels.Lighting.SwitchState.Off ? "OFF": "ON");
@@ -546,7 +524,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.TimedScenarioReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
                 {
                     var node = new JsonObject
@@ -562,7 +539,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.ToggleScenarioReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
                 {
                     var node = new JsonObject
@@ -577,7 +553,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.WaterHeaterSetpointModeReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.WaterHeaterSetpointMode, builder =>
                 {
                     builder.WithPayload(arguments.Mode switch
@@ -595,7 +570,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.WaterHeaterStateReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.WaterHeaterState, builder =>
                 {
                     builder.WithPayload(arguments.State switch
@@ -612,7 +586,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.WirelessBurglarAlarmStateReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.WirelessBurglarAlarmState, builder =>
                 {
                     builder.WithPayload(arguments.State switch
@@ -633,7 +606,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.ZigbeeBindingEventReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.ZigbeeBinding, builder =>
                 {
                     builder.WithPayload(arguments.Type switch
@@ -651,7 +623,6 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.ZigbeeNetworkEventReported
-                .Where(static arguments => !string.IsNullOrEmpty(arguments.Endpoint.Name))
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.ZigbeeNetwork, builder =>
                 {
                     builder.WithPayload(arguments.Type switch
