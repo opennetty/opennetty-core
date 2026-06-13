@@ -498,6 +498,12 @@
   <data name="ID0127" xml:space="preserve">
     <value>The specified identity is not valid for this device.</value>
   </data>
+  <data name="ID0128" xml:space="preserve">
+    <value>This operation is not valid for Nitoo and Zigbee addresses that do not point to a unique device or unit.</value>
+  </data>
+  <data name="ID0129" xml:space="preserve">
+    <value>This operation is not valid for SCS light point area, general and group addresses.</value>
+  </data>
   <data name="ID2000" xml:space="preserve">
     <value>The endpoint name '{0}' is not valid. Endpoint names cannot contain the '+' or '*' characters.</value>
   </data>
