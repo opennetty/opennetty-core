@@ -352,16 +352,16 @@ public class OpenNettyService : IOpenNettyService
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0027));
         }
 
-        // A single dimension can never be returned for a non-null address that doesn't point to a specific device/unit.
+        // A single dimension can never be returned for a non-null address that doesn't point to a specific device.
         //
         // As such, an exception is eagerly thrown if the address is a Nitoo/Zigbee address that doesn't
-        // point to a unique device/unit or if it is an SCS light point area, general or group address.
+        // point to a unique device or if it is an SCS light point area, general or group address.
         switch (address?.Type)
         {
             case OpenNettyAddressType.Nitoo
                 when OpenNettyAddress.ToNitooAddress(address.Value)  is not { Identifier: not 0 }:
             case OpenNettyAddressType.Zigbee
-                when OpenNettyAddress.ToZigbeeAddress(address.Value) is not { Identifier: not 0, Unit: not 0 }:
+                when OpenNettyAddress.ToZigbeeAddress(address.Value) is not { Identifier: not 0 }:
                 throw new InvalidOperationException(SR.GetResourceString(SR.ID0128));
 
             case OpenNettyAddressType.ScsLightPoint
@@ -452,16 +452,16 @@ public class OpenNettyService : IOpenNettyService
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0027));
         }
 
-        // A single status can never be returned for a non-null address that doesn't point to a specific device/unit.
+        // A single status can never be returned for a non-null address that doesn't point to a specific device.
         //
         // As such, an exception is eagerly thrown if the address is a Nitoo/Zigbee address that doesn't
-        // point to a unique device/unit or if it is an SCS light point area, general or group address.
+        // point to a unique device or if it is an SCS light point area, general or group address.
         switch (address?.Type)
         {
             case OpenNettyAddressType.Nitoo
                 when OpenNettyAddress.ToNitooAddress(address.Value)  is not { Identifier: not 0 }:
             case OpenNettyAddressType.Zigbee
-                when OpenNettyAddress.ToZigbeeAddress(address.Value) is not { Identifier: not 0, Unit: not 0 }:
+                when OpenNettyAddress.ToZigbeeAddress(address.Value) is not { Identifier: not 0 }:
                 throw new InvalidOperationException(SR.GetResourceString(SR.ID0128));
 
             case OpenNettyAddressType.ScsLightPoint
