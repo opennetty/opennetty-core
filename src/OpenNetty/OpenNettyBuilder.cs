@@ -492,8 +492,8 @@ public sealed class OpenNettyBuilder
 
         static ImmutableDictionary<OpenNettySetting, string> GetSettings(XElement element) =>
             element.Elements("Setting").ToImmutableDictionary(
-                element => new OpenNettySetting((string?) element.Attribute("Name") ?? throw new InvalidOperationException(SR.FormatID0086("Name"))),
-                element => (string?) element.Attribute("Value") ?? throw new InvalidOperationException(SR.FormatID0086("Name")));
+                static element => new OpenNettySetting((string?) element.Attribute("Name") ?? throw new InvalidOperationException(SR.FormatID0086("Name"))),
+                static element => (string?) element.Attribute("Value") ?? throw new InvalidOperationException(SR.FormatID0086("Name")));
 
         static OpenNettyScenario GetScenario(XElement element) => new()
         {

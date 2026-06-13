@@ -439,14 +439,14 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                             ClientNonce: RandomNumberGenerator.GetBytes(algorithm.HashSize / 8));
 
                         // Compute the hash of the OPEN password and convert it to its lowercase hexadecimal representation.
-                        var password = Convert.ToHexString(algorithm.ComputeHash(Encoding.UTF8.GetBytes(gateway.Password))).ToLowerInvariant();
+                        var password = Convert.ToHexStringLower(algorithm.ComputeHash(Encoding.UTF8.GetBytes(gateway.Password)));
 
                         // Compute and send the digest used to authenticate the client.
                         await connection.SendAsync(new OpenNettyFrame(
                             new OpenNettyField(OpenNettyParameter.Empty, new OpenNettyParameter(ConvertToDigits(parameters.ClientNonce))),
                             new OpenNettyField(new OpenNettyParameter(ConvertToDigits(algorithm.ComputeHash(Encoding.UTF8.GetBytes(new StringBuilder()
                                 .Append(parameters.ServerNonce)
-                                .Append(Convert.ToHexString(parameters.ClientNonce).ToLowerInvariant())
+                                .Append(Convert.ToHexStringLower(parameters.ClientNonce))
                                 .Append("736F70653E")
                                 .Append("636F70653E")
                                 .Append(password)
@@ -464,7 +464,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                                     left : MemoryMarshal.AsBytes<char>(digest),
                                     right: MemoryMarshal.AsBytes<char>(ConvertToDigits(algorithm.ComputeHash(Encoding.UTF8.GetBytes(new StringBuilder()
                                         .Append(parameters.ServerNonce)
-                                        .Append(Convert.ToHexString(parameters.ClientNonce).ToLowerInvariant())
+                                        .Append(Convert.ToHexStringLower(parameters.ClientNonce))
                                         .Append(password)
                                         .ToString()))))):
                                 // Acknowledge the negotiated authentication data.

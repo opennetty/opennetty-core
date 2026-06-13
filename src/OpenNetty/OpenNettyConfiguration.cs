@@ -23,7 +23,7 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
 
         foreach (var device in options.Devices)
         {
-            if (device.Identifier is null)
+            if (device.Identifier is null && !device.HasCapability(OpenNettyCapabilities.OpenWebNetGateway))
             {
                 continue;
             }
@@ -33,11 +33,22 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
             {
                 var address = device.Definition.Protocol switch
                 {
-                    OpenNettyProtocol.Nitoo  => OpenNettyAddress.FromNitooAddress(device.Identifier.Value,  unit: 0),
-                    OpenNettyProtocol.Zigbee => OpenNettyAddress.FromZigbeeAddress(device.Identifier.Value, unit: 0),
+                    OpenNettyProtocol.Nitoo  when device.HasCapability(OpenNettyCapabilities.OpenWebNetGateway) => null,
+                    OpenNettyProtocol.Zigbee when device.HasCapability(OpenNettyCapabilities.OpenWebNetGateway) => null,
+
+                    OpenNettyProtocol.Nitoo  when device.Identifier is OpenNettyDeviceIdentifier identifier
+                        => OpenNettyAddress.FromNitooAddress(identifier, unit: 0),
+
+                    OpenNettyProtocol.Zigbee when device.Identifier is OpenNettyDeviceIdentifier identifier
+                        => OpenNettyAddress.FromZigbeeAddress(identifier, unit: 0),
 
                     _ => null as OpenNettyAddress?
                 };
+
+                if (address is null && !device.HasCapability(OpenNettyCapabilities.OpenWebNetGateway))
+                {
+                    continue;
+                }
 
                 options.Endpoints.Add(new OpenNettyEndpoint
                 {
@@ -66,11 +77,22 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
 
                     var address = device.Definition.Protocol switch
                     {
-                        OpenNettyProtocol.Nitoo  => OpenNettyAddress.FromNitooAddress(device.Identifier.Value,  unit: definition.Id),
-                        OpenNettyProtocol.Zigbee => OpenNettyAddress.FromZigbeeAddress(device.Identifier.Value, unit: definition.Id),
+                        OpenNettyProtocol.Nitoo  when device.HasCapability(OpenNettyCapabilities.OpenWebNetGateway) => null,
+                        OpenNettyProtocol.Zigbee when device.HasCapability(OpenNettyCapabilities.OpenWebNetGateway) => null,
+
+                        OpenNettyProtocol.Nitoo  when device.Identifier is OpenNettyDeviceIdentifier identifier
+                            => OpenNettyAddress.FromNitooAddress(identifier, unit: definition.Id),
+
+                        OpenNettyProtocol.Zigbee when device.Identifier is OpenNettyDeviceIdentifier identifier
+                            => OpenNettyAddress.FromZigbeeAddress(identifier, unit: definition.Id),
 
                         _ => null as OpenNettyAddress?
                     };
+
+                    if (address is null && !device.HasCapability(OpenNettyCapabilities.OpenWebNetGateway))
+                    {
+                        continue;
+                    }
 
                     var unit = device.Units.SingleOrDefault(unit => unit.Definition == definition) ?? new OpenNettyUnit
                     {

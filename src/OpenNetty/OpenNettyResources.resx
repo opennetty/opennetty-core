@@ -427,7 +427,7 @@
     <value>Multiple gateways matching the specified criteria were found.</value>
   </data>
   <data name="ID0104" xml:space="preserve">
-    <value>A serial number attribute must be attached to device nodes.</value>
+    <value>A serial number or a unique name must be attached to device nodes.</value>
   </data>
   <data name="ID0105" xml:space="preserve">
     <value>An endpoint name must be explicitly attached to SCS light point endpoints.</value>

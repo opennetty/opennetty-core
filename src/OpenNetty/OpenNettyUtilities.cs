@@ -77,17 +77,31 @@ internal static class OpenNettyUtilities
                 break;
 
             case OpenNettyProtocol.Nitoo or OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee:
-                if (device?.Identifier is null)
+                if (device?.Identifier is OpenNettyDeviceIdentifier identifier)
                 {
-                    throw new InvalidOperationException(SR.GetResourceString(SR.ID0104));
+                    builder.Append(identifier.ToString());
+
+                    if (unit is not null)
+                    {
+                        builder.Append('/');
+                        builder.Append(unit.Definition.Id);
+                    }
                 }
 
-                builder.Append(device.Identifier.Value);
-
-                if (unit is not null)
+                else if (!string.IsNullOrEmpty(device?.Name))
                 {
-                    builder.Append('/');
-                    builder.Append(unit.Definition.Id);
+                    builder.Append(device.Name);
+
+                    if (unit is not null)
+                    {
+                        builder.Append('/');
+                        builder.Append(unit.Definition.Id);
+                    }
+                }
+
+                else
+                {
+                    throw new InvalidOperationException(SR.GetResourceString(SR.ID0104));
                 }
                 break;
 
