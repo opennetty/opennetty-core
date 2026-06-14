@@ -113,7 +113,7 @@ public class OpenNettyController
     /// <param name="endpoint">The endpoint.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
-    public virtual ValueTask BindAsync(
+    public virtual async ValueTask BindAsync(
         OpenNettyEndpoint endpoint,
         CancellationToken cancellationToken = default)
     {
@@ -124,7 +124,14 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
-        return _service.ExecuteCommandAsync(
+        // Note: the Zigbee binding commands are only supported by gateways with firmware version 1.2.3 or higher.
+        var version = await GetGatewayFirmwareVersionAsync(endpoint.Gateway, cancellationToken);
+        if (version < new Version(1, 2, 3))
+        {
+            throw new InvalidOperationException(SR.FormatID0131("1.2.3", endpoint.Gateway, version.ToString()));
+        }
+
+        await _service.ExecuteCommandAsync(
             protocol         : endpoint.Protocol,
             command          : OpenNettyCommands.ScenariosPlus.BindingRequest,
             address          : endpoint.Address,
@@ -2834,7 +2841,7 @@ public class OpenNettyController
     /// <param name="endpoint">The endpoint.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
-    public virtual ValueTask UnbindAsync(
+    public virtual async ValueTask UnbindAsync(
         OpenNettyEndpoint endpoint,
         CancellationToken cancellationToken = default)
     {
@@ -2845,7 +2852,14 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
-        return _service.ExecuteCommandAsync(
+        // Note: the Zigbee binding commands are only supported by gateways with firmware version 1.2.3 or higher.
+        var version = await GetGatewayFirmwareVersionAsync(endpoint.Gateway, cancellationToken);
+        if (version < new Version(1, 2, 3))
+        {
+            throw new InvalidOperationException(SR.FormatID0131("1.2.3", endpoint.Gateway, version.ToString()));
+        }
+
+        await _service.ExecuteCommandAsync(
             protocol         : endpoint.Protocol,
             command          : OpenNettyCommands.ScenariosPlus.UnbindingRequest,
             address          : endpoint.Address,
@@ -2862,7 +2876,10 @@ public class OpenNettyController
     /// <param name="endpoint">The endpoint.</param>
     /// <returns>The transmission options that will be used to communicate with the specified endpoint.</returns>
     protected virtual OpenNettyTransmissionOptions GetTransmissionOptions(OpenNettyEndpoint endpoint)
-        => endpoint.GetBooleanSetting(OpenNettySettings.ActionValidation) switch
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
+
+        return endpoint.GetBooleanSetting(OpenNettySettings.ActionValidation) switch
         {
             null => endpoint.Gateway.Options.DefaultTransmissionOptions,
             true => endpoint.Gateway.Options.DefaultTransmissionOptions with
@@ -2874,4 +2891,37 @@ public class OpenNettyController
                 IgnoreActionValidation = false
             }
         };
+    }
+
+    /// <summary>
+    /// Gets the firmware version of the specified gateway.
+    /// </summary>
+    /// <param name="gateway">The gateway.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>The firmware version of the specified gateway.</returns>
+    /// <exception cref="InvalidOperationException">Thrown if the endpoint associated with the gateway couldn't be found.</exception>
+    protected virtual async ValueTask<Version> GetGatewayFirmwareVersionAsync(OpenNettyGateway gateway, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(gateway);
+
+        // Resolve the endpoint associated with the specified gateway. If the endpoint cannot be found, an exception is thrown.
+        var endpoint = await GetGatewayEndpointAsync(gateway, _manager, cancellationToken)
+            ?? throw new InvalidOperationException(SR.FormatID0130(gateway.Name));
+
+        return await GetFirmwareVersionAsync(endpoint, cancellationToken);
+
+        static async ValueTask<OpenNettyEndpoint?> GetGatewayEndpointAsync(
+            OpenNettyGateway gateway, OpenNettyManager manager, CancellationToken cancellationToken)
+        {
+            await foreach (var endpoint in manager.EnumerateEndpointsAsync(cancellationToken))
+            {
+                if (endpoint.Device == gateway.Device && endpoint.Unit is null)
+                {
+                    return endpoint;
+                }
+            }
+
+            return null;
+        }
+    }
 }

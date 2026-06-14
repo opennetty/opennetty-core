@@ -504,6 +504,12 @@
   <data name="ID0129" xml:space="preserve">
     <value>This operation is not valid for SCS light point area, general and group addresses.</value>
   </data>
+  <data name="ID0130" xml:space="preserve">
+    <value>The endpoint associated with the gateway '{0}' couldn't be found.</value>
+  </data>
+  <data name="ID0131" xml:space="preserve">
+    <value>The requested operation requires firmware version {0} or later. Current version for gateway '{1}': {2}.</value>
+  </data>
   <data name="ID2000" xml:space="preserve">
     <value>The endpoint name '{0}' is not valid. Endpoint names cannot contain the '+' or '*' characters.</value>
   </data>
