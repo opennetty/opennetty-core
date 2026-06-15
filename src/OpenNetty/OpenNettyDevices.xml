@@ -1488,6 +1488,68 @@
   -->
 
   <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
+    <Identity Brand="BTicino" Model="3528N">
+      <Description Culture="en" Value="Pocket scenario remote control" />
+      <Description Culture="fr" Value="Interscénario de poche" />
+    </Identity>
+
+    <Identity Brand="Legrand" Model="573870">
+      <Description Culture="en" Value="Pocket scenario remote control" />
+      <Description Culture="fr" Value="Interscénario de poche" />
+    </Identity>
+
+    <Capability Name="Battery level" />
+    <Capability Name="Firmware version" />
+    <Capability Name="Hardware version" />
+    <Capability Name="Outgoing communication" />
+    <Capability Name="Zigbee end device" />
+
+    <Unit Id="1">
+      <Capability Name="Pressure scenario plus event" />
+      <Capability Name="Zigbee binding" />
+
+      <Description Culture="en" Value="Button 1" />
+      <Description Culture="fr" Value="Bouton 1" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+    </Unit>
+
+    <Unit Id="2">
+      <Capability Name="Pressure scenario plus event" />
+      <Capability Name="Zigbee binding" />
+
+      <Description Culture="en" Value="Button 2" />
+      <Description Culture="fr" Value="Bouton 2" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+    </Unit>
+
+    <Unit Id="3">
+      <Capability Name="Pressure scenario plus event" />
+      <Capability Name="Zigbee binding" />
+
+      <Description Culture="en" Value="Button 3" />
+      <Description Culture="fr" Value="Bouton 3" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+    </Unit>
+
+    <Unit Id="4">
+      <Capability Name="Pressure scenario plus event" />
+      <Capability Name="Zigbee binding" />
+
+      <Description Culture="en" Value="Button 4" />
+      <Description Culture="fr" Value="Bouton 4" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+    </Unit>
+  </Device>
+
+  <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
     <Identity Brand="Legrand" Collection="Céliane" Model="67223">
       <Description Culture="en" Value="1-gang wireless light control switch" />
       <Description Culture="fr" Value="Interrupteur d'éclairage simple sans fil" />
