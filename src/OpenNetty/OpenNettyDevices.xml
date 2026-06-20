@@ -1488,6 +1488,31 @@
   -->
 
   <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
+    <Identity Brand="Legrand" Model="573862">
+      <Description Culture="en" Value="1-gang switch for false ceilings" />
+      <Description Culture="fr" Value="Interrupteur simple pour faux plafonds" />
+    </Identity>
+
+    <Capability Name="Firmware version" />
+    <Capability Name="Hardware version" />
+    <Capability Name="Outgoing communication" />
+    <Capability Name="Zigbee router" />
+
+    <Unit Id="1">
+      <Capability Name="On/off switch state" />
+      <Capability Name="On/off switch control" />
+      <Capability Name="Toggle scenario event" />
+      <Capability Name="Zigbee binding" />
+
+      <Description Culture="en" Value="Output" />
+      <Description Culture="fr" Value="Sortie" />
+
+      <Setting Name="Home Assistant scenario device class" Value="button" />
+      <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
+    </Unit>
+  </Device>
+
+  <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
     <Identity Brand="BTicino" Model="3528N">
       <Description Culture="en" Value="Pocket scenario remote control" />
       <Description Culture="fr" Value="Interscénario de poche" />
