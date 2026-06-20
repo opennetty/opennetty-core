@@ -72,6 +72,46 @@ public static class OpenNettyCommands
         public static readonly OpenNettyCommand On100 = new(OpenNettyCategories.Lighting, "10");
 
         /// <summary>
+        /// Timed on, 1 minute (WHAT = 11).
+        /// </summary>
+        public static readonly OpenNettyCommand TimedOn1Minute = new(OpenNettyCategories.Lighting, "11");
+
+        /// <summary>
+        /// Timed on, 2 minutes (WHAT = 12).
+        /// </summary>
+        public static readonly OpenNettyCommand TimedOn2Minutes = new(OpenNettyCategories.Lighting, "12");
+
+        /// <summary>
+        /// Timed on, 3 minutes (WHAT = 13).
+        /// </summary>
+        public static readonly OpenNettyCommand TimedOn3Minutes = new(OpenNettyCategories.Lighting, "13");
+
+        /// <summary>
+        /// Timed on, 4 minutes (WHAT = 14).
+        /// </summary>
+        public static readonly OpenNettyCommand TimedOn4Minutes = new(OpenNettyCategories.Lighting, "14");
+
+        /// <summary>
+        /// Timed on, 5 minutes (WHAT = 15).
+        /// </summary>
+        public static readonly OpenNettyCommand TimedOn5Minutes = new(OpenNettyCategories.Lighting, "15");
+
+        /// <summary>
+        /// Timed on, 15 minutes (WHAT = 16).
+        /// </summary>
+        public static readonly OpenNettyCommand TimedOn15Minutes = new(OpenNettyCategories.Lighting, "16");
+
+        /// <summary>
+        /// Timed on, 30 seconds (WHAT = 17).
+        /// </summary>
+        public static readonly OpenNettyCommand TimedOn30Seconds = new(OpenNettyCategories.Lighting, "17");
+
+        /// <summary>
+        /// Timed on, 500 milliseconds (WHAT = 18).
+        /// </summary>
+        public static readonly OpenNettyCommand TimedOn500Milliseconds = new(OpenNettyCategories.Lighting, "18");
+
+        /// <summary>
         /// Toggle (WHAT = 32).
         /// </summary>
         public static readonly OpenNettyCommand Toggle = new(OpenNettyCategories.Lighting, "32");

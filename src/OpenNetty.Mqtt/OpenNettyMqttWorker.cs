@@ -722,7 +722,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     switch (message.ConvertPayloadToString()?.ToLowerInvariant())
                     {
                         case "on":
-                            await _controller.SwitchOnAsync(endpoint, cancellationToken);
+                            await _controller.SwitchOnAsync(endpoint, transition: null, cancellationToken);
                             break;
 
                         case "off":

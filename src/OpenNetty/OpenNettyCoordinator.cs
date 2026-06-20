@@ -118,13 +118,17 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
 
             switch ((notification, message))
             {
-                // The switch state and the brightness level of an endpoint can be inferred from 6 types of messages:
+                // The switch state and the brightness level of an endpoint can be inferred from 7 types of messages:
                 //
                 //   - From an "OFF" or "ON" BUS COMMAND message:
                 //     * For Nitoo and Zigbee devices, the message MAY be incoming or outgoing.
                 //     * For SCS devices, the message MUST be incoming.
                 //
                 //   - From an incoming or outgoing "ON%" BUS COMMAND message:
+                //     * For SCS devices, the message MUST be incoming.
+                //     * For Zigbee devices, the message MAY be incoming or outgoing.
+                //
+                //   - From an incoming or outgoing "TIMED ON" BUS COMMAND message:
                 //     * For SCS devices, the message MUST be incoming.
                 //     * For Zigbee devices, the message MAY be incoming or outgoing.
                 //
@@ -317,6 +321,47 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                  message.Command == OpenNettyCommands.Lighting.On70 ? 70 :
                                  message.Command == OpenNettyCommands.Lighting.On80 ? 80 :
                                  message.Command == OpenNettyCommands.Lighting.On90 ? 90 : 100)), cancellationToken);
+                        }
+                    });
+                    break;
+                }
+
+                case (OpenNettyNotifications.MessageReceived,
+                      OpenNettyMessage { Protocol: OpenNettyProtocol.Scs,
+                                         Type    : OpenNettyMessageType.BusCommand,
+                                         Command : OpenNettyCommand,
+                                         Address : not null }) or
+                     (OpenNettyNotifications.MessageReceived or OpenNettyNotifications.MessageSent,
+                      OpenNettyMessage { Protocol: OpenNettyProtocol.Zigbee,
+                                         Type    : OpenNettyMessageType.BusCommand,
+                                         Command : OpenNettyCommand,
+                                         Address : not null })
+                    when message.Command == OpenNettyCommands.Lighting.TimedOn1Minute   ||
+                         message.Command == OpenNettyCommands.Lighting.TimedOn2Minutes  ||
+                         message.Command == OpenNettyCommands.Lighting.TimedOn3Minutes  ||
+                         message.Command == OpenNettyCommands.Lighting.TimedOn4Minutes  ||
+                         message.Command == OpenNettyCommands.Lighting.TimedOn5Minutes  ||
+                         message.Command == OpenNettyCommands.Lighting.TimedOn15Minutes ||
+                         message.Command == OpenNettyCommands.Lighting.TimedOn30Seconds ||
+                         message.Command == OpenNettyCommands.Lighting.TimedOn500Milliseconds:
+                {
+                    var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
+
+                    await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                    {
+                        // SCS devices configured to use the PUL mode never react to area and general commands.
+                        if (message.Address.Value.Type is OpenNettyAddressType.ScsLightPoint &&
+                            (OpenNettyAddress.IsScsLightPointAreaAddress(message.Address.Value) ||
+                             OpenNettyAddress.IsScsLightPointGeneralAddress(message.Address.Value)) &&
+                            endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton)
+                        {
+                            return;
+                        }
+
+                        if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
+                        {
+                            await _events.PublishAsync(new SwitchStateReportedEventArgs(endpoint,
+                                OpenNettyModels.Lighting.SwitchState.On), cancellationToken);
                         }
                     });
                     break;
