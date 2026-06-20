@@ -50,6 +50,52 @@ public static class OpenNettyModels
             /// </summary>
             On = 1
         }
+
+        /// <summary>
+        /// Timed ON duration.
+        /// </summary>
+        public enum TimedOnDuration
+        {
+            /// <summary>
+            /// 500 milliseconds.
+            /// </summary>
+            FiveHundredMilliseconds = 0,
+
+            /// <summary>
+            /// 30 seconds.
+            /// </summary>
+            ThirtySeconds = 1,
+            
+            /// <summary>
+            /// 1 minute.
+            /// </summary>
+            OneMinute = 2,
+            
+            /// <summary>
+            /// 2 minutes.
+            /// </summary>
+            TwoMinutes = 3,
+            
+            /// <summary>
+            /// 3 minutes.
+            /// </summary>
+            ThreeMinutes = 4,
+
+            /// <summary>
+            /// 4 minutes.
+            /// </summary>
+            FourMinutes = 5,
+
+            /// <summary>
+            /// 5 minutes.
+            /// </summary>
+            FiveMinutes = 6,
+
+            /// <summary>
+            /// 15 minutes.
+            /// </summary>
+            FifteenMinutes = 7
+        }
     }
 
     /// <summary>

@@ -143,62 +143,6 @@ public class OpenNettyController
     }
 
     /// <summary>
-    /// Disables the supervisor mode for the specified endpoint.
-    /// </summary>
-    /// <param name="endpoint">The endpoint.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
-    /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
-    public virtual ValueTask DisableSupervisionAsync(
-        OpenNettyEndpoint endpoint,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(endpoint);
-
-        if (!endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
-        {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
-        }
-
-        return _service.ExecuteCommandAsync(
-            protocol         : endpoint.Protocol,
-            command          : OpenNettyCommands.Management.SupervisorRemove,
-            address          : endpoint.Address,
-            medium           : endpoint.Medium,
-            mode             : null,
-            gateway          : endpoint.Gateway,
-            options          : GetTransmissionOptions(endpoint),
-            cancellationToken: cancellationToken);
-    }
-
-    /// <summary>
-    /// Enables the supervisor mode for the specified endpoint.
-    /// </summary>
-    /// <param name="endpoint">The endpoint.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
-    /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
-    public virtual ValueTask EnableSupervisionAsync(
-        OpenNettyEndpoint endpoint,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(endpoint);
-
-        if (!endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
-        {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
-        }
-
-        return _service.ExecuteCommandAsync(
-            protocol         : endpoint.Protocol,
-            command          : OpenNettyCommands.Management.Supervisor,
-            address          : endpoint.Address,
-            medium           : endpoint.Medium,
-            mode             : null,
-            gateway          : endpoint.Gateway,
-            options          : GetTransmissionOptions(endpoint),
-            cancellationToken: cancellationToken);
-    }
-
-    /// <summary>
     /// Cancels the pilot wire derogation mode currently enforced by the specified endpoint.
     /// </summary>
     /// <param name="endpoint">The endpoint.</param>
@@ -358,6 +302,34 @@ public class OpenNettyController
             mode             : null,
             gateway          : endpoint.Gateway,
             options          : options,
+            cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
+    /// Disables the supervisor mode for the specified endpoint.
+    /// </summary>
+    /// <param name="endpoint">The endpoint.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
+    public virtual ValueTask DisableSupervisionAsync(
+        OpenNettyEndpoint endpoint,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
+
+        if (!endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
+        }
+
+        return _service.ExecuteCommandAsync(
+            protocol         : endpoint.Protocol,
+            command          : OpenNettyCommands.Management.SupervisorRemove,
+            address          : endpoint.Address,
+            medium           : endpoint.Medium,
+            mode             : null,
+            gateway          : endpoint.Gateway,
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
     }
 
@@ -666,6 +638,34 @@ public class OpenNettyController
             protocol         : endpoint.Protocol,
             command          : OpenNettyCommands.ScenariosPlus.ActionForTime.WithParameters(
                 /* TIME: */ ((long) (duration.TotalSeconds * 5 + .5)).ToString(CultureInfo.InvariantCulture)),
+            address          : endpoint.Address,
+            medium           : endpoint.Medium,
+            mode             : null,
+            gateway          : endpoint.Gateway,
+            options          : GetTransmissionOptions(endpoint),
+            cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
+    /// Enables the supervisor mode for the specified endpoint.
+    /// </summary>
+    /// <param name="endpoint">The endpoint.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
+    public virtual ValueTask EnableSupervisionAsync(
+        OpenNettyEndpoint endpoint,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
+
+        if (!endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
+        }
+
+        return _service.ExecuteCommandAsync(
+            protocol         : endpoint.Protocol,
+            command          : OpenNettyCommands.Management.Supervisor,
             address          : endpoint.Address,
             medium           : endpoint.Medium,
             mode             : null,
@@ -2318,13 +2318,13 @@ public class OpenNettyController
     /// </summary>
     /// <param name="endpoint">The endpoint.</param>
     /// <param name="level">The brightness level, from 0 to 100.</param>
-    /// <param name="duration">The optional transition duration.</param>
+    /// <param name="transition">The optional transition duration.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
     public virtual ValueTask SetBrightnessAsync(
         OpenNettyEndpoint endpoint,
         byte level,
-        TimeSpan? duration = null,
+        TimeSpan? transition = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(endpoint);
@@ -2339,23 +2339,23 @@ public class OpenNettyController
         // the requested level is higher than 50%. To discourage users of this API to set values that
         // may exhibit this issue, a sanity check is performed here to require an adequate duration.
         if (endpoint.Protocol is OpenNettyProtocol.Nitoo && level is > 50 &&
-            duration is not null && duration < TimeSpan.FromSeconds(2))
+            transition is not null && transition < TimeSpan.FromSeconds(2))
         {
-            throw new ArgumentOutOfRangeException(nameof(duration));
+            throw new ArgumentOutOfRangeException(nameof(transition));
         }
 
         if (endpoint.Protocol is OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee &&
-            duration is not null && duration > TimeSpan.FromSeconds(50))
+            transition is not null && transition > TimeSpan.FromSeconds(50))
         {
-            throw new ArgumentOutOfRangeException(nameof(duration));
+            throw new ArgumentOutOfRangeException(nameof(transition));
         }
 
         // Note: Nitoo devices support a very long duration, but to encourage users of this API
         // to use reasonable values, the maximum duration allowed is currently set to 5 minutes.
         if (endpoint.Protocol is OpenNettyProtocol.Nitoo &&
-            duration is not null && duration > TimeSpan.FromMinutes(5))
+            transition is not null && transition > TimeSpan.FromMinutes(5))
         {
-            throw new ArgumentOutOfRangeException(nameof(duration));
+            throw new ArgumentOutOfRangeException(nameof(transition));
         }
 
         if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingControl))
@@ -2385,7 +2385,7 @@ public class OpenNettyController
                     /* LEVEL: */ endpoint.Protocol is OpenNettyProtocol.Nitoo ?
                         level.ToString(CultureInfo.InvariantCulture) :
                         (level + 100).ToString(CultureInfo.InvariantCulture),
-                    /* SPEED: */ duration switch
+                    /* SPEED: */ transition switch
                     {
                         // When explicitly set, use the duration specified by the caller to determine the speed.
                         TimeSpan value => ((long) value.TotalSeconds * 5 + .5).ToString(CultureInfo.InvariantCulture),
@@ -2737,13 +2737,82 @@ public class OpenNettyController
     /// Switches the specified endpoint on.
     /// </summary>
     /// <param name="endpoint">The endpoint.</param>
+    /// <param name="transition">The optional transition duration.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
     public virtual ValueTask SwitchOnAsync(
         OpenNettyEndpoint endpoint,
+        TimeSpan? transition = null,
         CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(endpoint);
+
+        if (endpoint.Protocol is OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee &&
+            transition is not null && transition > TimeSpan.FromSeconds(50))
+        {
+            throw new ArgumentOutOfRangeException(nameof(transition));
+        }
+
+        if (!endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchControl))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
+        }
+
+        if (transition is not null && !endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingControl))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
+        }
+
+        // If the endpoint has a function type attached, ensure it is suitable for the requested operation.
+        if (endpoint.GetStringSetting(OpenNettySettings.FunctionType) is not (null or OpenNettySettings.FunctionTypes.LightActuator))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
+        }
+
+        return _service.ExecuteCommandAsync(
+            protocol         : endpoint.Protocol,
+            command          : transition switch
+            {
+                // When explicitly set, use the duration specified by the caller to determine the speed.
+                TimeSpan value => OpenNettyCommands.Lighting.On.WithParameters(
+                [
+                    /* SPEED: */ ((long) value.TotalSeconds * 5 + .5).ToString(CultureInfo.InvariantCulture)
+                ]),
+
+                _ => OpenNettyCommands.Lighting.On
+            },
+            address          : endpoint.Address,
+            medium           : endpoint.Medium,
+            mode             : null,
+            gateway          : endpoint.Gateway,
+            options          : GetTransmissionOptions(endpoint) with
+            {
+                // If the endpoint was configured to use the push-button mode, always disable retransmissions for Nitoo
+                // devices as ON commands are not idempotent when using this mode, which may result in unwanted results.
+                DisallowUnsafeRetransmissions = endpoint.Protocol is OpenNettyProtocol.Nitoo &&
+                    endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton
+            },
+            cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
+    /// Switches the specified endpoint on for the specified duration.
+    /// </summary>
+    /// <param name="endpoint">The endpoint.</param>
+    /// <param name="duration">The duration for which the endpoint should remain on before automatically switching off.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
+    public virtual ValueTask SwitchOnTimedAsync(
+        OpenNettyEndpoint endpoint,
+        OpenNettyModels.Lighting.TimedOnDuration? duration = null,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
+
+        if (duration is not null && !Enum.IsDefined(duration.Value))
+        {
+            throw new InvalidDataException(SR.GetResourceString(SR.ID0068));
+        }
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchControl))
         {
@@ -2758,18 +2827,24 @@ public class OpenNettyController
 
         return _service.ExecuteCommandAsync(
             protocol         : endpoint.Protocol,
-            command          : OpenNettyCommands.Lighting.On,
+            command          : duration switch
+            {
+                OpenNettyModels.Lighting.TimedOnDuration.OneMinute               => OpenNettyCommands.Lighting.TimedOn1Minute,
+                OpenNettyModels.Lighting.TimedOnDuration.TwoMinutes              => OpenNettyCommands.Lighting.TimedOn2Minutes,
+                OpenNettyModels.Lighting.TimedOnDuration.ThreeMinutes            => OpenNettyCommands.Lighting.TimedOn3Minutes,
+                OpenNettyModels.Lighting.TimedOnDuration.FourMinutes             => OpenNettyCommands.Lighting.TimedOn4Minutes,
+                OpenNettyModels.Lighting.TimedOnDuration.FiveMinutes             => OpenNettyCommands.Lighting.TimedOn5Minutes,
+                OpenNettyModels.Lighting.TimedOnDuration.FifteenMinutes          => OpenNettyCommands.Lighting.TimedOn15Minutes,
+                OpenNettyModels.Lighting.TimedOnDuration.ThirtySeconds           => OpenNettyCommands.Lighting.TimedOn30Seconds,
+                OpenNettyModels.Lighting.TimedOnDuration.FiveHundredMilliseconds => OpenNettyCommands.Lighting.TimedOn500Milliseconds,
+
+                _ => OpenNettyCommands.Lighting.On
+            },
             address          : endpoint.Address,
             medium           : endpoint.Medium,
             mode             : null,
             gateway          : endpoint.Gateway,
-            options          : GetTransmissionOptions(endpoint) with
-            {
-                // If the endpoint was configured to use the push-button mode, always disable retransmissions for Nitoo
-                // devices as ON commands are not idempotent when using this mode, which may result in unwanted results.
-                DisallowUnsafeRetransmissions = endpoint.Protocol is OpenNettyProtocol.Nitoo &&
-                    endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton
-            },
+            options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
     }
 
