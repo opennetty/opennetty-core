@@ -32,6 +32,11 @@ public static class OpenNettyMqttAttributes
     public const string Brightness = "brightness";
 
     /// <summary>
+    /// Dry contact state.
+    /// </summary>
+    public const string DryContactState = "dry_contact_state";
+
+    /// <summary>
     /// Firmware version.
     /// </summary>
     public const string FirmwareVersion = "firmware_version";

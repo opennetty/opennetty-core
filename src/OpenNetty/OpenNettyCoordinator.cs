@@ -1228,7 +1228,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         await _events.PublishAsync(new ZigbeeNetworkEventReportedEventArgs(endpoint,
                             command == OpenNettyCommands.Management.CreateZigbeeNetwork ? OpenNettyModels.Management.ZigbeeNetworkEventType.Created :
                             command == OpenNettyCommands.Management.CloseZigbeeNetwork  ? OpenNettyModels.Management.ZigbeeNetworkEventType.Closed  :
-                            command == OpenNettyCommands.Management.OpenZigbeeNetwork   ? OpenNettyModels.Management.ZigbeeNetworkEventType.Opened  :
+                            command == OpenNettyCommands.Management.OpenZigbeeNetwork   ? OpenNettyModels.Management.ZigbeeNetworkEventType.Open    :
                             command == OpenNettyCommands.Management.JoinZigbeeNetwork   ? OpenNettyModels.Management.ZigbeeNetworkEventType.Joined  :
                             command == OpenNettyCommands.Management.LeaveZigbeeNetwork  ? OpenNettyModels.Management.ZigbeeNetworkEventType.Left    :
                             throw new InvalidDataException(SR.GetResourceString(SR.ID0068))), cancellationToken);
@@ -1252,7 +1252,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         if (endpoint.HasCapability(OpenNettyCapabilities.ZigbeeBinding))
                         {
                             await _events.PublishAsync(new ZigbeeBindingEventReportedEventArgs(endpoint,
-                                command == OpenNettyCommands.ScenariosPlus.OpenBinding   ? OpenNettyModels.ScenariosPlus.ZigbeeBindingEventType.Opened   :
+                                command == OpenNettyCommands.ScenariosPlus.OpenBinding   ? OpenNettyModels.ScenariosPlus.ZigbeeBindingEventType.Open     :
                                 command == OpenNettyCommands.ScenariosPlus.CloseBinding  ? OpenNettyModels.ScenariosPlus.ZigbeeBindingEventType.Closed   :
                                 command == OpenNettyCommands.ScenariosPlus.CancelBinding ? OpenNettyModels.ScenariosPlus.ZigbeeBindingEventType.Canceled :
                                 throw new InvalidDataException(SR.GetResourceString(SR.ID0068))), cancellationToken);
@@ -1362,6 +1362,41 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         if (endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioPlusEvent))
                         {
                             await _events.PublishAsync(new PressureScenarioPlusReportedEventArgs(endpoint, type, button), cancellationToken);
+                        }
+                    });
+                    break;
+                }
+
+                case (OpenNettyNotifications.MessageReceived,
+                      OpenNettyMessage { Protocol: OpenNettyProtocol.Scs,
+                                         Type    : OpenNettyMessageType.BusCommand,
+                                         Command : OpenNettyCommand command,
+                                         Address : not null })
+                    // Note: dry contact BUS COMMAND frames are parameterized.
+                    when command.WithParameters([]) == OpenNettyCommands.ScenariosPlus.DryContactOn ||
+                         command.WithParameters([]) == OpenNettyCommands.ScenariosPlus.DryContactOff:
+                {
+                    var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway, message.Address.Value);
+
+                    await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                    {
+                        if (endpoint.HasCapability(OpenNettyCapabilities.DryContactScenarioEvent))
+                        {
+                            await _events.PublishAsync(new DryContactScenarioReportedEventArgs(endpoint,
+                                command.WithParameters([]) == OpenNettyCommands.ScenariosPlus.DryContactOn  ? OpenNettyModels.ScenariosPlus.DryContactScenarioType.Open   :
+                                command.WithParameters([]) == OpenNettyCommands.ScenariosPlus.DryContactOff ? OpenNettyModels.ScenariosPlus.DryContactScenarioType.Closed :
+                                throw new InvalidDataException(SR.GetResourceString(SR.ID0068))), cancellationToken);
+                        }
+
+                        if (endpoint.HasCapability(OpenNettyCapabilities.DryContactState))
+                        {
+                            await _events.PublishAsync(new DryContactStateReportedEventArgs(endpoint,
+                                State : command.WithParameters([]) == OpenNettyCommands.ScenariosPlus.DryContactOn  ? OpenNettyModels.ScenariosPlus.DryContactState.Open   :
+                                        command.WithParameters([]) == OpenNettyCommands.ScenariosPlus.DryContactOff ? OpenNettyModels.ScenariosPlus.DryContactState.Closed :
+                                        throw new InvalidDataException(SR.GetResourceString(SR.ID0068)),
+                                Origin: command.Parameters is ["0"] ? OpenNettyModels.ScenariosPlus.DryContactStateOrigin.StateRequest :
+                                        command.Parameters is ["1"] ? OpenNettyModels.ScenariosPlus.DryContactStateOrigin.SystemEvent  :
+                                        throw new InvalidDataException(SR.GetResourceString(SR.ID0068))), cancellationToken);
                         }
                     });
                     break;

@@ -72,6 +72,11 @@ public static class OpenNettyCapabilities
     public static readonly OpenNettyCapability BatteryLevel = new("Battery level");
 
     /// <summary>
+    /// Configurable function type.
+    /// </summary>
+    public static readonly OpenNettyCapability ConfigurableFunctionType = new("Configurable function type");
+
+    /// <summary>
     /// Configurable push button numbers.
     /// </summary>
     public static readonly OpenNettyCapability ConfigurablePushButtonNumbers = new("Configurable push button numbers");
@@ -95,6 +100,21 @@ public static class OpenNettyCapabilities
     /// Dimming scenario event.
     /// </summary>
     public static readonly OpenNettyCapability DimmingScenarioEvent = new("Dimming scenario event");
+
+    /// <summary>
+    /// Dry contact scenario activation.
+    /// </summary>
+    public static readonly OpenNettyCapability DryContactScenarioActivation = new("Dry contact scenario activation");
+
+    /// <summary>
+    /// Dry contact scenario event.
+    /// </summary>
+    public static readonly OpenNettyCapability DryContactScenarioEvent = new("Dry contact scenario event");
+
+    /// <summary>
+    /// Dry contact state.
+    /// </summary>
+    public static readonly OpenNettyCapability DryContactState = new("Dry contact state");
 
     /// <summary>
     /// Pressure scenario activation.

@@ -510,6 +510,15 @@
   <data name="ID0131" xml:space="preserve">
     <value>The requested operation requires firmware version {0} or later. Current version for gateway '{1}': {2}.</value>
   </data>
+  <data name="ID0132" xml:space="preserve">
+    <value>The dry contact identifier must be between 0 and 201.</value>
+  </data>
+  <data name="ID0133" xml:space="preserve">
+    <value>The address doesn't represent a SCS CEN+ address.</value>
+  </data>
+  <data name="ID0134" xml:space="preserve">
+    <value>The address doesn't represent a valid SCS CEN+ address.</value>
+  </data>
   <data name="ID2000" xml:space="preserve">
     <value>The endpoint name '{0}' is not valid. Endpoint names cannot contain the '+' or '*' characters.</value>
   </data>
@@ -517,10 +526,10 @@
     <value>The MQTT root topic cannot contain the '+' or '*' characters.</value>
   </data>
   <data name="ID2002" xml:space="preserve">
-    <value>The endpoint '{0}' doesn't have a function type setting attached. Endpoints that support both light and shutter operations must be attached an function type setting reflecting the type configured via MyHome Suite.</value>
+    <value>The endpoint '{0}' doesn't have a function type setting attached. Endpoints that support multiple types of operations (e.g light and shutter or pressure scenarios and pressure scenarios plus) must be attached a function type setting reflecting the type configured via MyHome Suite.</value>
   </data>
   <data name="ID2003" xml:space="preserve">
-    <value>The endpoint '{0}' doesn't have a valid function type setting attached ({1}). Only 'Light actuator', 'Automation actuator', 'Scheduled scenario' and 'Scheduled scenario plus' are currently supported.</value>
+    <value>The endpoint '{0}' doesn't have a valid function type setting attached ({1}). Only 'Light actuator', 'Automation actuator', 'Contact state', 'Scheduled scenario' and 'Scheduled scenario plus' are currently supported.</value>
   </data>
   <data name="ID2004" xml:space="preserve">
     <value>The endpoint '{0}' doesn't have a valid switch mode setting attached ({1}). Only 'Default' and 'Push button' are currently supported.</value>
@@ -551,9 +560,6 @@
   </data>
   <data name="ID2013" xml:space="preserve">
     <value>Multiple endpoints with the name '{0}' have been added.</value>
-  </data>
-  <data name="ID2014" xml:space="preserve">
-    <value>The endpoint '{0}' doesn't have a function type setting attached. Endpoints that support both pressure scenarios and pressure scenarios plus must be attached an function type setting reflecting the type configured via MyHome Suite.</value>
   </data>
   <data name="ID2015" xml:space="preserve">
     <value>The endpoint '{0}' supports configurable push button numbers but doesn't have a list of numbers attached. Make sure the list of push button numbers configured in MyHome Suite is attached as an endpoint setting.</value>
@@ -1016,5 +1022,17 @@
   </data>
   <data name="ID8124" xml:space="preserve">
     <value>Virtual SCS scenario plus endpoint</value>
+  </data>
+  <data name="ID8125" xml:space="preserve">
+    <value>Dispatch dry contact open/detection scenario</value>
+  </data>
+  <data name="ID8126" xml:space="preserve">
+    <value>Dispatch dry contact closed/end of detection scenario</value>
+  </data>
+  <data name="ID8127" xml:space="preserve">
+    <value>Dry contact/detection</value>
+  </data>
+  <data name="ID8128" xml:space="preserve">
+    <value>Get dry contact/detection state</value>
   </data>
 </root>

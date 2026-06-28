@@ -313,6 +313,22 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
         => FromNitooAddress(OpenNettyDeviceIdentifier.ToNitooSerialNumber(identifier), unit);
 
     /// <summary>
+    /// Creates a SCS dry contact address based on the specified parameters.
+    /// </summary>
+    /// <param name="identifier">The scenario identifier.</param>
+    /// <returns>A SCS dry contact address based on the specified parameters.</returns>
+    /// <exception cref="ArgumentOutOfRangeException">One of the parameters is not valid.</exception>
+    public static OpenNettyAddress FromScsDryContactAddress(byte identifier)
+    {
+        if (identifier is > 201)
+        {
+            throw new ArgumentOutOfRangeException(nameof(identifier), SR.GetResourceString(SR.ID0132));
+        }
+
+        return new OpenNettyAddress(OpenNettyAddressType.ScsDryContact, $"3{identifier.ToString(CultureInfo.InvariantCulture)}");
+    }
+
+    /// <summary>
     /// Creates a SCS light point address based on the specified parameters.
     /// </summary>
     /// <param name="extension">The bus extension (also known as interface), or 0 to represent the private riser.</param>
@@ -525,6 +541,29 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
         }
 
         return (Identifier: value / 16, Unit: (byte) (value % 16));
+    }
+
+    /// <summary>
+    /// Converts the specified address to a SCS dry contact address.
+    /// </summary>
+    /// <param name="address">The address.</param>
+    /// <returns>A SCS dry contact address based on the specified address.</returns>
+    /// <exception cref="ArgumentException">The address doesn't represent a valid SCS dry contact address.</exception>
+    public static ushort ToScsDryContactAddress(OpenNettyAddress address)
+    {
+        if (address.Type is not OpenNettyAddressType.ScsDryContact)
+        {
+            throw new ArgumentException(SR.GetResourceString(SR.ID0133), nameof(address));
+        }
+
+        if (!address.Value.StartsWith('3') ||
+            !ushort.TryParse(address.Value.AsSpan()[1..], CultureInfo.InvariantCulture, out ushort identifier) ||
+            identifier is > 201)
+        {
+            throw new ArgumentException(SR.GetResourceString(SR.ID0134), nameof(address));
+        }
+
+        return identifier;
     }
 
     /// <summary>

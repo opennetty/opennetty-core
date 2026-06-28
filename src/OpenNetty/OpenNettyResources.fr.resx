@@ -486,4 +486,16 @@
   <data name="ID8124" xml:space="preserve">
     <value>Point de terminaison virtuel SCS scénario plus</value>
   </data>
+  <data name="ID8125" xml:space="preserve">
+    <value>Activer scénario contact sec ouvert/détection</value>
+  </data>
+  <data name="ID8126" xml:space="preserve">
+    <value>Activer scénario contact sec fermé/fin de détection</value>
+  </data>
+  <data name="ID8127" xml:space="preserve">
+    <value>Contact sec/détection</value>
+  </data>
+  <data name="ID8128" xml:space="preserve">
+    <value>Récupérer état contact sec/détection</value>
+  </data>
 </root>

@@ -225,6 +225,13 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     break;
                 }
 
+                case OpenNettyMqttAttributes.DryContactState when operation is OpenNettyMqttOperation.Get:
+                {
+                    // Note: the response to this request is monitored by the hosted service and doesn't need to be reported here.
+                    _ = await _controller.GetDryContactStateAsync(endpoint, cancellationToken);
+                    break;
+                }
+
                 case OpenNettyMqttAttributes.FirmwareVersion when operation is OpenNettyMqttOperation.Get:
                 {
                     var version = await _controller.GetFirmwareVersionAsync(endpoint, cancellationToken);
@@ -447,6 +454,16 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 (short?) parameters?["dimming_step"] ?? throw new InvalidDataException(SR.GetResourceString(SR.ID0068)), cancellationToken);
                             break;
                         }
+
+                        case "contact_open":
+                            await _controller.DispatchDryContactScenarioAsync(endpoint,
+                                OpenNettyModels.ScenariosPlus.DryContactScenarioType.Open, cancellationToken);
+                            break;
+
+                        case "contact_closed":
+                            await _controller.DispatchDryContactScenarioAsync(endpoint,
+                                OpenNettyModels.ScenariosPlus.DryContactScenarioType.Closed, cancellationToken);
+                            break;
 
                         case "end_of_extended_pressure":
                             await _controller.DispatchPressureScenarioPlusAsync(endpoint,
@@ -1225,6 +1242,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
             if (endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioEvent)       ||
                 endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioEvent)      ||
+                endpoint.HasCapability(OpenNettyCapabilities.DryContactScenarioEvent)   ||
                 endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioEvent)        ||
                 endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioEvent)     ||
                 endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioPlusEvent) ||
@@ -1252,13 +1270,23 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     types.Add("dimming");
                 }
 
+                if (endpoint.HasCapability(OpenNettyCapabilities.DryContactScenarioEvent) &&
+                    endpoint.GetStringSetting(OpenNettySettings.FunctionType) is null or
+                        OpenNettySettings.FunctionTypes.ContactState)
+                {
+                    types.Add("contact_open");
+                    types.Add("contact_closed");
+                }
+
                 if (endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioEvent))
                 {
                     types.Add("switch_on");
                     types.Add("switch_off");
                 }
 
-                if (endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioEvent))
+                if (endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioEvent) &&
+                    endpoint.GetStringSetting(OpenNettySettings.FunctionType)
+                        is null or OpenNettySettings.FunctionTypes.ScheduledScenario)
                 {
                     if (endpoint.GetStringSetting(OpenNettySettings.HomeAssistantScenarioDeviceClass)
                         is OpenNettySettings.HomeAssistantDeviceClasses.Events.Doorbell)
@@ -1272,7 +1300,9 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     types.Add("extended_pressure");
                 }
 
-                if (endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioPlusEvent))
+                if (endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioPlusEvent) &&
+                    endpoint.GetStringSetting(OpenNettySettings.FunctionType)
+                        is null or OpenNettySettings.FunctionTypes.ScheduledScenarioPlus)
                 {
                     if (endpoint.GetStringSetting(OpenNettySettings.HomeAssistantScenarioDeviceClass)
                         is OpenNettySettings.HomeAssistantDeviceClasses.Events.Doorbell)
@@ -1320,6 +1350,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         count   : endpoints.Count(static endpoint =>
                             endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioEvent)       ||
                             endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioEvent)      ||
+                            endpoint.HasCapability(OpenNettyCapabilities.DryContactScenarioEvent)   ||
                             endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioEvent)        ||
                             endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioEvent)     ||
                             endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioPlusEvent) ||
@@ -1410,6 +1441,86 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 };
             }
 
+            if (endpoint.HasCapability(OpenNettyCapabilities.DryContactScenarioActivation) &&
+                endpoint.GetStringSetting(OpenNettySettings.FunctionType) is null or OpenNettySettings.FunctionTypes.ContactState)
+            {
+                yield return new JsonObject
+                {
+                    ["platform"] = "button",
+                    ["unique_id"] = ComputeEntityUniqueId(endpoint, "91510f47-559b-4a44-a4d2-a0f4d3a634c6"u8),
+                    ["name"] = ComputeEntityDisplayName(
+                        name    : GetLocalizedString(SR.ID8125, culture),
+                        endpoint: endpoint,
+                        culture : culture,
+                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))),
+                    ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
+                    ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}/set",
+                    ["payload_press"] = new JsonObject { ["event_type"] = "contact_open" }.ToJsonString()
+                };
+
+                yield return new JsonObject
+                {
+                    ["platform"] = "button",
+                    ["unique_id"] = ComputeEntityUniqueId(endpoint, "e1b494f8-ab8b-4635-8f2c-81d354bc83dc"u8),
+                    ["name"] = ComputeEntityDisplayName(
+                        name    : GetLocalizedString(SR.ID8126, culture),
+                        endpoint: endpoint,
+                        culture : culture,
+                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.DryContactScenarioActivation))),
+                    ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
+                    ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}/set",
+                    ["payload_press"] = new JsonObject { ["event_type"] = "contact_closed" }.ToJsonString()
+                };
+            }
+
+            if (endpoint.HasCapability(OpenNettyCapabilities.DryContactState) &&
+                endpoint.GetStringSetting(OpenNettySettings.FunctionType) is null or OpenNettySettings.FunctionTypes.ContactState)
+            {
+                var component = new JsonObject
+                {
+                    ["platform"] = "binary_sensor",
+                    ["unique_id"] = ComputeEntityUniqueId(endpoint, "1aca2cbc-16cb-46df-be3a-ac6a2684910b"u8),
+                    ["name"] = ComputeEntityDisplayName(
+                        name    : GetLocalizedString(SR.ID8127, culture),
+                        endpoint: endpoint,
+                        culture : culture,
+                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.DryContactState))),
+                    ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
+                    ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.DryContactState}",
+                    ["json_attributes_topic"] = $"{topic}/{OpenNettyMqttAttributes.DryContactState}",
+                    ["payload_on"] = "closed",
+                    ["payload_off"] = "open",
+                    ["value_template"] = "{{ value_json.state }}"
+                };
+
+                if (endpoint.GetStringSetting(OpenNettySettings.HomeAssistantDryContactDeviceClass) is string type)
+                {
+                    component["device_class"] = type;
+                }
+
+                if (endpoint.GetStringSetting(OpenNettySettings.HomeAssistantDryContactIcon) is string icon)
+                {
+                    component["icon"] = icon;
+                }
+
+                yield return component;
+
+                yield return new JsonObject
+                {
+                    ["platform"] = "button",
+                    ["unique_id"] = ComputeEntityUniqueId(endpoint, "00244687-d0b8-4839-a11c-7dcbda9f2f3b"u8),
+                    ["entity_category"] = "diagnostic",
+                    ["name"] = ComputeEntityDisplayName(
+                        name    : GetLocalizedString(SR.ID8128, culture),
+                        endpoint: endpoint,
+                        culture : culture,
+                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.DryContactState))),
+                    ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
+                    ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.DryContactState}/get",
+                    ["payload_press"] = string.Empty
+                };
+            }
+
             if (endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioActivation))
             {
                 yield return new JsonObject
@@ -1460,7 +1571,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
             }
 
             if (endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation) &&
-                endpoint.GetStringSetting(OpenNettySettings.FunctionType) is OpenNettySettings.FunctionTypes.ScheduledScenario)
+                endpoint.GetStringSetting(OpenNettySettings.FunctionType) is null or OpenNettySettings.FunctionTypes.ScheduledScenario)
             {
                 if (endpoint.GetStringSetting(OpenNettySettings.PushButtonNumbers) is string value &&
                     value.Split([','], StringSplitOptions.RemoveEmptyEntries) is { Length: > 0 } values &&
@@ -1603,7 +1714,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
             }
 
             if (endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioPlusActivation) &&
-                endpoint.GetStringSetting(OpenNettySettings.FunctionType) is OpenNettySettings.FunctionTypes.ScheduledScenarioPlus)
+                endpoint.GetStringSetting(OpenNettySettings.FunctionType) is null or OpenNettySettings.FunctionTypes.ScheduledScenarioPlus)
             {
                 if (endpoint.GetStringSetting(OpenNettySettings.PushButtonNumbers) is string value &&
                     value.Split([','], StringSplitOptions.RemoveEmptyEntries) is { Length: > 0 } values &&
@@ -1798,7 +1909,6 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "b7dd3824-ddc3-4cf3-b79e-168faa710e43"u8),
                     ["entity_category"] = "diagnostic",
                     ["device_class"] = "battery",
-                    ["off_delay"] = 3600,
                     ["name"] = ComputeEntityDisplayName(
                         name    : GetLocalizedString(SR.ID8029, culture),
                         endpoint: endpoint,
@@ -2573,7 +2683,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         {% set map = {
                             'canceled': 'OFF',
                             'closed': 'OFF',
-                            'opened': 'ON'
+                            'open': 'ON'
                         } %}
                         {{ map[value] }}
                         """
@@ -2632,9 +2742,9 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         {% set map = {
                             'closed': 'OFF',
                             'created': 'ON',
-                            'joint': 'OFF',
+                            'joined': 'OFF',
                             'left': 'OFF',
-                            'opened': 'ON'
+                            'open': 'ON'
                         } %}
                         {{ map[value] }}
                         """

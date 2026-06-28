@@ -167,6 +167,55 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .Retry()
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
+            await _events.DryContactScenarioReported
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.Scenario, builder =>
+                {
+                    var node = new JsonObject
+                    {
+                        ["event_type"] = arguments.Type switch
+                        {
+                            OpenNettyModels.ScenariosPlus.DryContactScenarioType.Closed => "contact_closed",
+                            OpenNettyModels.ScenariosPlus.DryContactScenarioType.Open   => "contact_open",
+
+                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+                        }
+                    };
+
+                    builder.WithContentType(MediaTypeNames.Application.Json);
+                    builder.WithPayload(node.ToJsonString());
+                }))
+                .Retry()
+                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
+
+            await _events.DryContactStateReported
+                .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.DryContactState, builder =>
+                {
+                    var node = new JsonObject
+                    {
+                        ["state"] = arguments.State switch
+                        {
+                            OpenNettyModels.ScenariosPlus.DryContactState.Closed => "closed",
+                            OpenNettyModels.ScenariosPlus.DryContactState.Open   => "open",
+
+                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+                        },
+
+                        ["origin"] = arguments.Origin switch
+                        {
+                            OpenNettyModels.ScenariosPlus.DryContactStateOrigin.StateRequest => "state_request",
+                            OpenNettyModels.ScenariosPlus.DryContactStateOrigin.SystemEvent  => "system_event",
+
+                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+                        }
+                    };
+
+                    builder.WithContentType(MediaTypeNames.Application.Json);
+                    builder.WithPayload(node.ToJsonString());
+                    builder.WithRetainFlag();
+                }))
+                .Retry()
+                .SubscribeAsync(static arguments => ValueTask.CompletedTask),
+
             await _events.IncomingMessageReported
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.IncomingMessage, builder =>
                 {
@@ -612,7 +661,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                     {
                         OpenNettyModels.ScenariosPlus.ZigbeeBindingEventType.Closed   => "closed",
                         OpenNettyModels.ScenariosPlus.ZigbeeBindingEventType.Canceled => "canceled",
-                        OpenNettyModels.ScenariosPlus.ZigbeeBindingEventType.Opened   => "opened",
+                        OpenNettyModels.ScenariosPlus.ZigbeeBindingEventType.Open     => "open",
 
                         _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                     });
@@ -631,7 +680,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                         OpenNettyModels.Management.ZigbeeNetworkEventType.Created => "created",
                         OpenNettyModels.Management.ZigbeeNetworkEventType.Joined  => "joined",
                         OpenNettyModels.Management.ZigbeeNetworkEventType.Left    => "left",
-                        OpenNettyModels.Management.ZigbeeNetworkEventType.Opened  => "opened",
+                        OpenNettyModels.Management.ZigbeeNetworkEventType.Open    => "open",
 
                         _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                     });

@@ -57,6 +57,16 @@ public static class OpenNettySettings
     public static readonly OpenNettySetting HomeAssistantDiscoveryUICulture = new("Home Assistant discovery UI culture");
 
     /// <summary>
+    /// Home Assistant dry contact device class.
+    /// </summary>
+    public static readonly OpenNettySetting HomeAssistantDryContactDeviceClass = new("Home Assistant dry contact device class");
+
+    /// <summary>
+    /// Home Assistant dry contact icon.
+    /// </summary>
+    public static readonly OpenNettySetting HomeAssistantDryContactIcon = new("Home Assistant dry contact icon");
+
+    /// <summary>
     /// Home Assistant entity type.
     /// </summary>
     public static readonly OpenNettySetting HomeAssistantEntityType = new("Home Assistant entity type");
@@ -210,6 +220,11 @@ public static class OpenNettySettings
         /// Automation actuator.
         /// </summary>
         public const string AutomationActuator = "Automation actuator";
+
+        /// <summary>
+        /// Contact state.
+        /// </summary>
+        public const string ContactState = "Contact state";
 
         /// <summary>
         /// Light actuator.

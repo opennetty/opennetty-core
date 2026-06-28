@@ -123,9 +123,9 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
                 [
                     { Parameters: [{ IsEmpty: true }, { IsEmpty: true }] },
                     { Parameters: [{           Value: "6"             }] }
-                ] => protocol is OpenNettyProtocol.Zigbee ?
-                    OpenNettyMessageType.BusyNegativeAcknowledgement :
-                    throw new InvalidOperationException(SR.GetResourceString(SR.ID0058)),
+                ] => protocol is OpenNettyProtocol.Zigbee
+                    ? OpenNettyMessageType.BusyNegativeAcknowledgement
+                    : throw new InvalidOperationException(SR.GetResourceString(SR.ID0058)),
 
                 // Status request messages MUST have exactly 2 fields:
                 //
@@ -208,9 +208,9 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
                 parameters.Add(frame.Fields[0].Parameters[index].Value);
             }
 
-            message.Category = new OpenNettyCategory(message.Type is OpenNettyMessageType.BusCommand ?
-                frame.Fields[0].Parameters[0].Value :
-                frame.Fields[0].Parameters[1].Value, [.. parameters]);
+            message.Category = new OpenNettyCategory(message.Type is OpenNettyMessageType.BusCommand
+                ? frame.Fields[0].Parameters[0].Value
+                : frame.Fields[0].Parameters[1].Value, [.. parameters]);
         }
 
         // Then, infer the command/status from the WHAT field if the message is a command.
@@ -254,13 +254,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
                 {
                     message.Medium = OpenNettyMedium.Bus;
 
-                    var type =
-                        // Note: the WHO=2 and WHO=15 categories use the same addressing scheme as the WHO=1 category.
-                        message.Category == OpenNettyCategories.Lighting      ? OpenNettyAddressType.ScsLightPoint   :
-                        message.Category == OpenNettyCategories.Automation    ? OpenNettyAddressType.ScsLightPoint   :
-                        message.Category == OpenNettyCategories.Scenarios     ? OpenNettyAddressType.ScsLightPoint   :
-                        message.Category == OpenNettyCategories.ScenariosPlus ? OpenNettyAddressType.ScsScenarioPlus :
-                                                                                OpenNettyAddressType.Unknown;
+                    var type = GetAddressType(message.Category, field);
 
                     if (field.Parameters.Length is 1)
                     {
@@ -278,6 +272,37 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
 
                         message.Address = new OpenNettyAddress(type, field.Parameters[0].Value, [.. parameters]);
                     }
+                }
+
+                static OpenNettyAddressType GetAddressType(OpenNettyCategory? category, OpenNettyField field)
+                {
+                    // Note: the WHO=2 and WHO=15 categories use the same addressing scheme as the WHO=1 category.
+                    if (category == OpenNettyCategories.Lighting   ||
+                        category == OpenNettyCategories.Automation ||
+                        category == OpenNettyCategories.Scenarios)
+                    {
+                        return OpenNettyAddressType.ScsLightPoint;
+                    }
+
+                    // Note: the WHO=25 category uses different types of addresses, always
+                    // prefixed by a discriminator character (2 for CEN+, 3 for DRY CONTACT).
+                    if (category == OpenNettyCategories.ScenariosPlus)
+                    {
+                        if (field.Parameters is not [{ Value: [char discriminator, ..] }])
+                        {
+                            return OpenNettyAddressType.Unknown;
+                        }
+
+                        return discriminator switch
+                        {
+                            '2' => OpenNettyAddressType.ScsScenarioPlus,
+                            '3' => OpenNettyAddressType.ScsDryContact,
+
+                            _ => OpenNettyAddressType.Unknown
+                        };
+                    }
+
+                    return OpenNettyAddressType.Unknown;
                 }
             }
 
@@ -674,6 +699,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
                 ["type"] = address.Type switch
                 {
                     OpenNettyAddressType.Nitoo           => "nitoo",
+                    OpenNettyAddressType.ScsDryContact   => "scs_dry_contact",
                     OpenNettyAddressType.ScsLightPoint   => "scs_light_point",
                     OpenNettyAddressType.ScsScenarioPlus => "scs_scenario_plus",
                     OpenNettyAddressType.Zigbee          => "zigbee",
@@ -692,6 +718,10 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
                     is { Identifier: var identifier, Unit: var unit }:
                     result["address"]?["identifier"] = identifier;
                     result["address"]?["unit"] = unit;
+                    break;
+
+                case OpenNettyAddressType.ScsDryContact:
+                    result["address"]?["contact"] = OpenNettyAddress.ToScsDryContactAddress(address);
                     break;
 
                 case OpenNettyAddressType.ScsLightPoint when OpenNettyAddress.ToScsLightPointAddress(address)
@@ -836,6 +866,9 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
                               (byte?) node["unit"]?.AsValue()       is var unit
                     => OpenNettyAddress.FromDecimalZigbeeAddress(identifier, unit ?? 0),
 
+                "scs_dry_contact" when (byte?) node["contact"]?.AsValue() is byte identifier
+                    => OpenNettyAddress.FromScsDryContactAddress(identifier),
+
                 "scs_light_point" when (byte?) node["extension"]?.AsValue() is var extension &&
                                        (bool?) node["general"]?.AsValue()   is var general &&
                                        (byte?) node["group"]?.AsValue()     is var group &&
@@ -978,7 +1011,8 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
                                                             category == OpenNettyCategories.Scenarios
                     => throw new InvalidOperationException(SR.GetResourceString(SR.ID0050)),
 
-                not OpenNettyAddressType.ScsScenarioPlus when category == OpenNettyCategories.ScenariosPlus
+                not (OpenNettyAddressType.ScsDryContact or OpenNettyAddressType.ScsScenarioPlus)
+                    when category == OpenNettyCategories.ScenariosPlus
                     => throw new InvalidOperationException(SR.GetResourceString(SR.ID0114)),
 
                 _ => new OpenNettyField(address.Value.ToParameters()),

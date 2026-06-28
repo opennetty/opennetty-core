@@ -206,22 +206,16 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
 
             switch (endpoint.GetStringSetting(OpenNettySettings.FunctionType))
             {
-                // If the endpoint supports both lighting and automation commands,
-                // require that the function type be configured via the dedicated setting.
-                case null or { Length: 0 } when SupportsLightControl(endpoint) && SupportsShutterControl(endpoint):
+                // If the endpoint supports multiple conflicting types of operations (e.g light
+                // and shutter or pressure scenarios and pressure scenarios plus), require that
+                // the function type be configured via the dedicated setting.
+                case null or { Length: 0 } when endpoint.HasCapability(OpenNettyCapabilities.ConfigurableFunctionType):
                     builder.AddError(SR.FormatID2002(endpoint.Name));
-                    break;
-
-                // If the endpoint supports both pressure scenarios and pressure scenarios plus,
-                // require that the function type be configured via the dedicated setting.
-                case null or { Length: 0 } when
-                    endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioEvent) &&
-                    endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioPlusEvent):
-                    builder.AddError(SR.FormatID2014(endpoint.Name));
                     break;
 
                 case string value when value is not (
                     OpenNettySettings.FunctionTypes.AutomationActuator or
+                    OpenNettySettings.FunctionTypes.ContactState       or
                     OpenNettySettings.FunctionTypes.LightActuator      or 
                     OpenNettySettings.FunctionTypes.ScheduledScenario  or
                     OpenNettySettings.FunctionTypes.ScheduledScenarioPlus):
@@ -240,7 +234,12 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
 
             switch (endpoint.GetStringSetting(OpenNettySettings.PushButtonNumbers))
             {
-                case null or { Length: 0 } when endpoint.HasCapability(OpenNettyCapabilities.ConfigurablePushButtonNumbers):
+                // If the endpoint supports configurable push button numbers, require that the setting be configured.
+                case null or { Length: 0 } when
+                    endpoint.HasCapability(OpenNettyCapabilities.ConfigurablePushButtonNumbers) &&
+                    endpoint.GetStringSetting(OpenNettySettings.FunctionType) is null or
+                        OpenNettySettings.FunctionTypes.ScheduledScenario             or
+                        OpenNettySettings.FunctionTypes.ScheduledScenarioPlus:
                     builder.AddError(SR.FormatID2015(endpoint.Name));
                     break;
 
@@ -249,15 +248,6 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
                     builder.AddError(SR.FormatID2016(endpoint.Name));
                     break;
             }
-
-            static bool SupportsLightControl(OpenNettyEndpoint endpoint) =>
-                endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchControl)  ||
-                endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingControl) ||
-                endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingControl);
-
-            static bool SupportsShutterControl(OpenNettyEndpoint endpoint) =>
-                endpoint.HasCapability(OpenNettyCapabilities.BasicShutterControl) ||
-                endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterControl);
         }
 
         return builder.Build();

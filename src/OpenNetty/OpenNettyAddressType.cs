@@ -34,5 +34,10 @@ public enum OpenNettyAddressType
     /// <summary>
     /// SCS scenario plus address.
     /// </summary>
-    ScsScenarioPlus = 4
+    ScsScenarioPlus = 4,
+
+    /// <summary>
+    /// SCS dry contact address.
+    /// </summary>
+    ScsDryContact = 5
 }
