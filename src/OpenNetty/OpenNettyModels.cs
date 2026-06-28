@@ -565,9 +565,9 @@ public static class OpenNettyModels
             Closed = 0,
 
             /// <summary>
-            /// Opened.
+            /// Open.
             /// </summary>
-            Opened = 1,
+            Open = 1,
 
             /// <summary>
             /// Created.
@@ -640,6 +640,54 @@ public static class OpenNettyModels
         }
 
         /// <summary>
+        /// Dry contact scenario type.
+        /// </summary>
+        public enum DryContactScenarioType
+        {
+            /// <summary>
+            /// Closed.
+            /// </summary>
+            Closed = 0,
+
+            /// <summary>
+            /// Open.
+            /// </summary>
+            Open = 1
+        }
+
+        /// <summary>
+        /// Dry contact state.
+        /// </summary>
+        public enum DryContactState
+        {
+            /// <summary>
+            /// Closed.
+            /// </summary>
+            Closed = 0,
+
+            /// <summary>
+            /// Open.
+            /// </summary>
+            Open = 1
+        }
+
+        /// <summary>
+        /// Dry contact state origin.
+        /// </summary>
+        public enum DryContactStateOrigin
+        {
+            /// <summary>
+            /// State request.
+            /// </summary>
+            StateRequest = 0,
+
+            /// <summary>
+            /// System event.
+            /// </summary>
+            SystemEvent = 1
+        }
+
+        /// <summary>
         /// Pressure scenario type.
         /// </summary>
         public enum PressureScenarioType
@@ -676,9 +724,9 @@ public static class OpenNettyModels
             Closed = 0,
 
             /// <summary>
-            /// Opened.
+            /// Open.
             /// </summary>
-            Opened = 1,
+            Open = 1,
 
             /// <summary>
             /// Canceled.

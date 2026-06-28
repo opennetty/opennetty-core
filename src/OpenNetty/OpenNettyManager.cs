@@ -180,6 +180,19 @@ public class OpenNettyManager
             }
         }
 
+        else if (address.Type is OpenNettyAddressType.ScsDryContact or OpenNettyAddressType.ScsScenarioPlus)
+        {
+            await foreach (var endpoint in EnumerateEndpointsAsync(cancellationToken))
+            {
+                if (endpoint.Protocol is OpenNettyProtocol.Scs &&
+                    endpoint.Gateway == gateway &&
+                    endpoint.Address is not null && endpoint.Address == address)
+                {
+                    yield return endpoint;
+                }
+            }
+        }
+
         else if (address.Type is OpenNettyAddressType.ScsLightPoint)
         {
             var (extension, general, group, area, point) = OpenNettyAddress.ToScsLightPointAddress(address);
@@ -219,19 +232,6 @@ public class OpenNettyManager
                     {
                         yield return endpoint;
                     }
-                }
-            }
-        }
-
-        else if (address.Type is OpenNettyAddressType.ScsScenarioPlus)
-        {
-            await foreach (var endpoint in EnumerateEndpointsAsync(cancellationToken))
-            {
-                if (endpoint.Protocol is OpenNettyProtocol.Scs &&
-                    endpoint.Gateway == gateway &&
-                    endpoint.Address is not null && endpoint.Address == address)
-                {
-                    yield return endpoint;
                 }
             }
         }

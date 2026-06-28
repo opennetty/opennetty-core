@@ -298,6 +298,7 @@ public sealed class OpenNettyBuilder
                 var type = (string?) endpoint.Attribute("Type") switch
                 {
                     "Nitoo"             => OpenNettyAddressType.Nitoo,
+                    "SCS dry contact"   => OpenNettyAddressType.ScsDryContact,
                     "SCS light point"   => OpenNettyAddressType.ScsLightPoint,
                     "SCS scenario plus" => OpenNettyAddressType.ScsScenarioPlus,
                     "Zigbee"            => OpenNettyAddressType.Zigbee,
@@ -328,9 +329,13 @@ public sealed class OpenNettyBuilder
 
                 var protocol = type switch
                 {
-                    OpenNettyAddressType.Nitoo                                                 => OpenNettyProtocol.Nitoo,
-                    OpenNettyAddressType.ScsLightPoint or OpenNettyAddressType.ScsScenarioPlus => OpenNettyProtocol.Scs,
-                    OpenNettyAddressType.Zigbee                                                => OpenNettyProtocol.Zigbee,
+                    OpenNettyAddressType.Nitoo => OpenNettyProtocol.Nitoo,
+
+                    OpenNettyAddressType.ScsDryContact or
+                    OpenNettyAddressType.ScsLightPoint or
+                    OpenNettyAddressType.ScsScenarioPlus => OpenNettyProtocol.Scs,
+
+                    OpenNettyAddressType.Zigbee => OpenNettyProtocol.Zigbee,
 
                     null => device?.Definition.Protocol ?? throw new InvalidOperationException(SR.FormatID0080(name, "Type")),
 
@@ -348,6 +353,9 @@ public sealed class OpenNettyBuilder
                         => OpenNettyAddress.FromNitooAddress(
                             identifier: identifier,
                             unit      : (byte?) (uint?) endpoint.Attribute("Unit") ?? unit?.Definition.Id ?? 0),
+
+                    OpenNettyAddressType.ScsDryContact when (byte?) (uint?) endpoint.Attribute("Id") is byte identifier
+                        => OpenNettyAddress.FromScsDryContactAddress(identifier),
 
                     OpenNettyAddressType.ScsLightPoint => OpenNettyAddress.FromScsLightPointAddress(
                         extension: (byte?) (uint?) endpoint.Attribute("Extension") ?? 0,

@@ -113,6 +113,18 @@ public sealed class OpenNettyEvents : IDisposable
         => _observable.OfType<EventArgs, DimmingScenarioReportedEventArgs>();
 
     /// <summary>
+    /// Gets an event triggered when a dry contact scenario is reported.
+    /// </summary>
+    public IAsyncObservable<DryContactScenarioReportedEventArgs> DryContactScenarioReported
+        => _observable.OfType<EventArgs, DryContactScenarioReportedEventArgs>();
+
+    /// <summary>
+    /// Gets an event triggered when a dry contact state is reported.
+    /// </summary>
+    public IAsyncObservable<DryContactStateReportedEventArgs> DryContactStateReported
+        => _observable.OfType<EventArgs, DryContactStateReportedEventArgs>();
+
+    /// <summary>
     /// Gets an event triggered when an incoming message is reported.
     /// </summary>
     public IAsyncObservable<IncomingMessageReportedEventArgs> IncomingMessageReported
@@ -325,6 +337,24 @@ public sealed class OpenNettyEvents : IDisposable
     /// <param name="Endpoint">The endpoint.</param>
     /// <param name="Step">The dimming step (positive or negative).</param>
     public sealed record class DimmingScenarioReportedEventArgs(OpenNettyEndpoint Endpoint, short Step) : EventArgs(Endpoint);
+
+    /// <summary>
+    /// Represents event arguments used when a dry contact scenario is reported.
+    /// </summary>
+    /// <param name="Endpoint">The endpoint.</param>
+    /// <param name="Type">The dry contact scenario type.</param>
+    public sealed record class DryContactScenarioReportedEventArgs(OpenNettyEndpoint Endpoint,
+        OpenNettyModels.ScenariosPlus.DryContactScenarioType Type) : EventArgs(Endpoint);
+
+    /// <summary>
+    /// Represents event arguments used when a dry contact state is reported.
+    /// </summary>
+    /// <param name="Endpoint">The endpoint.</param>
+    /// <param name="State">The state of the dry contact.</param>
+    /// <param name="Origin">The origin of the dry contact state report.</param>
+    public sealed record class DryContactStateReportedEventArgs(OpenNettyEndpoint Endpoint,
+        OpenNettyModels.ScenariosPlus.DryContactState State,
+        OpenNettyModels.ScenariosPlus.DryContactStateOrigin Origin) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when an incoming message is reported.

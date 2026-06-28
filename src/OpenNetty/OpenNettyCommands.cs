@@ -284,6 +284,22 @@ public static class OpenNettyCommands
         public static readonly OpenNettyCommand EndOfExtendedPressure = new(OpenNettyCategories.ScenariosPlus, "24");
 
         /// <summary>
+        /// Dry contact ON (WHAT = 31).
+        /// </summary>
+        /// <remarks>
+        /// Note: this command requires specifying additional parameters.
+        /// </remarks>
+        public static readonly OpenNettyCommand DryContactOn = new(OpenNettyCategories.ScenariosPlus, "31");
+
+        /// <summary>
+        /// Dry contact OFF (WHAT = 32).
+        /// </summary>
+        /// <remarks>
+        /// Note: this command requires specifying additional parameters.
+        /// </remarks>
+        public static readonly OpenNettyCommand DryContactOff = new(OpenNettyCategories.ScenariosPlus, "32");
+
+        /// <summary>
         /// Binding request (WHAT = 33).
         /// </summary>
         public static readonly OpenNettyCommand BindingRequest = new(OpenNettyCategories.ScenariosPlus, "33");

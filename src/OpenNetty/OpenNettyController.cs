@@ -406,6 +406,45 @@ public class OpenNettyController
     }
 
     /// <summary>
+    /// Dispatches a virtual dry contact scenario for the specified endpoint.
+    /// </summary>
+    /// <param name="endpoint">The endpoint.</param>
+    /// <param name="type">The type of scenario to dispatch.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
+    public virtual ValueTask DispatchDryContactScenarioAsync(
+        OpenNettyEndpoint endpoint,
+        OpenNettyModels.ScenariosPlus.DryContactScenarioType type,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
+
+        if (!endpoint.HasCapability(OpenNettyCapabilities.DryContactScenarioActivation))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
+        }
+
+        return _service.ExecuteCommandAsync(
+            protocol         : endpoint.Protocol,
+            command          : type switch
+            {
+                OpenNettyModels.ScenariosPlus.DryContactScenarioType.Open
+                    => OpenNettyCommands.ScenariosPlus.DryContactOn.WithParameters("1"),
+
+                OpenNettyModels.ScenariosPlus.DryContactScenarioType.Closed
+                    => OpenNettyCommands.ScenariosPlus.DryContactOff.WithParameters("1"),
+
+                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+            },
+            address          : endpoint.Address,
+            medium           : endpoint.Medium,
+            mode             : null,
+            gateway          : endpoint.Gateway,
+            options          : GetTransmissionOptions(endpoint),
+            cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
     /// Dispatches a virtual ON/OFF scenario for the specified endpoint.
     /// </summary>
     /// <param name="endpoint">The endpoint.</param>
@@ -1291,6 +1330,51 @@ public class OpenNettyController
     }
 
     /// <summary>
+    /// Resolves the current state of a dry contact endpoint.
+    /// </summary>
+    /// <param name="endpoint">The endpoint.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>
+    /// A <see cref="ValueTask{TResult}"/> that can be used to monitor the asynchronous operation
+    /// and whose result returns the current state of the specified dry contact endpoint.
+    /// </returns>
+    public virtual async ValueTask<OpenNettyModels.ScenariosPlus.DryContactState> GetDryContactStateAsync(
+        OpenNettyEndpoint endpoint,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
+
+        if (!endpoint.HasCapability(OpenNettyCapabilities.DryContactState))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
+        }
+
+        return await _service.GetStatusAsync(
+            protocol         : endpoint.Protocol,
+            category         : OpenNettyCategories.ScenariosPlus,
+            address          : endpoint.Address,
+            medium           : endpoint.Medium,
+            mode             : null,
+            // Note: CEN+ dry contact on/off commands used to determine the state of a dry contact are
+            // parameterized: in this case, only the commands originating from a state request are allowed.
+            filter           : static command => ValueTask.FromResult(
+                command == OpenNettyCommands.ScenariosPlus.DryContactOn.WithParameters("0") ||
+                command == OpenNettyCommands.ScenariosPlus.DryContactOff.WithParameters("0")),
+            gateway          : endpoint.Gateway,
+            options          : GetTransmissionOptions(endpoint),
+            cancellationToken: cancellationToken) switch
+        {
+            OpenNettyCommand command when command == OpenNettyCommands.ScenariosPlus.DryContactOn.WithParameters("0")
+                => OpenNettyModels.ScenariosPlus.DryContactState.Open,
+
+            OpenNettyCommand command when command == OpenNettyCommands.ScenariosPlus.DryContactOff.WithParameters("0")
+                => OpenNettyModels.ScenariosPlus.DryContactState.Closed,
+
+            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+        };
+    }
+
+    /// <summary>
     /// Resolves the firmware version of the specified endpoint.
     /// </summary>
     /// <param name="endpoint">The endpoint.</param>
@@ -1324,7 +1408,7 @@ public class OpenNettyController
         // is not aborted before the device has a chance to wake up and reply, the timeouts are
         // slightly increased but missing acknowledgment frames are explicitly ignored to ensure
         // the session will not be discarded by the worker if no acknowledgment frame is returned.
-        if (endpoint.Address is not null && endpoint.HasCapability(OpenNettyCapabilities.ZigbeeEndDevice))
+        if (endpoint.HasCapability(OpenNettyCapabilities.ZigbeeEndDevice))
         {
             options = options with
             {
@@ -1389,7 +1473,7 @@ public class OpenNettyController
         // is not aborted before the device has a chance to wake up and reply, the timeouts are
         // slightly increased but missing acknowledgment frames are explicitly ignored to ensure
         // the session will not be discarded by the worker if no acknowledgment frame is returned.
-        if (endpoint.Address is not null && endpoint.HasCapability(OpenNettyCapabilities.ZigbeeEndDevice))
+        if (endpoint.HasCapability(OpenNettyCapabilities.ZigbeeEndDevice))
         {
             options = options with
             {
