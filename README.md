@@ -707,9 +707,12 @@ change MUST include one or more `<Scenario>` node(s) indicating the name of the 
 ```
 
 > [!NOTE]
+> Unfortunately, the Nitoo function codes are not documented by Legrand/BTicino. To work around this limitation,
+> the memory of already-configured powerline-based Nitoo units can be retrieved via Home Assistant using the
+> "Get scenarios stored in memory" button: scenarios are stored as additional attributes and can be accessed via
+> the "⋮ → Details" menu under the "Scenarios stored in memory" sensor.
 >
-> Unfortunately, the Nitoo function codes are not documented by Legrand/BTicino. To work around this limitation, the memory
-> of powerline-based Nitoo units can be read programmatically using the `OpenNettyController.GetMemoryDataAsync()` API:
+> Alternatively, the same information can be retrieved programmatically using the `OpenNettyController.GetMemoryDataAsync()` API:
 >
 > ```csharp
 > var builder = Host.CreateApplicationBuilder();

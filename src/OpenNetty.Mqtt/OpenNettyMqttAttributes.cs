@@ -62,6 +62,11 @@ public static class OpenNettyMqttAttributes
     public const string MacAddress = "mac_address";
 
     /// <summary>
+    /// Memory data.
+    /// </summary>
+    public const string MemoryData = "memory_data";
+
+    /// <summary>
     /// Outgoing message.
     /// </summary>
     public const string OutgoingMessage = "outgoing_message";

@@ -1035,4 +1035,10 @@
   <data name="ID8128" xml:space="preserve">
     <value>Get dry contact/detection state</value>
   </data>
+  <data name="ID8129" xml:space="preserve">
+    <value>Scenarios stored in memory</value>
+  </data>
+  <data name="ID8130" xml:space="preserve">
+    <value>Get scenarios stored in memory</value>
+  </data>
 </root>
