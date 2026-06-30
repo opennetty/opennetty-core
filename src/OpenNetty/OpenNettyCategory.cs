@@ -201,6 +201,19 @@ public readonly struct OpenNettyCategory : IEquatable<OpenNettyCategory>
     }
 
     /// <summary>
+    /// Creates a copy of the current instance with the specified parameters attached.
+    /// </summary>
+    /// <param name="parameters">The parameters.</param>
+    /// <returns>A copy of the current instance with the specified parameters attached.</returns>
+    public OpenNettyCategory WithParameters(ImmutableArray<string> parameters) => new(Value, parameters);
+
+    /// <summary>
+    /// Creates a copy of the current instance without any parameter attached.
+    /// </summary>
+    /// <returns>A copy of the current instance without any parameter attached.</returns>
+    public OpenNettyCategory WithoutParameters() => new(Value, []);
+
+    /// <summary>
     /// Determines whether two <see cref="OpenNettyCategory"/> instances are equal.
     /// </summary>
     /// <param name="left">The first instance.</param>

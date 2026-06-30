@@ -218,8 +218,14 @@ public readonly struct OpenNettyCommand : IEquatable<OpenNettyCommand>
     /// Creates a copy of the current instance with the specified parameters attached.
     /// </summary>
     /// <param name="parameters">The parameters.</param>
-    /// <returns>A copy of the current instance with the specified parameters attached</returns>
-    public OpenNettyCommand WithParameters(params ImmutableArray<string> parameters) => new(Category, Value, parameters);
+    /// <returns>A copy of the current instance with the specified parameters attached.</returns>
+    public OpenNettyCommand WithParameters(ImmutableArray<string> parameters) => new(Category, Value, parameters);
+
+    /// <summary>
+    /// Creates a copy of the current instance without any parameter attached.
+    /// </summary>
+    /// <returns>A copy of the current instance without any parameter attached.</returns>
+    public OpenNettyCommand WithoutParameters() => new(Category, Value, []);
 
     /// <summary>
     /// Determines whether two <see cref="OpenNettyCommand"/> instances are equal.

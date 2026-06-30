@@ -216,6 +216,19 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
     }
 
     /// <summary>
+    /// Creates a copy of the current instance with the specified parameters attached.
+    /// </summary>
+    /// <param name="parameters">The parameters.</param>
+    /// <returns>A copy of the current instance with the specified parameters attached.</returns>
+    public OpenNettyAddress WithParameters(ImmutableArray<string> parameters) => new(Type, Value, parameters);
+
+    /// <summary>
+    /// Creates a copy of the current instance without any parameter attached.
+    /// </summary>
+    /// <returns>A copy of the current instance without any parameter attached.</returns>
+    public OpenNettyAddress WithoutParameters() => new(Type, Value, []);
+
+    /// <summary>
     /// Determines whether two <see cref="OpenNettyAddress"/> instances are equal.
     /// </summary>
     /// <param name="left">The first instance.</param>
