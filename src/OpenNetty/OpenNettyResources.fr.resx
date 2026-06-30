@@ -498,4 +498,10 @@
   <data name="ID8128" xml:space="preserve">
     <value>Récupérer état contact sec/détection</value>
   </data>
+  <data name="ID8129" xml:space="preserve">
+    <value>Scénarios stockés en mémoire</value>
+  </data>
+  <data name="ID8130" xml:space="preserve">
+    <value>Récupérer scénarios stockés en mémoire</value>
+  </data>
 </root>

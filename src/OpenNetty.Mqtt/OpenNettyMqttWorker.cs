@@ -5,6 +5,7 @@
  */
 
 using System.Buffers.Text;
+using System.Collections.Immutable;
 using System.Globalization;
 using System.IO.Hashing;
 using System.Net.Mime;
@@ -262,6 +263,86 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         builder.WithPayload(address.ToString());
                         builder.WithRetainFlag();
                     });
+                    break;
+                }
+
+                case OpenNettyMqttAttributes.MemoryData when operation is OpenNettyMqttOperation.Get:
+                {
+                    var data = await _controller.GetMemoryDataAsync(endpoint, cancellationToken);
+                    await ReportAsync(endpoint, OpenNettyMqttAttributes.MemoryData, builder =>
+                    {
+                        var node = new JsonArray([.. data.Select(static scenario => new JsonObject
+                        {
+                            ["address"] = scenario.Address.Type switch
+                            {
+                                OpenNettyAddressType.Nitoo when OpenNettyAddress.ToNitooAddress(scenario.Address)
+                                    is { Identifier: uint identifier, Unit: byte unit } => new JsonObject
+                                    {
+                                        ["type"] = "nitoo",
+                                        ["identifier"] = identifier,
+                                        ["unit"] = unit
+                                    },
+
+                                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+                            },
+                            ["function_code"] = scenario.FunctionCode,
+                            ["medium"] = scenario.Medium switch
+                            {
+                                OpenNettyMedium.Bus       => "bus",
+                                OpenNettyMedium.Infrared  => "infrared",
+                                OpenNettyMedium.Powerline => "powerline",
+                                OpenNettyMedium.Radio     => "radio",
+
+                                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+                            }
+                        })]);
+
+                        builder.WithContentType(MediaTypeNames.Application.Json);
+                        builder.WithPayload(node.ToJsonString());
+                        builder.WithRetainFlag();
+                    });
+                    break;
+                }
+
+                case OpenNettyMqttAttributes.MemoryData when operation is OpenNettyMqttOperation.Set:
+                {
+                    var parameters = TryParseAsJsonArray(message.ConvertPayloadToString())
+                        ?? throw new InvalidDataException(SR.GetResourceString(SR.ID0068));
+
+                    var data = parameters.Select(static scenario => new OpenNettyModels.Diagnostics.MemoryData()
+                    {
+                        Address = scenario?["address"]?["type"]?.GetValue<string>() switch
+                        {
+                            "nitoo" => OpenNettyAddress.FromNitooAddress(
+                                identifier: scenario?["address"]?["identifier"]?.GetValue<uint>()
+                                    ?? throw new InvalidDataException(SR.GetResourceString(SR.ID0068)),
+                                unit: scenario?["address"]?["unit"]?.GetValue<byte>()
+                                    ?? throw new InvalidDataException(SR.GetResourceString(SR.ID0068))),
+
+                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+                        },
+
+                        FunctionCode = scenario?["function_code"]?.GetValue<byte>()
+                            ?? throw new InvalidDataException(SR.GetResourceString(SR.ID0068)),
+
+                        Medium = scenario["medium"]?.GetValue<string>()?.ToLowerInvariant() switch
+                        {
+                            "bus"       => OpenNettyMedium.Bus,
+                            "infrared"  => OpenNettyMedium.Infrared,
+                            "powerline" => OpenNettyMedium.Powerline,
+                            "radio"     => OpenNettyMedium.Radio,
+
+                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+                        }
+                    })
+                    .ToImmutableArray();
+
+                    await _controller.ResetMemoryDataAsync(endpoint, cancellationToken);
+
+                    for (var index = 0; index < data.Length; index++)
+                    {
+                        await _controller.AddMemoryDataAsync(endpoint, data[index], cancellationToken);
+                    }
                     break;
                 }
 
@@ -859,6 +940,19 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             break;
                     }
                     break;
+                }
+            }
+
+            static JsonArray? TryParseAsJsonArray(string value)
+            {
+                try
+                {
+                    return JsonArray.Parse(value)?.AsArray();
+                }
+
+                catch (JsonException)
+                {
+                    return null;
                 }
             }
 
@@ -2049,6 +2143,43 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.MacAddress))),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.MacAddress}/get",
+                    ["payload_press"] = string.Empty
+                };
+            }
+
+            if (endpoint.HasCapability(OpenNettyCapabilities.MemoryReading))
+            {
+                yield return new JsonObject
+                {
+                    ["platform"] = "sensor",
+                    ["unique_id"] = ComputeEntityUniqueId(endpoint, "a4c866e8-8388-4f1b-b300-f5adcbcc818b"u8),
+                    ["entity_category"] = "diagnostic",
+                    ["icon"] = "mdi:memory",
+                    ["name"] = ComputeEntityDisplayName(
+                        name    : GetLocalizedString(SR.ID8129, culture),
+                        endpoint: endpoint,
+                        culture : culture,
+                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.MemoryReading))),
+                    ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
+                    ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.MemoryData}",
+                    ["value_template"] = "{{ value_json | count }}",
+                    ["json_attributes_topic"] = $"{topic}/{OpenNettyMqttAttributes.MemoryData}",
+                    ["json_attributes_template"] = "{{ {'entries': value_json} | tojson }}"
+                };
+
+                yield return new JsonObject
+                {
+                    ["platform"] = "button",
+                    ["unique_id"] = ComputeEntityUniqueId(endpoint, "314e1f13-f490-459f-852d-cfb1020b534f"u8),
+                    ["entity_category"] = "diagnostic",
+                    ["icon"] = "mdi:memory-arrow-down",
+                    ["name"] = ComputeEntityDisplayName(
+                        name    : GetLocalizedString(SR.ID8130, culture),
+                        endpoint: endpoint,
+                        culture : culture,
+                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.MemoryReading))),
+                    ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
+                    ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.MemoryData}/get",
                     ["payload_press"] = string.Empty
                 };
             }
