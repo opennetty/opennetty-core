@@ -215,6 +215,19 @@ public readonly struct OpenNettyDimension : IEquatable<OpenNettyDimension>
     }
 
     /// <summary>
+    /// Creates a copy of the current instance with the specified parameters attached.
+    /// </summary>
+    /// <param name="parameters">The parameters.</param>
+    /// <returns>A copy of the current instance with the specified parameters attached.</returns>
+    public OpenNettyDimension WithParameters(ImmutableArray<string> parameters) => new(Category, Value, parameters);
+
+    /// <summary>
+    /// Creates a copy of the current instance without any parameter attached.
+    /// </summary>
+    /// <returns>A copy of the current instance without any parameter attached.</returns>
+    public OpenNettyDimension WithoutParameters() => new(Category, Value, []);
+
+    /// <summary>
     /// Determines whether two <see cref="OpenNettyDimension"/> instances are equal.
     /// </summary>
     /// <param name="left">The first instance.</param>

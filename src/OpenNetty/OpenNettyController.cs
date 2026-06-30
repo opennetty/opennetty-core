@@ -429,10 +429,10 @@ public class OpenNettyController
             command          : type switch
             {
                 OpenNettyModels.ScenariosPlus.DryContactScenarioType.Open
-                    => OpenNettyCommands.ScenariosPlus.DryContactOn.WithParameters("1"),
+                    => OpenNettyCommands.ScenariosPlus.DryContactOn.WithParameters(["1"]),
 
                 OpenNettyModels.ScenariosPlus.DryContactScenarioType.Closed
-                    => OpenNettyCommands.ScenariosPlus.DryContactOff.WithParameters("1"),
+                    => OpenNettyCommands.ScenariosPlus.DryContactOff.WithParameters(["1"]),
 
                 _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
             },
@@ -572,7 +572,7 @@ public class OpenNettyController
 
         if (button is not null)
         {
-            command = command.WithParameters(button.Value.ToString(CultureInfo.InvariantCulture));
+            command = command.WithParameters([button.Value.ToString(CultureInfo.InvariantCulture)]);
         }
 
         return _service.ExecuteCommandAsync(
@@ -608,7 +608,9 @@ public class OpenNettyController
         return _service.ExecuteCommandAsync(
             protocol         : endpoint.Protocol,
             command          : OpenNettyCommands.ScenariosPlus.ActionInTime.WithParameters(
-                /* TIME: */ ((long) (duration.TotalSeconds * 5 + .5)).ToString(CultureInfo.InvariantCulture)),
+            [
+                /* TIME: */ ((long) (duration.TotalSeconds * 5 + .5)).ToString(CultureInfo.InvariantCulture)
+            ]),
             address          : endpoint.Address,
             medium           : endpoint.Medium,
             mode             : null,
@@ -676,7 +678,9 @@ public class OpenNettyController
         return _service.ExecuteCommandAsync(
             protocol         : endpoint.Protocol,
             command          : OpenNettyCommands.ScenariosPlus.ActionForTime.WithParameters(
-                /* TIME: */ ((long) (duration.TotalSeconds * 5 + .5)).ToString(CultureInfo.InvariantCulture)),
+            [
+                /* TIME: */ ((long) (duration.TotalSeconds * 5 + .5)).ToString(CultureInfo.InvariantCulture)
+            ]),
             address          : endpoint.Address,
             medium           : endpoint.Medium,
             mode             : null,
@@ -1358,16 +1362,16 @@ public class OpenNettyController
             // Note: CEN+ dry contact on/off commands used to determine the state of a dry contact are
             // parameterized: in this case, only the commands originating from a state request are allowed.
             filter           : static command => ValueTask.FromResult(
-                command == OpenNettyCommands.ScenariosPlus.DryContactOn.WithParameters("0") ||
-                command == OpenNettyCommands.ScenariosPlus.DryContactOff.WithParameters("0")),
+                command == OpenNettyCommands.ScenariosPlus.DryContactOn.WithParameters(["0"]) ||
+                command == OpenNettyCommands.ScenariosPlus.DryContactOff.WithParameters(["0"])),
             gateway          : endpoint.Gateway,
             options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken) switch
         {
-            OpenNettyCommand command when command == OpenNettyCommands.ScenariosPlus.DryContactOn.WithParameters("0")
+            OpenNettyCommand command when command == OpenNettyCommands.ScenariosPlus.DryContactOn.WithParameters(["0"])
                 => OpenNettyModels.ScenariosPlus.DryContactState.Open,
 
-            OpenNettyCommand command when command == OpenNettyCommands.ScenariosPlus.DryContactOff.WithParameters("0")
+            OpenNettyCommand command when command == OpenNettyCommands.ScenariosPlus.DryContactOff.WithParameters(["0"])
                 => OpenNettyModels.ScenariosPlus.DryContactState.Closed,
 
             _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
@@ -2472,7 +2476,7 @@ public class OpenNettyController
                     /* SPEED: */ transition switch
                     {
                         // When explicitly set, use the duration specified by the caller to determine the speed.
-                        TimeSpan value => ((long) value.TotalSeconds * 5 + .5).ToString(CultureInfo.InvariantCulture),
+                        TimeSpan value => ((long) (value.TotalSeconds * 5 + .5)).ToString(CultureInfo.InvariantCulture),
 
                         // For Nitoo devices, compute an optimal speed based on the brightness level to ensure a smooth transition.
                         null when endpoint.Protocol is OpenNettyProtocol.Nitoo && level is <= 50 => "10",
@@ -2618,7 +2622,9 @@ public class OpenNettyController
         return _service.ExecuteCommandAsync(
             protocol         : endpoint.Protocol,
             command          : OpenNettyCommands.TemperatureControl.WirePilotDerogationMode.WithParameters(
-                /* MODE: */ value.ToString(CultureInfo.InvariantCulture)),
+            [
+                /* MODE: */ value.ToString(CultureInfo.InvariantCulture)
+            ]),
             address          : endpoint.Address,
             medium           : endpoint.Medium,
             mode             : options?.ExcludeAssociatedDevices is not true ? OpenNettyMode.Multicast : null,
@@ -2662,7 +2668,9 @@ public class OpenNettyController
         return _service.ExecuteCommandAsync(
             protocol         : endpoint.Protocol,
             command          : OpenNettyCommands.TemperatureControl.WirePilotSetpointMode.WithParameters(
-                /* MODE: */ value.ToString(CultureInfo.InvariantCulture)),
+            [
+                /* MODE: */ value.ToString(CultureInfo.InvariantCulture)
+            ]),
             address          : endpoint.Address,
             medium           : endpoint.Medium,
             mode             : options?.ExcludeAssociatedDevices is not true ? OpenNettyMode.Multicast : null,
@@ -2860,7 +2868,7 @@ public class OpenNettyController
                 // When explicitly set, use the duration specified by the caller to determine the speed.
                 TimeSpan value => OpenNettyCommands.Lighting.On.WithParameters(
                 [
-                    /* SPEED: */ ((long) value.TotalSeconds * 5 + .5).ToString(CultureInfo.InvariantCulture)
+                    /* SPEED: */ ((long) (value.TotalSeconds * 5 + .5)).ToString(CultureInfo.InvariantCulture)
                 ]),
 
                 _ => OpenNettyCommands.Lighting.On

@@ -19,11 +19,17 @@ public static class OpenNettyCommands
         /// <summary>
         /// Off (WHAT = 0).
         /// </summary>
+        /// <remarks>
+        /// Note: this command may be used with additional parameters.
+        /// </remarks>
         public static readonly OpenNettyCommand Off = new(OpenNettyCategories.Lighting, "0");
 
         /// <summary>
         /// On (WHAT = 1).
         /// </summary>
+        /// <remarks>
+        /// Note: this command may be used with additional parameters.
+        /// </remarks>
         public static readonly OpenNettyCommand On = new(OpenNettyCategories.Lighting, "1");
 
         /// <summary>
@@ -244,18 +250,24 @@ public static class OpenNettyCommands
         /// <summary>
         /// Action for time (WHAT = 17).
         /// </summary>
+        /// <remarks>
+        /// Note: this command requires specifying additional parameters.
+        /// </remarks>
         public static readonly OpenNettyCommand ActionForTime = new(OpenNettyCategories.ScenariosPlus, "17");
 
         /// <summary>
         /// Action in time (WHAT = 18).
         /// </summary>
+        /// <remarks>
+        /// Note: this command requires specifying additional parameters.
+        /// </remarks>
         public static readonly OpenNettyCommand ActionInTime = new(OpenNettyCategories.ScenariosPlus, "18");
 
         /// <summary>
         /// Short pressure (WHAT = 21).
         /// </summary>
         /// <remarks>
-        /// Note: this command MAY require specifying additional parameters.
+        /// Note: this command may be used with additional parameters.
         /// </remarks>
         public static readonly OpenNettyCommand ShortPressure = new(OpenNettyCategories.ScenariosPlus, "21");
 
