@@ -1613,49 +1613,6 @@ public class OpenNettyController
     }
 
     /// <summary>
-    /// Gets the number of memory entries associated with the specified endpoint.
-    /// </summary>
-    /// <param name="endpoint">The endpoint.</param>
-    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
-    /// <returns>
-    /// A <see cref="ValueTask{TResult}"/> that can be used to monitor the asynchronous operation and whose
-    /// result returns the number of memory entries associated with the specified endpoint.
-    /// </returns>
-    public virtual async ValueTask<byte> GetMemoryDepthAsync(
-        OpenNettyEndpoint endpoint,
-        CancellationToken cancellationToken = default)
-    {
-        ArgumentNullException.ThrowIfNull(endpoint);
-
-        if (!endpoint.HasCapability(OpenNettyCapabilities.MemoryReading))
-        {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
-        }
-
-        // Note: while the memory depth is requested using a BUS COMMAND, it is returned asynchronously by
-        // Nitoo devices using DIMENSION READ frames after the initial BUS COMMAND has been acknowledged.
-        var messages = _service.ObserveMessagesAsync(
-            message          : OpenNettyMessage.CreateCommand(
-                protocol: endpoint.Protocol,
-                command : OpenNettyCommands.Diagnostics.MemoryRead,
-                address : endpoint.Address,
-                medium  : endpoint.Medium,
-                mode    : null),
-            gateway          : endpoint.Gateway,
-            options          : GetTransmissionOptions(endpoint),
-            cancellationToken: cancellationToken);
-
-        return await messages
-            .Where(static message => message.Type is OpenNettyMessageType.DimensionRead)
-            .Where(static message => message.Dimension == OpenNettyDimensions.Diagnostics.MemoryDepth)
-            .Where(message => message.Address == endpoint.Address)
-            .Select(static message => byte.Parse(message.Values[0], CultureInfo.InvariantCulture))
-            .First()
-            .Timeout(TimeSpan.FromSeconds(10))
-            .RunAsync(cancellationToken);
-    }
-
-    /// <summary>
     /// Gets the current pilot wire configuration of the specified endpoint.
     /// </summary>
     /// <param name="endpoint">The endpoint.</param>
