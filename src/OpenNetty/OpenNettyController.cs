@@ -2427,9 +2427,9 @@ public class OpenNettyController
                 values           :
                 [
                     // Note: while Zigbee/SCS gateways use 101-200 as the brightness range, the Nitoo gateway uses 0-100.
-                    /* LEVEL: */ endpoint.Protocol is OpenNettyProtocol.Nitoo ?
-                        level.ToString(CultureInfo.InvariantCulture) :
-                        (level + 100).ToString(CultureInfo.InvariantCulture),
+                    /* LEVEL: */ endpoint.Protocol is OpenNettyProtocol.Nitoo
+                        ? level.ToString(CultureInfo.InvariantCulture)
+                        : (level + 100).ToString(CultureInfo.InvariantCulture),
                     /* SPEED: */ transition switch
                     {
                         // When explicitly set, use the duration specified by the caller to determine the speed.
