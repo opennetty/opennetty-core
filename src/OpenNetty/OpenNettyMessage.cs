@@ -988,7 +988,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
                 break;
         }
 
-        parameters.AddRange(category.ToParameters());
+        parameters.AddRange(category.ToParameters().AsSpan());
 
         return new OpenNettyField(parameters);
     }
@@ -1041,7 +1041,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
                     break;
             }
 
-            parameters.AddRange(address.Value.ToParameters());
+            parameters.AddRange(address.Value.ToParameters().AsSpan());
 
             // Note: when using the default powerline transmission medium, adding an explicit parameter is not required.
             if (medium is not null and not OpenNettyMedium.Powerline)
@@ -1081,7 +1081,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
                     break;
             }
 
-            parameters.AddRange(address.Value.ToParameters());
+            parameters.AddRange(address.Value.ToParameters().AsSpan());
 
             parameters.Add(new OpenNettyParameter(medium switch
             {
@@ -1109,7 +1109,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
             parameters.Add(OpenNettyParameter.Empty);
         }
 
-        parameters.AddRange(dimension.ToParameters());
+        parameters.AddRange(dimension.ToParameters().AsSpan());
 
         return new OpenNettyField(parameters);
     }
