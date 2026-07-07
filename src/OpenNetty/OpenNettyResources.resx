@@ -1009,19 +1009,19 @@
     <value>Last communication date</value>
   </data>
   <data name="ID8120" xml:space="preserve">
-    <value>Virtual endpoint</value>
+    <value>Virtual device</value>
   </data>
   <data name="ID8121" xml:space="preserve">
-    <value>Virtual Nitoo endpoint</value>
+    <value>Virtual Nitoo device</value>
   </data>
   <data name="ID8122" xml:space="preserve">
-    <value>Virtual Zigbee endpoint</value>
+    <value>Virtual Zigbee device</value>
   </data>
   <data name="ID8123" xml:space="preserve">
-    <value>Virtual SCS light point endpoint</value>
+    <value>Virtual SCS device (light point)</value>
   </data>
   <data name="ID8124" xml:space="preserve">
-    <value>Virtual SCS scenario plus endpoint</value>
+    <value>Virtual SCS device (scenario plus)</value>
   </data>
   <data name="ID8125" xml:space="preserve">
     <value>Dispatch dry contact open/detection scenario</value>

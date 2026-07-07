@@ -472,19 +472,19 @@
     <value>Date de la dernière communication</value>
   </data>
   <data name="ID8120" xml:space="preserve">
-    <value>Point de terminaison virtuel</value>
+    <value>Appareil virtuel</value>
   </data>
   <data name="ID8121" xml:space="preserve">
-    <value>Point de terminaison virtuel Nitoo</value>
+    <value>Appareil virtuel Nitoo</value>
   </data>
   <data name="ID8122" xml:space="preserve">
-    <value>Point de terminaison virtuel Zigbee</value>
+    <value>Appareil virtuel Zigbee</value>
   </data>
   <data name="ID8123" xml:space="preserve">
-    <value>Point de terminaison virtuel SCS point de lumière</value>
+    <value>Appareil virtuel SCS (point de lumière)</value>
   </data>
   <data name="ID8124" xml:space="preserve">
-    <value>Point de terminaison virtuel SCS scénario plus</value>
+    <value>Appareil virtuel SCS (scénario plus)</value>
   </data>
   <data name="ID8125" xml:space="preserve">
     <value>Activer scénario contact sec ouvert/détection</value>
