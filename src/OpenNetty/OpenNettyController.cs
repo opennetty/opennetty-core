@@ -113,7 +113,7 @@ public class OpenNettyController
     /// <param name="endpoint">The endpoint.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
-    public virtual async ValueTask BindAsync(
+    public virtual async ValueTask BindZigbeeEndpointAsync(
         OpenNettyEndpoint endpoint,
         CancellationToken cancellationToken = default)
     {
@@ -306,12 +306,12 @@ public class OpenNettyController
     }
 
     /// <summary>
-    /// Disables the supervisor mode for the specified endpoint.
+    /// Disables the Zigbee supervisor mode for the specified endpoint.
     /// </summary>
     /// <param name="endpoint">The endpoint.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
-    public virtual ValueTask DisableSupervisionAsync(
+    public virtual ValueTask DisableZigbeeSupervisionAsync(
         OpenNettyEndpoint endpoint,
         CancellationToken cancellationToken = default)
     {
@@ -690,12 +690,12 @@ public class OpenNettyController
     }
 
     /// <summary>
-    /// Enables the supervisor mode for the specified endpoint.
+    /// Enables the Zigbee supervisor mode for the specified endpoint.
     /// </summary>
     /// <param name="endpoint">The endpoint.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
-    public virtual ValueTask EnableSupervisionAsync(
+    public virtual ValueTask EnableZigbeeSupervisionAsync(
         OpenNettyEndpoint endpoint,
         CancellationToken cancellationToken = default)
     {
@@ -2203,6 +2203,34 @@ public class OpenNettyController
     }
 
     /// <summary>
+    /// Locks the specified actuator.
+    /// </summary>
+    /// <param name="endpoint">The endpoint.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
+    public virtual ValueTask LockActuatorAsync(
+        OpenNettyEndpoint endpoint,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
+
+        if (!endpoint.HasCapability(OpenNettyCapabilities.ActuatorLocking))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
+        }
+
+        return _service.ExecuteCommandAsync(
+            protocol         : endpoint.Protocol,
+            command          : OpenNettyCommands.ActuatorsControl.Disable,
+            address          : endpoint.Address,
+            medium           : endpoint.Medium,
+            mode             : null,
+            gateway          : endpoint.Gateway,
+            options          : GetTransmissionOptions(endpoint),
+            cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
     /// Moves the specified shutter endpoint down.
     /// </summary>
     /// <param name="endpoint">The endpoint.</param>
@@ -2965,7 +2993,7 @@ public class OpenNettyController
     /// <param name="endpoint">The endpoint.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
-    public virtual async ValueTask UnbindAsync(
+    public virtual async ValueTask UnbindZigbeeEndpointAsync(
         OpenNettyEndpoint endpoint,
         CancellationToken cancellationToken = default)
     {
@@ -2986,6 +3014,34 @@ public class OpenNettyController
         await _service.ExecuteCommandAsync(
             protocol         : endpoint.Protocol,
             command          : OpenNettyCommands.ScenariosPlus.UnbindingRequest,
+            address          : endpoint.Address,
+            medium           : endpoint.Medium,
+            mode             : null,
+            gateway          : endpoint.Gateway,
+            options          : GetTransmissionOptions(endpoint),
+            cancellationToken: cancellationToken);
+    }
+
+    /// <summary>
+    /// Unlocks the specified actuator.
+    /// </summary>
+    /// <param name="endpoint">The endpoint.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
+    public virtual ValueTask UnlockActuatorAsync(
+        OpenNettyEndpoint endpoint,
+        CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(endpoint);
+
+        if (!endpoint.HasCapability(OpenNettyCapabilities.ActuatorLocking))
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
+        }
+
+        return _service.ExecuteCommandAsync(
+            protocol         : endpoint.Protocol,
+            command          : OpenNettyCommands.ActuatorsControl.Enable,
             address          : endpoint.Address,
             medium           : endpoint.Medium,
             mode             : null,

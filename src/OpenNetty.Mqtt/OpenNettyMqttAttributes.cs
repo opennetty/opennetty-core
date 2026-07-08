@@ -12,6 +12,11 @@ namespace OpenNetty.Mqtt;
 public static class OpenNettyMqttAttributes
 {
     /// <summary>
+    /// Actuator lock.
+    /// </summary>
+    public const string ActuatorLock = "actuator_lock";
+
+    /// <summary>
     /// Availability.
     /// </summary>
     public const string Availability = "availability";

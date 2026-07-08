@@ -504,4 +504,10 @@
   <data name="ID8130" xml:space="preserve">
     <value>Récupérer scénarios stockés en mémoire</value>
   </data>
+  <data name="ID8131" xml:space="preserve">
+    <value>Verrouiller actionneur</value>
+  </data>
+  <data name="ID8132" xml:space="preserve">
+    <value>Déverrouiller actionneur</value>
+  </data>
 </root>

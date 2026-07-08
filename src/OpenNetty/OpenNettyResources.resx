@@ -1041,4 +1041,10 @@
   <data name="ID8130" xml:space="preserve">
     <value>Get scenarios stored in memory</value>
   </data>
+  <data name="ID8131" xml:space="preserve">
+    <value>Lock actuator</value>
+  </data>
+  <data name="ID8132" xml:space="preserve">
+    <value>Unlock actuator</value>
+  </data>
 </root>

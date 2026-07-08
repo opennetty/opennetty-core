@@ -193,6 +193,21 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
         {
             switch (attribute)
             {
+                case OpenNettyMqttAttributes.ActuatorLock when operation is OpenNettyMqttOperation.Set:
+                {
+                    switch (message.ConvertPayloadToString()?.ToLowerInvariant())
+                    {
+                        case "lock":
+                            await _controller.LockActuatorAsync(endpoint, cancellationToken);
+                            break;
+
+                        case "unlock":
+                            await _controller.UnlockActuatorAsync(endpoint, cancellationToken);
+                            break;
+                    }
+                    break;
+                }
+
                 case OpenNettyMqttAttributes.BatteryAlert when operation is OpenNettyMqttOperation.Set:
                 {
                     switch (message.ConvertPayloadToString()?.ToLowerInvariant())
@@ -868,11 +883,11 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     switch (message.ConvertPayloadToString()?.ToLowerInvariant())
                     {
                         case "bind":
-                            await _controller.BindAsync(endpoint, cancellationToken);
+                            await _controller.BindZigbeeEndpointAsync(endpoint, cancellationToken);
                             break;
 
                         case "unbind":
-                            await _controller.UnbindAsync(endpoint, cancellationToken);
+                            await _controller.UnbindZigbeeEndpointAsync(endpoint, cancellationToken);
                             break;
                     }
                     break;
@@ -932,11 +947,11 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     switch (message.ConvertPayloadToString()?.ToLowerInvariant())
                     {
                         case "disable":
-                            await _controller.DisableSupervisionAsync(endpoint, cancellationToken);
+                            await _controller.DisableZigbeeSupervisionAsync(endpoint, cancellationToken);
                             break;
 
                         case "enable":
-                            await _controller.EnableSupervisionAsync(endpoint, cancellationToken);
+                            await _controller.EnableZigbeeSupervisionAsync(endpoint, cancellationToken);
                             break;
                     }
                     break;
@@ -1499,6 +1514,41 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                     ["payload_press"] = "stop_action",
                     ["enabled_by_default"] = false
+                };
+            }
+
+            if (endpoint.HasCapability(OpenNettyCapabilities.ActuatorLocking))
+            {
+                yield return new JsonObject
+                {
+                    ["platform"] = "button",
+                    ["unique_id"] = ComputeEntityUniqueId(endpoint, "e301aa1c-a50e-45ff-b6d2-58d7525e4867"u8),
+                    ["entity_category"] = "config",
+                    ["icon"] = "mdi:lock",
+                    ["name"] = ComputeEntityDisplayName(
+                        name    : GetLocalizedString(SR.ID8131, culture),
+                        endpoint: endpoint,
+                        culture : culture,
+                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ActuatorLocking))),
+                    ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
+                    ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.ActuatorLock}/set",
+                    ["payload_press"] = "lock"
+                };
+
+                yield return new JsonObject
+                {
+                    ["platform"] = "button",
+                    ["unique_id"] = ComputeEntityUniqueId(endpoint, "b7092044-74e3-4e9a-b349-655a7caf1b2b"u8),
+                    ["entity_category"] = "config",
+                    ["icon"] = "mdi:lock-open",
+                    ["name"] = ComputeEntityDisplayName(
+                        name    : GetLocalizedString(SR.ID8132, culture),
+                        endpoint: endpoint,
+                        culture : culture,
+                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ActuatorLocking))),
+                    ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
+                    ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.ActuatorLock}/set",
+                    ["payload_press"] = "unlock"
                 };
             }
 

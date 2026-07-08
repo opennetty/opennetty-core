@@ -233,6 +233,22 @@ public static class OpenNettyCommands
     }
 
     /// <summary>
+    /// Actuators control commands (WHO = 14).
+    /// </summary>
+    public static class ActuatorsControl
+    {
+        /// <summary>
+        /// Disable (WHAT = 0).
+        /// </summary>
+        public static readonly OpenNettyCommand Disable = new(OpenNettyCategories.ActuatorsControl, "0");
+
+        /// <summary>
+        /// Enable (WHAT = 1).
+        /// </summary>
+        public static readonly OpenNettyCommand Enable = new(OpenNettyCategories.ActuatorsControl, "1");
+    }
+
+    /// <summary>
     /// Scenarios plus commands (WHO = 25).
     /// </summary>
     public static class ScenariosPlus
