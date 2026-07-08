@@ -603,7 +603,14 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                                 }), cancellationToken);
 
                             await _events.PublishAsync(new ShutterPositionReportedEventArgs(endpoint,
-                                byte.Parse(position, CultureInfo.InvariantCulture)), cancellationToken);
+                                byte.Parse(position, CultureInfo.InvariantCulture) switch
+                                {
+                                    byte position when position is >= 0 and <= 100 => position,
+
+                                    255 => null, // Note: the special 255 value indicates the position is unknown.
+
+                                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+                                }), cancellationToken);
                         }
                     });
                     break;

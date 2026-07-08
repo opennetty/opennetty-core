@@ -490,9 +490,10 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
                 .SubscribeAsync(static arguments => ValueTask.CompletedTask),
 
             await _events.ShutterPositionReported
+                .Where(static arguments => arguments.Position is not null)
                 .Do(arguments => ReportAsync(arguments.Endpoint, OpenNettyMqttAttributes.ShutterPosition, builder =>
                 {
-                    builder.WithPayload(arguments.Position.ToString(CultureInfo.InvariantCulture));
+                    builder.WithPayload(arguments.Position!.Value.ToString(CultureInfo.InvariantCulture));
                     builder.WithRetainFlag();
                 }))
                 .Retry()

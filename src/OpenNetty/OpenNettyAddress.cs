@@ -386,9 +386,9 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
                 throw new ArgumentException(SR.GetResourceString(SR.ID0054), nameof(point));
             }
 
-            return extension is not 0 ?
-                new OpenNettyAddress(OpenNettyAddressType.ScsLightPoint, "0", ["4", extension.ToString("00", CultureInfo.InvariantCulture)]) :
-                new OpenNettyAddress(OpenNettyAddressType.ScsLightPoint, "0");
+            return extension is not 0
+                ? new OpenNettyAddress(OpenNettyAddressType.ScsLightPoint, "0", ["4", extension.ToString("00", CultureInfo.InvariantCulture)])
+                : new OpenNettyAddress(OpenNettyAddressType.ScsLightPoint, "0");
         }
 
         // SCS light point group address:
@@ -404,9 +404,9 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
                 throw new ArgumentException(SR.GetResourceString(SR.ID0054), nameof(point));
             }
 
-            return extension is not 0 ?
-                new OpenNettyAddress(OpenNettyAddressType.ScsLightPoint, string.Empty, [group.Value.ToString(), "4", extension.ToString("00", CultureInfo.InvariantCulture)]) :
-                new OpenNettyAddress(OpenNettyAddressType.ScsLightPoint, string.Empty, [group.Value.ToString()]);
+            return extension is not 0
+                ? new OpenNettyAddress(OpenNettyAddressType.ScsLightPoint, string.Empty, [group.Value.ToString(), "4", extension.ToString("00", CultureInfo.InvariantCulture)])
+                : new OpenNettyAddress(OpenNettyAddressType.ScsLightPoint, string.Empty, [group.Value.ToString()]);
         }
 
         // SCS light point area address:
@@ -429,9 +429,9 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
                 builder.Append(area);
             }
 
-            return extension is not 0 ?
-                new OpenNettyAddress(OpenNettyAddressType.ScsLightPoint, builder.ToString(), ["4", extension.ToString("00", CultureInfo.InvariantCulture)]) :
-                new OpenNettyAddress(OpenNettyAddressType.ScsLightPoint, builder.ToString());
+            return extension is not 0
+                ? new OpenNettyAddress(OpenNettyAddressType.ScsLightPoint, builder.ToString(), ["4", extension.ToString("00", CultureInfo.InvariantCulture)])
+                : new OpenNettyAddress(OpenNettyAddressType.ScsLightPoint, builder.ToString());
         }
 
         // SCS light point point-to-point address:
@@ -464,9 +464,9 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
                 builder.Append(point);
             }
 
-            return extension is not 0 ?
-                new OpenNettyAddress(OpenNettyAddressType.ScsLightPoint, builder.ToString(), ["4", extension.ToString("00", CultureInfo.InvariantCulture)]) :
-                new OpenNettyAddress(OpenNettyAddressType.ScsLightPoint, builder.ToString());
+            return extension is not 0
+                ? new OpenNettyAddress(OpenNettyAddressType.ScsLightPoint, builder.ToString(), ["4", extension.ToString("00", CultureInfo.InvariantCulture)])
+                : new OpenNettyAddress(OpenNettyAddressType.ScsLightPoint, builder.ToString());
         }
 
         throw new InvalidOperationException(SR.GetResourceString(SR.ID0051));

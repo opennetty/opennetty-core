@@ -438,8 +438,8 @@ public sealed class OpenNettyEvents : IDisposable
     /// Represents event arguments used when a shutter position is reported.
     /// </summary>
     /// <param name="Endpoint">The endpoint.</param>
-    /// <param name="Position">The shutter position, from 0 to 100.</param>
-    public sealed record class ShutterPositionReportedEventArgs(OpenNettyEndpoint Endpoint, byte Position) : EventArgs(Endpoint);
+    /// <param name="Position">The shutter position, from 0 to 100, or <see langword="null"/> if the position is unknown.</param>
+    public sealed record class ShutterPositionReportedEventArgs(OpenNettyEndpoint Endpoint, byte? Position) : EventArgs(Endpoint);
 
     /// <summary>
     /// Represents event arguments used when a shutter state is reported.

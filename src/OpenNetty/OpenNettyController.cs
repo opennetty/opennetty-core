@@ -910,10 +910,11 @@ public class OpenNettyController
                     {
                         yield return (endpoint, byte.Parse(values[1], CultureInfo.InvariantCulture) switch
                         {
-                                 0        => (byte?) 0,
-                                 100      => (byte?) 100,
-                                 255      => null,
-                            byte position => position
+                            byte position when position is >= 0 and <= 100 => position,
+
+                            255 => null, // Note: the special 255 value indicates the position is unknown.
+
+                            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                         });
                     }
                 }
@@ -1679,10 +1680,11 @@ public class OpenNettyController
             {
                 [_, { Length: > 0 } value, ..] => byte.Parse(value, CultureInfo.InvariantCulture) switch
                 {
-                          0       => 0,
-                         100      => 100,
-                         255      => null,
-                    byte position => position
+                    byte position when position is >= 0 and <= 100 => position,
+
+                    255 => null, // Note: the special 255 value indicates the position is unknown.
+
+                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                 },
 
                 _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
