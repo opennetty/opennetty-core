@@ -32,6 +32,11 @@ public static class OpenNettyCategories
     public static readonly OpenNettyCategory Management = new("13");
 
     /// <summary>
+    /// Actuators control (WHO = 14).
+    /// </summary>
+    public static readonly OpenNettyCategory ActuatorsControl = new("14");
+
+    /// <summary>
     /// Scenarios (WHO = 15).
     /// </summary>
     public static readonly OpenNettyCategory Scenarios = new("15");

@@ -22,6 +22,11 @@ public static class OpenNettyCapabilities
     public static readonly OpenNettyCapability ActionScenarioEvent = new("Action scenario event");
 
     /// <summary>
+    /// Actuator locking.
+    /// </summary>
+    public static readonly OpenNettyCapability ActuatorLocking = new("Actuator locking");
+
+    /// <summary>
     /// Advanced dimming control.
     /// </summary>
     public static readonly OpenNettyCapability AdvancedDimmingControl = new("Advanced dimming control");

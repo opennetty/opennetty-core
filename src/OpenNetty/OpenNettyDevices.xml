@@ -1000,6 +1000,7 @@
     </Identity>
 
     <Unit Id="1">
+      <Capability Name="Actuator locking" />
       <Capability Name="On/off switch state" />
       <Capability Name="On/off switch control" />
 
@@ -1020,6 +1021,7 @@
     </Identity>
 
     <Unit Id="1">
+      <Capability Name="Actuator locking" />
       <Capability Name="Basic shutter control" />
       <Capability Name="Basic shutter state" />
       <Capability Name="Configurable function type" />
@@ -1031,6 +1033,7 @@
     </Unit>
 
     <Unit Id="2">
+      <Capability Name="Actuator locking" />
       <Capability Name="On/off switch state" />
       <Capability Name="On/off switch control" />
 
@@ -1051,6 +1054,7 @@
     </Identity>
 
     <Unit Id="1">
+      <Capability Name="Actuator locking" />
       <Capability Name="Basic shutter control" />
       <Capability Name="Basic shutter state" />
       <Capability Name="Configurable function type" />
@@ -1062,6 +1066,7 @@
     </Unit>
 
     <Unit Id="2">
+      <Capability Name="Actuator locking" />
       <Capability Name="On/off switch state" />
       <Capability Name="On/off switch control" />
 
@@ -1070,6 +1075,7 @@
     </Unit>
 
     <Unit Id="3">
+      <Capability Name="Actuator locking" />
       <Capability Name="Basic shutter control" />
       <Capability Name="Basic shutter state" />
       <Capability Name="Configurable function type" />
@@ -1081,6 +1087,7 @@
     </Unit>
 
     <Unit Id="4">
+      <Capability Name="Actuator locking" />
       <Capability Name="On/off switch state" />
       <Capability Name="On/off switch control" />
 
@@ -1101,6 +1108,7 @@
     </Identity>
 
     <Unit Id="1">
+      <Capability Name="Actuator locking" />
       <Capability Name="Advanced dimming control" />
       <Capability Name="Advanced dimming state" />
       <Capability Name="Basic dimming control" />
@@ -1113,6 +1121,7 @@
     </Unit>
 
     <Unit Id="2">
+      <Capability Name="Actuator locking" />
       <Capability Name="Advanced dimming control" />
       <Capability Name="Advanced dimming state" />
       <Capability Name="Basic dimming control" />
@@ -1238,6 +1247,7 @@
     </Identity>
 
     <Unit Id="1">
+      <Capability Name="Actuator locking" />
       <Capability Name="Basic shutter control" />
       <Capability Name="Basic shutter state" />
       <Capability Name="On/off switch state" />
@@ -1248,6 +1258,7 @@
     </Unit>
 
     <Unit Id="2">
+      <Capability Name="Actuator locking" />
       <Capability Name="On/off switch state" />
       <Capability Name="On/off switch control" />
 
@@ -1423,6 +1434,7 @@
     </Identity>
 
     <Unit Id="1">
+      <Capability Name="Actuator locking" />
       <Capability Name="On/off switch state" />
       <Capability Name="On/off switch control" />
 
@@ -1431,6 +1443,7 @@
     </Unit>
 
     <Unit Id="2">
+      <Capability Name="Actuator locking" />
       <Capability Name="On/off switch state" />
       <Capability Name="On/off switch control" />
 
