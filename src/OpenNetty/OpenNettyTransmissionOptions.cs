@@ -102,8 +102,8 @@ public sealed record OpenNettyTransmissionOptions
 
         return new()
         {
-            AcknowledgementTimeout                   = TimeSpan.FromSeconds(5),
-            ActionValidationTimeout                  = device.Definition.Protocol is OpenNettyProtocol.Nitoo ? TimeSpan.FromSeconds(2) : TimeSpan.Zero,
+            AcknowledgementTimeout                   = device.Definition.Protocol is OpenNettyProtocol.Nitoo ? TimeSpan.FromSeconds(7) : TimeSpan.FromSeconds(2),
+            ActionValidationTimeout                  = device.Definition.Protocol is OpenNettyProtocol.Nitoo ? TimeSpan.FromSeconds(7) : TimeSpan.Zero,
             DisallowAllRetransmissions               = false,
             DisallowUnsafeRetransmissions            = false,
             IgnoreAcknowledgementValidation          = false,
@@ -113,8 +113,8 @@ public sealed record OpenNettyTransmissionOptions
             MultipleStatusReplyTimeout               = device.Definition.Protocol is OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee ? TimeSpan.FromSeconds(10) : TimeSpan.Zero,
             OutgoingMessageProcessingTimeout         = TimeSpan.FromSeconds(10),
             PostSendingDelay                         = device.Definition.Protocol is OpenNettyProtocol.Nitoo ? TimeSpan.FromMilliseconds(150) : TimeSpan.Zero,
-            UniqueDimensionReplyTimeout              = TimeSpan.FromSeconds(2),
-            UniqueStatusReplyTimeout                 = TimeSpan.FromSeconds(2),
+            UniqueDimensionReplyTimeout              = device.Definition.Protocol is OpenNettyProtocol.Nitoo ? TimeSpan.FromSeconds(7) : TimeSpan.FromSeconds(2),
+            UniqueStatusReplyTimeout                 = device.Definition.Protocol is OpenNettyProtocol.Nitoo ? TimeSpan.FromSeconds(7) : TimeSpan.FromSeconds(2),
 
             OutgoingMessageResiliencePipeline = new ResiliencePipelineBuilder().AddRetry(new RetryStrategyOptions
             {
