@@ -344,7 +344,7 @@ public class OpenNettyManager
                 return ValueTask.FromCanceled<OpenNettyGateway?>(cancellationToken);
             }
 
-            if (string.Equals(_options.CurrentValue.Gateways[index].Name, name, StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(_options.CurrentValue.Gateways[index].Device.Name, name, StringComparison.OrdinalIgnoreCase))
             {
                 if (gateway is not null)
                 {

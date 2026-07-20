@@ -3088,7 +3088,7 @@ public class OpenNettyController
 
         // Resolve the endpoint associated with the specified gateway. If the endpoint cannot be found, an exception is thrown.
         var endpoint = await GetGatewayEndpointAsync(gateway, _manager, cancellationToken)
-            ?? throw new InvalidOperationException(SR.FormatID0130(gateway.Name));
+            ?? throw new InvalidOperationException(SR.FormatID0130(gateway.Device.Name));
 
         return await GetFirmwareVersionAsync(endpoint, cancellationToken);
 
