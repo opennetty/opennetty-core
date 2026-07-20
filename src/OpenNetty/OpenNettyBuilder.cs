@@ -184,7 +184,6 @@ public sealed class OpenNettyBuilder
                 options.Gateways.Add((string?) gateway.Attribute("Type") switch
                 {
                     "Serial" => OpenNettyGateway.Create(
-                        name  : (string?) gateway.Attribute("Name") ?? throw new InvalidOperationException(SR.FormatID0074("Name")),
                         device: device,
                         port  : new SerialPort(
                             portName: (string?) gateway.Attribute("Port") ?? throw new InvalidOperationException(SR.FormatID0075("Port")),
@@ -253,13 +252,11 @@ public sealed class OpenNettyBuilder
 
                     "Tcp" when IPAddress.TryParse((string?) gateway.Attribute("Server"), out IPAddress? address)
                         => OpenNettyGateway.Create(
-                            name    : (string?) gateway.Attribute("Name") ?? throw new InvalidOperationException(SR.FormatID0074("Name")),
                             device  : device,
                             endpoint: new IPEndPoint(address, port: (int?) gateway.Attribute("Port") ?? 20_000),
                             password: (string?) gateway.Attribute("Password")),
 
                     "Tcp" => OpenNettyGateway.Create(
-                        name    : (string?) gateway.Attribute("Name") ?? throw new InvalidOperationException(SR.FormatID0074("Name")),
                         device  : device,
                         endpoint: new DnsEndPoint(
                             host: (string?) gateway.Attribute("Server") ?? throw new InvalidOperationException(SR.FormatID0076("Server")),
@@ -527,7 +524,7 @@ public sealed class OpenNettyBuilder
             for (var index = 0; index < gateways.Count; index++)
             {
                 var gateway = gateways[index];
-                if (string.Equals(gateway.Name, name, StringComparison.OrdinalIgnoreCase))
+                if (string.Equals(gateway.Device.Name, name, StringComparison.OrdinalIgnoreCase))
                 {
                     return gateway;
                 }

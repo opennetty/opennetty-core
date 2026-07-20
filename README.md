@@ -207,21 +207,19 @@ socket to initiate OpenWebNet sessions:
   <!-- In One by Legrand gateway -->
 
   <Device Brand="Legrand" Model="88213">
-    <Gateway Name="OPEN-Nitoo gateway" Type="Serial"
-             Port="/dev/serial/by-id/usb-Btcino_Terraneo_Mod._SFERA_Tele_Loop-if00" />
+    <Gateway Type="Serial" Port="/dev/serial/by-id/usb-Btcino_Terraneo_Mod._SFERA_Tele_Loop-if00" />
   </Device>
 
   <!-- MyHome Play gateway -->
 
   <Device Brand="Legrand" Model="88328">
-    <Gateway Name="OPEN-Zigbee gateway" Type="Serial"
-             Port="/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0" />
+    <Gateway Type="Serial" Port="/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0" />
   </Device>
 
-  <!-- MyHome Up gateway -->
+  <!-- MyHome gateway -->
 
   <Device Brand="BTicino" Model="F454">
-    <Gateway Name="OPEN-SCS gateway" Type="Tcp" Server="192.168.5.10" Password="aJhYiBHk8" />
+    <Gateway Type="Tcp" Server="192.168.5.10" Password="aJhYiBHk8" />
   </Device>
 
 </Configuration>
@@ -237,7 +235,7 @@ socket to initiate OpenWebNet sessions:
 
 ### Configure the endpoints
 
-To be able to communicate with "In One by Legrand", "MyHome Play" and "MyHome Up" devices, OpenNetty requires listing them in the configuration file.
+To be able to communicate with "In One by Legrand", "MyHome Play" and "MyHome" devices, OpenNetty requires listing them in the configuration file.
 
 For that, you need to add a `Device` node with the correct brand/model attributes for each device present in the installation:
   - The serial number (or MAC address for Ethernet gateways) is optional but strongly recommended when possible to help identify devices in Home Assistant.
@@ -251,13 +249,13 @@ For that, you need to add a `Device` node with the correct brand/model attribute
   - For In One by Legrand and MyHome Play devices, units that are not explicitly listed are
   automatically added by OpenNetty and corresponding endpoints are generated using default names.
 
-  - For MyHome Up devices, the area/point attributes MUST match the values assigned via [MyHome Suite](https://www.homesystems-legrandgroup.com/home?p_p_id=it_smc_bticino_homesystems_search_AutocompletesearchPortlet&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_it_smc_bticino_homesystems_search_AutocompletesearchPortlet_journalArticleId=2493426&_it_smc_bticino_homesystems_search_AutocompletesearchPortlet_mvcPath=%2Fview_journal_article_content.jsp).
+  - For MyHome devices, the area/point attributes MUST match the values assigned via [MyHome Suite](https://www.homesystems-legrandgroup.com/home?p_p_id=it_smc_bticino_homesystems_search_AutocompletesearchPortlet&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_it_smc_bticino_homesystems_search_AutocompletesearchPortlet_journalArticleId=2493426&_it_smc_bticino_homesystems_search_AutocompletesearchPortlet_mvcPath=%2Fview_journal_article_content.jsp).
 
   - The endpoint name can be either set explicitly or generated implicitly. In both cases, it will be used to infer the MQTT topic used for the
   endpoint (e.g state changes dispatched by an endpoint named `Bedroom/Wall light` will be posted under the `opennetty/bedroom/wall light` MQTT topic).
 
 > [!TIP]
-> You can also add MyHome Up SCS light point area or group endpoints that are not attached to a specific device, which is the most efficient
+> You can also add MyHome SCS light point area or group endpoints that are not attached to a specific device, which is the most efficient
 > way to execute unique operations targeting multiple devices at the same time (e.g switching on all the lights of a specific room).
 >
 > In this case, the `Endpoint` node MUST NOT appear under a `Device` node and MUST be assigned a list of
@@ -273,21 +271,19 @@ For that, you need to add a `Device` node with the correct brand/model attribute
   <!-- In One by Legrand gateway -->
 
   <Device Brand="Legrand" Model="88213" SerialNumber="148366">
-    <Gateway Name="OPEN-Nitoo gateway" Type="Serial"
-             Port="/dev/serial/by-id/usb-Btcino_Terraneo_Mod._SFERA_Tele_Loop-if00" />
+    <Gateway Type="Serial" Port="/dev/serial/by-id/usb-Btcino_Terraneo_Mod._SFERA_Tele_Loop-if00" />
   </Device>
 
   <!-- MyHome Play gateway -->
 
   <Device Brand="Legrand" Model="88328" SerialNumber="0026BD26">
-    <Gateway Name="OPEN-Zigbee gateway" Type="Serial"
-             Port="/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0" />
+    <Gateway Type="Serial" Port="/dev/serial/by-id/usb-Silicon_Labs_CP2102_USB_to_UART_Bridge_Controller_0001-if00-port0" />
   </Device>
 
-  <!-- MyHome Up gateway -->
+  <!-- MyHome gateway -->
 
   <Device Brand="BTicino" Model="F454" MacAddress="00:03:50:A2:27:1B">
-    <Gateway Name="OPEN-SCS gateway" Type="Tcp" Server="192.168.5.10" Password="aJhYiBHk8" />
+    <Gateway Type="Tcp" Server="192.168.5.10" Password="aJhYiBHk8" />
   </Device>
 
   <!-- In One by Legrand one-gang PLC switch -->
@@ -314,7 +310,7 @@ For that, you need to add a `Device` node with the correct brand/model attribute
 
   <Device Brand="Legrand" Model="67223" SerialNumber="0014AC87" />
 
-  <!-- MyHome Up two-way light actuator -->
+  <!-- MyHome two-way light actuator -->
 
   <Device Brand="BTicino" Model="F411U2" SerialNumber="00B582A5">
     <Unit Id="1">
@@ -330,7 +326,7 @@ For that, you need to add a `Device` node with the correct brand/model attribute
     </Unit>
   </Device>
 
-  <!-- MyHome Up shutter actuator -->
+  <!-- MyHome shutter actuator -->
 
   <Device Brand="BTicino" Model="F411U2" SerialNumber="00A472A9">
     <Unit Id="1">
@@ -340,7 +336,7 @@ For that, you need to add a `Device` node with the correct brand/model attribute
     </Unit>
   </Device>
 
-  <!-- MyHome Up two-way dimmer -->
+  <!-- MyHome two-way dimmer -->
 
   <Device Brand="BTicino" Model="F418U2" SerialNumber="00B582A5">
     <Unit Id="1">
@@ -352,7 +348,7 @@ For that, you need to add a `Device` node with the correct brand/model attribute
     </Unit>
   </Device>
 
-  <!-- MyHome Up two-way contacts interface -->
+  <!-- MyHome two-way contacts interface -->
 
   <Device Brand="BTicino" Model="F428" SerialNumber="000A2E88">
     <Unit Id="1">
@@ -368,20 +364,20 @@ For that, you need to add a `Device` node with the correct brand/model attribute
     </Unit>
   </Device>
 
-  <!-- MyHome Up light point group endpoint -->
+  <!-- MyHome light point group endpoint -->
 
   <Endpoint Name="Garden shed/Downlight LEDs" Type="SCS light point" Group="1">
     <Capability Name="On/off switch control" />
   </Endpoint>
 
-  <!-- MyHome Up light point area endpoint -->
+  <!-- MyHome light point area endpoint -->
 
   <Endpoint Name="Living room/All lights" Type="SCS light point" Area="8">
     <Capability Name="Advanced dimming control" />
     <Capability Name="On/off switch control" />
   </Endpoint>
 
-  <!-- MyHome Up light point general endpoint -->
+  <!-- MyHome light point general endpoint -->
 
   <Endpoint Name="General/All lights" Type="SCS light point" General="true">
     <Capability Name="On/off switch control" />
@@ -402,7 +398,7 @@ sudo service opennetty start
 > You can use `sudo service opennetty status` to determine if the daemon is correctly running.
 >
 > You can also use [MQTT Explorer](http://mqtt-explorer.com/) to ensure state changes are correctly posted
-> to MQTT and trigger commands that will be executed by the In One by Legrand/MyHome Play/MyHome Up devices.
+> to MQTT and trigger commands that will be executed by the In One by Legrand/MyHome Play/MyHome devices.
 >
 > For instance, to turn the `Bedroom/Wall light` on, post the `ON` value under the `opennetty/bedroom/wall light/switch_state/set`
 > topic: if the command was correctly executed by the device, the `ON` value will be posted back by OpenNetty under the
@@ -481,7 +477,6 @@ observe the messages sent by the OpenWebNet gateway.
 
 ```csharp
 var gateway = OpenNettyGateway.Create(
-    name      : "OPEN-SCS gateway",
     brand     : OpenNettyBrand.BTicino,
     model     : "F454",
     identifier: OpenNettyDeviceIdentifier.FromMacAddress("00:03:50:A2:27:1B"),
@@ -515,7 +510,6 @@ builder.Services.AddOpenNetty(options =>
 {
     // Register the SCS gateway used to communicate with MyHome devices.
     options.AddGateway(OpenNettyGateway.Create(
-        name      : "OPEN-SCS gateway",
         brand     : OpenNettyBrand.BTicino,
         model     : "F454",
         identifier: OpenNettyDeviceIdentifier.FromMacAddress("00:03:50:A2:27:1B"),
@@ -556,7 +550,6 @@ var builder = Host.CreateApplicationBuilder();
 builder.Services.AddOpenNetty(options =>
 {
     var gateway = OpenNettyGateway.Create(
-        name      : "OPEN-SCS gateway",
         brand     : OpenNettyBrand.BTicino,
         model     : "F454",
         identifier: OpenNettyDeviceIdentifier.FromMacAddress("00:03:50:A2:27:1B"),
@@ -806,7 +799,7 @@ options.AddEndpoint(new OpenNettyEndpoint
 
 ### Function type (SCS-only)
 
-Many MyHome/MyHome Up devices can be configured to implement different features, such as shutter control or scenario activation.
+Many MyHome devices can be configured to implement different features, such as shutter control or scenario activation.
 In some cases (e.g when an actuator is known to support both light and automation modes), OpenNetty requires that the function type be specified:
 
 ```xml

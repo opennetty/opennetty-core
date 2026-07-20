@@ -45,11 +45,6 @@ public sealed class OpenNettyGateway
     public SerialPort? SerialPort { get; init; }
 
     /// <summary>
-    /// Gets or sets the unique name associated with the gateway.
-    /// </summary>
-    public required string Name { get; init; }
-
-    /// <summary>
     /// Gets or sets the options associated with the gateway.
     /// </summary>
     public required OpenNettyGatewayOptions Options { get; init; }
@@ -66,7 +61,6 @@ public sealed class OpenNettyGateway
             ConnectionType == other.ConnectionType &&
             Device == other.Device &&
             Endpoint == other.Endpoint &&
-            string.Equals(Name, other.Name, StringComparison.OrdinalIgnoreCase) &&
             string.Equals(Password, other.Password, StringComparison.Ordinal) &&
             Protocol == other.Protocol &&
             string.Equals(SerialPort?.PortName, other.SerialPort?.PortName, StringComparison.OrdinalIgnoreCase);
@@ -82,7 +76,6 @@ public sealed class OpenNettyGateway
         hash.Add(ConnectionType);
         hash.Add(Device);
         hash.Add(Endpoint?.Serialize());
-        hash.Add(Name);
         hash.Add(Password);
         hash.Add(Protocol);
         hash.Add(SerialPort?.PortName);
@@ -94,7 +87,7 @@ public sealed class OpenNettyGateway
     /// Computes the <see cref="string"/> representation of the current gateway.
     /// </summary>
     /// <returns>The <see cref="string"/> representation of the current gateway.</returns>
-    public override string ToString() => Name;
+    public override string ToString() => Device?.Name ?? string.Empty;
 
     /// <summary>
     /// Determines whether two <see cref="OpenNettyGateway"/> instances are equal.
@@ -116,14 +109,12 @@ public sealed class OpenNettyGateway
     /// <summary>
     /// Creates a new instance of the <see cref="OpenNettyGateway"/> class using the specified endpoint.
     /// </summary>
-    /// <param name="name">The gateway name.</param>
     /// <param name="device">The gateway device.</param>
     /// <param name="endpoint">The endpoint.</param>
     /// <param name="password">The authentication password, if applicable.</param>
     /// <param name="options">The gateway options.</param>
     /// <returns>A new instance of the <see cref="OpenNettyGateway"/> class.</returns>
     public static OpenNettyGateway Create(
-        string name,
         OpenNettyDevice device,
         EndPoint endpoint,
         string? password = null,
@@ -131,14 +122,12 @@ public sealed class OpenNettyGateway
     {
         ArgumentNullException.ThrowIfNull(device);
         ArgumentNullException.ThrowIfNull(endpoint);
-        ArgumentException.ThrowIfNullOrEmpty(name);
 
         return new OpenNettyGateway
         {
             ConnectionType = OpenNettyConnectionType.Tcp,
             Device = device,
             Endpoint = endpoint,
-            Name = name,
             Options = options ?? OpenNettyGatewayOptions.CreateDefaults(device),
             Password = password
         };
@@ -147,26 +136,22 @@ public sealed class OpenNettyGateway
     /// <summary>
     /// Creates a new instance of the <see cref="OpenNettyGateway"/> class using the specified serial port.
     /// </summary>
-    /// <param name="name">The gateway name.</param>
     /// <param name="device">The gateway device.</param>
     /// <param name="port">The serial port.</param>
     /// <param name="options">The gateway options.</param>
     /// <returns>A new instance of the <see cref="OpenNettyGateway"/> class.</returns>
     public static OpenNettyGateway Create(
-        string name,
         OpenNettyDevice device,
         SerialPort port,
         OpenNettyGatewayOptions? options = null)
     {
         ArgumentNullException.ThrowIfNull(device);
         ArgumentNullException.ThrowIfNull(port);
-        ArgumentException.ThrowIfNullOrEmpty(name);
 
         return new OpenNettyGateway
         {
             ConnectionType = OpenNettyConnectionType.Serial,
             Device = device,
-            Name = name,
             Options = options ?? OpenNettyGatewayOptions.CreateDefaults(device),
             SerialPort = port
         };
@@ -206,7 +191,7 @@ public sealed class OpenNettyGateway
             Name = name
         };
 
-        return Create(name, device, endpoint, password, options);
+        return Create(device, endpoint, password, options);
     }
 
     /// <summary>
@@ -241,6 +226,6 @@ public sealed class OpenNettyGateway
             Name = name
         };
 
-        return Create(name, device, port, options);
+        return Create(device, port, options);
     }
 }
