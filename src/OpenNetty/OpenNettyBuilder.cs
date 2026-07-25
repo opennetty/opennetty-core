@@ -284,7 +284,7 @@ public sealed class OpenNettyBuilder
 
                 var device = endpoint.Parent?.Name == "Device"
                     ? GetDevice(options.Gateways, endpoint.Parent)
-                    :  endpoint.Parent?.Name == "Unit" && endpoint.Parent.Parent?.Name == "Device"
+                    : endpoint.Parent?.Name == "Unit" && endpoint.Parent.Parent?.Name == "Device"
                         ? GetDevice(options.Gateways, endpoint.Parent.Parent)
                         : null;
 
@@ -387,11 +387,11 @@ public sealed class OpenNettyBuilder
                     Device = device,
                     Gateway = device is not null && device.HasCapability(OpenNettyCapabilities.OpenWebNetGateway)
                         ? options.Gateways.Single(gateway => gateway.Device == device)
-                        : (string?) endpoint.Attribute("GatewayName") is string gateway ?
-                            FindGatewayByName(options.Gateways, gateway) :
-                            device?.Gateway ??
-                            options.Gateways.FirstOrDefault(gateway => gateway.Protocol == protocol) ??
-                            throw new InvalidOperationException(SR.FormatID0106(protocol)),
+                        : (string?) endpoint.Attribute("GatewayName") is string gateway
+                            ? FindGatewayByName(options.Gateways, gateway)
+                            : device?.Gateway
+                                ?? options.Gateways.FirstOrDefault(gateway => gateway.Protocol == protocol)
+                                ?? throw new InvalidOperationException(SR.FormatID0106(protocol)),
                     Medium = device?.Definition.Medium,
                     Name = name ?? OpenNettyUtilities.ComputeDefaultEndpointName(protocol, address, device, unit),
                     Protocol = protocol,

@@ -1014,6 +1014,10 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
             return;
         }
 
+        var version = typeof(OpenNettyMqttWorker).Assembly
+            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
+            ?.InformationalVersion;
+
         // Announce all the endpoints that are associated with a device.
         await foreach (var device in _manager.EnumerateDevicesAsync(cancellationToken))
         {
@@ -1049,9 +1053,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["origin"] = new JsonObject
                     {
                         ["name"] = "OpenNetty",
-                        ["sw_version"] = typeof(OpenNettyMqttWorker).Assembly
-                            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
-                           ?.InformationalVersion,
+                        ["sw_version"] = version,
                         ["support_url"] = "https://github.com/opennetty/opennetty-core"
                     },
                     ["device"] = CreateDeviceNode(device, culture),
@@ -1105,9 +1107,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["origin"] = new JsonObject
                     {
                         ["name"] = "OpenNetty",
-                        ["sw_version"] = typeof(OpenNettyMqttWorker).Assembly
-                            .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
-                           ?.InformationalVersion,
+                        ["sw_version"] = version,
                         ["support_url"] = "https://github.com/opennetty/opennetty-core"
                     },
                     ["device"] = CreateVirtualDeviceNode(endpoint, culture),
@@ -1175,8 +1175,9 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = platform,
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "feb44223-4814-4652-933c-53dbbaabac3f"u8),
                     ["name"] = name ?? ComputeEntityDisplayName(
-                        name    : platform is OpenNettySettings.HomeAssistantEntityTypes.Light ?
-                            GetLocalizedString(SR.ID8001, culture) : GetLocalizedString(SR.ID8000, culture),
+                        name    : platform is OpenNettySettings.HomeAssistantEntityTypes.Light
+                            ? GetLocalizedString(SR.ID8001, culture)
+                            : GetLocalizedString(SR.ID8000, culture),
                         endpoint: endpoint,
                         culture : culture,
                         count   : endpoints.Count(SupportsLightOrSwitchEntity)),
@@ -1281,8 +1282,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "9b138d62-bb0d-49cb-8624-1d85f9e86a6e"u8),
                     ["device_class"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantCoverDeviceClass)
                         ?? OpenNettySettings.HomeAssistantDeviceClasses.Covers.Shutter,
-                    ["name"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantCoverName) ??
-                        ComputeEntityDisplayName(
+                    ["name"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantCoverName)
+                        ?? ComputeEntityDisplayName(
                             name    : GetLocalizedString(SR.ID8004, culture),
                             endpoint: endpoint,
                             culture : culture,
@@ -3137,7 +3138,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
             }
 
             if (device.Identifier?.Type is OpenNettyDeviceIdentifierType.NitooSerialNumber or
-                                           OpenNettyDeviceIdentifierType.ScsSerialNumber or
+                                           OpenNettyDeviceIdentifierType.ScsSerialNumber   or
                                            OpenNettyDeviceIdentifierType.ZigbeeSerialNumber)
             {
                 node["serial_number"] = device.Identifier.Value.ToString();

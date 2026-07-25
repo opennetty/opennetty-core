@@ -68,11 +68,11 @@ public abstract class OpenNettyConnection : IAsyncDisposable
 
         return gateway.ConnectionType switch
         {
-            OpenNettyConnectionType.Serial => CreateSerialConnectionAsync(gateway.SerialPort ??
-                throw new InvalidOperationException(SR.GetResourceString(SR.ID0063)), cancellationToken),
+            OpenNettyConnectionType.Serial => CreateSerialConnectionAsync(gateway.SerialPort
+                ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0063)), cancellationToken),
 
-            OpenNettyConnectionType.Tcp => CreateTcpConnectionAsync(gateway.Endpoint ??
-                throw new InvalidOperationException(SR.GetResourceString(SR.ID0064)), cancellationToken),
+            OpenNettyConnectionType.Tcp => CreateTcpConnectionAsync(gateway.Endpoint
+                ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0064)), cancellationToken),
 
             _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0065))
         };
