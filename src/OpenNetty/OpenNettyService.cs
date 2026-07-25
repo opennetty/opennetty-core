@@ -67,8 +67,8 @@ public class OpenNettyService : IOpenNettyService
         }
 
         // If no gateway was explicitly specified, try to resolve it from the options.
-        gateway ??= _options.CurrentValue.Gateways.Find(gateway => gateway.Protocol == protocol) ??
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0028));
+        gateway ??= _options.CurrentValue.Gateways.Find(gateway => gateway.Protocol == protocol)
+            ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0028));
         options ??= gateway.Options.DefaultTransmissionOptions;
 
         var message = OpenNettyMessage.CreateDimensionRequest(protocol, dimension, address, medium, mode);
@@ -188,8 +188,8 @@ public class OpenNettyService : IOpenNettyService
         }
 
         // If no gateway was explicitly specified, try to resolve it from the options.
-        gateway ??= _options.CurrentValue.Gateways.Find(gateway => gateway.Protocol == protocol) ??
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0028));
+        gateway ??= _options.CurrentValue.Gateways.Find(gateway => gateway.Protocol == protocol)
+            ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0028));
         options ??= gateway.Options.DefaultTransmissionOptions;
 
         var message = OpenNettyMessage.CreateStatusRequest(protocol, category, address, medium, mode);
@@ -307,8 +307,8 @@ public class OpenNettyService : IOpenNettyService
         }
 
         // If no gateway was explicitly specified, try to resolve it from the options.
-        gateway ??= _options.CurrentValue.Gateways.Find(gateway => gateway.Protocol == protocol) ??
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0028));
+        gateway ??= _options.CurrentValue.Gateways.Find(gateway => gateway.Protocol == protocol)
+            ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0028));
         options ??= gateway.Options.DefaultTransmissionOptions;
 
         var message = OpenNettyMessage.CreateCommand(protocol, command, address, medium, mode);
@@ -372,8 +372,8 @@ public class OpenNettyService : IOpenNettyService
         }
 
         // If no gateway was explicitly specified, try to resolve it from the options.
-        gateway ??= _options.CurrentValue.Gateways.Find(gateway => gateway.Protocol == protocol) ??
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0028));
+        gateway ??= _options.CurrentValue.Gateways.Find(gateway => gateway.Protocol == protocol)
+            ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0028));
         options ??= gateway.Options.DefaultTransmissionOptions;
 
         var message = OpenNettyMessage.CreateDimensionRequest(protocol, dimension, address, medium, mode);
@@ -472,8 +472,8 @@ public class OpenNettyService : IOpenNettyService
         }
 
         // If no gateway was explicitly specified, try to resolve it from the options.
-        gateway ??= _options.CurrentValue.Gateways.Find(gateway => gateway.Protocol == protocol) ??
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0028));
+        gateway ??= _options.CurrentValue.Gateways.Find(gateway => gateway.Protocol == protocol)
+            ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0028));
         options ??= gateway.Options.DefaultTransmissionOptions;
 
         var message = OpenNettyMessage.CreateStatusRequest(protocol, category, address, medium, mode);
@@ -659,8 +659,8 @@ public class OpenNettyService : IOpenNettyService
         }
 
         // If no gateway was explicitly specified, try to resolve it from the options.
-        gateway ??= _options.CurrentValue.Gateways.Find(gateway => gateway.Protocol == protocol) ??
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0028));
+        gateway ??= _options.CurrentValue.Gateways.Find(gateway => gateway.Protocol == protocol)
+            ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0028));
         options ??= gateway.Options.DefaultTransmissionOptions;
 
         var message = OpenNettyMessage.CreateDimensionSet(protocol, dimension, values, address, medium, mode);
