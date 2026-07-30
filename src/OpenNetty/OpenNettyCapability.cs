@@ -34,13 +34,13 @@ public readonly struct OpenNettyCapability : IEquatable<OpenNettyCapability>
     public override bool Equals(object? obj) => obj is OpenNettyCapability capability && Equals(capability);
 
     /// <inheritdoc/>
-    public override int GetHashCode() => Name?.GetHashCode() ?? 0;
+    public override int GetHashCode() => Name?.GetHashCode(StringComparison.OrdinalIgnoreCase) ?? 0;
 
     /// <summary>
     /// Returns a human-readable representation of the current capability.
     /// </summary>
     /// <returns>A human-readable representation of the current capability.</returns>
-    public override string ToString() => Name?.ToString() ?? string.Empty;
+    public override string ToString() => Name ?? string.Empty;
 
     /// <summary>
     /// Determines whether two <see cref="OpenNettyCapability"/> instances are equal.

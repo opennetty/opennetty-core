@@ -26,11 +26,6 @@ public sealed class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
     public ImmutableHashSet<OpenNettyCapability> Capabilities { get; init; } = [];
 
     /// <summary>
-    /// Gets or sets the description associated with the endpoint, if applicable.
-    /// </summary>
-    public string? Description { get; init; }
-
-    /// <summary>
     /// Gets or sets the device associated with the endpoint, if applicable.
     /// </summary>
     public OpenNettyDevice? Device { get; init; }
@@ -177,17 +172,12 @@ public sealed class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
             return false;
         }
 
-        if (!string.Equals(Description, other.Description, StringComparison.OrdinalIgnoreCase))
-        {
-            return false;
-        }
-
         if (Medium != other.Medium)
         {
             return false;
         }
 
-        if (!string.Equals(Name, other.Name, StringComparison.OrdinalIgnoreCase))
+        if (!string.Equals(Name, other.Name, StringComparison.Ordinal))
         {
             return false;
         }
@@ -225,17 +215,16 @@ public sealed class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
             hash.Add(capability);
         }
 
-        hash.Add(Description);
         hash.Add(Device);
         hash.Add(Medium);
-        hash.Add(Name);
+        hash.Add(Name, StringComparer.Ordinal);
         hash.Add(Protocol);
 
         hash.Add(Settings.Count);
         foreach (var (name, value) in Settings)
         {
             hash.Add(name);
-            hash.Add(value);
+            hash.Add(value, StringComparer.Ordinal);
         }
 
         hash.Add(Unit);

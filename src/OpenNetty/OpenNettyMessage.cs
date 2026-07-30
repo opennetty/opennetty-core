@@ -625,7 +625,14 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
     public override bool Equals(object? obj) => obj is OpenNettyMessage message && Equals(message);
 
     /// <inheritdoc/>
-    public override int GetHashCode() => HashCode.Combine(Protocol, Frame);
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        hash.Add(Protocol);
+        hash.Add(Frame);
+
+        return hash.ToHashCode();
+    }
 
     /// <summary>
     /// Computes the <see cref="string"/> representation of the current message.
@@ -1019,7 +1026,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
             };
         }
 
-        else if (protocol is OpenNettyProtocol.Nitoo)
+        if (protocol is OpenNettyProtocol.Nitoo)
         {
             if (address.Value.Type is not OpenNettyAddressType.Nitoo)
             {

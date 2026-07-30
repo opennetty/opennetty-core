@@ -104,7 +104,7 @@ public sealed class OpenNettyUnit : IEquatable<OpenNettyUnit>
         foreach (var (name, value) in Settings)
         {
             hash.Add(name);
-            hash.Add(value);
+            hash.Add(value, StringComparer.Ordinal);
         }
 
         return hash.ToHashCode();

@@ -67,6 +67,7 @@
     <IncludeSymbols>true</IncludeSymbols>
     <IsPackable>true</IsPackable>
     <IsShipping>true</IsShipping>
+    <IsAotCompatible>true</IsAotCompatible>
     <Serviceable>false</Serviceable>
   </PropertyGroup>
 

@@ -141,7 +141,7 @@ public readonly struct OpenNettyDimension : IEquatable<OpenNettyDimension>
 
         var hash = new HashCode();
         hash.Add(Category);
-        hash.Add(Value);
+        hash.Add(Value, StringComparer.OrdinalIgnoreCase);
 
         if (!Parameters.IsDefaultOrEmpty)
         {
@@ -149,7 +149,7 @@ public readonly struct OpenNettyDimension : IEquatable<OpenNettyDimension>
 
             for (var index = 0; index < Parameters.Length; index++)
             {
-                hash.Add(Parameters[index]);
+                hash.Add(Parameters[index], StringComparer.OrdinalIgnoreCase);
             }
         }
 

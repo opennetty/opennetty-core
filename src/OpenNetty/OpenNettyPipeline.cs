@@ -17,7 +17,7 @@ namespace OpenNetty;
 /// Represents a thread-safe notification pipeline that can be observed and whose delivery order is guaranteed.
 /// </summary>
 [EditorBrowsable(EditorBrowsableState.Advanced)]
-public sealed class OpenNettyPipeline : IOpenNettyPipeline, IDisposable
+public sealed class OpenNettyPipeline : IOpenNettyPipeline, IAsyncDisposable
 {
     private readonly Channel<OpenNettyNotification> _channel = Channel.CreateUnbounded<OpenNettyNotification>(new UnboundedChannelOptions
     {
@@ -94,5 +94,5 @@ public sealed class OpenNettyPipeline : IOpenNettyPipeline, IDisposable
     public ValueTask<IAsyncDisposable> ConnectAsync() => _observable.ConnectAsync();
 
     /// <inheritdoc/>
-    public void Dispose() => _registration.Dispose();
+    public ValueTask DisposeAsync() => _registration.DisposeAsync();
 }

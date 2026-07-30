@@ -383,7 +383,6 @@ public sealed class OpenNettyBuilder
                 {
                     Address = address,
                     Capabilities = GetCapabilities(endpoint),
-                    Description = (string?) endpoint.Attribute("Description"),
                     Device = device,
                     Gateway = device is not null && device.HasCapability(OpenNettyCapabilities.OpenWebNetGateway)
                         ? options.Gateways.Single(gateway => gateway.Device == device)

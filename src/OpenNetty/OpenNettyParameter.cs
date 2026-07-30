@@ -67,13 +67,13 @@ public readonly struct OpenNettyParameter : IEquatable<OpenNettyParameter>
     }
 
     /// <inheritdoc/>
-    public bool Equals(OpenNettyParameter other) => string.Equals(Value, other.Value, StringComparison.OrdinalIgnoreCase);
+    public bool Equals(OpenNettyParameter other) => string.Equals(Value, other.Value, StringComparison.Ordinal);
 
     /// <inheritdoc/>
     public override bool Equals(object? obj) => obj is OpenNettyParameter parameter && Equals(parameter);
 
     /// <inheritdoc/>
-    public override int GetHashCode() => Value?.GetHashCode() ?? 0;
+    public override int GetHashCode() => Value?.GetHashCode(StringComparison.Ordinal) ?? 0;
 
     /// <summary>
     /// Computes the <see cref="string"/> representation of the current parameter.

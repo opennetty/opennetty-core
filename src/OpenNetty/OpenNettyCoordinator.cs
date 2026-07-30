@@ -1418,7 +1418,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
 
                         if (endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit.Scenarios: [_, ..] scenarios })
                         {
-                            tasks.Add(Parallel.ForEachAsync(scenarios, async (scenario, cancellationToken) =>
+                            tasks.Add(Parallel.ForEachAsync(scenarios, cancellationToken, async (scenario, cancellationToken) =>
                             {
                                 var endpoint = await _manager.FindEndpointByNameAsync(scenario.EndpointName, cancellationToken);
                                 if (endpoint is null)
@@ -1485,7 +1485,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 }
             }
         })
-        .Do(onError: exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
+        .Do(exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
         .Retry()
         .SubscribeAsync(static message => ValueTask.CompletedTask),
 
@@ -1673,7 +1673,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 await Task.WhenAll(tasks);
             });
         })
-        .Do(onError: exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
+        .Do(exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
         .Retry()
         .SubscribeAsync(static notification => ValueTask.CompletedTask),
 
@@ -1743,7 +1743,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
             ValueTask ReportOffStateAsync(OpenNettyEndpoint endpoint, CancellationToken cancellationToken)
                 => _events.PublishAsync(new SwitchStateReportedEventArgs(endpoint, OpenNettyModels.Lighting.SwitchState.Off), cancellationToken);
         })
-        .Do(onError: exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
+        .Do(exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
         .Retry()
         .SubscribeAsync(static notification => ValueTask.CompletedTask),
 
@@ -1809,7 +1809,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 }
             });
         })
-        .Do(onError: exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
+        .Do(exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
         .Retry()
         .SubscribeAsync(static notification => ValueTask.CompletedTask),
 
@@ -1852,7 +1852,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         OpenNettyAddress.ToNitooAddress(address) is { Identifier: uint identifier } &&
                         identifier == OpenNettyAddress.ToNitooAddress(message.Address!.Value).Identifier);
 
-                await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                await Parallel.ForEachAsync(endpoints, cancellationToken, async (endpoint, cancellationToken) =>
                 {
                     switch (message.Values, await _controller.GetUnitDescriptionAsync(endpoint, cancellationToken))
                     {
@@ -1876,7 +1876,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 });
             });
         })
-        .Do(onError: exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
+        .Do(exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
         .Retry()
         .SubscribeAsync(static notification => ValueTask.CompletedTask),
 
@@ -1912,7 +1912,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 }
             });
         })
-        .Do(onError: exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
+        .Do(exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
         .Retry()
         .SubscribeAsync(static notification => ValueTask.CompletedTask),
 
@@ -1938,7 +1938,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                 _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0068))
             }), cancellationToken).AsTask();
         }))
-        .Do(onError: exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
+        .Do(exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
         .Retry()
         .SubscribeAsync(static message => ValueTask.CompletedTask),
 
@@ -1959,7 +1959,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     await _controller.SetDateTimeAsync(endpoint, DateTimeOffset.Now, cancellationToken);
                 });
             })
-            .Do(onError: exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
+            .Do(exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
             .Retry()
             .SubscribeAsync(static message => ValueTask.CompletedTask),
 
@@ -1977,7 +1977,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         notification.Message, notification.Session), cancellationToken);
                 });
             })
-            .Do(onError: exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
+            .Do(exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
             .Retry()
             .SubscribeAsync(static notification => ValueTask.CompletedTask),
 
@@ -1995,7 +1995,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         notification.Message, notification.Session), cancellationToken);
                 });
             })
-            .Do(onError: exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
+            .Do(exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
             .Retry()
             .SubscribeAsync(static notification => ValueTask.CompletedTask),
 
@@ -2028,7 +2028,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     await _events.PublishAsync(new DeviceCommunicationReportedEventArgs(endpoint, notification.Message), cancellationToken);
                 });
             })
-            .Do(onError: exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
+            .Do(exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
             .Retry()
             .SubscribeAsync(static notification => ValueTask.CompletedTask)
     ]);

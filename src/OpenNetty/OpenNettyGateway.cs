@@ -12,7 +12,7 @@ namespace OpenNetty;
 /// <summary>
 /// Represents an OpenNetty gateway.
 /// </summary>
-public sealed class OpenNettyGateway
+public sealed class OpenNettyGateway : IEquatable<OpenNettyGateway>
 {
     /// <summary>
     /// Gets or sets the type of connection used to communicate with the gateway.
@@ -76,9 +76,9 @@ public sealed class OpenNettyGateway
         hash.Add(ConnectionType);
         hash.Add(Device);
         hash.Add(Endpoint?.Serialize());
-        hash.Add(Password);
+        hash.Add(Password, StringComparer.Ordinal);
         hash.Add(Protocol);
-        hash.Add(SerialPort?.PortName);
+        hash.Add(SerialPort?.PortName, StringComparer.OrdinalIgnoreCase);
 
         return hash.ToHashCode();
     }

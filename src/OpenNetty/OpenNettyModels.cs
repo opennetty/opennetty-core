@@ -782,7 +782,8 @@ public static class OpenNettyModels
                     FunctionCode = byte.Parse(values[2], CultureInfo.InvariantCulture),
                     Model        = uint.Parse(values[0], CultureInfo.InvariantCulture).ToString("X"),
                     Units        = byte.Parse(values[3], CultureInfo.InvariantCulture),
-                    Version      = new Version(int.Parse(uint.Parse(values[1], CultureInfo.InvariantCulture).ToString("X")), 0)
+                    Version      = new Version(int.Parse(uint.Parse(values[1],
+                        CultureInfo.InvariantCulture).ToString("X"), CultureInfo.InvariantCulture), 0)
                 };
             }
         }

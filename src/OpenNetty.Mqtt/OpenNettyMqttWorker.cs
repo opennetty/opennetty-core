@@ -65,7 +65,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
             .Where(static parameters => !string.IsNullOrEmpty(parameters.Name) &&
                 !string.IsNullOrEmpty(parameters.Attribute) &&
                 parameters.Operation is OpenNettyMqttOperation.Get or OpenNettyMqttOperation.Set)
-            .GroupBy(static parameters => parameters.Name)
+            .GroupBy(static parameters => parameters.Name, StringComparer.Ordinal)
             .Do(async group => await group.ObserveOn(TaskPoolAsyncScheduler.Default).Do(async parameters =>
             {
                 var endpoints = from endpoint in _manager.EnumerateEndpointsAsync(cancellationToken)
@@ -73,7 +73,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 where string.Equals(topic, parameters.Name, StringComparison.Ordinal)
                                 select endpoint;
 
-                await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
+                await Parallel.ForEachAsync(endpoints, cancellationToken, async (endpoint, cancellationToken) =>
                 {
                     try
                     {
@@ -105,7 +105,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     }
                 });
             })
-            .Do((Exception exception) => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
+            .Do(exception => _logger.LogWarning(6018, exception, SR.GetResourceString(SR.ID6018)))
             .Retry()
             .SubscribeAsync(static arguments => ValueTask.CompletedTask))
         .Retry()
@@ -116,7 +116,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
         try
         {
             var source = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            using var registration = cancellationToken.Register(static state => ((TaskCompletionSource) state!).SetResult(), source);
+            await using var registration = cancellationToken.Register(static state => ((TaskCompletionSource) state!).SetResult(), source);
             await source.Task;
         }
 
@@ -124,7 +124,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
         {
             // Note: the cancellation token provided as a parameter MUST NOT be used here as it is already in a
             // canceled state and would cause the MQTT client to skip the publication of the availability messages.
-            await Parallel.ForEachAsync(_manager.EnumerateEndpointsAsync(CancellationToken.None), async (endpoint, cancellationToken) =>
+            await Parallel.ForEachAsync(_manager.EnumerateEndpointsAsync(CancellationToken.None), CancellationToken.None, async (endpoint, cancellationToken) =>
             {
                 var topic = endpoint.GetStringSetting(OpenNettySettings.MqttTopic) ?? endpoint.Name.ToLowerInvariant();
 
@@ -275,7 +275,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     var address = await _controller.GetMacAddressAsync(endpoint, cancellationToken);
                     await ReportAsync(endpoint, OpenNettyMqttAttributes.MacAddress, builder =>
                     {
-                        builder.WithPayload(address.ToString());
+                        builder.WithPayload(address);
                         builder.WithRetainFlag();
                     });
                     break;
@@ -2260,21 +2260,21 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ]),
                     ["value_template"] = $$$"""
                         {% set map = {
-                            'comfort': '{{{GetLocalizedString(SR.ID8040, culture).Replace("'", "\\'")}}}',
-                            'comfort-1': '{{{GetLocalizedString(SR.ID8041, culture).Replace("'", "\\'")}}}',
-                            'comfort-2': '{{{GetLocalizedString(SR.ID8042, culture).Replace("'", "\\'")}}}',
-                            'eco': '{{{GetLocalizedString(SR.ID8043, culture).Replace("'", "\\'")}}}',
-                            'frost_protection': '{{{GetLocalizedString(SR.ID8044, culture).Replace("'", "\\'")}}}'
+                            'comfort': '{{{GetLocalizedString(SR.ID8040, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}',
+                            'comfort-1': '{{{GetLocalizedString(SR.ID8041, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}',
+                            'comfort-2': '{{{GetLocalizedString(SR.ID8042, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}',
+                            'eco': '{{{GetLocalizedString(SR.ID8043, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}',
+                            'frost_protection': '{{{GetLocalizedString(SR.ID8044, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}'
                         } %}
                         {{ map[value] }}
                         """,
                     ["command_template"] = $$$"""
                         {% set map = {
-                            '{{{GetLocalizedString(SR.ID8040, culture).Replace("'", "\\'")}}}': 'comfort',
-                            '{{{GetLocalizedString(SR.ID8041, culture).Replace("'", "\\'")}}}': 'comfort-1',
-                            '{{{GetLocalizedString(SR.ID8042, culture).Replace("'", "\\'")}}}': 'comfort-2',
-                            '{{{GetLocalizedString(SR.ID8043, culture).Replace("'", "\\'")}}}': 'eco',
-                            '{{{GetLocalizedString(SR.ID8044, culture).Replace("'", "\\'")}}}': 'frost_protection'
+                            '{{{GetLocalizedString(SR.ID8040, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}': 'comfort',
+                            '{{{GetLocalizedString(SR.ID8041, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}': 'comfort-1',
+                            '{{{GetLocalizedString(SR.ID8042, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}': 'comfort-2',
+                            '{{{GetLocalizedString(SR.ID8043, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}': 'eco',
+                            '{{{GetLocalizedString(SR.ID8044, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}': 'frost_protection'
                         } %}
                         {{ map[value] }}
                         """
@@ -2332,43 +2332,43 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ]),
                     ["value_template"] = $$$"""
                         {% set map = {
-                            'none': '{{{GetLocalizedString(SR.ID8046, culture).Replace("'", "\\'")}}}',
-                            'comfort': '{{{GetLocalizedString(SR.ID8047, culture).Replace("'", "\\'")}}}',
-                            'comfort:4h': '{{{GetLocalizedString(SR.ID8048, culture).Replace("'", "\\'")}}}',
-                            'comfort:8h': '{{{GetLocalizedString(SR.ID8049, culture).Replace("'", "\\'")}}}',
-                            'comfort-1': '{{{GetLocalizedString(SR.ID8050, culture).Replace("'", "\\'")}}}',
-                            'comfort-1:4h': '{{{GetLocalizedString(SR.ID8051, culture).Replace("'", "\\'")}}}',
-                            'comfort-1:8h': '{{{GetLocalizedString(SR.ID8052, culture).Replace("'", "\\'")}}}',
-                            'comfort-2': '{{{GetLocalizedString(SR.ID8053, culture).Replace("'", "\\'")}}}',
-                            'comfort-2:4h': '{{{GetLocalizedString(SR.ID8054, culture).Replace("'", "\\'")}}}',
-                            'comfort-2:8h': '{{{GetLocalizedString(SR.ID8055, culture).Replace("'", "\\'")}}}',
-                            'eco': '{{{GetLocalizedString(SR.ID8056, culture).Replace("'", "\\'")}}}',
-                            'eco:4h': '{{{GetLocalizedString(SR.ID8057, culture).Replace("'", "\\'")}}}',
-                            'eco:8h': '{{{GetLocalizedString(SR.ID8058, culture).Replace("'", "\\'")}}}',
-                            'frost_protection': '{{{GetLocalizedString(SR.ID8059, culture).Replace("'", "\\'")}}}',
-                            'frost_protection:4h': '{{{GetLocalizedString(SR.ID8060, culture).Replace("'", "\\'")}}}',
-                            'frost_protection:8h': '{{{GetLocalizedString(SR.ID8061, culture).Replace("'", "\\'")}}}'
+                            'none': '{{{GetLocalizedString(SR.ID8046, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}',
+                            'comfort': '{{{GetLocalizedString(SR.ID8047, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}',
+                            'comfort:4h': '{{{GetLocalizedString(SR.ID8048, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}',
+                            'comfort:8h': '{{{GetLocalizedString(SR.ID8049, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}',
+                            'comfort-1': '{{{GetLocalizedString(SR.ID8050, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}',
+                            'comfort-1:4h': '{{{GetLocalizedString(SR.ID8051, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}',
+                            'comfort-1:8h': '{{{GetLocalizedString(SR.ID8052, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}',
+                            'comfort-2': '{{{GetLocalizedString(SR.ID8053, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}',
+                            'comfort-2:4h': '{{{GetLocalizedString(SR.ID8054, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}',
+                            'comfort-2:8h': '{{{GetLocalizedString(SR.ID8055, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}',
+                            'eco': '{{{GetLocalizedString(SR.ID8056, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}',
+                            'eco:4h': '{{{GetLocalizedString(SR.ID8057, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}',
+                            'eco:8h': '{{{GetLocalizedString(SR.ID8058, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}',
+                            'frost_protection': '{{{GetLocalizedString(SR.ID8059, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}',
+                            'frost_protection:4h': '{{{GetLocalizedString(SR.ID8060, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}',
+                            'frost_protection:8h': '{{{GetLocalizedString(SR.ID8061, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}'
                         } %}
                         {{ map[value] }}
                         """,
                     ["command_template"] = $$$"""
                         {% set map = {
-                            '{{{GetLocalizedString(SR.ID8046, culture).Replace("'", "\\'")}}}': 'none',
-                            '{{{GetLocalizedString(SR.ID8047, culture).Replace("'", "\\'")}}}': 'comfort',
-                            '{{{GetLocalizedString(SR.ID8048, culture).Replace("'", "\\'")}}}': 'comfort:4h',
-                            '{{{GetLocalizedString(SR.ID8049, culture).Replace("'", "\\'")}}}': 'comfort:8h',
-                            '{{{GetLocalizedString(SR.ID8050, culture).Replace("'", "\\'")}}}': 'comfort-1',
-                            '{{{GetLocalizedString(SR.ID8051, culture).Replace("'", "\\'")}}}': 'comfort-1:4h',
-                            '{{{GetLocalizedString(SR.ID8052, culture).Replace("'", "\\'")}}}': 'comfort-1:8h',
-                            '{{{GetLocalizedString(SR.ID8053, culture).Replace("'", "\\'")}}}': 'comfort-2',
-                            '{{{GetLocalizedString(SR.ID8054, culture).Replace("'", "\\'")}}}': 'comfort-2:4h',
-                            '{{{GetLocalizedString(SR.ID8055, culture).Replace("'", "\\'")}}}': 'comfort-2:8h',
-                            '{{{GetLocalizedString(SR.ID8056, culture).Replace("'", "\\'")}}}': 'eco',
-                            '{{{GetLocalizedString(SR.ID8057, culture).Replace("'", "\\'")}}}': 'eco:4h',
-                            '{{{GetLocalizedString(SR.ID8058, culture).Replace("'", "\\'")}}}': 'eco:8h',
-                            '{{{GetLocalizedString(SR.ID8059, culture).Replace("'", "\\'")}}}': 'frost_protection',
-                            '{{{GetLocalizedString(SR.ID8060, culture).Replace("'", "\\'")}}}': 'frost_protection:4h',
-                            '{{{GetLocalizedString(SR.ID8061, culture).Replace("'", "\\'")}}}': 'frost_protection:8h'
+                            '{{{GetLocalizedString(SR.ID8046, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}': 'none',
+                            '{{{GetLocalizedString(SR.ID8047, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}': 'comfort',
+                            '{{{GetLocalizedString(SR.ID8048, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}': 'comfort:4h',
+                            '{{{GetLocalizedString(SR.ID8049, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}': 'comfort:8h',
+                            '{{{GetLocalizedString(SR.ID8050, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}': 'comfort-1',
+                            '{{{GetLocalizedString(SR.ID8051, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}': 'comfort-1:4h',
+                            '{{{GetLocalizedString(SR.ID8052, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}': 'comfort-1:8h',
+                            '{{{GetLocalizedString(SR.ID8053, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}': 'comfort-2',
+                            '{{{GetLocalizedString(SR.ID8054, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}': 'comfort-2:4h',
+                            '{{{GetLocalizedString(SR.ID8055, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}': 'comfort-2:8h',
+                            '{{{GetLocalizedString(SR.ID8056, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}': 'eco',
+                            '{{{GetLocalizedString(SR.ID8057, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}': 'eco:4h',
+                            '{{{GetLocalizedString(SR.ID8058, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}': 'eco:8h',
+                            '{{{GetLocalizedString(SR.ID8059, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}': 'frost_protection',
+                            '{{{GetLocalizedString(SR.ID8060, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}': 'frost_protection:4h',
+                            '{{{GetLocalizedString(SR.ID8061, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}': 'frost_protection:8h'
                         } %}
                         {{ map[value] }}
                         """
@@ -2608,9 +2608,9 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ]),
                     ["value_template"] = $$$"""
                         {% set map = {
-                            'base': '{{{GetLocalizedString(SR.ID8070, culture).Replace("'", "\\'")}}}',
-                            'peak/off_peak': '{{{GetLocalizedString(SR.ID8071, culture).Replace("'", "\\'")}}}',
-                            'tempo': '{{{GetLocalizedString(SR.ID8072, culture).Replace("'", "\\'")}}}'
+                            'base': '{{{GetLocalizedString(SR.ID8070, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}',
+                            'peak/off_peak': '{{{GetLocalizedString(SR.ID8071, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}',
+                            'tempo': '{{{GetLocalizedString(SR.ID8072, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}'
                         } %}
                         {{ map[value] }}
                         """,
@@ -2649,8 +2649,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["options"] = new JsonArray([GetLocalizedString(SR.ID8075, culture), GetLocalizedString(SR.ID8076, culture)]),
                     ["value_template"] = $$$"""
                         {% set map = {
-                            'peak': '{{{GetLocalizedString(SR.ID8075, culture).Replace("'", "\\'")}}}',
-                            'off_peak': '{{{GetLocalizedString(SR.ID8076, culture).Replace("'", "\\'")}}}'
+                            'peak': '{{{GetLocalizedString(SR.ID8075, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}',
+                            'off_peak': '{{{GetLocalizedString(SR.ID8076, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}'
                         } %}
                         {{ map[value] }}
                         """,
@@ -2758,17 +2758,17 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ]),
                     ["value_template"] = $$$"""
                         {% set map = {
-                            'automatic': '{{{GetLocalizedString(SR.ID8082, culture).Replace("'", "\\'")}}}',
-                            'forced_on': '{{{GetLocalizedString(SR.ID8083, culture).Replace("'", "\\'")}}}',
-                            'forced_off': '{{{GetLocalizedString(SR.ID8084, culture).Replace("'", "\\'")}}}'
+                            'automatic': '{{{GetLocalizedString(SR.ID8082, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}',
+                            'forced_on': '{{{GetLocalizedString(SR.ID8083, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}',
+                            'forced_off': '{{{GetLocalizedString(SR.ID8084, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}'
                         } %}
                         {{ map[value] }}
                         """,
                     ["command_template"] = $$$"""
                         {% set map = {
-                            '{{{GetLocalizedString(SR.ID8082, culture).Replace("'", "\\'")}}}': 'automatic',
-                            '{{{GetLocalizedString(SR.ID8083, culture).Replace("'", "\\'")}}}': 'forced_on',
-                            '{{{GetLocalizedString(SR.ID8084, culture).Replace("'", "\\'")}}}': 'forced_off'
+                            '{{{GetLocalizedString(SR.ID8082, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}': 'automatic',
+                            '{{{GetLocalizedString(SR.ID8083, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}': 'forced_on',
+                            '{{{GetLocalizedString(SR.ID8084, culture).Replace("'", "\\'", StringComparison.Ordinal)}}}': 'forced_off'
                         } %}
                         {{ map[value] }}
                         """

@@ -794,7 +794,8 @@ public class OpenNettyController
                     .Where(static message => message.Dimension == OpenNettyDimensions.Lighting.DimmerLevelSpeed ||
                                              message.Dimension == OpenNettyDimensions.Lighting.DimmerStatus)
                     .Timeout(TimeSpan.FromSeconds(10))
-                    .ToAsyncEnumerable())
+                    .ToAsyncEnumerable()
+                    .WithCancellation(cancellationToken))
                 {
                     await foreach (var endpoint in _manager.FindEndpointsByAddressAsync(endpoint.Gateway, message.Address!.Value, cancellationToken))
                     {
@@ -1182,13 +1183,13 @@ public class OpenNettyController
             return await GetUnitDescriptionAsync(endpoint, cancellationToken) switch
             {
                 { FunctionCode: 143, Values: [{ Length: > 0 } value, ..] }
-                    => (byte) Math.Round(decimal.Parse(value, CultureInfo.InvariantCulture)),
+                    => (byte) Math.Round(decimal.Parse(value, CultureInfo.InvariantCulture), MidpointRounding.ToEven),
 
                 _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
             };
         }
 
-        else if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
+        if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
         {
             // Note: while the brightness level is requested using the "DIMMER SPEED/LEVEL" DIMENSION, the result
             // might be returned using a different DIMENSION, "DIMMER STATUS". To ensure the brightness is
@@ -1214,45 +1215,42 @@ public class OpenNettyController
                 .RunAsync(cancellationToken);
         }
 
-        else
-        {
-            return await _service.GetStatusAsync(
-                protocol         : endpoint.Protocol,
-                category         : OpenNettyCategories.Lighting,
-                address          : endpoint.Address,
-                medium           : endpoint.Medium,
-                mode             : null,
-                filter           : static command => ValueTask.FromResult(
-                    command == OpenNettyCommands.Lighting.Off  ||
-                    command == OpenNettyCommands.Lighting.On   ||
-                    command == OpenNettyCommands.Lighting.On20 ||
-                    command == OpenNettyCommands.Lighting.On30 ||
-                    command == OpenNettyCommands.Lighting.On40 ||
-                    command == OpenNettyCommands.Lighting.On50 ||
-                    command == OpenNettyCommands.Lighting.On60 ||
-                    command == OpenNettyCommands.Lighting.On70 ||
-                    command == OpenNettyCommands.Lighting.On80 ||
-                    command == OpenNettyCommands.Lighting.On90 ||
-                    command == OpenNettyCommands.Lighting.On100),
-                gateway          : endpoint.Gateway,
-                options          : GetTransmissionOptions(endpoint),
-                cancellationToken: cancellationToken) switch
-                {
-                    var command when command == OpenNettyCommands.Lighting.Off   => 0,
-                    var command when command == OpenNettyCommands.Lighting.On    => 100,
-                    var command when command == OpenNettyCommands.Lighting.On20  => 20,
-                    var command when command == OpenNettyCommands.Lighting.On30  => 30,
-                    var command when command == OpenNettyCommands.Lighting.On40  => 40,
-                    var command when command == OpenNettyCommands.Lighting.On50  => 50,
-                    var command when command == OpenNettyCommands.Lighting.On60  => 60,
-                    var command when command == OpenNettyCommands.Lighting.On70  => 70,
-                    var command when command == OpenNettyCommands.Lighting.On80  => 80,
-                    var command when command == OpenNettyCommands.Lighting.On90  => 90,
-                    var command when command == OpenNettyCommands.Lighting.On100 => 100,
+        return await _service.GetStatusAsync(
+            protocol         : endpoint.Protocol,
+            category         : OpenNettyCategories.Lighting,
+            address          : endpoint.Address,
+            medium           : endpoint.Medium,
+            mode             : null,
+            filter           : static command => ValueTask.FromResult(
+                command == OpenNettyCommands.Lighting.Off  ||
+                command == OpenNettyCommands.Lighting.On   ||
+                command == OpenNettyCommands.Lighting.On20 ||
+                command == OpenNettyCommands.Lighting.On30 ||
+                command == OpenNettyCommands.Lighting.On40 ||
+                command == OpenNettyCommands.Lighting.On50 ||
+                command == OpenNettyCommands.Lighting.On60 ||
+                command == OpenNettyCommands.Lighting.On70 ||
+                command == OpenNettyCommands.Lighting.On80 ||
+                command == OpenNettyCommands.Lighting.On90 ||
+                command == OpenNettyCommands.Lighting.On100),
+            gateway          : endpoint.Gateway,
+            options          : GetTransmissionOptions(endpoint),
+            cancellationToken: cancellationToken) switch
+            {
+                var command when command == OpenNettyCommands.Lighting.Off   => 0,
+                var command when command == OpenNettyCommands.Lighting.On    => 100,
+                var command when command == OpenNettyCommands.Lighting.On20  => 20,
+                var command when command == OpenNettyCommands.Lighting.On30  => 30,
+                var command when command == OpenNettyCommands.Lighting.On40  => 40,
+                var command when command == OpenNettyCommands.Lighting.On50  => 50,
+                var command when command == OpenNettyCommands.Lighting.On60  => 60,
+                var command when command == OpenNettyCommands.Lighting.On70  => 70,
+                var command when command == OpenNettyCommands.Lighting.On80  => 80,
+                var command when command == OpenNettyCommands.Lighting.On90  => 90,
+                var command when command == OpenNettyCommands.Lighting.On100 => 100,
 
-                    _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
-                };
-        }
+                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+            };
     }
 
     /// <summary>
@@ -1545,7 +1543,7 @@ public class OpenNettyController
             options          : GetTransmissionOptions(endpoint),
             cancellationToken: cancellationToken);
 
-        return string.Join(":", values.Select(static value => uint.Parse(value,
+        return string.Join(':', values.Select(static value => uint.Parse(value,
             CultureInfo.InvariantCulture).ToString("X2", CultureInfo.InvariantCulture)));
     }
 
@@ -1733,7 +1731,7 @@ public class OpenNettyController
             };
         }
 
-        else if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
+        if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
         {
             return await _service.GetDimensionAsync(
                 protocol         : endpoint.Protocol,
@@ -1761,34 +1759,31 @@ public class OpenNettyController
             };
         }
 
-        else
+        return await _service.GetStatusAsync(
+            protocol         : endpoint.Protocol,
+            category         : OpenNettyCategories.Automation,
+            address          : endpoint.Address,
+            medium           : endpoint.Medium,
+            mode             : null,
+            filter           : static command => ValueTask.FromResult(
+                command == OpenNettyCommands.Automation.Stop ||
+                command == OpenNettyCommands.Automation.Up   ||
+                command == OpenNettyCommands.Automation.Down),
+            gateway          : endpoint.Gateway,
+            options          : GetTransmissionOptions(endpoint),
+            cancellationToken: cancellationToken) switch
         {
-            return await _service.GetStatusAsync(
-                protocol         : endpoint.Protocol,
-                category         : OpenNettyCategories.Automation,
-                address          : endpoint.Address,
-                medium           : endpoint.Medium,
-                mode             : null,
-                filter           : static command => ValueTask.FromResult(
-                    command == OpenNettyCommands.Automation.Stop ||
-                    command == OpenNettyCommands.Automation.Up   ||
-                    command == OpenNettyCommands.Automation.Down),
-                gateway          : endpoint.Gateway,
-                options          : GetTransmissionOptions(endpoint),
-                cancellationToken: cancellationToken) switch
-            {
-                OpenNettyCommand command when command == OpenNettyCommands.Automation.Stop
-                    => OpenNettyModels.Automation.ShutterState.Stopped,
+            OpenNettyCommand command when command == OpenNettyCommands.Automation.Stop
+                => OpenNettyModels.Automation.ShutterState.Stopped,
 
-                OpenNettyCommand command when command == OpenNettyCommands.Automation.Up
-                    => OpenNettyModels.Automation.ShutterState.Opening,
+            OpenNettyCommand command when command == OpenNettyCommands.Automation.Up
+                => OpenNettyModels.Automation.ShutterState.Opening,
 
-                OpenNettyCommand command when command == OpenNettyCommands.Automation.Down
-                    => OpenNettyModels.Automation.ShutterState.Closing,
+            OpenNettyCommand command when command == OpenNettyCommands.Automation.Down
+                => OpenNettyModels.Automation.ShutterState.Closing,
 
-                _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
-            };
-        }
+            _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
+        };
     }
 
     /// <summary>
@@ -2482,7 +2477,7 @@ public class OpenNettyController
                 cancellationToken: cancellationToken);
         }
 
-        else if (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingControl))
+        if (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingControl))
         {
             return _service.ExecuteCommandAsync(
                 protocol         : endpoint.Protocol,

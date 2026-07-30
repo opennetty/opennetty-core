@@ -34,13 +34,13 @@ public readonly struct OpenNettySetting : IEquatable<OpenNettySetting>
     public override bool Equals(object? obj) => obj is OpenNettySetting setting && Equals(setting);
 
     /// <inheritdoc/>
-    public override int GetHashCode() => Name?.GetHashCode() ?? 0;
+    public override int GetHashCode() => Name?.GetHashCode(StringComparison.OrdinalIgnoreCase) ?? 0;
 
     /// <summary>
     /// Computes the <see cref="string"/> representation of the current setting.
     /// </summary>
     /// <returns>The <see cref="string"/> representation of the current setting.</returns>
-    public override string ToString() => Name?.ToString() ?? string.Empty;
+    public override string ToString() => Name ?? string.Empty;
 
     /// <summary>
     /// Determines whether two <see cref="OpenNettySetting"/> instances are equal.

@@ -142,7 +142,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
 
         var hash = new HashCode();
         hash.Add(Type);
-        hash.Add(Value);
+        hash.Add(Value, StringComparer.Ordinal);
 
         if (!Parameters.IsDefaultOrEmpty)
         {
@@ -150,7 +150,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
 
             for (var index = 0; index < Parameters.Length; index++)
             {
-                hash.Add(Parameters[index]);
+                hash.Add(Parameters[index], StringComparer.Ordinal);
             }
         }
 
@@ -391,8 +391,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
                 : new OpenNettyAddress(OpenNettyAddressType.ScsLightPoint, "0");
         }
 
-        // SCS light point group address:
-        else if (group is not null)
+        if (group is not null)
         {
             if (area is not null)
             {
@@ -409,8 +408,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
                 : new OpenNettyAddress(OpenNettyAddressType.ScsLightPoint, string.Empty, [group.Value.ToString()]);
         }
 
-        // SCS light point area address:
-        else if (area is not null && point is null)
+        if (area is not null && point is null)
         {
             var builder = new StringBuilder();
 
@@ -435,7 +433,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
         }
 
         // SCS light point point-to-point address:
-        else if (area is not null && point is not null)
+        if (area is not null && point is not null)
         {
             var builder = new StringBuilder();
 
