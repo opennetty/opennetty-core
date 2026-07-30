@@ -104,7 +104,7 @@ public sealed class OpenNettyUnitDefinition : IEquatable<OpenNettyUnitDefinition
         foreach (var (culture, value) in Descriptions)
         {
             hash.Add(culture);
-            hash.Add(value);
+            hash.Add(value, StringComparer.OrdinalIgnoreCase);
         }
 
         hash.Add(Id);
@@ -113,7 +113,7 @@ public sealed class OpenNettyUnitDefinition : IEquatable<OpenNettyUnitDefinition
         foreach (var (name, value) in Settings)
         {
             hash.Add(name);
-            hash.Add(value);
+            hash.Add(value, StringComparer.Ordinal);
         }
 
         return hash.ToHashCode();

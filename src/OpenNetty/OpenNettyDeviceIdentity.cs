@@ -79,16 +79,16 @@ public readonly struct OpenNettyDeviceIdentity : IEquatable<OpenNettyDeviceIdent
     {
         var hash = new HashCode();
         hash.Add(Brand);
-        hash.Add(Collection);
+        hash.Add(Collection, StringComparer.OrdinalIgnoreCase);
 
         hash.Add(Descriptions.Count);
         foreach (var (culture, value) in Descriptions)
         {
             hash.Add(culture);
-            hash.Add(value);
+            hash.Add(value, StringComparer.OrdinalIgnoreCase);
         }
 
-        hash.Add(Model);
+        hash.Add(Model, StringComparer.OrdinalIgnoreCase);
 
         return hash.ToHashCode();
     }

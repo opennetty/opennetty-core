@@ -135,7 +135,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
         OpenNettyTransmissionOptions? options = null,
         CancellationToken cancellationToken = default)
     {
-        ArgumentNullException.ThrowIfNull(message, nameof(message));
+        ArgumentNullException.ThrowIfNull(message);
 
         if (_connection is not OpenNettyConnection connection)
         {
@@ -653,7 +653,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
             await connection.DisposeAsync();
 
             _semaphore.Dispose();
-            _source.Cancel();
+            await _source.CancelAsync();
             _source.Dispose();
         }
     }

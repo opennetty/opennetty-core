@@ -142,7 +142,8 @@ public class OpenNettyService : IOpenNettyService
             .Where(notification => notification.Session == session)
             .OfType<(OpenNettySession Session, OpenNettyMessage Message), (OpenNettySession Session, OpenNettyMessage Message)?>()
             .Timeout(options.MultipleDimensionReplyTimeout, AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)?>(null))
-            .ToAsyncEnumerable())
+            .ToAsyncEnumerable()
+            .WithCancellation(cancellationToken))
         {
             switch (notification?.Message.Type)
             {
@@ -267,7 +268,8 @@ public class OpenNettyService : IOpenNettyService
             .Where(notification => notification.Session == session)
             .OfType<(OpenNettySession Session, OpenNettyMessage Message), (OpenNettySession Session, OpenNettyMessage Message)?>()
             .Timeout(options.MultipleStatusReplyTimeout, AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)?>(null))
-            .ToAsyncEnumerable())
+            .ToAsyncEnumerable()
+            .WithCancellation(cancellationToken))
         {
             switch (notification?.Message.Type)
             {

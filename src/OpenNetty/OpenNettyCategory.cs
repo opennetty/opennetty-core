@@ -127,7 +127,7 @@ public readonly struct OpenNettyCategory : IEquatable<OpenNettyCategory>
         }
 
         var hash = new HashCode();
-        hash.Add(Value);
+        hash.Add(Value, StringComparer.Ordinal);
 
         if (!Parameters.IsDefaultOrEmpty)
         {
@@ -135,7 +135,7 @@ public readonly struct OpenNettyCategory : IEquatable<OpenNettyCategory>
 
             for (var index = 0; index < Parameters.Length; index++)
             {
-                hash.Add(Parameters[index]);
+                hash.Add(Parameters[index], StringComparer.Ordinal);
             }
         }
 

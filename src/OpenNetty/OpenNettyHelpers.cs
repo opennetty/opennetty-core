@@ -35,7 +35,7 @@ internal static class OpenNettyHelpers
     //         make is whether it's okay for Current to throw an exception when MoveNextAsync returns false, e.g.
     //         by omitting a null check for an enumerator field.
 
-    internal abstract partial class AsyncIteratorBase<TSource> : IAsyncEnumerable<TSource>, IAsyncEnumerator<TSource>
+    internal abstract class AsyncIteratorBase<TSource> : IAsyncEnumerable<TSource>, IAsyncEnumerator<TSource>
     {
         private readonly int _threadId;
 
@@ -47,7 +47,7 @@ internal static class OpenNettyHelpers
             _threadId = Environment.CurrentManagedThreadId;
         }
 
-        public IAsyncEnumerator<TSource> GetAsyncEnumerator(CancellationToken cancellationToken)
+        public IAsyncEnumerator<TSource> GetAsyncEnumerator(CancellationToken cancellationToken = default)
         {
             cancellationToken.ThrowIfCancellationRequested(); // NB: [LDM-2018-11-28] Equivalent to async iterator behavior.
 
@@ -165,7 +165,9 @@ internal static class OpenNettyHelpers
                     //
 
                     _subscription = await _source.SubscribeAsync(this);
+#pragma warning disable MA0147
                     _ctr = _cancellationToken.Register(async () => await OnCanceledAsync());
+#pragma warning restore MA0147
                     _state = AsyncIteratorState.Iterating;
                     goto case AsyncIteratorState.Iterating;
 
@@ -178,7 +180,7 @@ internal static class OpenNettyHelpers
                         {
                             return true;
                         }
-                        else if (completed)
+                        if (completed)
                         {
                             var error = _error;
 

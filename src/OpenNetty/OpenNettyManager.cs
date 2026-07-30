@@ -33,7 +33,7 @@ public class OpenNettyManager
     public virtual async IAsyncEnumerable<OpenNettyDevice> EnumerateDevicesAsync(
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        await foreach (var device in _options.CurrentValue.Devices.ToAsyncEnumerable())
+        await foreach (var device in _options.CurrentValue.Devices.ToAsyncEnumerable().WithCancellation(cancellationToken))
         {
             yield return device;
         }
@@ -49,7 +49,7 @@ public class OpenNettyManager
     public virtual async IAsyncEnumerable<OpenNettyEndpoint> EnumerateEndpointsAsync(
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        await foreach (var endpoint in _options.CurrentValue.Endpoints.ToAsyncEnumerable())
+        await foreach (var endpoint in _options.CurrentValue.Endpoints.ToAsyncEnumerable().WithCancellation(cancellationToken))
         {
             yield return endpoint;
         }
@@ -65,7 +65,7 @@ public class OpenNettyManager
     public virtual async IAsyncEnumerable<OpenNettyGateway> EnumerateGatewaysAsync(
         [EnumeratorCancellation] CancellationToken cancellationToken = default)
     {
-        await foreach (var gateway in _options.CurrentValue.Gateways.ToAsyncEnumerable())
+        await foreach (var gateway in _options.CurrentValue.Gateways.ToAsyncEnumerable().WithCancellation(cancellationToken))
         {
             yield return gateway;
         }
@@ -161,119 +161,122 @@ public class OpenNettyManager
     /// <returns>
     /// An <see cref="IAsyncEnumerable{T}"/> that can be used to iterate the endpoints associated with the address.
     /// </returns>
-    public virtual async IAsyncEnumerable<OpenNettyEndpoint> FindEndpointsByAddressAsync(
-        OpenNettyGateway gateway, OpenNettyAddress address,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public virtual IAsyncEnumerable<OpenNettyEndpoint> FindEndpointsByAddressAsync(OpenNettyGateway gateway, OpenNettyAddress address, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(gateway);
 
-        if (address.Type is OpenNettyAddressType.Nitoo)
+        return ExecuteAsync(cancellationToken);
+
+        async IAsyncEnumerable<OpenNettyEndpoint> ExecuteAsync([EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            await foreach (var endpoint in EnumerateEndpointsAsync(cancellationToken))
+            if (address.Type is OpenNettyAddressType.Nitoo)
             {
-                if (endpoint.Protocol is OpenNettyProtocol.Nitoo &&
-                    endpoint.Gateway == gateway &&
-                    endpoint.Address is not null && endpoint.Address == address)
+                await foreach (var endpoint in EnumerateEndpointsAsync(cancellationToken))
                 {
-                    yield return endpoint;
-                }
-            }
-        }
-
-        else if (address.Type is OpenNettyAddressType.ScsDryContact or OpenNettyAddressType.ScsScenarioPlus)
-        {
-            await foreach (var endpoint in EnumerateEndpointsAsync(cancellationToken))
-            {
-                if (endpoint.Protocol is OpenNettyProtocol.Scs &&
-                    endpoint.Gateway == gateway &&
-                    endpoint.Address is not null && endpoint.Address == address)
-                {
-                    yield return endpoint;
-                }
-            }
-        }
-
-        else if (address.Type is OpenNettyAddressType.ScsLightPoint)
-        {
-            var (extension, general, group, area, point) = OpenNettyAddress.ToScsLightPointAddress(address);
-
-            await foreach (var endpoint in EnumerateEndpointsAsync(cancellationToken))
-            {
-                if (endpoint.Protocol is not OpenNettyProtocol.Scs || endpoint.Gateway != gateway || endpoint.Address is null)
-                {
-                    continue;
-                }
-
-                if (endpoint.Address == address)
-                {
-                    yield return endpoint;
-                }
-
-                else if (OpenNettyAddress.IsScsLightPointAreaAddress(address))
-                {
-                    var comparand = OpenNettyAddress.ToScsLightPointAddress(endpoint.Address.Value);
-
-                    if ((OpenNettyAddress.IsScsLightPointAreaAddress(endpoint.Address.Value) ||
-                         OpenNettyAddress.IsScsLightPointPointToPointAddress(endpoint.Address.Value)) &&
-                        comparand.Extension == extension && comparand.Area == area)
-                    {
-                        yield return endpoint;
-                    }
-                }
-
-                else if (OpenNettyAddress.IsScsLightPointGeneralAddress(address))
-                {
-                    var comparand = OpenNettyAddress.ToScsLightPointAddress(endpoint.Address.Value);
-
-                    if ((OpenNettyAddress.IsScsLightPointAreaAddress(endpoint.Address.Value) ||
-                         OpenNettyAddress.IsScsLightPointGeneralAddress(endpoint.Address.Value) ||
-                         OpenNettyAddress.IsScsLightPointPointToPointAddress(endpoint.Address.Value)) &&
-                        comparand.Extension == extension)
+                    if (endpoint.Protocol is OpenNettyProtocol.Nitoo &&
+                        endpoint.Gateway == gateway &&
+                        endpoint.Address is not null && endpoint.Address == address)
                     {
                         yield return endpoint;
                     }
                 }
             }
-        }
 
-        else if (address.Type is OpenNettyAddressType.Zigbee)
-        {
-            await foreach (var endpoint in EnumerateEndpointsAsync(cancellationToken))
+            else if (address.Type is OpenNettyAddressType.ScsDryContact or OpenNettyAddressType.ScsScenarioPlus)
             {
-                if (endpoint.Protocol is not OpenNettyProtocol.Zigbee || endpoint.Gateway != gateway || endpoint.Address is null)
+                await foreach (var endpoint in EnumerateEndpointsAsync(cancellationToken))
                 {
-                    continue;
-                }
-
-                if (endpoint.Address == address)
-                {
-                    yield return endpoint;
-                }
-
-                else if (OpenNettyAddress.ToZigbeeAddress(address) is not { Identifier: not 0, Unit: not 0 } &&
-                    MatchesZigbeeAddress(address, endpoint.Address.Value))
-                {
-                    yield return endpoint;
+                    if (endpoint.Protocol is OpenNettyProtocol.Scs &&
+                        endpoint.Gateway == gateway &&
+                        endpoint.Address is not null && endpoint.Address == address)
+                    {
+                        yield return endpoint;
+                    }
                 }
             }
-        }
 
-        static bool MatchesZigbeeAddress(OpenNettyAddress left, OpenNettyAddress right)
-        {
-            var first = OpenNettyAddress.ToZigbeeAddress(left);
-            var second = OpenNettyAddress.ToZigbeeAddress(right);
-
-            if (first is { Identifier: 0, Unit: not 0 })
+            else if (address.Type is OpenNettyAddressType.ScsLightPoint)
             {
-                return second.Unit == first.Unit;
+                var (extension, general, group, area, point) = OpenNettyAddress.ToScsLightPointAddress(address);
+
+                await foreach (var endpoint in EnumerateEndpointsAsync(cancellationToken))
+                {
+                    if (endpoint.Protocol is not OpenNettyProtocol.Scs || endpoint.Gateway != gateway || endpoint.Address is null)
+                    {
+                        continue;
+                    }
+
+                    if (endpoint.Address == address)
+                    {
+                        yield return endpoint;
+                    }
+
+                    else if (OpenNettyAddress.IsScsLightPointAreaAddress(address))
+                    {
+                        var comparand = OpenNettyAddress.ToScsLightPointAddress(endpoint.Address.Value);
+
+                        if ((OpenNettyAddress.IsScsLightPointAreaAddress(endpoint.Address.Value) ||
+                             OpenNettyAddress.IsScsLightPointPointToPointAddress(endpoint.Address.Value)) &&
+                            comparand.Extension == extension && comparand.Area == area)
+                        {
+                            yield return endpoint;
+                        }
+                    }
+
+                    else if (OpenNettyAddress.IsScsLightPointGeneralAddress(address))
+                    {
+                        var comparand = OpenNettyAddress.ToScsLightPointAddress(endpoint.Address.Value);
+
+                        if ((OpenNettyAddress.IsScsLightPointAreaAddress(endpoint.Address.Value) ||
+                             OpenNettyAddress.IsScsLightPointGeneralAddress(endpoint.Address.Value) ||
+                             OpenNettyAddress.IsScsLightPointPointToPointAddress(endpoint.Address.Value)) &&
+                            comparand.Extension == extension)
+                        {
+                            yield return endpoint;
+                        }
+                    }
+                }
             }
 
-            else if (first is { Identifier: 0, Unit: 0 })
+            else if (address.Type is OpenNettyAddressType.Zigbee)
             {
-                return true;
+                await foreach (var endpoint in EnumerateEndpointsAsync(cancellationToken))
+                {
+                    if (endpoint.Protocol is not OpenNettyProtocol.Zigbee || endpoint.Gateway != gateway || endpoint.Address is null)
+                    {
+                        continue;
+                    }
+
+                    if (endpoint.Address == address)
+                    {
+                        yield return endpoint;
+                    }
+
+                    else if (OpenNettyAddress.ToZigbeeAddress(address) is not { Identifier: not 0, Unit: not 0 } &&
+                        MatchesZigbeeAddress(address, endpoint.Address.Value))
+                    {
+                        yield return endpoint;
+                    }
+                }
             }
 
-            return false;
+            static bool MatchesZigbeeAddress(OpenNettyAddress left, OpenNettyAddress right)
+            {
+                var first = OpenNettyAddress.ToZigbeeAddress(left);
+                var second = OpenNettyAddress.ToZigbeeAddress(right);
+
+                if (first is { Identifier: 0, Unit: not 0 })
+                {
+                    return second.Unit == first.Unit;
+                }
+
+                if (first is { Identifier: 0, Unit: 0 })
+                {
+                    return true;
+                }
+
+                return false;
+            }
         }
     }
 
@@ -285,16 +288,20 @@ public class OpenNettyManager
     /// <returns>
     /// An <see cref="IAsyncEnumerable{T}"/> that can be used to iterate the endpoints associated with the device.
     /// </returns>
-    public virtual async IAsyncEnumerable<OpenNettyEndpoint> FindEndpointsByDeviceAsync(
-        OpenNettyDevice device, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public virtual IAsyncEnumerable<OpenNettyEndpoint> FindEndpointsByDeviceAsync(OpenNettyDevice device, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(device);
 
-        await foreach (var endpoint in EnumerateEndpointsAsync(cancellationToken))
+        return ExecuteAsync(cancellationToken);
+
+        async IAsyncEnumerable<OpenNettyEndpoint> ExecuteAsync([EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            if (endpoint.Device == device)
+            await foreach (var endpoint in EnumerateEndpointsAsync(cancellationToken))
             {
-                yield return endpoint;
+                if (endpoint.Device == device)
+                {
+                    yield return endpoint;
+                }
             }
         }
     }
@@ -307,16 +314,20 @@ public class OpenNettyManager
     /// <returns>
     /// An <see cref="IAsyncEnumerable{T}"/> that can be used to iterate the endpoints associated with the gateway.
     /// </returns>
-    public virtual async IAsyncEnumerable<OpenNettyEndpoint> FindEndpointsByGatewayAsync(
-        OpenNettyGateway gateway, [EnumeratorCancellation] CancellationToken cancellationToken = default)
+    public virtual IAsyncEnumerable<OpenNettyEndpoint> FindEndpointsByGatewayAsync(OpenNettyGateway gateway, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(gateway);
 
-        await foreach (var endpoint in EnumerateEndpointsAsync(cancellationToken))
+        return ExecuteAsync(cancellationToken);
+
+        async IAsyncEnumerable<OpenNettyEndpoint> ExecuteAsync([EnumeratorCancellation] CancellationToken cancellationToken)
         {
-            if (endpoint.Gateway == gateway)
+            await foreach (var endpoint in EnumerateEndpointsAsync(cancellationToken))
             {
-                yield return endpoint;
+                if (endpoint.Gateway == gateway)
+                {
+                    yield return endpoint;
+                }
             }
         }
     }

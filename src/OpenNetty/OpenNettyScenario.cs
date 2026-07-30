@@ -38,7 +38,14 @@ public sealed class OpenNettyScenario : IEquatable<OpenNettyScenario>
     public override bool Equals(object? obj) => obj is OpenNettyUnit unit && Equals(unit);
 
     /// <inheritdoc/>
-    public override int GetHashCode() => HashCode.Combine(EndpointName, FunctionCode);
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        hash.Add(EndpointName, StringComparer.Ordinal);
+        hash.Add(FunctionCode);
+
+        return hash.ToHashCode();
+    }
 
     /// <summary>
     /// Determines whether two <see cref="OpenNettyScenario"/> instances are equal.

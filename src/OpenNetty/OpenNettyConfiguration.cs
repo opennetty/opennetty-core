@@ -143,7 +143,7 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
                 break;
         }
 
-        switch (options.Devices.GroupBy(static device => device.Name)
+        switch (options.Devices.GroupBy(static device => device.Name, StringComparer.OrdinalIgnoreCase)
             .Where(static device => device.Count() is > 1)
             .Select(static device => device.Key)
             .OfType<string?>()
@@ -154,7 +154,7 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
                 break;
         }
 
-        switch (options.Endpoints.GroupBy(static endpoint => endpoint.Name)
+        switch (options.Endpoints.GroupBy(static endpoint => endpoint.Name, StringComparer.OrdinalIgnoreCase)
             .Where(static endpoint => endpoint.Count() is > 1)
             .Select(static endpoint => endpoint.Key)
             .OfType<string?>()

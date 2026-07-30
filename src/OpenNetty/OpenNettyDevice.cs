@@ -119,7 +119,7 @@ public sealed class OpenNettyDevice : IEquatable<OpenNettyDevice>
             Gateway == other.Gateway &&
             Identifier == other.Identifier &&
             Identity == other.Identity &&
-            string.Equals(Name, other.Name, StringComparison.OrdinalIgnoreCase) &&
+            string.Equals(Name, other.Name, StringComparison.Ordinal) &&
             Settings.Count == other.Settings.Count && !Settings.Except(other.Settings).Any() &&
             Units.Length == other.Units.Length && !Units.Except(other.Units).Any();
     }
@@ -135,13 +135,13 @@ public sealed class OpenNettyDevice : IEquatable<OpenNettyDevice>
         hash.Add(Gateway);
         hash.Add(Identifier);
         hash.Add(Identity);
-        hash.Add(Name);
+        hash.Add(Name, StringComparer.Ordinal);
 
         hash.Add(Settings.Count);
         foreach (var (name, value) in Settings)
         {
             hash.Add(name);
-            hash.Add(value);
+            hash.Add(value, StringComparer.Ordinal);
         }
 
         hash.Add(Units.Length);

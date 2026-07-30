@@ -1,6 +1,20 @@
 <Project>
 
   <!--
+    Note: to cover as many platforms as possible and reduce the number of package references,
+    OpenNetty extensively uses multi-targeting and per-framework package references. As such,
+    package versions must be carefully chosen to ensure they are consistent and compatible with
+    the TFMs supported by OpenNetty (e.g for .NET 10, only Microsoft.Extensions.* packages within
+    the [10.0.0,11.0.0) range are allowed). Special care must also be taken when selecting versions
+    to ensure that transitive references also respect the same constraints (e.g for the .NET 10 TFM,
+    a package must only depend on Microsoft.Extensions.* packages within the [10.0.0,11.0.0) range).
+  -->
+
+  <ItemGroup Label="Package versions for all targets">
+    <GlobalPackageReference Include="Meziantou.Analyzer"                Version="3.0.136"        />
+  </ItemGroup>
+
+  <!--
                                         ▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄▄
                                         █████ ▀██ ██ ▄▄▄█▄▄ ▄▄███▀ ██ ▄▄ ████ ▄▄ ██
                                         █▀▀██ █ █ ██ ▄▄▄███ ██████ ██ ▀▄ █▀▀█ ▀▄ ██

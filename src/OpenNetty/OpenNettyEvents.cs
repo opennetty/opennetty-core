@@ -17,7 +17,7 @@ namespace OpenNetty;
 /// Exposes high-level events that are automatically inferred from
 /// incoming or outgoing OpenWebNet frames by the OpenNetty coordinator.
 /// </summary>
-public sealed class OpenNettyEvents : IDisposable
+public sealed class OpenNettyEvents : IAsyncDisposable
 {
     private readonly Channel<EventArgs> _channel = Channel.CreateUnbounded<EventArgs>();
     private readonly IConnectableAsyncObservable<EventArgs> _observable;
@@ -268,7 +268,7 @@ public sealed class OpenNettyEvents : IDisposable
     public ValueTask<IAsyncDisposable> ConnectAsync() => _observable.ConnectAsync();
 
     /// <inheritdoc/>
-    public void Dispose() => _registration.Dispose();
+    public ValueTask DisposeAsync() => _registration.DisposeAsync();
 
     /// <summary>
     /// Publishes a new event.

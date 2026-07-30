@@ -737,7 +737,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
         // even when multiple messages are received at the same time (which guarantees that
         // messages can be processed in the same order as they are received). As such, it is
         // safe to set SingleWriter to true in the channel options.
-        _client.ApplicationMessageReceivedAsync += async (MqttApplicationMessageReceivedEventArgs arguments) =>
+        _client.ApplicationMessageReceivedAsync += async arguments =>
         {
             var message = arguments.ApplicationMessage;
             var topic = message.Topic;
@@ -752,11 +752,11 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
 
             _logger.LogDebug(6021, SR.GetResourceString(SR.ID6021), topic, payload);
 
-            await channel.Writer.WriteAsync(arguments.ApplicationMessage);
+            await channel.Writer.WriteAsync(arguments.ApplicationMessage, stoppingToken);
         };
 
         // Use the ConnectingFailedAsync event to log connection errors.
-        _client.ConnectingFailedAsync += (ConnectingFailedEventArgs arguments) =>
+        _client.ConnectingFailedAsync += arguments =>
         {
             _logger.LogWarning(6019, arguments.Exception, SR.GetResourceString(SR.ID6019));
 
@@ -764,7 +764,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
         };
 
         // Use the ApplicationMessageProcessedAsync event to log successful and failed outgoing messages.
-        _client.ApplicationMessageProcessedAsync += (ApplicationMessageProcessedEventArgs arguments) =>
+        _client.ApplicationMessageProcessedAsync += arguments =>
         {
             var message = arguments.ApplicationMessage.ApplicationMessage;
             var topic = message.Topic;

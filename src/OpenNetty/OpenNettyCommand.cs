@@ -141,7 +141,7 @@ public readonly struct OpenNettyCommand : IEquatable<OpenNettyCommand>
 
         var hash = new HashCode();
         hash.Add(Category);
-        hash.Add(Value);
+        hash.Add(Value, StringComparer.Ordinal);
 
         if (!Parameters.IsDefaultOrEmpty)
         {
@@ -149,7 +149,7 @@ public readonly struct OpenNettyCommand : IEquatable<OpenNettyCommand>
 
             for (var index = 0; index < Parameters.Length; index++)
             {
-                hash.Add(Parameters[index]);
+                hash.Add(Parameters[index], StringComparer.Ordinal);
             }
         }
 

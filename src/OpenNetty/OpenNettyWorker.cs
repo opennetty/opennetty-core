@@ -221,10 +221,10 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
                             // closed by OpenNetty for inactivity before it is terminated by the OpenWebNet gateway itself.
                             else
                             {
-                                await await Task.WhenAny(
+                                await Task.WhenAny(
                                     WaitCancellationAsync(source.Token),
                                     reader.WaitToReadAsync(context.CancellationToken).AsTask(),
-                                    Task.Delay(TimeSpan.FromSeconds(1), context.CancellationToken));
+                                    Task.Delay(TimeSpan.FromSeconds(1), context.CancellationToken)).Unwrap();
                             }
                         }
 
@@ -365,7 +365,7 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
         static async Task WaitCancellationAsync(CancellationToken cancellationToken)
         {
             var source = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
-            using var registration = cancellationToken.Register(static state => ((TaskCompletionSource) state!).SetResult(), source);
+            await using var registration = cancellationToken.Register(static state => ((TaskCompletionSource) state!).SetResult(), source);
             await source.Task;
         }
     }

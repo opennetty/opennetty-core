@@ -44,13 +44,21 @@ public readonly struct OpenNettyDeviceIdentifier : IEquatable<OpenNettyDeviceIde
     public string Value { get; }
 
     /// <inheritdoc/>
-    public bool Equals(OpenNettyDeviceIdentifier other) => other.Type == Type && other.Value == Value;
+    public bool Equals(OpenNettyDeviceIdentifier other)
+        => other.Type == Type && string.Equals(other.Value, Value, StringComparison.OrdinalIgnoreCase);
 
     /// <inheritdoc/>
     public override bool Equals(object? obj) => obj is OpenNettyDeviceIdentifier identifier && Equals(identifier);
 
     /// <inheritdoc/>
-    public override int GetHashCode() => HashCode.Combine(Type, Value);
+    public override int GetHashCode()
+    {
+        var hash = new HashCode();
+        hash.Add(Type);
+        hash.Add(Value, StringComparer.OrdinalIgnoreCase);
+
+        return hash.ToHashCode();
+    }
 
     /// <summary>
     /// Computes the <see cref="string"/> representation of the current identifier.
@@ -85,24 +93,26 @@ public readonly struct OpenNettyDeviceIdentifier : IEquatable<OpenNettyDeviceIde
 
         address = address.Trim();
 
-        if (address.Contains(':') && address.Contains('-'))
+        if (address.Contains(':', StringComparison.Ordinal) &&
+            address.Contains('-', StringComparison.Ordinal))
         {
             throw new ArgumentException(SR.GetResourceString(SR.ID0109), nameof(address));
         }
 
-        if (address.Contains(':') || address.Contains('-'))
+        if (address.Contains(':', StringComparison.Ordinal) ||
+            address.Contains('-', StringComparison.Ordinal))
         {
-            var parts = address.Split(address.Contains(':') ? ':' : '-');
+            var parts = address.Split(address.Contains(':', StringComparison.Ordinal) ? ':' : '-');
 
             address = (parts.Length is 6 or 8 && parts.All(part => part.Length is 2 && part.All(char.IsAsciiHexDigit))) ?
-                string.Join(":", parts.Select(part => part.ToUpperInvariant())) :
+                string.Join(':', parts.Select(part => part.ToUpperInvariant())) :
                 throw new ArgumentException(SR.GetResourceString(SR.ID0109), nameof(address));
         }
 
         else
         {
             address = (address.Length is 12 or 16 && address.All(char.IsAsciiHexDigit)) ?
-                string.Join(":", Enumerable.Range(0, address.Length / 2)
+                string.Join(':', Enumerable.Range(0, address.Length / 2)
                     .Select(index => address.Substring(index * 2, 2).ToUpperInvariant())) :
                 throw new ArgumentException(SR.GetResourceString(SR.ID0109), nameof(address));
         }
@@ -179,10 +189,9 @@ public readonly struct OpenNettyDeviceIdentifier : IEquatable<OpenNettyDeviceIde
             return identifier.Value;
         }
 
-        else if (identifier.Type is OpenNettyDeviceIdentifierType.ScsSerialNumber or
-                                    OpenNettyDeviceIdentifierType.ZigbeeSerialNumber)
+        if (identifier.Type is OpenNettyDeviceIdentifierType.ScsSerialNumber or OpenNettyDeviceIdentifierType.ZigbeeSerialNumber)
         {
-            return $"00:04:74:00:{string.Join(":", Enumerable.Range(0, 4).Select(index => identifier.Value.Substring(index * 2, 2)))}";
+            return $"00:04:74:00:{string.Join(':', Enumerable.Range(0, 4).Select(index => identifier.Value.Substring(index * 2, 2)))}";
         }
 
         throw new ArgumentException(SR.GetResourceString(SR.ID0110), nameof(identifier));
@@ -215,14 +224,14 @@ public readonly struct OpenNettyDeviceIdentifier : IEquatable<OpenNettyDeviceIde
             return identifier.Value;
         }
 
-        else if (identifier.Type is OpenNettyDeviceIdentifierType.MacAddress)
+        if (identifier.Type is OpenNettyDeviceIdentifierType.MacAddress)
         {
             if (!identifier.Value.StartsWith("00:04:74:00:", StringComparison.OrdinalIgnoreCase))
             {
                 throw new ArgumentException(SR.GetResourceString(SR.ID0112), nameof(identifier));
             }
 
-            return identifier.Value["00:04:74:00:".Length..].Replace(":", "");
+            return identifier.Value["00:04:74:00:".Length..].Replace(":", "", StringComparison.Ordinal);
         }
 
         throw new ArgumentException(SR.GetResourceString(SR.ID0112), nameof(identifier));
@@ -240,14 +249,14 @@ public readonly struct OpenNettyDeviceIdentifier : IEquatable<OpenNettyDeviceIde
             return identifier.Value;
         }
 
-        else if (identifier.Type is OpenNettyDeviceIdentifierType.MacAddress)
+        if (identifier.Type is OpenNettyDeviceIdentifierType.MacAddress)
         {
             if (!identifier.Value.StartsWith("00:04:74:00:", StringComparison.OrdinalIgnoreCase))
             {
                 throw new ArgumentException(SR.GetResourceString(SR.ID0113), nameof(identifier));
             }
 
-            return identifier.Value["00:04:74:00:".Length..].Replace(":", "");
+            return identifier.Value["00:04:74:00:".Length..].Replace(":", "", StringComparison.Ordinal);
         }
 
         throw new ArgumentException(SR.GetResourceString(SR.ID0113), nameof(identifier));

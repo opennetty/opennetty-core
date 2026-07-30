@@ -89,13 +89,13 @@ public sealed class OpenNettyDeviceDefinition : IEquatable<OpenNettyDeviceDefini
 
         hash.Add(Medium);
         hash.Add(Protocol);
-        hash.Add(Series);
+        hash.Add(Series, StringComparer.OrdinalIgnoreCase);
 
         hash.Add(Settings.Count);
         foreach (var (name, value) in Settings)
         {
             hash.Add(name);
-            hash.Add(value);
+            hash.Add(value, StringComparer.Ordinal);
         }
 
         hash.Add(Units.Length);
