@@ -20,7 +20,9 @@ internal static class OpenNettyHelpers
     /// <param name="source">Async-observable sequence to convert to an async-enumerable sequence.</param>
     /// <returns>The async-enumerable sequence whose elements are pulled from the given async-observable sequence.</returns>
     /// <exception cref="ArgumentNullException"><paramref name="source"/> is null.</exception>
+#pragma warning disable MA0156
     public static IAsyncEnumerable<TSource> ToAsyncEnumerable<TSource>(this IAsyncObservable<TSource> source)
+#pragma warning restore MA0156
     {
         ArgumentNullException.ThrowIfNull(source);
 
@@ -51,7 +53,7 @@ internal static class OpenNettyHelpers
         {
             cancellationToken.ThrowIfCancellationRequested(); // NB: [LDM-2018-11-28] Equivalent to async iterator behavior.
 
-            var enumerator = _state == AsyncIteratorState.New && _threadId == Environment.CurrentManagedThreadId
+            var enumerator = _state is AsyncIteratorState.New && _threadId == Environment.CurrentManagedThreadId
                 ? this
                 : Clone();
 
@@ -79,7 +81,7 @@ internal static class OpenNettyHelpers
             // that any exceptions thrown from the MoveNextCore call are handled 
             // by the try/catch, whether they're sync or async
 
-            if (_state == AsyncIteratorState.Disposed)
+            if (_state is AsyncIteratorState.Disposed)
             {
                 return false;
             }
@@ -184,7 +186,7 @@ internal static class OpenNettyHelpers
                         {
                             var error = _error;
 
-                            if (error != null)
+                            if (error is not null)
                             {
                                 throw error;
                             }
@@ -238,13 +240,13 @@ internal static class OpenNettyHelpers
                     return;
                 }
 
-                if (signal != null)
+                if (signal is not null)
                 {
                     signal.TrySetResult(true);
                     return;
                 }
 
-                if (Interlocked.CompareExchange(ref _signal, TaskExt.True, null) == null)
+                if (Interlocked.CompareExchange(ref _signal, TaskExt.True, null) is null)
                 {
                     return;
                 }
@@ -272,13 +274,13 @@ internal static class OpenNettyHelpers
             {
                 var signal = Volatile.Read(ref _signal);
 
-                if (signal != null)
+                if (signal is not null)
                 {
                     if (signal.TrySetCanceled(_cancellationToken))
                         return;
                 }
 
-                if (cancelledTcs == null)
+                if (cancelledTcs is null)
                 {
                     cancelledTcs = new TaskCompletionSource<bool>();
                     cancelledTcs.TrySetCanceled(_cancellationToken);
@@ -297,14 +299,14 @@ internal static class OpenNettyHelpers
             {
                 var signal = Volatile.Read(ref _signal);
 
-                if (signal != null)
+                if (signal is not null)
                 {
                     return signal.Task;
                 }
 
                 newSignal ??= new TaskCompletionSource<bool>();
 
-                if (Interlocked.CompareExchange(ref _signal, newSignal, null) == null)
+                if (Interlocked.CompareExchange(ref _signal, newSignal, null) is null)
                 {
                     return newSignal.Task;
                 }

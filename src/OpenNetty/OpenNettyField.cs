@@ -7,6 +7,7 @@
 using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using static OpenNetty.OpenNettyConstants;
 
@@ -123,7 +124,8 @@ public readonly struct OpenNettyField : IEquatable<OpenNettyField>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is OpenNettyField field && Equals(field);
+    public override bool Equals([NotNullWhen(true)] object? obj)
+        => obj is OpenNettyField field && Equals(field);
 
     /// <inheritdoc/>
     public override int GetHashCode()

@@ -5,6 +5,7 @@
  */
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 
 namespace OpenNetty;
 
@@ -35,7 +36,8 @@ public readonly struct OpenNettyTransaction : IEquatable<OpenNettyTransaction>
     public bool Equals(OpenNettyTransaction transaction) => Identifier == transaction.Identifier;
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is OpenNettyTransaction transaction && Equals(transaction);
+    public override bool Equals([NotNullWhen(true)] object? obj)
+        => obj is OpenNettyTransaction transaction && Equals(transaction);
 
     /// <inheritdoc/>
     public override int GetHashCode() => Identifier.GetHashCode();

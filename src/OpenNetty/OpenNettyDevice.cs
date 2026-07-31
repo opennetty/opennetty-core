@@ -107,7 +107,7 @@ public sealed class OpenNettyDevice : IEquatable<OpenNettyDevice>
         => Settings.TryGetValue(setting, out value) || Definition.Settings.TryGetValue(setting, out value);
 
     /// <inheritdoc/>
-    public bool Equals(OpenNettyDevice? other)
+    public bool Equals([NotNullWhen(true)] OpenNettyDevice? other)
     {
         if (ReferenceEquals(this, other))
         {
@@ -125,7 +125,8 @@ public sealed class OpenNettyDevice : IEquatable<OpenNettyDevice>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is OpenNettyDevice device && Equals(device);
+    public override bool Equals([NotNullWhen(true)] object? obj)
+        => obj is OpenNettyDevice device && Equals(device);
 
     /// <inheritdoc/>
     public override int GetHashCode()

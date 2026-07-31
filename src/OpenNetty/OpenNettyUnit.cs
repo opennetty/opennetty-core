@@ -72,7 +72,7 @@ public sealed class OpenNettyUnit : IEquatable<OpenNettyUnit>
         => Settings.TryGetValue(setting, out value) || Definition.Settings.TryGetValue(setting, out value);
 
     /// <inheritdoc/>
-    public bool Equals(OpenNettyUnit? other)
+    public bool Equals([NotNullWhen(true)] OpenNettyUnit? other)
     {
         if (ReferenceEquals(this, other))
         {
@@ -86,7 +86,8 @@ public sealed class OpenNettyUnit : IEquatable<OpenNettyUnit>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is OpenNettyUnit unit && Equals(unit);
+    public override bool Equals([NotNullWhen(true)] object? obj)
+        => obj is OpenNettyUnit unit && Equals(unit);
 
     /// <inheritdoc/>
     public override int GetHashCode()

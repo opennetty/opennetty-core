@@ -7,6 +7,7 @@
 using System.Buffers;
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using static OpenNetty.OpenNettyConstants;
 
@@ -66,7 +67,7 @@ public readonly struct OpenNettyFrame : IEquatable<OpenNettyFrame>
             if (reader.TryReadTo(out ReadOnlySequence<byte> field, Separators.Asterisk, advancePastDelimiter: true))
             {
                 builder ??= ImmutableArray.CreateBuilder<OpenNettyField>(initialCapacity: 1);
-                builder.Add(OpenNettyField.Parse(field));
+                builder.Add(OpenNettyField.Parse(in field));
             }
 
             // If no '*' can be found, this means there's no additional field: in this case,
@@ -81,7 +82,7 @@ public readonly struct OpenNettyFrame : IEquatable<OpenNettyFrame>
                 }
 
                 builder ??= ImmutableArray.CreateBuilder<OpenNettyField>(initialCapacity: 1);
-                builder.Add(OpenNettyField.Parse(field));
+                builder.Add(OpenNettyField.Parse(in field));
             }
 
             // Frames MUST always end with '##'.
@@ -121,7 +122,8 @@ public readonly struct OpenNettyFrame : IEquatable<OpenNettyFrame>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is OpenNettyFrame frame && Equals(frame);
+    public override bool Equals([NotNullWhen(true)] object? obj)
+        => obj is OpenNettyFrame frame && Equals(frame);
 
     /// <inheritdoc/>
     public override int GetHashCode()

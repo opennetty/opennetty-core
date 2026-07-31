@@ -6,6 +6,7 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using static OpenNetty.OpenNettyConstants;
 
@@ -129,7 +130,8 @@ public readonly struct OpenNettyDimension : IEquatable<OpenNettyDimension>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is OpenNettyDimension dimension && Equals(dimension);
+    public override bool Equals([NotNullWhen(true)] object? obj)
+        => obj is OpenNettyDimension dimension && Equals(dimension);
 
     /// <inheritdoc/>
     public override int GetHashCode()

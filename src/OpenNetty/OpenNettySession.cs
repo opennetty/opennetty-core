@@ -4,6 +4,7 @@
  * the license and the contributors participating to this project.
  */
 
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reactive.Concurrency;
 using System.Reactive.Linq;
@@ -242,7 +243,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
             // If the gateway options indicate that a post-sending delay must be enforced, apply it immediately.
             if (options.PostSendingDelay != TimeSpan.Zero)
             {
-                await Task.Delay(options.PostSendingDelay, cancellationToken);
+                await Task.Delay(options.PostSendingDelay, options.TimeProvider, cancellationToken);
             }
         }
 
@@ -659,7 +660,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
     }
 
     /// <inheritdoc/>
-    public bool Equals(OpenNettySession? other)
+    public bool Equals([NotNullWhen(true)] OpenNettySession? other)
     {
         if (ReferenceEquals(this, other))
         {
@@ -675,7 +676,8 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is OpenNettySession session && Equals(session);
+    public override bool Equals([NotNullWhen(true)] object? obj)
+        => obj is OpenNettySession session && Equals(session);
 
     /// <inheritdoc/>
     public override int GetHashCode() => Id.GetHashCode();

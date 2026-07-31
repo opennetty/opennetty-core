@@ -5,6 +5,7 @@
  */
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 
 namespace OpenNetty;
@@ -70,7 +71,8 @@ public readonly struct OpenNettyParameter : IEquatable<OpenNettyParameter>
     public bool Equals(OpenNettyParameter other) => string.Equals(Value, other.Value, StringComparison.Ordinal);
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is OpenNettyParameter parameter && Equals(parameter);
+    public override bool Equals([NotNullWhen(true)] object? obj)
+        => obj is OpenNettyParameter parameter && Equals(parameter);
 
     /// <inheritdoc/>
     public override int GetHashCode() => Value?.GetHashCode(StringComparison.Ordinal) ?? 0;

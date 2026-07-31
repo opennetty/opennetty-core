@@ -5,6 +5,7 @@
  */
 
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
 namespace OpenNetty;
@@ -40,7 +41,7 @@ public sealed class OpenNettyUnitDefinition : IEquatable<OpenNettyUnitDefinition
     public ImmutableDictionary<OpenNettySetting, string> Settings { get; init; } = [];
 
     /// <inheritdoc/>
-    public bool Equals(OpenNettyUnitDefinition? other)
+    public bool Equals([NotNullWhen(true)] OpenNettyUnitDefinition? other)
     {
         if (ReferenceEquals(this, other))
         {
@@ -56,7 +57,8 @@ public sealed class OpenNettyUnitDefinition : IEquatable<OpenNettyUnitDefinition
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is OpenNettyUnitDefinition definition && Equals(definition);
+    public override bool Equals([NotNullWhen(true)] object? obj)
+        => obj is OpenNettyUnitDefinition definition && Equals(definition);
 
     /// <summary>
     /// Gets the localized description corresponding to the specified culture (or one of its parents).

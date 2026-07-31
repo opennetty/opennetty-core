@@ -145,7 +145,7 @@ public sealed class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
     }
 
     /// <inheritdoc/>
-    public bool Equals(OpenNettyEndpoint? other)
+    public bool Equals([NotNullWhen(true)] OpenNettyEndpoint? other)
     {
         if (ReferenceEquals(this, other))
         {
@@ -201,7 +201,8 @@ public sealed class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is OpenNettyEndpoint endpoint && Equals(endpoint);
+    public override bool Equals([NotNullWhen(true)] object? obj)
+        => obj is OpenNettyEndpoint endpoint && Equals(endpoint);
 
     /// <inheritdoc/>
     public override int GetHashCode()

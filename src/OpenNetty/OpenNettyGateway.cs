@@ -4,6 +4,7 @@
  * the license and the contributors participating to this project.
  */
 
+using System.Diagnostics.CodeAnalysis;
 using System.IO.Ports;
 using System.Net;
 
@@ -50,7 +51,7 @@ public sealed class OpenNettyGateway : IEquatable<OpenNettyGateway>
     public required OpenNettyGatewayOptions Options { get; init; }
 
     /// <inheritdoc/>
-    public bool Equals(OpenNettyGateway? other)
+    public bool Equals([NotNullWhen(true)] OpenNettyGateway? other)
     {
         if (ReferenceEquals(this, other))
         {
@@ -67,7 +68,8 @@ public sealed class OpenNettyGateway : IEquatable<OpenNettyGateway>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is OpenNettyGateway gateway && Equals(gateway);
+    public override bool Equals([NotNullWhen(true)] object? obj)
+        => obj is OpenNettyGateway gateway && Equals(gateway);
 
     /// <inheritdoc/>
     public override int GetHashCode()
