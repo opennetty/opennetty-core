@@ -983,7 +983,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
 
     private static OpenNettyField CreateWhoField(OpenNettyMessageType type, OpenNettyCategory category)
     {
-        List<OpenNettyParameter> parameters = [];
+        var builder = ImmutableArray.CreateBuilder<OpenNettyParameter>();
 
         switch (type)
         {
@@ -991,13 +991,13 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
             case OpenNettyMessageType.DimensionRequest:
             case OpenNettyMessageType.DimensionRead:
             case OpenNettyMessageType.DimensionSet:
-                parameters.Add(OpenNettyParameter.Empty);
+                builder.Add(OpenNettyParameter.Empty);
                 break;
         }
 
-        parameters.AddRange(category.ToParameters().AsSpan());
+        builder.AddRange(category.ToParameters());
 
-        return new OpenNettyField(parameters);
+        return new OpenNettyField(builder.ToImmutable());
     }
 
     private static OpenNettyField CreateWhereField(
@@ -1033,27 +1033,27 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
                 throw new InvalidOperationException(SR.GetResourceString(SR.ID0048));
             }
 
-            List<OpenNettyParameter> parameters = [];
+            var builder = ImmutableArray.CreateBuilder<OpenNettyParameter>();
 
             switch (mode)
             {
                 case OpenNettyMode.Multicast:
-                    parameters.Add(OpenNettyParameter.Empty);
+                    builder.Add(OpenNettyParameter.Empty);
                     break;
 
                 // Note: broadcast is always the default transmission mode for WHO=25 messages (scenarios).
                 case OpenNettyMode.Broadcast:
                 case null when category == OpenNettyCategories.ScenariosPlus:
-                    parameters.Add(new OpenNettyParameter("0"));
+                    builder.Add(new OpenNettyParameter("0"));
                     break;
             }
 
-            parameters.AddRange(address.Value.ToParameters().AsSpan());
+            builder.AddRange(address.Value.ToParameters());
 
             // Note: when using the default powerline transmission medium, adding an explicit parameter is not required.
             if (medium is not null and not OpenNettyMedium.Powerline)
             {
-                parameters.Add(new OpenNettyParameter(medium switch
+                builder.Add(new OpenNettyParameter(medium switch
                 {
                     OpenNettyMedium.Radio    => "1",
                     OpenNettyMedium.Infrared => "2",
@@ -1062,7 +1062,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
                 }));
             }
 
-            return new OpenNettyField(parameters);
+            return new OpenNettyField(builder.ToImmutable());
         }
 
         else if (protocol is OpenNettyProtocol.Zigbee)
@@ -1072,32 +1072,32 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
                 throw new InvalidOperationException(SR.GetResourceString(SR.ID0055));
             }
 
-            List<OpenNettyParameter> parameters = [];
+            var builder = ImmutableArray.CreateBuilder<OpenNettyParameter>();
 
             switch (mode)
             {
                 case OpenNettyMode.Multicast:
-                    parameters.Add(OpenNettyParameter.Empty);
+                    builder.Add(OpenNettyParameter.Empty);
                     break;
 
                 // Note: broadcast is always the default transmission mode for messages
                 // sent to an address that doesn't include a device identifier part.
                 case OpenNettyMode.Broadcast:
                 case null when OpenNettyAddress.ToZigbeeAddress(address.Value) is { Identifier: 0 }:
-                    parameters.Add(new OpenNettyParameter("0"));
+                    builder.Add(new OpenNettyParameter("0"));
                     break;
             }
 
-            parameters.AddRange(address.Value.ToParameters().AsSpan());
+            builder.AddRange(address.Value.ToParameters());
 
-            parameters.Add(new OpenNettyParameter(medium switch
+            builder.Add(new OpenNettyParameter(medium switch
             {
                 OpenNettyMedium.Radio or null => "9",
 
                 _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0062))
             }));
 
-            return new OpenNettyField(parameters);
+            return new OpenNettyField(builder.ToImmutable());
         }
 
         throw new InvalidOperationException(SR.GetResourceString(SR.ID0057));
@@ -1109,16 +1109,16 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
                              OpenNettyMessageType.DimensionRequest or
                              OpenNettyMessageType.DimensionSet);
 
-        List<OpenNettyParameter> parameters = [];
+        var builder = ImmutableArray.CreateBuilder<OpenNettyParameter>();
 
         if (type is OpenNettyMessageType.DimensionSet)
         {
-            parameters.Add(OpenNettyParameter.Empty);
+            builder.Add(OpenNettyParameter.Empty);
         }
 
-        parameters.AddRange(dimension.ToParameters().AsSpan());
+        builder.AddRange(dimension.ToParameters());
 
-        return new OpenNettyField(parameters);
+        return new OpenNettyField(builder.ToImmutable());
     }
 
     /// <summary>

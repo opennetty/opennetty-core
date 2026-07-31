@@ -22,17 +22,6 @@ public readonly struct OpenNettyField : IEquatable<OpenNettyField>
     /// Creates a new instance of <see cref="OpenNettyField"/>.
     /// </summary>
     /// <param name="parameters">The parameters included in the field.</param>
-    public OpenNettyField(params IEnumerable<OpenNettyParameter> parameters)
-    {
-        ArgumentNullException.ThrowIfNull(parameters);
-
-        Parameters = [.. parameters];
-    }
-
-    /// <summary>
-    /// Creates a new instance of <see cref="OpenNettyField"/>.
-    /// </summary>
-    /// <param name="parameters">The parameters included in the field.</param>
     public OpenNettyField(params ImmutableArray<OpenNettyParameter> parameters) => Parameters = parameters;
 
     /// <summary>
@@ -64,7 +53,7 @@ public readonly struct OpenNettyField : IEquatable<OpenNettyField>
         // Note: fields can be omitted. In this case, they are represented as empty values.
 
         var reader = new SequenceReader<byte>(buffer);
-        List<OpenNettyParameter>? parameters = null;
+        ImmutableArray<OpenNettyParameter>.Builder? builder = null;
 
         do
         {
@@ -77,36 +66,36 @@ public readonly struct OpenNettyField : IEquatable<OpenNettyField>
                     throw new ArgumentException(SR.GetResourceString(SR.ID0005), nameof(buffer));
                 }
 
-                parameters ??= new(capacity: 1);
-                parameters.Add(OpenNettyParameter.Parse(parameter));
+                builder ??= ImmutableArray.CreateBuilder<OpenNettyParameter>(initialCapacity: 1);
+                builder.Add(OpenNettyParameter.Parse(parameter));
 
                 // If '#' is not followed by any character, add an empty parameter.
                 if (reader.End)
                 {
-                    parameters.Add(OpenNettyParameter.Empty);
+                    builder.Add(OpenNettyParameter.Empty);
                 }
             }
 
             // Try to read until the next '*' (that indicates the next field in the frame).
             else if (reader.TryReadTo(out parameter, Separators.Asterisk, advancePastDelimiter: true))
             {
-                parameters ??= new(capacity: 1);
-                parameters.Add(OpenNettyParameter.Parse(parameter));
+                builder ??= ImmutableArray.CreateBuilder<OpenNettyParameter>(initialCapacity: 1);
+                builder.Add(OpenNettyParameter.Parse(parameter));
             }
 
             // If no '#' or '*' can be found, this means there's no additional parameter:
             // in this case, return the rest of the frame as a unique parameter.
             else
             {
-                parameters ??= new(capacity: 1);
-                parameters.Add(OpenNettyParameter.Parse(reader.UnreadSpan));
+                builder ??= ImmutableArray.CreateBuilder<OpenNettyParameter>(initialCapacity: 1);
+                builder.Add(OpenNettyParameter.Parse(reader.UnreadSpan));
                 reader.AdvanceToEnd();
             }
         }
 
         while (!reader.End);
 
-        return new OpenNettyField(parameters);
+        return new OpenNettyField(builder?.ToImmutable() ?? []);
     }
 
     /// <inheritdoc/>
