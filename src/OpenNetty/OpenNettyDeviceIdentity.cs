@@ -5,6 +5,7 @@
  */
 
 using System.Collections.Immutable;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
 namespace OpenNetty;
@@ -42,7 +43,8 @@ public readonly struct OpenNettyDeviceIdentity : IEquatable<OpenNettyDeviceIdent
         string.Equals(Model, other.Model, StringComparison.OrdinalIgnoreCase);
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is OpenNettyDeviceIdentity identity && Equals(identity);
+    public override bool Equals([NotNullWhen(true)] object? obj)
+        => obj is OpenNettyDeviceIdentity identity && Equals(identity);
 
     /// <summary>
     /// Gets the localized description corresponding to the specified culture (or one of its parents).

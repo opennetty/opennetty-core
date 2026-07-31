@@ -13,7 +13,7 @@ namespace OpenNetty;
 /// <summary>
 /// Provides various settings used to control how messages are sent by a session.
 /// </summary>
-public sealed record OpenNettyTransmissionOptions
+public sealed record class OpenNettyTransmissionOptions
 {
     /// <summary>
     /// Gets or sets the acknowledgement timeout.
@@ -81,6 +81,11 @@ public sealed record OpenNettyTransmissionOptions
     public required TimeSpan PostSendingDelay { get; init; }
 
     /// <summary>
+    /// Gets or sets the <see cref="System.TimeProvider"/> used to retrieve the current time.
+    /// </summary>
+    public required TimeProvider TimeProvider { get; init; }
+
+    /// <summary>
     /// Gets or sets the reply timeout used when a single dimension should be returned.
     /// </summary>
     public required TimeSpan UniqueDimensionReplyTimeout { get; init; }
@@ -113,6 +118,7 @@ public sealed record OpenNettyTransmissionOptions
             MultipleStatusReplyTimeout               = device.Definition.Protocol is OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee ? TimeSpan.FromSeconds(10) : TimeSpan.Zero,
             OutgoingMessageProcessingTimeout         = TimeSpan.FromSeconds(10),
             PostSendingDelay                         = device.Definition.Protocol is OpenNettyProtocol.Nitoo ? TimeSpan.FromMilliseconds(150) : TimeSpan.Zero,
+            TimeProvider                             = TimeProvider.System,
             UniqueDimensionReplyTimeout              = device.Definition.Protocol is OpenNettyProtocol.Nitoo ? TimeSpan.FromSeconds(7) : TimeSpan.FromSeconds(2),
             UniqueStatusReplyTimeout                 = device.Definition.Protocol is OpenNettyProtocol.Nitoo ? TimeSpan.FromSeconds(7) : TimeSpan.FromSeconds(2),
 

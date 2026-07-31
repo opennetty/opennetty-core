@@ -5,6 +5,7 @@
  */
 
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
 namespace OpenNetty;
@@ -48,7 +49,8 @@ public readonly struct OpenNettyDeviceIdentifier : IEquatable<OpenNettyDeviceIde
         => other.Type == Type && string.Equals(other.Value, Value, StringComparison.OrdinalIgnoreCase);
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is OpenNettyDeviceIdentifier identifier && Equals(identifier);
+    public override bool Equals([NotNullWhen(true)] object? obj)
+        => obj is OpenNettyDeviceIdentifier identifier && Equals(identifier);
 
     /// <inheritdoc/>
     public override int GetHashCode()

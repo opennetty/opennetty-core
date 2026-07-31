@@ -50,7 +50,7 @@ public sealed class OpenNettyDeviceDefinition : IEquatable<OpenNettyDeviceDefini
     public required ImmutableArray<OpenNettyUnitDefinition> Units { get; init; }
 
     /// <inheritdoc/>
-    public bool Equals(OpenNettyDeviceDefinition? other)
+    public bool Equals([NotNullWhen(true)] OpenNettyDeviceDefinition? other)
     {
         if (ReferenceEquals(this, other))
         {
@@ -68,7 +68,8 @@ public sealed class OpenNettyDeviceDefinition : IEquatable<OpenNettyDeviceDefini
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is OpenNettyDeviceDefinition definition && Equals(definition);
+    public override bool Equals([NotNullWhen(true)] object? obj)
+        => obj is OpenNettyDeviceDefinition definition && Equals(definition);
 
     /// <inheritdoc/>
     public override int GetHashCode()

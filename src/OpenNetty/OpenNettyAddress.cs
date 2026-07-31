@@ -6,6 +6,7 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text;
 using static OpenNetty.OpenNettyConstants;
@@ -130,7 +131,8 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is OpenNettyAddress address && Equals(address);
+    public override bool Equals([NotNullWhen(true)] object? obj)
+        => obj is OpenNettyAddress address && Equals(address);
 
     /// <inheritdoc/>
     public override int GetHashCode()

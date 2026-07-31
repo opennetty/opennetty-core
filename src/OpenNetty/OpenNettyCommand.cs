@@ -6,6 +6,7 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Text;
 using static OpenNetty.OpenNettyConstants;
 
@@ -129,7 +130,8 @@ public readonly struct OpenNettyCommand : IEquatable<OpenNettyCommand>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is OpenNettyCommand command && Equals(command);
+    public override bool Equals([NotNullWhen(true)] object? obj)
+        => obj is OpenNettyCommand command && Equals(command);
 
     /// <inheritdoc/>
     public override int GetHashCode()

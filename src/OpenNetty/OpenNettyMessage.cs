@@ -6,6 +6,7 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics;
+using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Text.Json.Nodes;
 
@@ -610,7 +611,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
     }
 
     /// <inheritdoc/>
-    public bool Equals(OpenNettyMessage? other)
+    public bool Equals([NotNullWhen(true)] OpenNettyMessage? other)
     {
         if (ReferenceEquals(this, other))
         {
@@ -622,7 +623,8 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is OpenNettyMessage message && Equals(message);
+    public override bool Equals([NotNullWhen(true)] object? obj)
+        => obj is OpenNettyMessage message && Equals(message);
 
     /// <inheritdoc/>
     public override int GetHashCode()

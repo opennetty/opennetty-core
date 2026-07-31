@@ -4,6 +4,8 @@
  * the license and the contributors participating to this project.
  */
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace OpenNetty;
 
 /// <summary>
@@ -22,7 +24,7 @@ public sealed class OpenNettyScenario : IEquatable<OpenNettyScenario>
     public required byte FunctionCode { get; init; }
 
     /// <inheritdoc/>
-    public bool Equals(OpenNettyScenario? other)
+    public bool Equals([NotNullWhen(true)] OpenNettyScenario? other)
     {
         if (ReferenceEquals(this, other))
         {
@@ -35,7 +37,8 @@ public sealed class OpenNettyScenario : IEquatable<OpenNettyScenario>
     }
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is OpenNettyUnit unit && Equals(unit);
+    public override bool Equals([NotNullWhen(true)] object? obj)
+        => obj is OpenNettyScenario scenario && Equals(scenario);
 
     /// <inheritdoc/>
     public override int GetHashCode()

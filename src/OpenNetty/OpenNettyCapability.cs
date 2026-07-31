@@ -4,6 +4,8 @@
  * the license and the contributors participating to this project.
  */
 
+using System.Diagnostics.CodeAnalysis;
+
 namespace OpenNetty;
 
 /// <summary>
@@ -31,7 +33,8 @@ public readonly struct OpenNettyCapability : IEquatable<OpenNettyCapability>
     public bool Equals(OpenNettyCapability other) => string.Equals(Name, other.Name, StringComparison.OrdinalIgnoreCase);
 
     /// <inheritdoc/>
-    public override bool Equals(object? obj) => obj is OpenNettyCapability capability && Equals(capability);
+    public override bool Equals([NotNullWhen(true)] object? obj)
+        => obj is OpenNettyCapability capability && Equals(capability);
 
     /// <inheritdoc/>
     public override int GetHashCode() => Name?.GetHashCode(StringComparison.OrdinalIgnoreCase) ?? 0;
