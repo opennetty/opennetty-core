@@ -22,17 +22,6 @@ public readonly struct OpenNettyFrame : IEquatable<OpenNettyFrame>
     /// Creates a new instance of <see cref="OpenNettyFrame"/>.
     /// </summary>
     /// <param name="fields">The fields included in the frame.</param>
-    public OpenNettyFrame(params IEnumerable<OpenNettyField> fields)
-    {
-        ArgumentNullException.ThrowIfNull(fields);
-
-        Fields = [.. fields];
-    }
-
-    /// <summary>
-    /// Creates a new instance of <see cref="OpenNettyFrame"/>.
-    /// </summary>
-    /// <param name="fields">The fields included in the frame.</param>
     public OpenNettyFrame(params ImmutableArray<OpenNettyField> fields) => Fields = fields;
 
     /// <summary>
@@ -69,15 +58,15 @@ public readonly struct OpenNettyFrame : IEquatable<OpenNettyFrame>
             throw new ArgumentException(SR.GetResourceString(SR.ID0001), nameof(buffer));
         }
 
-        List<OpenNettyField>? fields = null;
+        ImmutableArray<OpenNettyField>.Builder? builder = null;
 
         do
         {
             // Try to read until the next '*' (that indicates the next field in the frame).
             if (reader.TryReadTo(out ReadOnlySequence<byte> field, Separators.Asterisk, advancePastDelimiter: true))
             {
-                fields ??= new(capacity: 1);
-                fields.Add(OpenNettyField.Parse(field));
+                builder ??= ImmutableArray.CreateBuilder<OpenNettyField>(initialCapacity: 1);
+                builder.Add(OpenNettyField.Parse(field));
             }
 
             // If no '*' can be found, this means there's no additional field: in this case,
@@ -91,8 +80,8 @@ public readonly struct OpenNettyFrame : IEquatable<OpenNettyFrame>
                     throw new ArgumentException(SR.GetResourceString(SR.ID0002), nameof(buffer));
                 }
 
-                fields ??= new(capacity: 1);
-                fields.Add(OpenNettyField.Parse(field));
+                builder ??= ImmutableArray.CreateBuilder<OpenNettyField>(initialCapacity: 1);
+                builder.Add(OpenNettyField.Parse(field));
             }
 
             // Frames MUST always end with '##'.
@@ -104,7 +93,7 @@ public readonly struct OpenNettyFrame : IEquatable<OpenNettyFrame>
 
         while (!reader.End);
 
-        return new OpenNettyFrame(fields);
+        return new OpenNettyFrame(builder?.ToImmutable() ?? []);
     }
 
     /// <inheritdoc/>
