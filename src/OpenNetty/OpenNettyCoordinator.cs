@@ -1140,8 +1140,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                          command == OpenNettyCommands.Management.JoinZigbeeNetwork   ||
                          command == OpenNettyCommands.Management.LeaveZigbeeNetwork:
                 {
-                    var endpoints = _manager.EnumerateEndpointsAsync()
-                        .Where(endpoint => endpoint.Device == notification.Gateway.Device && endpoint.Unit is null)
+                    var endpoints = _manager.FindEndpointsByDeviceAsync(notification.Gateway.Device)
                         .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement));
 
                     await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
@@ -1948,8 +1947,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
             .Do(onNext: async _ =>
             {
                 var endpoints = from gateway in _manager.EnumerateGatewaysAsync()
-                                from endpoint in _manager.EnumerateEndpointsAsync()
-                                where endpoint.Device == gateway.Device && endpoint.Unit is null
+                                from endpoint in _manager.FindEndpointsByDeviceAsync(gateway.Device)
                                 where endpoint.HasCapability(OpenNettyCapabilities.DateTime)
                                 where endpoint.GetBooleanSetting(OpenNettySettings.ClockSynchronization) is not false
                                 select endpoint;
@@ -1967,8 +1965,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
         await _pipeline.OfType<OpenNettyNotification, OpenNettyNotifications.MessageReceived>()
             .Do(onNext: async notification =>
             {
-                var endpoints = _manager.EnumerateEndpointsAsync()
-                    .Where(endpoint => endpoint.Device == notification.Gateway.Device && endpoint.Unit is null)
+                var endpoints = _manager.FindEndpointsByDeviceAsync(notification.Gateway.Device)
                     .Where(static endpoint => endpoint.GetBooleanSetting(OpenNettySettings.RawIncomingMessages) is true);
 
                 await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
@@ -1985,8 +1982,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
         await _pipeline.OfType<OpenNettyNotification, OpenNettyNotifications.MessageSent>()
             .Do(onNext: async notification =>
             {
-                var endpoints = _manager.EnumerateEndpointsAsync()
-                    .Where(endpoint => endpoint.Device == notification.Gateway.Device && endpoint.Unit is null)
+                var endpoints = _manager.FindEndpointsByDeviceAsync(notification.Gateway.Device)
                     .Where(static endpoint => endpoint.GetBooleanSetting(OpenNettySettings.RawOutgoingMessages) is true);
 
                 await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>

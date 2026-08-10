@@ -298,7 +298,33 @@ public class OpenNettyManager
         {
             await foreach (var endpoint in EnumerateEndpointsAsync(cancellationToken))
             {
-                if (endpoint.Device == device)
+                if (endpoint.Unit?.Device == device)
+                {
+                    yield return endpoint;
+                }
+            }
+        }
+    }
+
+    /// <summary>
+    /// Resolves all the endpoints matching the specified unit.
+    /// </summary>
+    /// <param name="unit">The unit.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>
+    /// An <see cref="IAsyncEnumerable{T}"/> that can be used to iterate the endpoints associated with the unit.
+    /// </returns>
+    public virtual IAsyncEnumerable<OpenNettyEndpoint> FindEndpointsByUnitAsync(OpenNettyUnit unit, CancellationToken cancellationToken = default)
+    {
+        ArgumentNullException.ThrowIfNull(unit);
+
+        return ExecuteAsync(cancellationToken);
+
+        async IAsyncEnumerable<OpenNettyEndpoint> ExecuteAsync([EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            await foreach (var endpoint in EnumerateEndpointsAsync(cancellationToken))
+            {
+                if (endpoint.Unit == unit)
                 {
                     yield return endpoint;
                 }

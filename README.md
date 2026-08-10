@@ -2,35 +2,35 @@
 
 ## What is OpenNetty?
 
-OpenNetty aims at providing an **advanced solution** for implementing [OpenWebNet](https://en.wikipedia.org/wiki/OpenWebNet)
+OpenNetty aims to provide an **advanced solution** for implementing [OpenWebNet](https://en.wikipedia.org/wiki/OpenWebNet)
 support in .NET 10.0+ applications.
 
 OpenWebNet is a protocol developed by [BTicino](https://www.bticino.it/) and [Legrand](https://www.legrand.fr/) around 2000 to manage
-electrical networks. While it uses a very basic wire format initially designed to be usable over PSTN phone lines, the OpenWebNet
+electrical networks. Although it uses a very basic wire format originally designed to work over PSTN phone lines, the OpenWebNet
 protocol is actually fairly complex to implement properly (but also quite powerful!).
 
-To this date, 3 variants of OpenWebNet have been developed by the two companies:
+To date, three variants of OpenWebNet have been developed by the two companies:
   - OpenWebNet, used to integrate with the [SCS](https://en.wikipedia.org/wiki/Bus_SCS)-based "MyHome" products.
   - OpenWebNet/Nitoo, used to integrate with "In One by Legrand" products (powerline and radio).
   - OpenWebNet/Zigbee, used to integrate with the Zigbee-based "MyHome Play" products.
 
 > [!NOTE]
-> OpenNetty is currently the only library that supports the 3 OpenWebNet variants.
+> OpenNetty is currently the only library that supports all three OpenWebNet variants.
 
-OpenNetty offers both low-level primitives to represent OpenWebNet messages and communicate with OpenWebNet
-gateways and a higher-level MQTT integration that can be directly used with home automation software like
-[Home Assistant](https://www.home-assistant.io/), [openHAB](https://www.openhab.org/) or [FHEM](https://fhem.de/).
+OpenNetty offers both low-level primitives for representing OpenWebNet messages and communicating with OpenWebNet
+gateways and a higher-level MQTT integration that can be used directly with home automation software such as
+[Home Assistant](https://www.home-assistant.io/), [openHAB](https://www.openhab.org/)or [FHEM](https://fhem.de/).
 
 > [!IMPORTANT]
-> **An OpenWebNet gateway is required by OpenNetty to be able to interact with BTicino and Legrand devices**:
+> **An OpenWebNet gateway is required for OpenNetty to interact with BTicino and Legrand devices**:
 >
 >   - For In One by Legrand devices, a Legrand 88213 powerline/USB gateway is required. To communicate with
-> In One by Legrand radio devices, a Legrand 03606 interface must also be present in the electrical panel.
+> In One by Legrand radio devices, a Legrand 03606 interface must also be installed in the electrical panel.
 >   - For MyHome/MyHome Up devices, both BTicino F454 and MH202 SCS/Ethernet gateways are currently supported.
 >   - For MyHome Play devices, a BTicino 3578 or Legrand 88328 Zigbee/USB gateway is required.
 >
-> Since the "In One by Legrand" and "MyHome Play" products are no longer manufactured, buying the corresponding gateway
-> is generally not easy (or cheap!), so this should probably only be considered for large existing installations.
+> Since the "In One by Legrand" and "MyHome Play" product lines are no longer manufactured, purchasing the corresponding gateway
+> is generally neither easy nor inexpensive, so this should probably only be considered for large existing installations.
 
 --------------
 
@@ -46,20 +46,20 @@ found in the dedicated [`OpenNettyDevices.xml`](src/OpenNetty/OpenNettyDevices.x
 
 ## Using OpenNetty as an OpenWebNet/MQTT gateway
 
-OpenNetty ships with an `OpenNetty.Daemon` executable that can be directly used as an OpenWebNet/MQTT
-gateway on any x64, ARM32 or ARM64 Linux distribution that supports .NET 10.0 and uses systemd.
+OpenNetty ships with an `OpenNetty.Daemon` executable that can be used directly as an OpenWebNet/MQTT
+gateway on any x64, ARM32or ARM64 Linux distribution that supports .NET 10.0 and uses systemd.
 
 > [!IMPORTANT]
 > Using OpenNetty as an OpenWebNet/MQTT gateway works best with home automation software that natively supports
-> MQTT discovery (like Home Assistant or openHAB) as it allows importing all the devices configured in OpenNetty
-> automatically without requiring any additional configuration in the home automation software.
+> MQTT discovery (such as Home Assistant or openHAB), as it allows all the devices configured in OpenNetty
+> to be imported automatically without requiring any additional configuration in the home automation software.
 
 ### Install the `libicu` package
 
-.NET relies on the `libicu` package to support globalization features. To ensure OpenNetty works
+.NET relies on the `libicu` package for globalization support. To ensure that OpenNetty works
 correctly, make sure to install the latest version of `libicu` available for your distribution.
 
-For instance, on [Debian 13/Trixie](https://packages.debian.org/search?searchon=names&keywords=libicu),
+For example, on [Debian 13/Trixie](https://packages.debian.org/search?searchon=names&keywords=libicu),
 you can use the following command to install `libicu` version 76:
 
 ```bash
@@ -68,32 +68,32 @@ sudo apt install libicu76
 
 ### Deploy the daemon
 
-Compiled binaries packaged as .zip archives can be found in the
-[opennetty-resources](https://github.com/opennetty/opennetty-resources) repository, under the releases folder.
+Compiled binaries packaged as `.zip` archives can be found in the
+[opennetty-resources](https://github.com/opennetty/opennetty-resources) repository, in the releases section.
 
 > [!NOTE]
-> These archives are self-contained .NET applications that embed all the required dependencies so you
-> don't need to install any .NET package, SDK or runtime on the machine on which OpenNetty is deployed.
+> These archives are self-contained .NET applications that embed all the required dependencies, so you
+> do not need to install any .NET package, SDKor runtime on the machine where OpenNetty is deployed.
 
 > [!TIP]
 > Make sure you select the correct architecture when downloading the archive:
 >   - x64: typically used for bare metal and virtual machines.
->   - ARM32: compatible with Single Board Computers (like Raspberry PIs) that don't support 64 bits.
->   - ARM64: best used with Single Board Computers that support 64 bits (e.g Raspberry PIs 3+ on which Raspbian 64 bits is installed).
+>   - ARM32: compatible with single-board computers (such as Raspberry Pis) that do not support 64-bit mode.
+>   - ARM64: best suited for single-board computers that support 64-bit mode (for example, Raspberry Pi 3 and later models running a 64-bit version of Raspberry Pi OS).
 
-First, you'll need to create a folder on the machine that will contain all the files required by OpenNetty: while it can
-be deployed anywhere, a folder under `/usr/local/bin` (e.g `/usr/local/bin/opennetty`) is probably the best option.
+First, create a folder on the target machine to host all the files required by OpenNetty. Although OpenNetty can
+be deployed anywhere, a folder under `/usr/local/bin` (for example, `/usr/local/bin/opennetty`) is probably the best option.
 
-The recommended option to deploy the daemon is to use an SSH/SFTP client (like [Bitvise SSH client](https://bitvise.com/ssh-client-download))
-and create the folder via SSH:
+The recommended way to deploy the daemon is to use an SSH/SFTP client (such as [Bitvise SSH Client](https://bitvise.com/ssh-client-download))
+and create the folder over SSH:
 
 ```bash
 sudo mkdir /usr/local/bin/opennetty
 sudo chmod 777 /usr/local/bin/opennetty
 ```
 
-Once created, you must copy all the files contained in the `.zip` archive under `/usr/local/bin/opennetty`.
-You'll also need to make the `opennetty-daemon` file executable:
+Once the folder has been created, copy all the files contained in the `.zip` archive into `/usr/local/bin/opennetty`.
+You will also need to make the `opennetty-daemon` file executable:
 
 ```bash
 sudo chmod +x /usr/local/bin/opennetty/opennetty-daemon
@@ -101,8 +101,8 @@ sudo chmod +x /usr/local/bin/opennetty/opennetty-daemon
 
 ### Create the systemd service
 
-To ensure the OpenNetty daemon is started and tracked by the operating system, a systemd service must be created under `/etc/systemd/systemd`
-(e.g `/etc/systemd/system/opennetty.service`). For that, you can use your SSH client to create the necessary file:
+To ensure that the OpenNetty daemon is started and tracked by the operating system, a systemd service must be created under `/etc/systemd/system`
+(for example, `/etc/systemd/system/opennetty.service`). To do so, you can use your SSH client to create the required file:
 
 ```bash
 sudo nano /etc/systemd/system/opennetty.service
@@ -132,14 +132,14 @@ sudo systemctl enable opennetty
 ```
 
 > [!TIP]
-> At this point, do not start OpenNetty yet, as you'll first need to add the configuration
+> At this point, do not start OpenNetty yet, as you must first add the configuration
 > file required to communicate with the OpenWebNet gateways and the MQTT broker.
 
 ### Create the configuration file
 
-The OpenNetty daemon relies on a configuration file to locate the OpenWebNet gateways and devices. For that,
-create a new XML file named `configuration.xml` (**make sure to respect the case**) with the following content
-and replace the server/port/username/password attributes to match the values used by your MQTT broker:
+The OpenNetty daemon relies on a configuration file to locate the OpenWebNet gateways and devices. To do so,
+create a new XML file named `configuration.xml` (**make sure to preserve the casing**) with the following content,
+then replace the server/port/username/password attributes with the values used by your MQTT broker:
 
 ```xml
 <Configuration>
@@ -150,12 +150,12 @@ and replace the server/port/username/password attributes to match the values use
 ```
 
 > [!IMPORTANT]
-> Using a code editor like [Visual Studio Code](https://code.visualstudio.com/) greatly simplifies writing the configuration file.
+> Using a code editor such as [Visual Studio Code](https://code.visualstudio.com/) makes writing the configuration file much easier.
 
 > [!TIP]
-> For increased security, OpenNetty supports MQTTS and TLS client authentication: to use TLS, add the necessary `.crt` and `.key` files
+> To improve security, OpenNetty supports MQTTS and TLS client authentication. To use TLS, add the required `.crt` and `.key` files
 > to the OpenNetty folder and set the `TlsServerCertificateAuthorityFile`, `TlsClientCertificateFile` and `TlsClientCertificatePrivateKeyFile`
-> attributes. If necessary, a custom `TlsServerTargetHost` value can also be set:
+> attributes. If necessary, you can also set a custom `TlsServerTargetHost` value:
 >
 > ```xml
 > <Configuration>
@@ -170,17 +170,17 @@ and replace the server/port/username/password attributes to match the values use
 > ```
 
 > [!TIP]
-> Instead of having a single configuration file, you can also split the configuration into multiple files
-> and store them under the `/usr/local/bin/opennetty/configuration` directory: OpenNetty will automatically
-> load all the `.xml` files present in this directory and merge their content together at runtime.
+> Instead of using a single configuration file, you can split the configuration into multiple files
+> and store them under the `/usr/local/bin/opennetty/configuration` directory. OpenNetty will automatically
+> load all the `.xml` files in this directory and merge their contents at runtime.
 
 ### If necessary, change the UI culture used in the MQTT discovery payloads
 
-By default, OpenNetty always uses the user locale as the default UI culture when generating the MQTT discovery payloads used by Home
-Assistant - and other compatible software - to automatically create entities for each supported sensor or action exposed by OpenNetty.
+By default, OpenNetty uses the current user locale as the UI culture when generating the MQTT discovery payloads used by Home
+Assistant (and other compatible software) to automatically create entities for each supported sensor or action exposed by OpenNetty.
 
-If you need to customize the UI culture used, you can set the `HomeAssistantDiscoveryUICulture`
-attribute to a specific value. At the time of writing, both English and French are natively supported:
+If you need to customize the UI culture, you can set the `HomeAssistantDiscoveryUICulture`
+attribute to a specific value. At the time of writing, both English and French are supported natively:
 
 ```xml
 <Configuration>
@@ -193,10 +193,10 @@ attribute to a specific value. At the time of writing, both English and French a
 
 ### Configure the gateways
 
-OpenNetty requires listing the gateways in the configuration file.
+OpenNetty requires you to list the gateways in the configuration file.
 
-For that, you need to add a `Device` node with the correct brand/model attributes for each gateway present in the installation
-and a `Gateway` node containing the gateway details, including its unique name and whether OpenNetty will use a serial or TCP
+To do so, add a `Device` node with the correct brand/model attributes for each gateway present in the installation,
+along with a `Gateway` node containing the gateway details, including whether OpenNetty should use a serial or TCP
 socket to initiate OpenWebNet sessions:
 
 ```xml
@@ -226,42 +226,39 @@ socket to initiate OpenWebNet sessions:
 ```
 
 > [!IMPORTANT]
-> OpenNetty natively supports both the legacy "OPEN authentication" method and the newer – and safer –
-> ["HMAC authentication" mechanism](https://developer.legrand.com/uploads/2019/12/Hmac.pdf) implemented in recent Ethernet-based OpenWebNet gateways (e.g F454).
+> OpenNetty natively supports both the legacy "OPEN authentication" method and the newer and safer
+> ["HMAC authentication" mechanism](https://developer.legrand.com/uploads/2019/12/Hmac.pdf) implemented by recent Ethernet-based OpenWebNet gateways (for example, the F454).
 >
-> While the IPv4 address of the machine running OpenNetty can also be whitelisted via
+> Although the IPv4 address of the machine running OpenNetty can also be whitelisted via
 > [MyHome Suite](https://www.homesystems-legrandgroup.com/home?p_p_id=it_smc_bticino_homesystems_search_AutocompletesearchPortlet&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_it_smc_bticino_homesystems_search_AutocompletesearchPortlet_journalArticleId=2493426&_it_smc_bticino_homesystems_search_AutocompletesearchPortlet_mvcPath=%2Fview_journal_article_content.jsp)
-> to avoid requiring authentication, it is not recommended when using OpenNetty.
+> to avoid requiring authentication, this is not recommended when using OpenNetty.
 
 ### Configure the endpoints
 
-To be able to communicate with "In One by Legrand", "MyHome Play" and "MyHome" devices, OpenNetty requires listing them in the configuration file.
+To communicate with "In One by Legrand", "MyHome Play" and "MyHome" devices, OpenNetty requires you to list them in the configuration file.
 
-For that, you need to add a `Device` node with the correct brand/model attributes for each device present in the installation:
-  - The serial number (or MAC address for Ethernet gateways) is optional but strongly recommended when possible to help identify devices in Home Assistant.
+To do so, add a `Device` node with the correct brand/model attributes for each device present in the installation:
+  - The serial number (or MAC address for Ethernet gateways) is optional, but strongly recommended whenever possible to help identify devices in Home Assistant.
 
-  - The unit node - also known as a "module" in MyHome Suite - is generally required for an endpoint, except when targeting a feature exposed by the device
-  itself and not one of its units: in this case, the endpoint must appear directly under the `Device` node and not under a `Unit` node.
-
-  - The unit MUST match one of the unit identifiers offered by the specific device. If you're unsure what identifier should be used,
-  take a look at [`OpenNettyDevices.xml`](src/OpenNetty/OpenNettyDevices.xml) for the list of all the supported devices and the units they expose.
+  - The unit (also known as a "module" in MyHome Suite) MUST match one of the unit identifiers supported by the device. If you are unsure which identifier
+  should be used, see [`OpenNettyDevices.xml`](src/OpenNetty/OpenNettyDevices.xml) for the list of supported devices and the units they expose.
 
   - For In One by Legrand and MyHome Play devices, units that are not explicitly listed are
-  automatically added by OpenNetty and corresponding endpoints are generated using default names.
+  automatically added by OpenNetty and the corresponding endpoints are generated using default names.
 
   - For MyHome devices, the area/point attributes MUST match the values assigned via [MyHome Suite](https://www.homesystems-legrandgroup.com/home?p_p_id=it_smc_bticino_homesystems_search_AutocompletesearchPortlet&p_p_lifecycle=0&p_p_state=normal&p_p_mode=view&_it_smc_bticino_homesystems_search_AutocompletesearchPortlet_journalArticleId=2493426&_it_smc_bticino_homesystems_search_AutocompletesearchPortlet_mvcPath=%2Fview_journal_article_content.jsp).
 
-  - The endpoint name can be either set explicitly or generated implicitly. In both cases, it will be used to infer the MQTT topic used for the
-  endpoint (e.g state changes dispatched by an endpoint named `Bedroom/Wall light` will be posted under the `opennetty/bedroom/wall light` MQTT topic).
+  - The endpoint name can either be set explicitly or generated implicitly. In both cases, it will be used to derive the MQTT topic for the
+  endpoint (for example, state changes dispatched by an endpoint named `Bedroom/Wall light` will be posted under the `opennetty/bedroom/wall light` MQTT topic).
 
 > [!TIP]
-> You can also add MyHome SCS light point area or group endpoints that are not attached to a specific device, which is the most efficient
-> way to execute unique operations targeting multiple devices at the same time (e.g switching on all the lights of a specific room).
+> You can also add MyHome SCS light point area or group endpoints that are not attached to a specific device. This is the most efficient
+> way to execute a single operation targeting multiple devices at the same time (for example, switching on all the lights in a specific room).
 >
-> In this case, the `Endpoint` node MUST NOT appear under a `Device` node and MUST be assigned a list of
-> `Capability` nodes that will define the set of operations that can be executed on the endpoint.
+> In this case, the `Endpoint` node MUST NOT appear under a `Device` node and MUST contain a list of
+> `Capability` nodes that define the set of operations that can be executed on the endpoint.
 >
-> You can find the complete list of capabilities in the [`OpenNettyCapabilities.cs`](src/OpenNetty/OpenNettyCapabilities.cs) file.
+> You can find the complete list of capabilities in [`OpenNettyCapabilities.cs`](src/OpenNetty/OpenNettyCapabilities.cs).
 
 ```xml
 <Configuration>
@@ -388,35 +385,35 @@ For that, you need to add a `Device` node with the correct brand/model attribute
 
 ### Deploy the configuration file and start the daemon
 
-Once your configuration file is ready, copy it to the folder you created to host OpenNetty's files and start the daemon:
+Once your configuration file is ready, copy it to the folder you created for OpenNetty and start the daemon:
 
 ```bash
 sudo service opennetty start
 ```
 
 > [!TIP]
-> You can use `sudo service opennetty status` to determine if the daemon is correctly running.
+> You can use `sudo service opennetty status` to determine whether the daemon is running correctly.
 >
-> You can also use [MQTT Explorer](http://mqtt-explorer.com/) to ensure state changes are correctly posted
-> to MQTT and trigger commands that will be executed by the In One by Legrand/MyHome Play/MyHome devices.
+> You can also use [MQTT Explorer](http://mqtt-explorer.com/) to verify that state changes are correctly published
+> to MQTT and to trigger commands that will be executed by In One by Legrand, MyHome Playor MyHome devices.
 >
-> For instance, to turn the `Bedroom/Wall light` on, post the `ON` value under the `opennetty/bedroom/wall light/switch_state/set`
-> topic: if the command was correctly executed by the device, the `ON` value will be posted back by OpenNetty under the
+> For example, to turn `Bedroom/Wall light` on, publish the `ON` value to the `opennetty/bedroom/wall light/switch_state/set`
+> topic. If the command was executed successfully by the device, the `ON` value will be published back by OpenNetty to the
 > `opennetty/bedroom/wall light/switch_state` topic.
 >
-> You can also send an empty `opennetty/bedroom/wall light/switch_state/get` message to get the current switch state of the endpoint.
+> You can also send an empty `opennetty/bedroom/wall light/switch_state/get` message to retrieve the current switch state of the endpoint.
 
 > [!IMPORTANT]
-> If your home automation software supports MQTT discovery (like Home Assistant or openHAB), devices should
+> If your home automation software supports MQTT discovery (such as Home Assistant or openHAB), devices should
 > automatically appear with all their supported entities without requiring any additional configuration.
 >
-> If your home automation software requires configuring devices manually, the complete list of supported
-> MQTT attributes can be found in the [`OpenNettyMqttAttributes.cs` file](src/OpenNetty.Mqtt/OpenNettyMqttAttributes.cs).
+> If your home automation software requires devices to be configured manually, the complete list of supported
+> MQTT attributes can be found in [`OpenNettyMqttAttributes.cs`](src/OpenNetty.Mqtt/OpenNettyMqttAttributes.cs).
 
 ### If necessary, change the default log level
 
-By default, OpenNetty always uses `Information` as the default log level. The log level
-can be easily changed by editing the `appsettings.json` file and restarting the daemon:
+By default, OpenNetty uses `Information` as the log level. You can easily change it by editing the `appsettings.json`
+file and restarting the daemon:
 
 ```bash
 sudo nano /usr/local/bin/opennetty/appsettings.json
@@ -441,8 +438,8 @@ sudo service opennetty restart
 
 ### Primitives
 
-To represent raw OpenWebNet frames, OpenNetty exposes 3 low-level structures – `OpenNettyFrame`, `OpenNettyField` and `OpenNettyParameter` – and
-one high-level primitive – `OpenNettyMessage` – that can be used to represent any message type supported by the 3 OpenWebNet specifications:
+To represent raw OpenWebNet frames, OpenNetty exposes three low-level structures—`OpenNettyFrame`, `OpenNettyField` and `OpenNettyParameter`—and
+one higher-level primitive — `OpenNettyMessage` — that can be used to represent any message type supported by the three OpenWebNet specifications:
   - Bus commands.
   - Dimension requests.
   - Dimension reads.
@@ -467,21 +464,23 @@ var (identifier, unit) = OpenNettyAddress.ToNitooAddress(message.Address!.Value)
 
 ### Sessions
 
-The `OpenNettySession` class is the main entry point for **manually communicating** with an OpenWebNet gateway: it takes care
-of initializing the connection and negotiates the desired OpenWebNet session type automatically. If authentication is
-required by the remote gateway, it also takes care of the authentication dance in a completely transparent way.
+The `OpenNettySession` class is the main entry point for **manually communicating** with an OpenWebNet gateway. It takes care
+of initializing the connection and automatically negotiates the desired OpenWebNet session type. If authentication is
+required by the remote gateway, it also handles the authentication flow transparently.
 
-`OpenNettySession` implements `IAsyncObservable<OpenNettyMessage>` and can be natively used with any of the extensions
+`OpenNettySession` implements `IAsyncObservable<OpenNettyMessage>` and can be used natively with any of the extensions
 provided by the [System.Reactive.Async package](https://www.nuget.org/packages/System.Reactive.Async) to filter and
 observe the messages sent by the OpenWebNet gateway.
 
 ```csharp
 var gateway = OpenNettyGateway.Create(
-    brand     : OpenNettyBrand.BTicino,
-    model     : "F454",
-    identifier: OpenNettyDeviceIdentifier.FromMacAddress("00:03:50:A2:27:1B"),
-    endpoint  : IPEndPoint.Parse("192.168.5.10:20000"),
-    password  : "aJhYiBHk8");
+    device  : OpenNettyDevice.Create(
+        brand     : OpenNettyBrand.BTicino,
+        model     : "F454",
+        name      : null,
+        identifier: OpenNettyDeviceIdentifier.FromMacAddress("00:03:50:A2:27:1B")),
+    endpoint: IPEndPoint.Parse("192.168.5.10:20000"),
+    password: "aJhYiBHk8");
 
 await using var session = await OpenNettySession.CreateAsync(gateway, OpenNettySessionType.Event);
 
@@ -493,15 +492,15 @@ await Task.Delay(-1);
 
 ### .NET Generic Host integration
 
-While **sessions can be directly used to communicate with an OpenWebNet gateway, it is not the recommended approach**.
+Although **sessions can be used directly to communicate with an OpenWebNet gateway, this is not the recommended approach**.
 
-Instead, **users are strongly encouraged to leverage OpenNetty's .NET Generic Host integration**: it will register a worker
-for each configured gateway and will dynamically manage sessions, process incoming messages and dispatch outgoing messages.
-It also automatically retransmit failed outgoing messages using a retry policy defined by OpenNetty depending on the type of gateway.
+Instead, **users are strongly encouraged to leverage OpenNetty's .NET Generic Host integration**. It registers a worker
+for each configured gateway and dynamically manages sessions, processes incoming messages and dispatches outgoing messages.
+It also automatically retransmits failed outgoing messages by using a retry policy defined by OpenNetty according to the type of gateway.
 
-Once the OpenNetty services are registered using the dedicated `.AddOpenNetty()` extension, the low-level `IOpenNettyService`
-interface can be leveraged to execute any arbitrary bus command, dimension request, dimension set or status request
-and extract the corresponding response returned by the gateway, if applicable:
+Once the OpenNetty services have been registered by using the dedicated `.AddOpenNetty()` extension, the low-level `IOpenNettyService`
+interface can be used to execute arbitrary bus commands, dimension requests, dimension setsor status requests,
+and to extract the corresponding response returned by the gateway when applicable:
 
 ```csharp
 var builder = Host.CreateApplicationBuilder();
@@ -510,11 +509,13 @@ builder.Services.AddOpenNetty(options =>
 {
     // Register the SCS gateway used to communicate with MyHome devices.
     options.AddGateway(OpenNettyGateway.Create(
-        brand     : OpenNettyBrand.BTicino,
-        model     : "F454",
-        identifier: OpenNettyDeviceIdentifier.FromMacAddress("00:03:50:A2:27:1B"),
-        endpoint  : IPEndPoint.Parse("192.168.5.10:20000"),
-        password  : "aJhYiBHk8"));
+        device  : OpenNettyDevice.Create(
+            brand     : OpenNettyBrand.BTicino,
+            model     : "F454",
+            name      : null,
+            identifier: OpenNettyDeviceIdentifier.FromMacAddress("00:03:50:A2:27:1B")),
+        endpoint: IPEndPoint.Parse("192.168.5.10:20000"),
+        password: "aJhYiBHk8"));
 });
 
 var app = builder.Build();
@@ -528,37 +529,33 @@ await app.StopAsync();
 ```
 
 > [!TIP]
-> While the `IOpenNettyService` service can be very useful to send arbitrary messages or observe specific incoming messages, defining endpoints
-> as shown in the next section and using the strongly-typed APIs offered by `OpenNettyController` when possible is strongly recommended.
+> While the `IOpenNettyService` service can be very useful for sending arbitrary messages or observing specific incoming messages, it is strongly recommended to define endpoints
+> as shown in the next section and to use the strongly typed APIs exposed by `OpenNettyController` whenever possible.
 
 ### Endpoints
 
 **For all its high-level operations, OpenNetty relies on the `OpenNettyEndpoint` class**:
 
-  - An endpoint generally has an address associated (but it's not always true, as gateway endpoints don't have an address attached).
-  - In most cases, an endpoint has a device definition attached from which it resolves the supported functions (like switching on or
-  off a connected load or controlling the brightness level), but it's possible to create endpoints that don't have a device
-  attached, which allows supporting non-device-specific addresses like SCS point-of-light area or group addresses.
-  - Endpoints often have a unit definition attached, but non-unit-specific endpoints can also
-  be created to perform actions that don't target a specific unit (e.g Nitoo device descriptions).
+  - An endpoint generally has an associated address (although this is not always the case, as gateway endpoints do not have an attached address).
+  - In most cases, an endpoint has an attached device definition from which it resolves the supported functions (such as switching
+  a connected load on or off or controlling the brightness level), but it is also possible to create endpoints that do not have a
+  device attached, which makes it possible to support non-device-specific addresses such as SCS light-point area or group addresses.
   - When no unit or device definition is attached, a list of capabilities must be attached
-  to the endpoint before being able to perform actions using the `OpenNettyController` class.
+  to the endpoint before actions can be performed by using the `OpenNettyController` class.
 
 ```csharp
 var builder = Host.CreateApplicationBuilder();
 
 builder.Services.AddOpenNetty(options =>
 {
-    var gateway = OpenNettyGateway.Create(
-        brand     : OpenNettyBrand.BTicino,
-        model     : "F454",
-        identifier: OpenNettyDeviceIdentifier.FromMacAddress("00:03:50:A2:27:1B"),
-        endpoint  : IPEndPoint.Parse("192.168.5.10:20000"),
-        password  : "aJhYiBHk8");
-
-    options.AddGateway(gateway);
-
-    var definition = OpenNettyDevices.GetDeviceDefinitionByModel(OpenNettyBrand.BTicino, "F418U2");
+    options.AddGateway(OpenNettyGateway.Create(
+        device  : OpenNettyDevice.Create(
+            brand     : OpenNettyBrand.BTicino,
+            model     : "F454",
+            name      : null,
+            identifier: OpenNettyDeviceIdentifier.FromMacAddress("00:03:50:A2:27:1B")),
+        endpoint: IPEndPoint.Parse("192.168.5.10:20000"),
+        password: "aJhYiBHk8"));
 
     options.AddEndpoint(new OpenNettyEndpoint
     {
@@ -569,18 +566,11 @@ builder.Services.AddOpenNetty(options =>
             group    : null,
             area     : 1,
             point    : 3),
-        Device = new OpenNettyDevice
-        {
-            Definition = definition,
-            Identifier = OpenNettyDeviceIdentifier.FromScsSerialNumber("00B582A5"),
-            Identity = definition.GetIdentity(OpenNettyBrand.BTicino, "F418U2"),
-            Name = "BTicino F418U2 (00B582A5)"
-        },
-        Gateway = gateway,
-        Unit = new OpenNettyUnit
-        {
-            Definition = definition.GetUnitDefinition(1)
-        },
+        Unit = OpenNettyDevice.Create(
+            brand     : OpenNettyBrand.BTicino,
+            model     : "F418U2",
+            name      : "BTicino F418U2 (00B582A5)",
+            identifier: OpenNettyDeviceIdentifier.FromScsSerialNumber("00B582A5")).GetUnit(1),
         Name = "Bathroom/Recessed light",
         Protocol = OpenNettyProtocol.Scs
     });
@@ -595,7 +585,6 @@ builder.Services.AddOpenNetty(options =>
             area     : 1,
             point    : null),
         Capabilities = [OpenNettyCapabilities.OnOffSwitchControl],
-        Gateway = gateway,
         Name = "Bathroom/All lights",
         Protocol = OpenNettyProtocol.Scs
     });
@@ -623,9 +612,9 @@ await app.StopAsync();
 ### Events
 
 To infer high-level state changes affecting registered endpoints, OpenNetty includes a built-in `OpenNettyCoordinator` service that monitors
-all the incoming messages sent by the configured gateways and invokes the corresponding events exposed by the `OpenNettyEvents` class.
+all incoming messages sent by the configured gateways and invokes the corresponding events exposed by the `OpenNettyEvents` class.
 
-By implementing the `IOpenNettyHandler` interface, it is possible to subscribe to any event before incoming frames start being processed:
+By implementing the `IOpenNettyHandler` interface, it is possible to subscribe to any event before incoming frames begin to be processed:
 
 ```csharp
 var builder = Host.CreateApplicationBuilder();
@@ -660,13 +649,13 @@ class MyEventHandler(OpenNettyEvents events) : IOpenNettyHandler
 ## Nitoo scenarios
 
 Unlike SCS and Zigbee gateways, the Nitoo PLC/USB gateway never reports state changes
-indirectly affecting Nitoo devices associated using a `Push & Learn` scenario (PnL).
+that indirectly affect Nitoo devices associated by using a `Push & Learn` scenario (PnL).
 
 > [!TIP]
-> These scenarios are exclusively stored in the memory of each associated unit alongside a
-> `Function code` representing the desired outcome (e.g setting the brightness to 50%).
+> These scenarios are stored exclusively in the memory of each associated unit, alongside a
+> `Function code` representing the desired outcome (for example, setting the brightness to 50%).
 
-To allow OpenNetty to propagate state changes triggered by Nitoo scenarios, each unit triggering scenarios resulting in a state
+To allow OpenNetty to propagate state changes triggered by Nitoo scenarios, each unit that triggers scenarios resulting in a state
 change MUST include one or more `<Scenario>` node(s) indicating the name of the affected endpoint and the Nitoo function code:
 
 ```xml
@@ -701,11 +690,11 @@ change MUST include one or more `<Scenario>` node(s) indicating the name of the 
 
 > [!NOTE]
 > Unfortunately, the Nitoo function codes are not documented by Legrand/BTicino. To work around this limitation,
-> the memory of already-configured powerline-based Nitoo units can be retrieved via Home Assistant using the
-> "Get scenarios stored in memory" button: scenarios are stored as additional attributes and can be accessed via
-> the "⋮ → Details" menu under the "Scenarios stored in memory" sensor.
+> the memory of already configured powerline-based Nitoo units can be retrieved through Home Assistant by using the
+> "Get scenarios stored in memory" button. The scenarios are stored as additional attributes and can be accessed from
+> the "⋮ → Details" menu of the "Scenarios stored in memory" sensor.
 >
-> Alternatively, the same information can be retrieved programmatically using the `OpenNettyController.GetMemoryDataAsync()` API:
+> Alternatively, the same information can be retrieved programmatically by using the `OpenNettyController.GetMemoryDataAsync()` API:
 >
 > ```csharp
 > var builder = Host.CreateApplicationBuilder();
@@ -757,10 +746,10 @@ change MUST include one or more `<Scenario>` node(s) indicating the name of the 
 
 ## Advanced settings
 
-OpenNetty allows attaching specific settings to endpoints to control how events are handled or how commands are sent.
-While using the default settings is generally enough, it can be useful to override them for some endpoints.
+OpenNetty allows specific settings to be attached to endpoints to control how events are handled or how commands are sent.
+Although the default settings are generally sufficient, overriding them can be useful for some endpoints.
 
-Settings can be attached programmatically or via the configuration file to devices, units or endpoints. E.g:
+Settings can be attached programmatically or through the configuration file to devices, unitsor endpoints. For example:
 
 ```xml
 <Device Brand="Legrand" Model="67222" SerialNumber="487932">
@@ -773,34 +762,36 @@ Settings can be attached programmatically or via the configuration file to devic
 ```
 
 ```csharp
-var definition = OpenNettyDevices.GetDeviceDefinitionByModel(OpenNettyBrand.Legrand, "67222");
+var builder = Host.CreateApplicationBuilder();
 
-options.AddEndpoint(new OpenNettyEndpoint
+builder.Services.AddOpenNetty(options =>
 {
-    Address = OpenNettyAddress.FromNitooAddress(identifier: 487932, unit: 4),
-    Device = new OpenNettyDevice
+    var device = OpenNettyDevice.Create(
+        brand     : OpenNettyBrand.Legrand,
+        model     : "67222",
+        name      : "Legrand 67222 (487932)",
+        identifier: OpenNettyDeviceIdentifier.FromNitooSerialNumber(487932));
+
+    // Note: the properties of the device (or of its units) can be freely mutated
+    // until the configuration is finalized and the device is marked as read-only.
+    device.Settings = device.Settings.Add(OpenNettySettings.ActionValidation, bool.FalseString);
+
+    var endpoint = new OpenNettyEndpoint
     {
-        Definition = definition,
-        Identifier = OpenNettyDeviceIdentifier.FromNitooSerialNumber(487932),
-        Identity = definition.GetIdentity(OpenNettyBrand.Legrand, "67222"),
-        Name = "Legrand 67222 (487932)",
-        Settings = ImmutableDictionary.Create<OpenNettySetting, string>()
-            .Add(OpenNettySettings.ActionValidation, bool.FalseString)
-    },
-    Gateway = gateway,
-    Name = "Kitchen/Dimmable socket",
-    Protocol = OpenNettyProtocol.Nitoo,
-    Unit = new OpenNettyUnit
-    {
-        Definition = definition.GetUnitDefinition(4)
-    }
+        Address = OpenNettyAddress.FromNitooAddress(identifier: 487932, unit: 4),
+        Name = "Kitchen/Dimmable socket",
+        Protocol = OpenNettyProtocol.Nitoo,
+        Unit = device.GetUnit(4)
+    };
+
+    options.AddEndpoint(endpoint);
 });
 ```
 
 ### Function type (SCS-only)
 
 Many MyHome devices can be configured to implement different features, such as shutter control or scenario activation.
-In some cases (e.g when an actuator is known to support both light and automation modes), OpenNetty requires that the function type be specified:
+In some cases (for example, when an actuator is known to support both light and automation modes), OpenNetty requires the function type to be specified:
 
 ```xml
 <Device Brand="BTicino" Model="F411U2" SerialNumber="00B582A5">
@@ -822,17 +813,17 @@ In some cases (e.g when an actuator is known to support both light and automatio
 
 ### Action validation (Nitoo-only, powerline-only)
 
-As they operate over an unreliable medium (i.e power lines), Nitoo PLC devices may not always receive the messages sent by the
-OpenWebNet gateway. To mitigate that, these devices automatically report back whether a bus command or dimension set demand
-was successfully applied or not using special VALID ACTION or INVALID ACTION diagnostic frames: OpenNetty monitors these
-frames to determine whether the requested action was actually performed: when no confirmation is received, the initial message
-is automatically retransmitted by OpenNetty until the maximum number of allowed retransmissions is reached (2 by default) or
-the demand is confirmed by the remote device. If no positive confirmation is received, the command is assumed to be unsuccessful
-and the state of the endpoint is assumed to be unchanged: for instance, when sending an ON command, the `SwitchStateReported`
-event will not be triggered if the end device didn't report the command was succesful after the allowed number of retransmissions.
+Because they operate over an unreliable medium (that is, power lines), Nitoo PLC devices may not always receive the messages sent by the
+OpenWebNet gateway. To mitigate this, these devices automatically report whether a bus command or dimension-set request
+was applied successfully by using special VALID ACTION or INVALID ACTION diagnostic frames. OpenNetty monitors these
+frames to determine whether the requested action was actually performed. When no confirmation is received, the initial message
+is automatically retransmitted by OpenNetty until the maximum number of allowed retransmissions is reached (2 by default)or until
+the request is confirmed by the remote device. If no positive confirmation is received, the command is assumed to have failed,
+and the state of the endpoint is assumed to be unchanged. For example, when sending an ON command, the `SwitchStateReported`
+event will not be triggered if the end device does not report that the command was successful after the allowed number of retransmissions.
 
-When necessary (e.g because a specific endpoint is known to have issues reporting frames back), this mechanism can be disabled:
-in this case, every command is assumed to be successful (which is similar to Home Assistant's optimistic mode):
+When necessary (for example, because a specific endpoint is known to have issues reporting frames back), this mechanism can be disabled.
+In that case, every command is assumed to be successful, which is similar to Home Assistant's optimistic mode:
 
 ```xml
 <Device Brand="Legrand" Model="67222" SerialNumber="487932">
@@ -846,11 +837,11 @@ in this case, every command is assumed to be successful (which is similar to Hom
 
 ### Switch mode
 
-Using MyHome Suite, SCS devices can be configured to use a special PUL mode. When doing so, these devices basically work as
-push buttons: they no longer react to area or general commands and automatically move back to the OFF state after being activated.
+Using MyHome Suite, SCS devices can be configured to use a special PUL mode. When enabled, these devices essentially behave like
+push buttons: they no longer react to area or general commands and automatically return to the OFF state after being activated.
 
-When using the PUL mode, it is strongly recommended to configure affected endpoints to use the `Push button`
-switch mode so that OpenNetty can properly report the OFF state and ignore area and general commands.
+When using PUL mode, it is strongly recommended to configure the affected endpoints to use the `Push button`
+switch mode so that OpenNetty can correctly report the OFF state and ignore area and general commands.
 
 ```xml
 <Device Brand="BTicino" Model="F411U1" SerialNumber="0019BF87">
@@ -869,14 +860,14 @@ switch mode so that OpenNetty can properly report the OFF state and ignore area 
 
 ## Security policy
 
-Security issues and bugs should be reported privately by emailing contact@kevinchalet.com.
-You should receive a response within 24 hours. If for some reason you do not, please follow up via email to ensure we received your original message.
+Security issues and bugs should be reported privately by email to contact@kevinchalet.com.
+You should receive a response within 24 hours. If you do not, please follow up by email to ensure that your original message was received.
 
 --------------
 
 ## Contributors
 
-**OpenNetty** is actively maintained by **[Kévin Chalet](https://github.com/kevinchalet)**. Contributions are welcome and can be submitted using pull requests.
+**OpenNetty** is actively maintained by **[Kévin Chalet](https://github.com/kevinchalet)**. Contributions are welcome and may be submitted through pull requests.
 
 --------------
 

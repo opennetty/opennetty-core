@@ -7,7 +7,6 @@
 using System.Collections.Immutable;
 using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
-using System.Globalization;
 using System.IO.Ports;
 using System.Net;
 using System.Xml.Linq;
@@ -178,236 +177,73 @@ public sealed class OpenNettyBuilder
 
         return Configure(options =>
         {
-            foreach (var gateway in documents.SelectMany(static document => document.Root!.Elements("Device").Elements("Gateway")))
-            {
-                var device = GetDevice(options.Gateways, gateway.Parent ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0073)));
+            // Note: endpoint nodes are allowed to appear directly under the root configuration
+            // node, or nested within a unit node that is itself nested within a device node.
 
-                options.Gateways.Add((string?) gateway.Attribute("Type") switch
+            foreach (var element in documents.SelectMany(static document => document.Root!.Elements("Device")))
+            {
+                var device = CreateDevice(element);
+
+                // Attach the settings to the device.
+                device.Settings = CreateSettings(element);
+
+                // If an explicit gateway name was specified, find the corresponding gateway and attach it.
+                var name = (string?) element.Attribute("GatewayName");
+                if (!string.IsNullOrEmpty(name))
                 {
-                    "Serial" => OpenNettyGateway.Create(
-                        device: device,
-                        port  : new SerialPort(
-                            portName: (string?) gateway.Attribute("Port") ?? throw new InvalidOperationException(SR.FormatID0075("Port")),
-                            baudRate: (int?) gateway.Attribute("BaudRate") switch
-                            {
-                                int value => value,
-
-                                null when device.Definition.Settings.TryGetValue(OpenNettySettings.SerialPortBaudRate, out string? setting)
-                                    => int.Parse(setting, CultureInfo.InvariantCulture),
-
-                                null => throw new InvalidOperationException(SR.FormatID0075("BaudRate")),
-                            },
-                            parity: (string?) gateway.Attribute("Parity") switch
-                            {
-                                "None"  => Parity.None,
-                                "Odd"   => Parity.Odd,
-                                "Even"  => Parity.Even,
-                                "Mark"  => Parity.Mark,
-                                "Space" => Parity.Space,
-
-                                null when device.Definition.Settings.TryGetValue(OpenNettySettings.SerialPortParity, out string? setting)
-                                    => setting switch
-                                    {
-                                        "None"  => Parity.None,
-                                        "Odd"   => Parity.Odd,
-                                        "Even"  => Parity.Even,
-                                        "Mark"  => Parity.Mark,
-                                        "Space" => Parity.Space,
-
-                                        string value => throw new InvalidOperationException(SR.FormatID0093(value))
-                                    },
-
-                                null or { Length: 0 } => throw new InvalidOperationException(SR.FormatID0075("Parity")),
-
-                                string value => throw new InvalidOperationException(SR.FormatID0093(value))
-                            },
-                            dataBits: (int?) gateway.Attribute("DataBits") switch
-                            {
-                                int value => value,
-
-                                null when device.Definition.Settings.TryGetValue(OpenNettySettings.SerialPortDataBits, out string? setting)
-                                    => int.Parse(setting, CultureInfo.InvariantCulture),
-
-                                null => throw new InvalidOperationException(SR.FormatID0075("DataBits")),
-                            },
-                            stopBits: (string?) gateway.Attribute("StopBits") switch
-                            {
-                                "1"   => StopBits.One,
-                                "1.5" => StopBits.OnePointFive,
-                                "2"   => StopBits.Two,
-
-                                null when device.Definition.Settings.TryGetValue(OpenNettySettings.SerialPortStopBits, out string? setting)
-                                    => setting switch
-                                    {
-                                        "1"   => StopBits.One,
-                                        "1.5" => StopBits.OnePointFive,
-                                        "2"   => StopBits.Two,
-
-                                        string value => throw new InvalidOperationException(SR.FormatID0094(value))
-                                    },
-
-                                null or { Length: 0 } => throw new InvalidOperationException(SR.FormatID0075("StopBits")),
-
-                                string value => throw new InvalidOperationException(SR.FormatID0094(value))
-                            })),
-
-                    "Tcp" when IPAddress.TryParse((string?) gateway.Attribute("Server"), out IPAddress? address)
-                        => OpenNettyGateway.Create(
-                            device  : device,
-                            endpoint: new IPEndPoint(address, port: (int?) gateway.Attribute("Port") ?? 20_000),
-                            password: (string?) gateway.Attribute("Password")),
-
-                    "Tcp" => OpenNettyGateway.Create(
-                        device  : device,
-                        endpoint: new DnsEndPoint(
-                            host: (string?) gateway.Attribute("Server") ?? throw new InvalidOperationException(SR.FormatID0076("Server")),
-                            port: (int?) gateway.Attribute("Port") ?? 20_000),
-                        password: (string?) gateway.Attribute("Password")),
-
-                    null or { Length: 0 } => throw new InvalidOperationException(SR.FormatID0074("Type")),
-
-                    _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0077))
-                });
-            }
-
-            foreach (var device in documents.SelectMany(static document => document.Root!.Elements("Device")))
-            {
-                options.Devices.Add(GetDevice(options.Gateways, device));
-            }
-
-            // Note: endpoint nodes are allowed to appear directly under the root configuration node,
-            // nested within a device node or nested within a unit node that is nested within a device node.
-            foreach (var endpoint in documents.SelectMany(static document => document.Root!.Elements("Endpoint"))
-                .Concat(documents.SelectMany(static document => document.Root!.Elements("Device").Elements("Endpoint")))
-                .Concat(documents.SelectMany(static document => document.Root!.Elements("Device").Elements("Unit").Elements("Endpoint"))))
-            {
-                var name = (string?) endpoint.Attribute("Name");
-
-                var device = endpoint.Parent?.Name == "Device"
-                    ? GetDevice(options.Gateways, endpoint.Parent)
-                    : endpoint.Parent?.Name == "Unit" && endpoint.Parent.Parent?.Name == "Device"
-                        ? GetDevice(options.Gateways, endpoint.Parent.Parent)
-                        : null;
-
-                var unit = device is not null && endpoint.Parent?.Name == "Unit"
-                    ? GetUnit(device.Definition, endpoint.Parent)
-                    : null;
-
-                var type = (string?) endpoint.Attribute("Type") switch
-                {
-                    "Nitoo"             => OpenNettyAddressType.Nitoo,
-                    "SCS dry contact"   => OpenNettyAddressType.ScsDryContact,
-                    "SCS light point"   => OpenNettyAddressType.ScsLightPoint,
-                    "SCS scenario plus" => OpenNettyAddressType.ScsScenarioPlus,
-                    "Zigbee"            => OpenNettyAddressType.Zigbee,
-
-                    // Try to infer common address types if no explicit type was specified.
-                    null => device?.Definition.Protocol switch
+                    if (device.GetUnit(0).HasCapability(OpenNettyCapabilities.OpenWebNetGateway))
                     {
-                        // Note: gateway endpoints don't have an address attached.
-                        _ when device is not null && device.Definition.HasCapability(OpenNettyCapabilities.OpenWebNetGateway)
-                            => null as OpenNettyAddressType?,
+                        throw new InvalidOperationException(SR.FormatID0135("GatewayName"));
+                    }
 
-                        OpenNettyProtocol.Nitoo  => OpenNettyAddressType.Nitoo,
-                        OpenNettyProtocol.Zigbee => OpenNettyAddressType.Zigbee,
+                    device.Gateway = FindGatewayByName(options.Gateways, name);
+                }
 
-                        // Note: SCS units/modules supporting ON/OFF switching or shutter
-                        // control are assumed to use SCS light point addresses by default.
-                        OpenNettyProtocol.Scs when unit is not null &&
-                            (unit.HasCapability(OpenNettyCapabilities.OnOffSwitchControl) ||
-                             unit.HasCapability(OpenNettyCapabilities.BasicShutterControl) ||
-                             unit.HasCapability(OpenNettyCapabilities.AdvancedShutterControl))
-                            => OpenNettyAddressType.ScsLightPoint,
-
-                        _ => throw new InvalidOperationException(SR.FormatID0080(name, "Type"))
-                    },
-
-                    string value => throw new InvalidOperationException(SR.FormatID0079(value))
-                };
-
-                var protocol = type switch
+                foreach (var gateway in element.Elements("Gateway"))
                 {
-                    OpenNettyAddressType.Nitoo => OpenNettyProtocol.Nitoo,
+                    options.Gateways.Add(CreateGateway(device, gateway));
+                }
 
-                    OpenNettyAddressType.ScsDryContact or
-                    OpenNettyAddressType.ScsLightPoint or
-                    OpenNettyAddressType.ScsScenarioPlus => OpenNettyProtocol.Scs,
-
-                    OpenNettyAddressType.Zigbee => OpenNettyProtocol.Zigbee,
-
-                    null => device?.Definition.Protocol ?? throw new InvalidOperationException(SR.FormatID0080(name, "Type")),
-
-                    _ => throw new InvalidOperationException(SR.FormatID0080(name, "Type"))
-                };
-
-                var address = type switch
+                foreach (var unit in element.Elements("Unit"))
                 {
-                    OpenNettyAddressType.Nitoo when (uint?) endpoint.Attribute("Id") is uint identifier
-                        => OpenNettyAddress.FromNitooAddress(
-                            identifier: identifier,
-                            unit      : (byte?) (uint?) endpoint.Attribute("Unit") ?? unit?.Definition.Id ?? 0),
+                    var identifier = (byte?) (uint?) unit.Attribute("Id")
+                        ?? throw new InvalidOperationException(SR.FormatID0078("Id"));
 
-                    OpenNettyAddressType.Nitoo when device?.Identifier is OpenNettyDeviceIdentifier identifier
-                        => OpenNettyAddress.FromNitooAddress(
-                            identifier: identifier,
-                            unit      : (byte?) (uint?) endpoint.Attribute("Unit") ?? unit?.Definition.Id ?? 0),
+                    // Attach the scenarios and settings to the unit.
+                    device.GetUnit(identifier).Scenarios = [.. unit.Elements("Scenario").Select(CreateScenario)];
+                    device.GetUnit(identifier).Settings = CreateSettings(unit);
 
-                    OpenNettyAddressType.ScsDryContact when (byte?) (uint?) endpoint.Attribute("Id") is byte identifier
-                        => OpenNettyAddress.FromScsDryContactAddress(identifier),
+                    foreach (var endpoint in unit.Elements("Endpoint"))
+                    {
+                        options.Endpoints.Add(CreateEndpoint(device.GetUnit(identifier), endpoint));
+                    }
+                }
 
-                    OpenNettyAddressType.ScsLightPoint => OpenNettyAddress.FromScsLightPointAddress(
-                        extension: (byte?) (uint?) endpoint.Attribute("Extension") ?? 0,
-                        general  : (bool?) endpoint.Attribute("General") ?? false,
-                        group    : (byte?) (uint?) endpoint.Attribute("Group"),
-                        area     : (byte?) (uint?) endpoint.Attribute("Area"),
-                        point    : (byte?) (uint?) endpoint.Attribute("Point")),
+                options.Devices.Add(device);
+            }
 
-                    OpenNettyAddressType.ScsScenarioPlus when (ushort?) (uint?) endpoint.Attribute("Id") is ushort identifier
-                        => OpenNettyAddress.FromScsScenarioPlusAddress(identifier),
+            foreach (var element in documents.SelectMany(static document => document.Root!.Elements("Endpoint")))
+            {
+                var endpoint = CreateEndpoint(null, element);
 
-                    OpenNettyAddressType.Zigbee when (string?) endpoint.Attribute("Id") is string identifier
-                        => OpenNettyAddress.FromHexadecimalZigbeeAddress(
-                            identifier: identifier,
-                            unit      : (byte?) (uint?) endpoint.Attribute("Unit") ?? unit?.Definition.Id ?? 0),
-
-                    OpenNettyAddressType.Zigbee when device?.Identifier is OpenNettyDeviceIdentifier identifier
-                        => OpenNettyAddress.FromZigbeeAddress(
-                            identifier: identifier,
-                            unit      : (byte?) (uint?) endpoint.Attribute("Unit") ?? unit?.Definition.Id ?? 0),
-
-                    null => (OpenNettyAddress?) null,
-
-                    _ => throw new InvalidOperationException(SR.FormatID0080(name, "Type"))
-                };
-
-                options.Endpoints.Add(new OpenNettyEndpoint
+                // If an explicit gateway name was specified, find the corresponding gateway and attach it.
+                var name = (string?) element.Attribute("GatewayName");
+                if (!string.IsNullOrEmpty(name))
                 {
-                    Address = address,
-                    Capabilities = GetCapabilities(endpoint),
-                    Device = device,
-                    Gateway = device is not null && device.HasCapability(OpenNettyCapabilities.OpenWebNetGateway)
-                        ? options.Gateways.Single(gateway => gateway.Device == device)
-                        : (string?) endpoint.Attribute("GatewayName") is string gateway
-                            ? FindGatewayByName(options.Gateways, gateway)
-                            : device?.Gateway
-                                ?? options.Gateways.FirstOrDefault(gateway => gateway.Protocol == protocol)
-                                ?? throw new InvalidOperationException(SR.FormatID0106(protocol)),
-                    Medium = device?.Definition.Medium,
-                    Name = name ?? OpenNettyUtilities.ComputeDefaultEndpointName(protocol, address, device, unit),
-                    Protocol = protocol,
-                    Settings = GetSettings(endpoint),
-                    Unit = unit
-                });
+                    endpoint.Gateway = FindGatewayByName(options.Gateways, name);
+                }
+
+                options.Endpoints.Add(endpoint);
             }
         });
 
-        static ImmutableHashSet<OpenNettyCapability> GetCapabilities(XElement element) =>
-            element.Elements("Capability")
-                   .Select(static element => (string?) element.Attribute("Name") ?? throw new InvalidOperationException(SR.FormatID0083("Name")))
-                   .Select(static name => new OpenNettyCapability(name))
-                   .ToImmutableHashSet();
+        static ImmutableHashSet<OpenNettyCapability> CreateCapabilities(XElement element)
+            => element.Elements("Capability")
+                      .Select(static element => (string?) element.Attribute("Name") ?? throw new InvalidOperationException(SR.FormatID0083("Name")))
+                      .Select(static name => new OpenNettyCapability(name))
+                      .ToImmutableHashSet();
 
-        static OpenNettyDevice GetDevice(IReadOnlyList<OpenNettyGateway> gateways, XElement element)
+        static OpenNettyDevice CreateDevice(XElement element)
         {
             if (!Enum.TryParse((string?) element.Attribute("Brand"), out OpenNettyBrand brand))
             {
@@ -421,43 +257,12 @@ public sealed class OpenNettyBuilder
             }
 
             var definition = OpenNettyDevices.GetDeviceDefinitionByModel(brand, model);
-            var identity = definition.GetIdentity(brand, model);
-            var identifier = GetDeviceIdentifier(definition, element);
+            var identifier = CreateDeviceIdentifier(definition, element);
 
-            var name = (string?) element.Attribute("Name");
-            if (string.IsNullOrEmpty(name))
-            {
-                if (identifier is null)
-                {
-                    throw new InvalidOperationException(SR.FormatID0108("Name", "SerialNumber", "MacAddress"));
-                }
-
-                name = $"{Enum.GetName(identity.Brand)} {identity.Model} ({identifier})";
-            }
-
-            var gateway = definition.HasCapability(OpenNettyCapabilities.OpenWebNetGateway)
-                ? null
-                : (string?) element.Attribute("GatewayName") switch
-                {
-                    string value => FindGatewayByName(gateways, value),
-
-                    _ => gateways.FirstOrDefault(gateway => gateway.Protocol == definition.Protocol)
-                        ?? throw new InvalidOperationException(SR.FormatID0106(definition.Protocol))
-                };
-
-            return new OpenNettyDevice
-            {
-                Definition = definition,
-                Gateway = gateway,
-                Identifier = identifier,
-                Identity = identity,
-                Name = name,
-                Settings = GetSettings(element),
-                Units = [.. element.Elements("Unit").Select(element => GetUnit(definition, element))]
-            };
+            return OpenNettyDevice.Create(brand, model, (string?) element.Attribute("Name"), identifier);
         }
 
-        static OpenNettyDeviceIdentifier? GetDeviceIdentifier(OpenNettyDeviceDefinition definition, XElement element)
+        static OpenNettyDeviceIdentifier? CreateDeviceIdentifier(OpenNettyDeviceDefinition definition, XElement element)
         {
             if (definition.Protocol is OpenNettyProtocol.Nitoo)
             {
@@ -495,29 +300,206 @@ public sealed class OpenNettyBuilder
             return null;
         }
 
-        static ImmutableDictionary<OpenNettySetting, string> GetSettings(XElement element) =>
-            element.Elements("Setting").ToImmutableDictionary(
-                static element => new OpenNettySetting((string?) element.Attribute("Name") ?? throw new InvalidOperationException(SR.FormatID0086("Name"))),
-                static element => (string?) element.Attribute("Value") ?? throw new InvalidOperationException(SR.FormatID0086("Name")));
+        static OpenNettyEndpoint CreateEndpoint(OpenNettyUnit? unit, XElement element)
+        {
+            var name = (string?) element.Attribute("Name");
 
-        static OpenNettyScenario GetScenario(XElement element) => new()
+            var type = (string?) element.Attribute("Type") switch
+            {
+                "Nitoo"             => OpenNettyAddressType.Nitoo,
+                "SCS dry contact"   => OpenNettyAddressType.ScsDryContact,
+                "SCS light point"   => OpenNettyAddressType.ScsLightPoint,
+                "SCS scenario plus" => OpenNettyAddressType.ScsScenarioPlus,
+                "Zigbee"            => OpenNettyAddressType.Zigbee,
+
+                // Try to infer common address types if no explicit type was specified.
+                null => unit?.Device.Definition.Protocol switch
+                {
+                    // Note: gateway endpoints don't have an address attached.
+                    _ when unit?.Device is not null && unit.Device.GetUnit(0).HasCapability(OpenNettyCapabilities.OpenWebNetGateway)
+                        => null as OpenNettyAddressType?,
+
+                    OpenNettyProtocol.Nitoo  => OpenNettyAddressType.Nitoo,
+                    OpenNettyProtocol.Zigbee => OpenNettyAddressType.Zigbee,
+
+                    // Note: SCS units/modules supporting ON/OFF switching or shutter
+                    // control are assumed to use SCS light point addresses by default.
+                    OpenNettyProtocol.Scs when unit is not null &&
+                        (unit.HasCapability(OpenNettyCapabilities.OnOffSwitchControl) ||
+                         unit.HasCapability(OpenNettyCapabilities.BasicShutterControl) ||
+                         unit.HasCapability(OpenNettyCapabilities.AdvancedShutterControl))
+                        => OpenNettyAddressType.ScsLightPoint,
+
+                    _ => throw new InvalidOperationException(SR.FormatID0080(name, "Type"))
+                },
+
+                string value => throw new InvalidOperationException(SR.FormatID0079(value))
+            };
+
+            var protocol = type switch
+            {
+                OpenNettyAddressType.Nitoo => OpenNettyProtocol.Nitoo,
+
+                OpenNettyAddressType.ScsDryContact or
+                OpenNettyAddressType.ScsLightPoint or
+                OpenNettyAddressType.ScsScenarioPlus => OpenNettyProtocol.Scs,
+
+                OpenNettyAddressType.Zigbee => OpenNettyProtocol.Zigbee,
+
+                null => unit?.Device.Definition.Protocol ?? throw new InvalidOperationException(SR.FormatID0080(name, "Type")),
+
+                _ => throw new InvalidOperationException(SR.FormatID0080(name, "Type"))
+            };
+
+            var address = type switch
+            {
+                OpenNettyAddressType.Nitoo when (uint?) element.Attribute("Id") is uint identifier
+                    => OpenNettyAddress.FromNitooAddress(
+                        identifier: identifier,
+                        unit      : (byte?) (uint?) element.Attribute("Unit") ?? unit?.Definition.Id ?? 0),
+
+                OpenNettyAddressType.Nitoo when unit?.Device?.Identifier is OpenNettyDeviceIdentifier identifier
+                    => OpenNettyAddress.FromNitooAddress(
+                        identifier: identifier,
+                        unit      : (byte?) (uint?) element.Attribute("Unit") ?? unit?.Definition.Id ?? 0),
+
+                OpenNettyAddressType.ScsDryContact when (byte?) (uint?) element.Attribute("Id") is byte identifier
+                    => OpenNettyAddress.FromScsDryContactAddress(identifier),
+
+                OpenNettyAddressType.ScsLightPoint => OpenNettyAddress.FromScsLightPointAddress(
+                    extension: (byte?) (uint?) element.Attribute("Extension") ?? 0,
+                    general  : (bool?) element.Attribute("General") ?? false,
+                    group    : (byte?) (uint?) element.Attribute("Group"),
+                    area     : (byte?) (uint?) element.Attribute("Area"),
+                    point    : (byte?) (uint?) element.Attribute("Point")),
+
+                OpenNettyAddressType.ScsScenarioPlus when (ushort?) (uint?) element.Attribute("Id") is ushort identifier
+                    => OpenNettyAddress.FromScsScenarioPlusAddress(identifier),
+
+                OpenNettyAddressType.Zigbee when (string?) element.Attribute("Id") is string identifier
+                    => OpenNettyAddress.FromHexadecimalZigbeeAddress(
+                        identifier: identifier,
+                        unit      : (byte?) (uint?) element.Attribute("Unit") ?? unit?.Definition.Id ?? 0),
+
+                OpenNettyAddressType.Zigbee when unit?.Device?.Identifier is OpenNettyDeviceIdentifier identifier
+                    => OpenNettyAddress.FromZigbeeAddress(
+                        identifier: identifier,
+                        unit      : (byte?) (uint?) element.Attribute("Unit") ?? unit?.Definition.Id ?? 0),
+
+                null => (OpenNettyAddress?) null,
+
+                _ => throw new InvalidOperationException(SR.FormatID0080(name, "Type"))
+            };
+
+            return new OpenNettyEndpoint
+            {
+                Address = address,
+                Capabilities = CreateCapabilities(element),
+                Medium = unit?.Device?.Definition.Medium,
+                Name = name ?? OpenNettyUtilities.ComputeDefaultEndpointName(protocol, address, unit),
+                Protocol = protocol,
+                Settings = CreateSettings(element),
+                Unit = unit
+            };
+        }
+
+        static OpenNettyGateway CreateGateway(OpenNettyDevice device, XElement element) => (string?) element.Attribute("Type") switch
+        {
+            "Serial" => OpenNettyGateway.Create(
+                device: device,
+                port  : new SerialPort(
+                    portName: (string?) element.Attribute("Port") ?? throw new InvalidOperationException(SR.FormatID0075("Port")),
+                    baudRate: (int?) element.Attribute("BaudRate") switch
+                    {
+                        int value => value,
+
+                        null when device.Definition.GetUnitDefinition(0).GetIntegerSetting(OpenNettySettings.SerialPortBaudRate) is long setting
+                            => (int) setting,
+
+                        null => throw new InvalidOperationException(SR.FormatID0075("BaudRate")),
+                    },
+                    parity: (string?) element.Attribute("Parity") switch
+                    {
+                        "None"  => Parity.None,
+                        "Odd"   => Parity.Odd,
+                        "Even"  => Parity.Even,
+                        "Mark"  => Parity.Mark,
+                        "Space" => Parity.Space,
+
+                        null when device.Definition.GetUnitDefinition(0).GetStringSetting(OpenNettySettings.SerialPortParity) is string value
+                            => value switch
+                            {
+                                "None"  => Parity.None,
+                                "Odd"   => Parity.Odd,
+                                "Even"  => Parity.Even,
+                                "Mark"  => Parity.Mark,
+                                "Space" => Parity.Space,
+
+                                _ => throw new InvalidOperationException(SR.FormatID0093(value))
+                            },
+
+                        null or { Length: 0 } => throw new InvalidOperationException(SR.FormatID0075("Parity")),
+
+                        string value => throw new InvalidOperationException(SR.FormatID0093(value))
+                    },
+                    dataBits: (int?) element.Attribute("DataBits") switch
+                    {
+                        int value => value,
+
+                        null when device.Definition.GetUnitDefinition(0).GetIntegerSetting(OpenNettySettings.SerialPortDataBits) is long value
+                            => (int) value,
+
+                        null => throw new InvalidOperationException(SR.FormatID0075("DataBits")),
+                    },
+                    stopBits: (string?) element.Attribute("StopBits") switch
+                    {
+                        "1"   => StopBits.One,
+                        "1.5" => StopBits.OnePointFive,
+                        "2"   => StopBits.Two,
+
+                        null when device.Definition.GetUnitDefinition(0).GetStringSetting(OpenNettySettings.SerialPortStopBits) is string value
+                            => value switch
+                            {
+                                "1"   => StopBits.One,
+                                "1.5" => StopBits.OnePointFive,
+                                "2"   => StopBits.Two,
+
+                                _ => throw new InvalidOperationException(SR.FormatID0094(value))
+                            },
+
+                        null or { Length: 0 } => throw new InvalidOperationException(SR.FormatID0075("StopBits")),
+
+                        string value => throw new InvalidOperationException(SR.FormatID0094(value))
+                    })),
+
+            "Tcp" when IPAddress.TryParse((string?) element.Attribute("Server"), out IPAddress? address)
+                => OpenNettyGateway.Create(
+                    device  : device,
+                    endpoint: new IPEndPoint(address, port: (int?) element.Attribute("Port") ?? 20_000),
+                    password: (string?) element.Attribute("Password")),
+
+            "Tcp" => OpenNettyGateway.Create(
+                device  : device,
+                endpoint: new DnsEndPoint(
+                    host: (string?) element.Attribute("Server") ?? throw new InvalidOperationException(SR.FormatID0076("Server")),
+                    port: (int?) element.Attribute("Port") ?? 20_000),
+                password: (string?) element.Attribute("Password")),
+
+            null or { Length: 0 } => throw new InvalidOperationException(SR.FormatID0074("Type")),
+
+            _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0077))
+        };
+
+        static OpenNettyScenario CreateScenario(XElement element) => new()
         {
             EndpointName = (string?) element.Attribute("EndpointName") ?? throw new InvalidOperationException(SR.FormatID0088("EndpointName")),
             FunctionCode = (byte?) (uint?) element.Attribute("FunctionCode") ?? throw new InvalidOperationException(SR.FormatID0088("FunctionCode"))
         };
 
-        static OpenNettyUnit GetUnit(OpenNettyDeviceDefinition definition, XElement element)
-        {
-            var identifier = (byte?) (uint?) element.Attribute("Id")
-                ?? throw new InvalidOperationException(SR.FormatID0078("Id"));
-
-            return new()
-            {
-                Definition = definition.GetUnitDefinition(identifier),
-                Scenarios = [.. element.Elements("Scenario").Select(GetScenario)],
-                Settings = GetSettings(element)
-            };
-        }
+        static ImmutableDictionary<OpenNettySetting, string> CreateSettings(XElement element)
+            => element.Elements("Setting").ToImmutableDictionary(
+                static element => new OpenNettySetting((string?) element.Attribute("Name") ?? throw new InvalidOperationException(SR.FormatID0086("Name"))),
+                static element => (string?) element.Attribute("Value") ?? throw new InvalidOperationException(SR.FormatID0086("Name")));
 
         static OpenNettyGateway FindGatewayByName(IReadOnlyList<OpenNettyGateway> gateways, string name)
         {

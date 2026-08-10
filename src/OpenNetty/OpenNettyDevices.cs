@@ -95,15 +95,9 @@ public static class OpenNettyDevices
 
     private static OpenNettyDeviceDefinition CreateDeviceDefinition(XElement node)
     {
-        HashSet<OpenNettyCapability> capabilities = [];
         List<OpenNettyDeviceIdentity> identities = [];
         Dictionary<OpenNettySetting, string> settings = [];
         List<OpenNettyUnitDefinition> units = [];
-
-        foreach (var capability in node.Elements("Capability"))
-        {
-            capabilities.Add(new OpenNettyCapability((string) capability.Attribute("Name")!));
-        }
 
         foreach (var identity in node.Elements("Identity"))
         {
@@ -111,42 +105,62 @@ public static class OpenNettyDevices
 
             foreach (var description in identity.Elements("Description"))
             {
-                var culture = CultureInfo.GetCultureInfo((string) description.Attribute("Culture")!);
-                descriptions.Add(culture, (string) description.Attribute("Value")!);
+                var culture = CultureInfo.GetCultureInfo((string?) description.Attribute("Culture")
+                    ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0066)));
+                descriptions.Add(culture, (string?) description.Attribute("Value")
+                    ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0066)));
             }
 
             identities.Add(new OpenNettyDeviceIdentity
             {
-                Brand = Enum.Parse<OpenNettyBrand>((string) identity.Attribute("Brand")!),
+                Brand = Enum.Parse<OpenNettyBrand>((string?) identity.Attribute("Brand")
+                    ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0066))),
                 Collection = (string?) identity.Attribute("Collection"),
                 Descriptions = descriptions.ToImmutableDictionary(),
-                Model = (string) identity.Attribute("Model")!
+                Model = (string?) identity.Attribute("Model")
+                    ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0066))
             });
         }
 
         foreach (var setting in node.Elements("Setting"))
         {
-            settings.Add(new OpenNettySetting((string) setting.Attribute("Name")!), (string) setting.Attribute("Value")!);
+            settings.Add(new OpenNettySetting(
+                (string?) setting.Attribute("Name")  ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0066))),
+                (string?) setting.Attribute("Value") ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0066)));
         }
+
+        var definition = new OpenNettyDeviceDefinition
+        {
+            Id = (Guid?) node.Attribute("Id") ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0066)),
+            Identities = [.. identities],
+            Medium = Enum.Parse<OpenNettyMedium>((string?) node.Attribute("Medium")
+                ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0066))),
+            Protocol = Enum.Parse<OpenNettyProtocol>((string?) node.Attribute("Protocol")
+                ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0066))),
+            Series = (string?) node.Attribute("Series")
+                ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0066)),
+            Settings = settings.ToImmutableDictionary()
+        };
 
         foreach (var unit in node.Elements("Unit"))
         {
-            units.Add(CreateUnitDefinition(unit));
+            units.Add(CreateUnitDefinition(definition, unit));
         }
 
-        return new OpenNettyDeviceDefinition
+        if (units.Count is not >= 1)
         {
-            Capabilities = [.. capabilities],
-            Identities = [.. identities],
-            Medium = Enum.Parse<OpenNettyMedium>((string) node.Attribute("Medium")!),
-            Protocol = Enum.Parse<OpenNettyProtocol>((string) node.Attribute("Protocol")!),
-            Series = (string) node.Attribute("Series")!,
-            Settings = settings.ToImmutableDictionary(),
-            Units = [.. units]
-        };
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID0066));
+        }
+
+        definition.Units = [.. units];
+
+        // Mark the device as read-only to prevent further modifications.
+        definition.MakeReadOnly();
+
+        return definition;
     }
 
-    private static OpenNettyUnitDefinition CreateUnitDefinition(XElement node)
+    private static OpenNettyUnitDefinition CreateUnitDefinition(OpenNettyDeviceDefinition device, XElement node)
     {
         HashSet<OpenNettyCapability> capabilities = [];
         Dictionary<CultureInfo, string> descriptions = [];
@@ -154,27 +168,38 @@ public static class OpenNettyDevices
 
         foreach (var capability in node.Elements("Capability"))
         {
-            capabilities.Add(new OpenNettyCapability((string) capability.Attribute("Name")!));
+            capabilities.Add(new OpenNettyCapability((string?) capability.Attribute("Name")
+                ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0066))));
         }
 
         foreach (var description in node.Elements("Description"))
         {
-            var culture = CultureInfo.GetCultureInfo((string) description.Attribute("Culture")!);
-            descriptions[culture] = (string) description.Attribute("Value")!;
+            var culture = CultureInfo.GetCultureInfo((string?) description.Attribute("Culture")
+                ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0066)));
+            descriptions[culture] = (string?) description.Attribute("Value")
+                ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0066));
         }
 
         foreach (var setting in node.Elements("Setting"))
         {
-            settings.Add(new OpenNettySetting((string) setting.Attribute("Name")!), (string) setting.Attribute("Value")!);
+            settings.Add(new OpenNettySetting(
+                (string?) setting.Attribute("Name")  ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0066))),
+                (string?) setting.Attribute("Value") ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0066)));
         }
 
-        return new OpenNettyUnitDefinition
+        var definition = new OpenNettyUnitDefinition
         {
             AssociatedUnitId = (byte?) (uint?) node.Attribute("AssociatedUnitId"),
             Capabilities = [.. capabilities],
             Descriptions = descriptions.ToImmutableDictionary(),
-            Id = (byte) (uint) node.Attribute("Id")!,
+            Device = device,
+            Id = (byte?) (uint?) node.Attribute("Id") ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0066)),
             Settings = settings.ToImmutableDictionary()
         };
+
+        // Mark the device as read-only to prevent further modifications.
+        definition.MakeReadOnly();
+
+        return definition;
     }
 }

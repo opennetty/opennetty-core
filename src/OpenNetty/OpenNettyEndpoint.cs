@@ -13,22 +13,19 @@ namespace OpenNetty;
 /// <summary>
 /// Represents an OpenNetty endpoint.
 /// </summary>
-public sealed class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
+public sealed record class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
 {
+    private volatile bool _writable = true;
+
     /// <summary>
     /// Gets or sets the address associated with the endpoint, if applicable.
     /// </summary>
-    public OpenNettyAddress? Address { get; init; }
+    public OpenNettyAddress? Address { get; set { VerifyMutable(); field = value; } }
 
     /// <summary>
     /// Gets or sets the capabilities associated with the endpoint.
     /// </summary>
-    public ImmutableHashSet<OpenNettyCapability> Capabilities { get; init; } = [];
-
-    /// <summary>
-    /// Gets or sets the device associated with the endpoint, if applicable.
-    /// </summary>
-    public OpenNettyDevice? Device { get; init; }
+    public ImmutableHashSet<OpenNettyCapability> Capabilities { get; set { VerifyMutable(); field = value; } } = [];
 
     /// <summary>
     /// Gets or sets the gateway that will process messages pointing to this endpoint.
@@ -37,32 +34,57 @@ public sealed class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
     /// Note: incoming frames that point to this endpoint but are not
     /// received by the specified gateway will be automatically ignored.
     /// </remarks>
-    public required OpenNettyGateway Gateway { get; init; }
+    public OpenNettyGateway? Gateway { get; set { VerifyMutable(); field = value; } }
+
+    /// <summary>
+    /// Gets a boolean indicating whether the current instance has been locked for user modification.
+    /// </summary>
+    public bool IsReadOnly => !_writable;
 
     /// <summary>
     /// Gets or sets the medium associated with the endpoint.
     /// </summary>
-    public OpenNettyMedium? Medium { get; init; }
+    public OpenNettyMedium? Medium { get; set { VerifyMutable(); field = value; } }
 
     /// <summary>
     /// Gets or sets the name associated with the endpoint.
     /// </summary>
-    public required string Name { get; init; }
+    public required string Name { get; set { VerifyMutable(); field = value; } }
 
     /// <summary>
     /// Gets or sets the protocol associated with the endpoint.
     /// </summary>
-    public required OpenNettyProtocol Protocol { get; init; }
+    public required OpenNettyProtocol Protocol { get; set { VerifyMutable(); field = value; } }
 
     /// <summary>
     /// Gets or sets the settings associated with the endpoint.
     /// </summary>
-    public ImmutableDictionary<OpenNettySetting, string> Settings { get; init; } = [];
+    public ImmutableDictionary<OpenNettySetting, string> Settings { get; set { VerifyMutable(); field = value; } } = [];
 
     /// <summary>
     /// Gets or sets the unit associated with the endpoint, if applicable.
     /// </summary>
-    public OpenNettyUnit? Unit { get; init; }
+    public OpenNettyUnit? Unit { get; set { VerifyMutable(); field = value; } }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Note: two endpoints are considered equal if they have the same
+    /// address and the same unit, regardless of their other properties.
+    /// </remarks>
+    public bool Equals([NotNullWhen(true)] OpenNettyEndpoint? other)
+    {
+        if (ReferenceEquals(this, other))
+        {
+            return true;
+        }
+
+        if (other is null)
+        {
+            return false;
+        }
+
+        return Address == other.Address && Unit == other.Unit;
+    }
 
     /// <summary>
     /// Resolves the specified boolean setting from the settings attached
@@ -72,6 +94,9 @@ public sealed class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
     /// <returns>The boolean setting if it could be found, <see langword="null"/> otherwise.</returns>
     public bool? GetBooleanSetting(OpenNettySetting setting)
         => TryGetSetting(setting, out string? value) && bool.TryParse(value, out bool result) ? result : null;
+
+    /// <inheritdoc/>
+    public override int GetHashCode() => HashCode.Combine(Address, Unit);
 
     /// <summary>
     /// Resolves the specified integer setting from the settings attached
@@ -109,13 +134,14 @@ public sealed class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
             return unit.HasCapability(capability);
         }
 
-        if (Device is OpenNettyDevice device)
-        {
-            return device.HasCapability(capability);
-        }
-
         return false;
     }
+
+    /// <summary>
+    /// Marks the current instance as read-only to prevent any further user modification.
+    /// </summary>
+    /// <remarks>This method is idempotent.</remarks>
+    public void MakeReadOnly() => _writable = false;
 
     /// <summary>
     /// Tries to resolve the specified setting from the settings attached
@@ -131,106 +157,12 @@ public sealed class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
             return true;
         }
 
-        if (Unit is OpenNettyUnit unit)
-        {
-            return unit.TryGetSetting(setting, out value);
-        }
-
-        if (Device is OpenNettyDevice device)
-        {
-            return device.TryGetSetting(setting, out value);
-        }
-
-        return false;
-    }
-
-    /// <inheritdoc/>
-    public bool Equals([NotNullWhen(true)] OpenNettyEndpoint? other)
-    {
-        if (ReferenceEquals(this, other))
+        if (Unit is OpenNettyUnit unit && (unit.TryGetSetting(setting, out value) || unit.Device.TryGetSetting(setting, out value)))
         {
             return true;
         }
 
-        if (other is null)
-        {
-            return false;
-        }
-
-        if (Address != other.Address)
-        {
-            return false;
-        }
-
-        if (Capabilities.Count != other.Capabilities.Count || !Capabilities.Except(other.Capabilities).IsEmpty)
-        {
-            return false;
-        }
-
-        if (Device != other.Device)
-        {
-            return false;
-        }
-
-        if (Medium != other.Medium)
-        {
-            return false;
-        }
-
-        if (!string.Equals(Name, other.Name, StringComparison.Ordinal))
-        {
-            return false;
-        }
-
-        if (Protocol != other.Protocol)
-        {
-            return false;
-        }
-
-        if (Settings.Count != other.Settings.Count || Settings.Except(other.Settings).Any())
-        {
-            return false;
-        }
-
-        if (Unit != other.Unit)
-        {
-            return false;
-        }
-
-        return true;
-    }
-
-    /// <inheritdoc/>
-    public override bool Equals([NotNullWhen(true)] object? obj)
-        => obj is OpenNettyEndpoint endpoint && Equals(endpoint);
-
-    /// <inheritdoc/>
-    public override int GetHashCode()
-    {
-        var hash = new HashCode();
-        hash.Add(Address);
-
-        hash.Add(Capabilities.Count);
-        foreach (var capability in Capabilities)
-        {
-            hash.Add(capability);
-        }
-
-        hash.Add(Device);
-        hash.Add(Medium);
-        hash.Add(Name, StringComparer.Ordinal);
-        hash.Add(Protocol);
-
-        hash.Add(Settings.Count);
-        foreach (var (name, value) in Settings)
-        {
-            hash.Add(name);
-            hash.Add(value, StringComparer.Ordinal);
-        }
-
-        hash.Add(Unit);
-
-        return hash.ToHashCode();
+        return false;
     }
 
     /// <summary>
@@ -240,19 +172,14 @@ public sealed class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
     public override string ToString() => Name ?? string.Empty;
 
     /// <summary>
-    /// Determines whether two <see cref="OpenNettyEndpoint"/> instances are equal.
+    /// Verifies that the current instance is mutable and throws an exception if it is not.
     /// </summary>
-    /// <param name="left">The first instance.</param>
-    /// <param name="right">The second instance.</param>
-    /// <returns><see langword="true"/> if the two instances are equal, <see langword="false"/> otherwise.</returns>
-    public static bool operator ==(OpenNettyEndpoint? left, OpenNettyEndpoint? right)
-        => ReferenceEquals(left, right) || (left is not null && right is not null && left.Equals(right));
-
-    /// <summary>
-    /// Determines whether two <see cref="OpenNettyEndpoint"/> instances are not equal.
-    /// </summary>
-    /// <param name="left">The first instance.</param>
-    /// <param name="right">The second instance.</param>
-    /// <returns><see langword="true"/> if the two instances are not equal, <see langword="false"/> otherwise.</returns>
-    public static bool operator !=(OpenNettyEndpoint? left, OpenNettyEndpoint? right) => !(left == right);
+    /// <exception cref="InvalidOperationException">The current instance is read-only.</exception>
+    private void VerifyMutable()
+    {
+        if (!_writable)
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID2021));
+        }
+    }
 }

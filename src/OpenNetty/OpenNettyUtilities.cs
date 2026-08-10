@@ -12,11 +12,10 @@ internal static class OpenNettyUtilities
     /// </summary>
     /// <param name="protocol">The protocol.</param>
     /// <param name="address">The address.</param>
-    /// <param name="device">The device.</param>
-    /// <param name="unit">The unit.</param>
+    /// <param name="unit">The device unit.</param>
     /// <returns>The default endpoint name.</returns>
     public static string ComputeDefaultEndpointName(
-        OpenNettyProtocol protocol, OpenNettyAddress? address, OpenNettyDevice? device, OpenNettyUnit? unit)
+        OpenNettyProtocol protocol, OpenNettyAddress? address, OpenNettyUnit? unit)
     {
         if (!Enum.IsDefined(protocol))
         {
@@ -77,26 +76,18 @@ internal static class OpenNettyUtilities
                 break;
 
             case OpenNettyProtocol.Nitoo or OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee:
-                if (device?.Identifier is OpenNettyDeviceIdentifier identifier)
+                if (unit?.Device?.Identifier is OpenNettyDeviceIdentifier identifier)
                 {
                     builder.Append(identifier.ToString());
-
-                    if (unit is not null)
-                    {
-                        builder.Append('/');
-                        builder.Append(unit.Definition.Id);
-                    }
+                    builder.Append('/');
+                    builder.Append(unit?.Definition.Id ?? 0);
                 }
 
-                else if (!string.IsNullOrEmpty(device?.Name))
+                else if (!string.IsNullOrEmpty(unit?.Device?.Name))
                 {
-                    builder.Append(device.Name);
-
-                    if (unit is not null)
-                    {
-                        builder.Append('/');
-                        builder.Append(unit.Definition.Id);
-                    }
+                    builder.Append(unit.Device.Name);
+                    builder.Append('/');
+                    builder.Append(unit?.Definition.Id ?? 0);
                 }
 
                 else
