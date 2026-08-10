@@ -13,22 +13,56 @@ namespace OpenNetty;
 /// <summary>
 /// Represents an OpenNetty unit.
 /// </summary>
-public sealed class OpenNettyUnit : IEquatable<OpenNettyUnit>
+public sealed record class OpenNettyUnit : IEquatable<OpenNettyUnit>
 {
+    private volatile bool _writable = true;
+
     /// <summary>
-    /// Gets or sets the unit definition associated with the unit.
+    /// Gets the unit definition associated with the unit.
     /// </summary>
-    public required OpenNettyUnitDefinition Definition { get; init; }
+    public OpenNettyUnitDefinition Definition { get; internal set { VerifyMutable(); field = value; } } = default!;
+
+    /// <summary>
+    /// Gets the device associated with the unit.
+    /// </summary>
+    public OpenNettyDevice Device { get; internal set { VerifyMutable(); field = value; } } = default!;
+
+    /// <summary>
+    /// Gets a boolean indicating whether the current instance has been locked for user modification.
+    /// </summary>
+    public bool IsReadOnly => !_writable;
 
     /// <summary>
     /// Gets or sets the scenarios associated with the unit, if applicable (Nitoo-only).
     /// </summary>
-    public ImmutableArray<OpenNettyScenario> Scenarios { get; init; } = [];
+    public ImmutableArray<OpenNettyScenario> Scenarios { get; set { VerifyMutable(); field = value; } } = [];
 
     /// <summary>
     /// Gets or sets the user-defined settings associated with the unit, if applicable.
     /// </summary>
-    public ImmutableDictionary<OpenNettySetting, string> Settings { get; init; } = [];
+    public ImmutableDictionary<OpenNettySetting, string> Settings { get; set { VerifyMutable(); field = value; } } = [];
+
+    /// <summary>
+    /// Creates a new instance of the <see cref="OpenNettyUnit"/> class.
+    /// </summary>
+    internal OpenNettyUnit()
+    {
+    }
+
+    /// <inheritdoc/>
+    /// <remarks>
+    /// Note: two units are considered equal if they belong to the same device
+    /// and have the same definition, regardless of their other properties.
+    /// </remarks>
+    public bool Equals([NotNullWhen(true)] OpenNettyUnit? other)
+    {
+        if (ReferenceEquals(this, other))
+        {
+            return true;
+        }
+
+        return other is not null && Definition == other.Definition && Device == other.Device;
+    }
 
     /// <summary>
     /// Resolves the specified boolean setting from the settings.
@@ -37,6 +71,9 @@ public sealed class OpenNettyUnit : IEquatable<OpenNettyUnit>
     /// <returns>The boolean setting if it could be found, <see langword="null"/> otherwise.</returns>
     public bool? GetBooleanSetting(OpenNettySetting setting)
         => TryGetSetting(setting, out string? value) && bool.TryParse(value, out bool result) ? result : null;
+
+    /// <inheritdoc/>
+    public override int GetHashCode() => HashCode.Combine(Definition, Device);
 
     /// <summary>
     /// Resolves the specified integer setting from the settings.
@@ -71,60 +108,21 @@ public sealed class OpenNettyUnit : IEquatable<OpenNettyUnit>
     public bool TryGetSetting(OpenNettySetting setting, [NotNullWhen(true)] out string? value)
         => Settings.TryGetValue(setting, out value) || Definition.Settings.TryGetValue(setting, out value);
 
-    /// <inheritdoc/>
-    public bool Equals([NotNullWhen(true)] OpenNettyUnit? other)
-    {
-        if (ReferenceEquals(this, other))
-        {
-            return true;
-        }
-
-        return other is not null &&
-            Definition == other.Definition &&
-            Scenarios.Length == other.Scenarios.Length && !Scenarios.Except(other.Scenarios).Any() &&
-            Settings.Count == other.Settings.Count && !Settings.Except(other.Settings).Any();
-    }
-
-    /// <inheritdoc/>
-    public override bool Equals([NotNullWhen(true)] object? obj)
-        => obj is OpenNettyUnit unit && Equals(unit);
-
-    /// <inheritdoc/>
-    public override int GetHashCode()
-    {
-        var hash = new HashCode();
-        hash.Add(Definition);
-
-        hash.Add(Scenarios.Length);
-        foreach (var scenario in Scenarios)
-        {
-            hash.Add(scenario);
-        }
-
-        hash.Add(Settings.Count);
-        foreach (var (name, value) in Settings)
-        {
-            hash.Add(name);
-            hash.Add(value, StringComparer.Ordinal);
-        }
-
-        return hash.ToHashCode();
-    }
+    /// <summary>
+    /// Marks the current instance as read-only to prevent any further user modification.
+    /// </summary>
+    /// <remarks>This method is idempotent.</remarks>
+    public void MakeReadOnly() => _writable = false;
 
     /// <summary>
-    /// Determines whether two <see cref="OpenNettyUnit"/> instances are equal.
+    /// Verifies that the current instance is mutable and throws an exception if it is not.
     /// </summary>
-    /// <param name="left">The first instance.</param>
-    /// <param name="right">The second instance.</param>
-    /// <returns><see langword="true"/> if the two instances are equal, <see langword="false"/> otherwise.</returns>
-    public static bool operator ==(OpenNettyUnit? left, OpenNettyUnit? right)
-        => ReferenceEquals(left, right) || (left is not null && right is not null && left.Equals(right));
-
-    /// <summary>
-    /// Determines whether two <see cref="OpenNettyUnit"/> instances are not equal.
-    /// </summary>
-    /// <param name="left">The first instance.</param>
-    /// <param name="right">The second instance.</param>
-    /// <returns><see langword="true"/> if the two instances are not equal, <see langword="false"/> otherwise.</returns>
-    public static bool operator !=(OpenNettyUnit? left, OpenNettyUnit? right) => !(left == right);
+    /// <exception cref="InvalidOperationException">The current instance is read-only.</exception>
+    private void VerifyMutable()
+    {
+        if (!_writable)
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID2021));
+        }
+    }
 }

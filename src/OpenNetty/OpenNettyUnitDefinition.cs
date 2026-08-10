@@ -13,34 +13,57 @@ namespace OpenNetty;
 /// <summary>
 /// Represents an OpenNetty unit definition.
 /// </summary>
-public sealed class OpenNettyUnitDefinition : IEquatable<OpenNettyUnitDefinition>
+public sealed record class OpenNettyUnitDefinition : IEquatable<OpenNettyUnitDefinition>
 {
-    /// <summary>
-    /// Gets or sets the identifier of the associated unit, if applicable (Nitoo-only).
-    /// </summary>
-    public byte? AssociatedUnitId { get; init; }
+    private volatile bool _writable = true;
 
     /// <summary>
-    /// Gets or sets the descriptions associated with the unit definition.
+    /// Gets the identifier of the associated unit, if applicable (Nitoo-only).
     /// </summary>
-    public required ImmutableDictionary<CultureInfo, string> Descriptions { get; init; }
+    public byte? AssociatedUnitId { get; internal set { VerifyMutable(); field = value; } }
 
     /// <summary>
-    /// Gets or sets the capabilities associated with the unit definition.
+    /// Gets the capabilities associated with the unit definition.
     /// </summary>
-    public required ImmutableHashSet<OpenNettyCapability> Capabilities { get; init; } = [];
+    public ImmutableHashSet<OpenNettyCapability> Capabilities { get; internal set { VerifyMutable(); field = value; } } = [];
 
     /// <summary>
-    /// Gets or sets the identifier of the unit.
+    /// Gets the descriptions associated with the unit definition.
     /// </summary>
-    public required byte Id { get; init; }
+    public ImmutableDictionary<CultureInfo, string> Descriptions { get; internal set { VerifyMutable(); field = value; } } = [];
 
     /// <summary>
-    /// Gets or sets the OpenNetty-defined settings associated with the unit definition.
+    /// Gets the device definition associated with the unit definition.
     /// </summary>
-    public ImmutableDictionary<OpenNettySetting, string> Settings { get; init; } = [];
+    public OpenNettyDeviceDefinition Device { get; internal set { VerifyMutable(); field = value; } } = default!;
+
+    /// <summary>
+    /// Gets the identifier of the unit.
+    /// </summary>
+    public byte Id { get; internal set { VerifyMutable(); field = value; } }
+
+    /// <summary>
+    /// Gets a boolean indicating whether the current instance has been locked for user modification.
+    /// </summary>
+    public bool IsReadOnly => !_writable;
+
+    /// <summary>
+    /// Gets the settings associated with the unit definition.
+    /// </summary>
+    public ImmutableDictionary<OpenNettySetting, string> Settings { get; internal set { VerifyMutable(); field = value; } } = [];
+
+    /// <summary>
+    /// Creates a new instance of the <see cref="OpenNettyUnitDefinition"/> class.
+    /// </summary>
+    internal OpenNettyUnitDefinition()
+    {
+    }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// Note: two unit definitions are considered equal if they belong to the same
+    /// device and have the same identifier, regardless of their other properties.
+    /// </remarks>
     public bool Equals([NotNullWhen(true)] OpenNettyUnitDefinition? other)
     {
         if (ReferenceEquals(this, other))
@@ -48,17 +71,16 @@ public sealed class OpenNettyUnitDefinition : IEquatable<OpenNettyUnitDefinition
             return true;
         }
 
-        return other is not null &&
-            AssociatedUnitId == other.AssociatedUnitId &&
-            Capabilities.Count == other.Capabilities.Count && Capabilities.Except(other.Capabilities).IsEmpty &&
-            Descriptions.Count == other.Descriptions.Count && !Descriptions.Except(other.Descriptions).Any() &&
-            Id == other.Id &&
-            Settings.Count == other.Settings.Count && !Settings.Except(other.Settings).Any();
+        return other is not null && Device == other.Device && Id == other.Id;
     }
 
-    /// <inheritdoc/>
-    public override bool Equals([NotNullWhen(true)] object? obj)
-        => obj is OpenNettyUnitDefinition definition && Equals(definition);
+    /// <summary>
+    /// Resolves the specified boolean setting from the settings.
+    /// </summary>
+    /// <param name="setting">The setting name.</param>
+    /// <returns>The boolean setting if it could be found, <see langword="null"/> otherwise.</returns>
+    public bool? GetBooleanSetting(OpenNettySetting setting)
+        => TryGetSetting(setting, out string? value) && bool.TryParse(value, out bool result) ? result : null;
 
     /// <summary>
     /// Gets the localized description corresponding to the specified culture (or one of its parents).
@@ -91,35 +113,22 @@ public sealed class OpenNettyUnitDefinition : IEquatable<OpenNettyUnitDefinition
     }
 
     /// <inheritdoc/>
-    public override int GetHashCode()
-    {
-        var hash = new HashCode();
-        hash.Add(AssociatedUnitId);
+    public override int GetHashCode() => HashCode.Combine(Device, Id);
 
-        hash.Add(Capabilities.Count);
-        foreach (var capability in Capabilities)
-        {
-            hash.Add(capability);
-        }
+    /// <summary>
+    /// Resolves the specified integer setting from the settings.
+    /// </summary>
+    /// <param name="setting">The setting name.</param>
+    /// <returns>The integer setting if it could be found, <see langword="null"/> otherwise.</returns>
+    public long? GetIntegerSetting(OpenNettySetting setting)
+        => TryGetSetting(setting, out string? value) && long.TryParse(value, CultureInfo.InvariantCulture, out long result) ? result : null;
 
-        hash.Add(Descriptions.Count);
-        foreach (var (culture, value) in Descriptions)
-        {
-            hash.Add(culture);
-            hash.Add(value, StringComparer.OrdinalIgnoreCase);
-        }
-
-        hash.Add(Id);
-
-        hash.Add(Settings.Count);
-        foreach (var (name, value) in Settings)
-        {
-            hash.Add(name);
-            hash.Add(value, StringComparer.Ordinal);
-        }
-
-        return hash.ToHashCode();
-    }
+    /// <summary>
+    /// Resolves the specified string setting from the settings.
+    /// </summary>
+    /// <param name="setting">The setting name.</param>
+    /// <returns>The string setting if it could be found, <see langword="null"/> otherwise.</returns>
+    public string? GetStringSetting(OpenNettySetting setting) => TryGetSetting(setting, out string? value) ? value : null;
 
     /// <summary>
     /// Determines whether the unit has the specified capability.
@@ -131,19 +140,29 @@ public sealed class OpenNettyUnitDefinition : IEquatable<OpenNettyUnitDefinition
     public bool HasCapability(OpenNettyCapability capability) => Capabilities.Contains(capability);
 
     /// <summary>
-    /// Determines whether two <see cref="OpenNettyUnitDefinition"/> instances are equal.
+    /// Marks the current instance as read-only to prevent any further user modification.
     /// </summary>
-    /// <param name="left">The first instance.</param>
-    /// <param name="right">The second instance.</param>
-    /// <returns><see langword="true"/> if the two instances are equal, <see langword="false"/> otherwise.</returns>
-    public static bool operator ==(OpenNettyUnitDefinition? left, OpenNettyUnitDefinition? right)
-        => ReferenceEquals(left, right) || (left is not null && right is not null && left.Equals(right));
+    /// <remarks>This method is idempotent.</remarks>
+    public void MakeReadOnly() => _writable = false;
 
     /// <summary>
-    /// Determines whether two <see cref="OpenNettyUnitDefinition"/> instances are not equal.
+    /// Tries to resolve the specified setting from the settings.
     /// </summary>
-    /// <param name="left">The first instance.</param>
-    /// <param name="right">The second instance.</param>
-    /// <returns><see langword="true"/> if the two instances are not equal, <see langword="false"/> otherwise.</returns>
-    public static bool operator !=(OpenNettyUnitDefinition? left, OpenNettyUnitDefinition? right) => !(left == right);
+    /// <param name="setting">The setting name.</param>
+    /// <param name="value">The setting value, or <see langword="null"/> if it was not found.</param>
+    /// <returns><see langword="true"/> if the setting was found, <see langword="false"/> otherwise.</returns>
+    public bool TryGetSetting(OpenNettySetting setting, [NotNullWhen(true)] out string? value)
+        => Settings.TryGetValue(setting, out value);
+
+    /// <summary>
+    /// Verifies that the current instance is mutable and throws an exception if it is not.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The current instance is read-only.</exception>
+    private void VerifyMutable()
+    {
+        if (!_writable)
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID2021));
+        }
+    }
 }

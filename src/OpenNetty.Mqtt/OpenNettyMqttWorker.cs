@@ -1080,7 +1080,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
         // Announce all the endpoints that are not associated with any device (and attach them a virtual device).
         await foreach (var endpoint in _manager.EnumerateEndpointsAsync(cancellationToken))
         {
-            if (endpoint.Device is not null || endpoint.GetBooleanSetting(OpenNettySettings.HomeAssistantDiscovery) is false)
+            if (endpoint.Unit is not null || endpoint.GetBooleanSetting(OpenNettySettings.HomeAssistantDiscovery) is false)
             {
                 continue;
             }
@@ -3152,7 +3152,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 ]);
             }
 
-            if (device.Gateway is OpenNettyGateway gateway)
+            if (device.Gateway is OpenNettyGateway gateway && gateway.Device != device)
             {
                 node["via_device"] = gateway.Device.GetStringSetting(OpenNettySettings.HomeAssistantObjectId)
                     ?? SanitizeDiscoveryObjectId(gateway.Device.Name);
@@ -3218,7 +3218,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 return name;
             }
 
-            if (endpoint.Unit is not null)
+            if (endpoint.Unit?.Definition.Id is not (null or 0))
             {
                 var description = endpoint.Unit.Definition.GetDescription(culture);
                 if (!string.IsNullOrEmpty(description))

@@ -5,7 +5,6 @@
  */
 
 using System.Collections.Immutable;
-using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
 namespace OpenNetty;
@@ -14,7 +13,7 @@ namespace OpenNetty;
 /// Represents an OpenNetty identity that uniquely
 /// identifies a specific Legrand/BTicino product.
 /// </summary>
-public readonly struct OpenNettyDeviceIdentity : IEquatable<OpenNettyDeviceIdentity>
+public readonly record struct OpenNettyDeviceIdentity : IEquatable<OpenNettyDeviceIdentity>
 {
     /// <summary>
     /// Gets or sets the brand.
@@ -34,17 +33,13 @@ public readonly struct OpenNettyDeviceIdentity : IEquatable<OpenNettyDeviceIdent
     /// <summary>
     /// Gets or sets the product code.
     /// </summary>
-    public required string Model { get; init; }
+    public required string Model { get; init { ArgumentException.ThrowIfNullOrEmpty(value); field = value; } }
 
     /// <inheritdoc/>
     public bool Equals(OpenNettyDeviceIdentity other) => Brand == other.Brand &&
         string.Equals(Collection, other.Collection, StringComparison.OrdinalIgnoreCase) &&
         Descriptions.Count == other.Descriptions.Count && !Descriptions.Except(other.Descriptions).Any() &&
         string.Equals(Model, other.Model, StringComparison.OrdinalIgnoreCase);
-
-    /// <inheritdoc/>
-    public override bool Equals([NotNullWhen(true)] object? obj)
-        => obj is OpenNettyDeviceIdentity identity && Equals(identity);
 
     /// <summary>
     /// Gets the localized description corresponding to the specified culture (or one of its parents).
@@ -100,20 +95,4 @@ public readonly struct OpenNettyDeviceIdentity : IEquatable<OpenNettyDeviceIdent
     /// </summary>
     /// <returns>The <see cref="string"/> representation of the current identity.</returns>
     public override string ToString() => $"{Enum.GetName(Brand)} {Collection} ({Model})";
-
-    /// <summary>
-    /// Determines whether two <see cref="OpenNettyDeviceIdentity"/> instances are equal.
-    /// </summary>
-    /// <param name="left">The first instance.</param>
-    /// <param name="right">The second instance.</param>
-    /// <returns><see langword="true"/> if the two instances are equal, <see langword="false"/> otherwise.</returns>
-    public static bool operator ==(OpenNettyDeviceIdentity left, OpenNettyDeviceIdentity right) => left.Equals(right);
-
-    /// <summary>
-    /// Determines whether two <see cref="OpenNettyDeviceIdentity"/> instances are not equal.
-    /// </summary>
-    /// <param name="left">The first instance.</param>
-    /// <param name="right">The second instance.</param>
-    /// <returns><see langword="true"/> if the two instances are not equal, <see langword="false"/> otherwise.</returns>
-    public static bool operator !=(OpenNettyDeviceIdentity left, OpenNettyDeviceIdentity right) => !(left == right);
 }

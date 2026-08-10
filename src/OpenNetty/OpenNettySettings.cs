@@ -212,6 +212,11 @@ public static class OpenNettySettings
     public static readonly OpenNettySetting SwitchMode = new("Switch mode");
 
     /// <summary>
+    /// Zigbee device type.
+    /// </summary>
+    public static readonly OpenNettySetting ZigbeeDeviceType = new("Zigbee device type");
+
+    /// <summary>
     /// Exposes common function types.
     /// </summary>
     public static class FunctionTypes
@@ -371,5 +376,26 @@ public static class OpenNettySettings
         /// Push button.
         /// </summary>
         public const string PushButton = "Push button";
+    }
+
+    /// <summary>
+    /// Exposes common Zigbee device types.
+    /// </summary>
+    public static class ZigbeeDeviceTypes
+    {
+        /// <summary>
+        /// Coordinator.
+        /// </summary>
+        public const string Coordinator = "Coordinator";
+
+        /// <summary>
+        /// End device.
+        /// </summary>
+        public const string EndDevice = "End device";
+
+        /// <summary>
+        /// Router.
+        /// </summary>
+        public const string Router = "Router";
     }
 }

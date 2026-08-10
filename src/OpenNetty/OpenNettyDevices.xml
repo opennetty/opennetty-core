@@ -8,15 +8,17 @@
                     ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
   -->
 
-  <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
+  <Device Id="b9e508a1-4d2f-4f65-8c27-af27dc7a3a77" Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
     <Identity Brand="Legrand" Collection="Lexic" Model="03600">
       <Description Culture="en" Value="2-gang DIN rail switch" />
       <Description Culture="fr" Value="Interrupteur modulaire double" />
     </Identity>
 
-    <Capability Name="Device description" />
-    <Capability Name="Firmware version" />
-    <Capability Name="Outgoing communication" />
+    <Unit Id="0">
+      <Capability Name="Device description" />
+      <Capability Name="Firmware version" />
+      <Capability Name="Outgoing communication" />
+    </Unit>
 
     <Unit Id="1" AssociatedUnitId="3">
       <Capability Name="Dimming scenario activation" />
@@ -69,15 +71,17 @@
     </Unit>
   </Device>
 
-  <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
+  <Device Id="326cedda-aedd-4009-b4f7-29578f81e643" Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
     <Identity Brand="Legrand" Collection="Lexic" Model="03648">
       <Description Culture="en" Value="SCS/Nitoo gateway" />
       <Description Culture="fr" Value="Passerelle SCS/Nitoo" />
     </Identity>
 
-    <Capability Name="Device description" />
-    <Capability Name="Firmware version" />
-    <Capability Name="Outgoing communication" />
+    <Unit Id="0">
+      <Capability Name="Device description" />
+      <Capability Name="Firmware version" />
+      <Capability Name="Outgoing communication" />
+    </Unit>
 
     <Unit Id="1">
       <Capability Name="Action scenario activation" />
@@ -164,15 +168,17 @@
     </Unit>
   </Device>
 
-  <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
+  <Device Id="a4602735-a410-4e2c-8074-1f8fa95dfe30" Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
     <Identity Brand="Legrand" Collection="Lexic" Model="03809">
       <Description Culture="en" Value="DIN rail energy meter" />
       <Description Culture="fr" Value="Gestionnaire d'énergie modulaire" />
     </Identity>
 
-    <Capability Name="Device description" />
-    <Capability Name="Firmware version" />
-    <Capability Name="Outgoing communication" />
+    <Unit Id="0">
+      <Capability Name="Device description" />
+      <Capability Name="Firmware version" />
+      <Capability Name="Outgoing communication" />
+    </Unit>
 
     <Unit Id="1">
       <Capability Name="Memory reading" />
@@ -196,14 +202,16 @@
     </Unit>
   </Device>
 
-  <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Radio">
+  <Device Id="b43810b9-77bb-4308-a706-fa8c21edfd28" Series="In One by Legrand" Protocol="Nitoo" Medium="Radio">
     <Identity Brand="Legrand" Model="43214">
       <Description Culture="en" Value="Wireless burglar alarm" />
       <Description Culture="fr" Value="Alarme intrusion sans fil" />
     </Identity>
 
-    <Capability Name="Outgoing communication" />
-    <Capability Name="Wireless burglar alarm state" />
+    <Unit Id="0">
+      <Capability Name="Outgoing communication" />
+      <Capability Name="Wireless burglar alarm state" />
+    </Unit>
 
     <Unit Id="1">
       <Capability Name="Action scenario activation" />
@@ -293,7 +301,7 @@
     </Unit>
   </Device>
 
-  <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
+  <Device Id="9d79c82f-5a36-42e3-868e-c80473d8e34c" Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
     <Identity Brand="Legrand" Collection="Céliane" Model="67201">
       <Description Culture="en" Value="1-gang switch" />
       <Description Culture="fr" Value="Interrupteur simple" />
@@ -309,9 +317,11 @@
       <Description Culture="fr" Value="Interrupteur simple" />
     </Identity>
 
-    <Capability Name="Device description" />
-    <Capability Name="Firmware version" />
-    <Capability Name="Outgoing communication" />
+    <Unit Id="0">
+      <Capability Name="Device description" />
+      <Capability Name="Firmware version" />
+      <Capability Name="Outgoing communication" />
+    </Unit>
 
     <Unit Id="1" AssociatedUnitId="2">
       <Capability Name="Dimming scenario activation" />
@@ -339,7 +349,7 @@
     </Unit>
   </Device>
 
-  <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
+  <Device Id="0ee36306-359d-4c0a-a3a9-d7d2521c82dd" Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
     <Identity Brand="Legrand" Collection="Céliane" Model="67202">
       <Description Culture="en" Value="2-gang switch" />
       <Description Culture="fr" Value="Interrupteur double" />
@@ -355,9 +365,11 @@
       <Description Culture="fr" Value="Interrupteur double" />
     </Identity>
 
-    <Capability Name="Device description" />
-    <Capability Name="Firmware version" />
-    <Capability Name="Outgoing communication" />
+    <Unit Id="0">
+      <Capability Name="Device description" />
+      <Capability Name="Firmware version" />
+      <Capability Name="Outgoing communication" />
+    </Unit>
 
     <Unit Id="1" AssociatedUnitId="3">
       <Capability Name="Dimming scenario activation" />
@@ -410,15 +422,17 @@
     </Unit>
   </Device>
 
-  <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
+  <Device Id="c27f257c-2e25-4474-b74a-3e5b3ee399fc" Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
     <Identity Brand="Legrand" Collection="Céliane" Model="67208">
       <Description Culture="en" Value="Light control switch" />
       <Description Culture="fr" Value="Interscénario d'éclairage" />
     </Identity>
 
-    <Capability Name="Device description" />
-    <Capability Name="Firmware version" />
-    <Capability Name="Outgoing communication" />
+    <Unit Id="0">
+      <Capability Name="Device description" />
+      <Capability Name="Firmware version" />
+      <Capability Name="Outgoing communication" />
+    </Unit>
 
     <Unit Id="1">
       <Capability Name="Dimming scenario activation" />
@@ -463,7 +477,7 @@
     </Unit>
   </Device>
 
-  <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
+  <Device Id="bb5b8440-4192-4034-b903-448dd8490fa1" Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
     <Identity Brand="Legrand" Collection="Céliane" Model="67210">
       <Description Culture="en" Value="Dimmer switch" />
       <Description Culture="fr" Value="Intervariateur" />
@@ -479,9 +493,11 @@
       <Description Culture="fr" Value="Intervariateur avec indicateur d'état" />
     </Identity>
 
-    <Capability Name="Device description" />
-    <Capability Name="Firmware version" />
-    <Capability Name="Outgoing communication" />
+    <Unit Id="0">
+      <Capability Name="Device description" />
+      <Capability Name="Firmware version" />
+      <Capability Name="Outgoing communication" />
+    </Unit>
 
     <Unit Id="1" AssociatedUnitId="4">
       <Capability Name="Dimming scenario activation" />
@@ -539,7 +555,7 @@
     </Unit>
   </Device>
 
-  <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
+  <Device Id="4a020f63-e59b-40d7-80d2-0a5415b975ac" Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
     <Identity Brand="Legrand" Collection="Céliane" Model="67215">
       <Description Culture="en" Value="Motion sensor switch" />
       <Description Culture="fr" Value="Interrupteur automatique" />
@@ -550,9 +566,11 @@
       <Description Culture="fr" Value="Interrupteur automatique" />
     </Identity>
 
-    <Capability Name="Device description" />
-    <Capability Name="Firmware version" />
-    <Capability Name="Outgoing communication" />
+    <Unit Id="0">
+      <Capability Name="Device description" />
+      <Capability Name="Firmware version" />
+      <Capability Name="Outgoing communication" />
+    </Unit>
 
     <Unit Id="1" AssociatedUnitId="3">
       <Capability Name="Timed scenario activation" />
@@ -581,7 +599,7 @@
     </Unit>
   </Device>
 
-  <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
+  <Device Id="221883d1-fd72-48c9-ab6d-aa68e80b83fe" Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
     <Identity Brand="Legrand" Collection="Céliane" Model="67220">
       <Description Culture="en" Value="Switched outlet" />
       <Description Culture="fr" Value="Prisinter" />
@@ -592,9 +610,11 @@
       <Description Culture="fr" Value="Prisinter" />
     </Identity>
 
-    <Capability Name="Device description" />
-    <Capability Name="Firmware version" />
-    <Capability Name="Outgoing communication" />
+    <Unit Id="0">
+      <Capability Name="Device description" />
+      <Capability Name="Firmware version" />
+      <Capability Name="Outgoing communication" />
+    </Unit>
 
     <Unit Id="1" AssociatedUnitId="2">
       <Capability Name="Dimming scenario activation" />
@@ -622,7 +642,7 @@
     </Unit>
   </Device>
 
-  <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
+  <Device Id="f77b06e9-a1fc-47af-9ad6-842cd7829c1d" Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
     <Identity Brand="Legrand" Collection="Céliane" Model="67222">
       <Description Culture="en" Value="Dimmable switched outlet" />
       <Description Culture="fr" Value="Prisinter variateur" />
@@ -633,9 +653,11 @@
       <Description Culture="fr" Value="Prisinter variateur" />
     </Identity>
 
-    <Capability Name="Device description" />
-    <Capability Name="Firmware version" />
-    <Capability Name="Outgoing communication" />
+    <Unit Id="0">
+      <Capability Name="Device description" />
+      <Capability Name="Firmware version" />
+      <Capability Name="Outgoing communication" />
+    </Unit>
 
     <Unit Id="1" AssociatedUnitId="4">
       <Capability Name="Dimming scenario activation" />
@@ -693,7 +715,7 @@
     </Unit>
   </Device>
 
-  <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
+  <Device Id="3fbc5bca-7c78-422e-9d68-886392e4e754" Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
     <Identity Brand="Legrand" Collection="Céliane" Model="67280">
       <Description Culture="en" Value="Scenario switch" />
       <Description Culture="fr" Value="Interscénario" />
@@ -704,9 +726,11 @@
       <Description Culture="fr" Value="Interscénario" />
     </Identity>
 
-    <Capability Name="Device description" />
-    <Capability Name="Firmware version" />
-    <Capability Name="Outgoing communication" />
+    <Unit Id="0">
+      <Capability Name="Device description" />
+      <Capability Name="Firmware version" />
+      <Capability Name="Outgoing communication" />
+    </Unit>
 
     <Unit Id="1">
       <Capability Name="Action scenario activation" />
@@ -765,7 +789,7 @@
     </Unit>
   </Device>
 
-  <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Radio">
+  <Device Id="6874ab1d-f483-464e-b414-2614323eac28" Series="In One by Legrand" Protocol="Nitoo" Medium="Radio">
     <Identity Brand="Legrand" Collection="Céliane" Model="67290">
       <Description Culture="en" Value="Wireless scenario switch" />
       <Description Culture="fr" Value="Interscénario sans fil" />
@@ -776,8 +800,10 @@
       <Description Culture="fr" Value="Interscénario sans fil" />
     </Identity>
 
-    <Capability Name="Battery alert" />
-    <Capability Name="Outgoing communication" />
+    <Unit Id="0">
+      <Capability Name="Battery alert" />
+      <Capability Name="Outgoing communication" />
+    </Unit>
 
     <Unit Id="1">
       <Capability Name="Action scenario activation" />
@@ -824,7 +850,7 @@
     </Unit>
   </Device>
 
-  <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
+  <Device Id="b9a0e52a-ddb0-48ca-a70e-fc7ea60f6113" Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
     <Identity Brand="Legrand" Collection="Céliane" Model="67445">
       <Description Culture="en" Value="Pilot wire cable outlet" />
       <Description Culture="fr" Value="Sortie de câble fil pilote" />
@@ -835,9 +861,11 @@
       <Description Culture="fr" Value="Sortie de câble fil pilote" />
     </Identity>
 
-    <Capability Name="Device description" />
-    <Capability Name="Firmware version" />
-    <Capability Name="Outgoing communication" />
+    <Unit Id="0">
+      <Capability Name="Device description" />
+      <Capability Name="Firmware version" />
+      <Capability Name="Outgoing communication" />
+    </Unit>
 
     <Unit Id="1">
       <Capability Name="Memory reading" />
@@ -852,7 +880,7 @@
     </Unit>
   </Device>
 
-  <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
+  <Device Id="6bfb2d5c-0493-435d-a14d-95539d186e90" Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
     <Identity Brand="Legrand" Collection="Céliane" Model="67448">
       <Description Culture="en" Value="Pilot wire derogation command" />
       <Description Culture="fr" Value="Commande de dérogation fil pilote" />
@@ -863,9 +891,11 @@
       <Description Culture="fr" Value="Commande de dérogation fil pilote" />
     </Identity>
 
-    <Capability Name="Device description" />
-    <Capability Name="Firmware version" />
-    <Capability Name="Outgoing communication" />
+    <Unit Id="0">
+      <Capability Name="Device description" />
+      <Capability Name="Firmware version" />
+      <Capability Name="Outgoing communication" />
+    </Unit>
 
     <Unit Id="1">
       <Capability Name="Memory reading" />
@@ -879,11 +909,13 @@
     </Unit>
   </Device>
 
-  <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Radio">
+  <Device Id="ca35267c-9efd-47fe-b6e5-6b9b5c27fe36" Series="In One by Legrand" Protocol="Nitoo" Medium="Radio">
     <Identity Brand="Legrand" Collection="Plexo" Model="69510">
       <Description Culture="en" Value="1-gang outdoor switch" />
       <Description Culture="fr" Value="Interrupteur extérieur simple" />
     </Identity>
+
+    <Unit Id="0" />
 
     <Unit Id="1">
       <Capability Name="On/off switch control" />
@@ -893,14 +925,16 @@
     </Unit>
   </Device>
 
-  <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Radio">
+  <Device Id="1938e4ce-c6f0-448e-a44a-7cd05d61c74c" Series="In One by Legrand" Protocol="Nitoo" Medium="Radio">
     <Identity Brand="Legrand" Model="88205">
       <Description Culture="en" Value="Pocket scenario remote control" />
       <Description Culture="fr" Value="Interscénario de poche" />
     </Identity>
 
-    <Capability Name="Battery alert" />
-    <Capability Name="Outgoing communication" />
+    <Unit Id="0">
+      <Capability Name="Battery alert" />
+      <Capability Name="Outgoing communication" />
+    </Unit>
 
     <!--
       Note: the physical button labelled "4" is bound to unit 1.
@@ -963,21 +997,23 @@
     </Unit>
   </Device>
 
-  <Device Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
+  <Device Id="a14c6449-9476-436a-ada4-ecf3852b98c9" Series="In One by Legrand" Protocol="Nitoo" Medium="Powerline">
     <Identity Brand="Legrand" Model="88213">
       <Description Culture="en" Value="PLC/USB gateway" />
       <Description Culture="fr" Value="Passerelle CPL/USB" />
     </Identity>
 
-    <Capability Name="Firmware version" />
-    <Capability Name="Hardware version" />
-    <Capability Name="OpenWebNet gateway" />
-    <Capability Name="OpenWebNet generic session" />
+    <Unit Id="0">
+      <Capability Name="Firmware version" />
+      <Capability Name="Hardware version" />
+      <Capability Name="OpenWebNet gateway" />
+      <Capability Name="OpenWebNet generic session" />
 
-    <Setting Name="Serial port baud rate" Value="115200" />
-    <Setting Name="Serial port data bits" Value="8" />
-    <Setting Name="Serial port parity" Value="None" />
-    <Setting Name="Serial port stop bits" Value="1" />
+      <Setting Name="Serial port baud rate" Value="115200" />
+      <Setting Name="Serial port data bits" Value="8" />
+      <Setting Name="Serial port parity" Value="None" />
+      <Setting Name="Serial port stop bits" Value="1" />
+    </Unit>
   </Device>
 
   <!--
@@ -988,7 +1024,7 @@
                                             ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
   -->
 
-  <Device Series="MyHome" Protocol="Scs" Medium="Bus">
+  <Device Id="effc567e-238f-4872-ab6d-b575344fb70b" Series="MyHome" Protocol="Scs" Medium="Bus">
     <Identity Brand="BTicino" Model="F411U1">
       <Description Culture="en" Value="1-gang DIN rail switch" />
       <Description Culture="fr" Value="Interrupteur modulaire simple" />
@@ -998,6 +1034,8 @@
       <Description Culture="en" Value="1-gang DIN rail switch" />
       <Description Culture="fr" Value="Interrupteur modulaire simple" />
     </Identity>
+
+    <Unit Id="0" />
 
     <Unit Id="1">
       <Capability Name="Actuator locking" />
@@ -1009,7 +1047,7 @@
     </Unit>
   </Device>
 
-  <Device Series="MyHome" Protocol="Scs" Medium="Bus">
+  <Device Id="088ccfec-12bd-4a75-ab82-c42e932ab250" Series="MyHome" Protocol="Scs" Medium="Bus">
     <Identity Brand="BTicino" Model="F411U2">
       <Description Culture="en" Value="2-gang DIN rail switch" />
       <Description Culture="fr" Value="Interrupteur modulaire double" />
@@ -1019,6 +1057,8 @@
       <Description Culture="en" Value="2-gang DIN rail switch" />
       <Description Culture="fr" Value="Interrupteur modulaire double" />
     </Identity>
+
+    <Unit Id="0" />
 
     <Unit Id="1">
       <Capability Name="Actuator locking" />
@@ -1042,7 +1082,7 @@
     </Unit>
   </Device>
 
-  <Device Series="MyHome" Protocol="Scs" Medium="Bus">
+  <Device Id="41fb7564-dd54-4713-a9d8-0c90519077a2" Series="MyHome" Protocol="Scs" Medium="Bus">
     <Identity Brand="BTicino" Model="F411/4">
       <Description Culture="en" Value="4-gang DIN rail switch" />
       <Description Culture="fr" Value="Interrupteur modulaire à 4 sorties" />
@@ -1052,6 +1092,8 @@
       <Description Culture="en" Value="4-gang DIN rail switch" />
       <Description Culture="fr" Value="Interrupteur modulaire à 4 sorties" />
     </Identity>
+
+    <Unit Id="0" />
 
     <Unit Id="1">
       <Capability Name="Actuator locking" />
@@ -1096,7 +1138,7 @@
     </Unit>
   </Device>
 
-  <Device Series="MyHome" Protocol="Scs" Medium="Bus">
+  <Device Id="149df641-8859-4125-9003-1abfc9db8ed9" Series="MyHome" Protocol="Scs" Medium="Bus">
     <Identity Brand="BTicino" Model="F418U2">
       <Description Culture="en" Value="2-gang DIN rail dimmer switch" />
       <Description Culture="fr" Value="Intervariateur modulaire double" />
@@ -1106,6 +1148,8 @@
       <Description Culture="en" Value="2-gang DIN rail dimmer switch" />
       <Description Culture="fr" Value="Intervariateur modulaire double" />
     </Identity>
+
+    <Unit Id="0" />
 
     <Unit Id="1">
       <Capability Name="Actuator locking" />
@@ -1134,7 +1178,7 @@
     </Unit>
   </Device>
 
-  <Device Series="MyHome" Protocol="Scs" Medium="Bus">
+  <Device Id="0d05bf7f-827c-4f4a-a794-cd216c4a97ba" Series="MyHome" Protocol="Scs" Medium="Bus">
     <Identity Brand="BTicino" Model="F428">
       <Description Culture="en" Value="DIN rail contacts interface" />
       <Description Culture="fr" Value="Interface contacts modulaire" />
@@ -1144,6 +1188,8 @@
       <Description Culture="en" Value="DIN rail contacts interface" />
       <Description Culture="fr" Value="Interface contacts modulaire" />
     </Identity>
+
+    <Unit Id="0" />
 
     <Unit Id="1">
       <Capability Name="Configurable function type" />
@@ -1182,7 +1228,7 @@
     </Unit>
   </Device>
 
-  <Device Series="MyHome" Protocol="Scs" Medium="Bus">
+  <Device Id="1cf4b3f8-4c24-4116-99b8-1c6aff32300c" Series="MyHome" Protocol="Scs" Medium="Bus">
     <Identity Brand="BTicino" Model="F454">
       <Description Culture="en" Value="SCS/Ethernet gateway" />
       <Description Culture="fr" Value="Passerelle SCS/Ethernet" />
@@ -1193,17 +1239,19 @@
       <Description Culture="fr" Value="Passerelle SCS/Ethernet" />
     </Identity>
 
-    <Capability Name="Date/time" />
-    <Capability Name="Firmware version" />
-    <Capability Name="Hardware version" />
-    <Capability Name="MAC address" />
-    <Capability Name="OpenWebNet command session" />
-    <Capability Name="OpenWebNet event session" />
-    <Capability Name="OpenWebNet gateway" />
-    <Capability Name="Uptime" />
+    <Unit Id="0">
+      <Capability Name="Date/time" />
+      <Capability Name="Firmware version" />
+      <Capability Name="Hardware version" />
+      <Capability Name="MAC address" />
+      <Capability Name="OpenWebNet command session" />
+      <Capability Name="OpenWebNet event session" />
+      <Capability Name="OpenWebNet gateway" />
+      <Capability Name="Uptime" />
+    </Unit>
   </Device>
 
-  <Device Series="MyHome" Protocol="Scs" Medium="Bus">
+  <Device Id="996c7787-1b70-481f-8c33-6693ed9e63b5" Series="MyHome" Protocol="Scs" Medium="Bus">
     <Identity Brand="BTicino" Model="MH202">
       <Description Culture="en" Value="SCS scenario scheduler" />
       <Description Culture="fr" Value="Gestionnaire de scénarios SCS" />
@@ -1214,20 +1262,24 @@
       <Description Culture="fr" Value="Gestionnaire de scénarios SCS" />
     </Identity>
 
-    <Capability Name="Date/time" />
-    <Capability Name="Firmware version" />
-    <Capability Name="MAC address" />
-    <Capability Name="OpenWebNet command session" />
-    <Capability Name="OpenWebNet event session" />
-    <Capability Name="OpenWebNet gateway" />
-    <Capability Name="Uptime" />
+    <Unit Id="0">
+      <Capability Name="Date/time" />
+      <Capability Name="Firmware version" />
+      <Capability Name="MAC address" />
+      <Capability Name="OpenWebNet command session" />
+      <Capability Name="OpenWebNet event session" />
+      <Capability Name="OpenWebNet gateway" />
+      <Capability Name="Uptime" />
+    </Unit>
   </Device>
 
-  <Device Series="MyHome" Protocol="Scs" Medium="Bus">
+  <Device Id="a4f8cc78-980b-46ef-81c2-7ee9f59b6e4c" Series="MyHome" Protocol="Scs" Medium="Bus">
     <Identity Brand="Legrand" Collection="Céliane" Model="67557">
       <Description Culture="en" Value="Advanced automation actuator" />
       <Description Culture="fr" Value="Interrupteur de volet roulant avancé" />
     </Identity>
+
+    <Unit Id="0" />
 
     <Unit Id="1">
       <Capability Name="Advanced shutter control" />
@@ -1240,11 +1292,13 @@
     </Unit>
   </Device>
 
-  <Device Series="MyHome" Protocol="Scs" Medium="Bus">
+  <Device Id="3da6df25-a89f-4ec0-a792-2efd810b1b48" Series="MyHome" Protocol="Scs" Medium="Bus">
     <Identity Brand="Legrand" Collection="Céliane" Model="67561">
       <Description Culture="en" Value="2-channel light/automation actuator" />
       <Description Culture="fr" Value="Interrupteur d'éclairage/volet roulant double" />
     </Identity>
+
+    <Unit Id="0" />
 
     <Unit Id="1">
       <Capability Name="Actuator locking" />
@@ -1297,11 +1351,13 @@
     </Unit>
   </Device>
 
-  <Device Series="MyHome" Protocol="Scs" Medium="Bus">
+  <Device Id="5e67454b-7395-4f14-9577-6523fe02e3d0" Series="MyHome" Protocol="Scs" Medium="Bus">
     <Identity Brand="Legrand" Collection="Céliane" Model="MX5220">
       <Description Culture="en" Value="Automation actuator" />
       <Description Culture="fr" Value="Interrupteur de volet roulant" />
     </Identity>
+
+    <Unit Id="0" />
 
     <Unit Id="1">
       <Capability Name="Advanced shutter control" />
@@ -1367,11 +1423,13 @@
     </Unit>
   </Device>
 
-  <Device Series="MyHome" Protocol="Scs" Medium="Bus">
+  <Device Id="4274205f-ee8a-4928-8c7a-e3d8c6401da6" Series="MyHome" Protocol="Scs" Medium="Bus">
     <Identity Brand="Legrand" Collection="Céliane" Model="MX5222">
       <Description Culture="en" Value="2-gang light/automation control switch" />
       <Description Culture="fr" Value="Commande d'éclairage/volet roulant double" />
     </Identity>
+
+    <Unit Id="0" />
 
     <!--
       Note: unlike older models, the MX5220/MX5222/MX5230 use one
@@ -1427,11 +1485,13 @@
     </Unit>
   </Device>
 
-  <Device Series="MyHome" Protocol="Scs" Medium="Bus">
+  <Device Id="b3bce7b4-a648-4c69-b105-bd383a3fe9ca" Series="MyHome" Protocol="Scs" Medium="Bus">
     <Identity Brand="Legrand" Collection="Céliane" Model="MX5230">
       <Description Culture="en" Value="2-channel light actuator" />
       <Description Culture="fr" Value="Interrupteur d'éclairage double" />
     </Identity>
+
+    <Unit Id="0" />
 
     <Unit Id="1">
       <Capability Name="Actuator locking" />
@@ -1513,16 +1573,19 @@
                                 ▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀▀
   -->
 
-  <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
+  <Device Id="29abcf1a-1c11-4e31-b070-9bd12e43a506" Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
     <Identity Brand="Legrand" Model="573862">
       <Description Culture="en" Value="1-gang switch for false ceilings" />
       <Description Culture="fr" Value="Interrupteur simple pour faux plafonds" />
     </Identity>
 
-    <Capability Name="Firmware version" />
-    <Capability Name="Hardware version" />
-    <Capability Name="Outgoing communication" />
-    <Capability Name="Zigbee router" />
+    <Setting Name="Zigbee device type" Value="Router" />
+
+    <Unit Id="0">
+      <Capability Name="Firmware version" />
+      <Capability Name="Hardware version" />
+      <Capability Name="Outgoing communication" />
+    </Unit>
 
     <Unit Id="1">
       <Capability Name="On/off switch state" />
@@ -1538,7 +1601,7 @@
     </Unit>
   </Device>
 
-  <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
+  <Device Id="29ae2bfb-33a7-4e84-9768-fa034ac1a7b3" Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
     <Identity Brand="BTicino" Model="3528N">
       <Description Culture="en" Value="Pocket scenario remote control" />
       <Description Culture="fr" Value="Interscénario de poche" />
@@ -1549,11 +1612,14 @@
       <Description Culture="fr" Value="Interscénario de poche" />
     </Identity>
 
-    <Capability Name="Battery level" />
-    <Capability Name="Firmware version" />
-    <Capability Name="Hardware version" />
-    <Capability Name="Outgoing communication" />
-    <Capability Name="Zigbee end device" />
+    <Setting Name="Zigbee device type" Value="End device" />
+
+    <Unit Id="0">
+      <Capability Name="Battery level" />
+      <Capability Name="Firmware version" />
+      <Capability Name="Hardware version" />
+      <Capability Name="Outgoing communication" />
+    </Unit>
 
     <Unit Id="1">
       <Capability Name="Pressure scenario plus event" />
@@ -1600,17 +1666,20 @@
     </Unit>
   </Device>
 
-  <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
+  <Device Id="632b07b7-337d-44ed-87b3-d90cd9753e60" Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
     <Identity Brand="Legrand" Collection="Céliane" Model="67223">
       <Description Culture="en" Value="1-gang wireless light control switch" />
       <Description Culture="fr" Value="Interrupteur d'éclairage simple sans fil" />
     </Identity>
 
-    <Capability Name="Battery level" />
-    <Capability Name="Firmware version" />
-    <Capability Name="Hardware version" />
-    <Capability Name="Outgoing communication" />
-    <Capability Name="Zigbee end device" />
+    <Setting Name="Zigbee device type" Value="End device" />
+
+    <Unit Id="0">
+      <Capability Name="Battery level" />
+      <Capability Name="Firmware version" />
+      <Capability Name="Hardware version" />
+      <Capability Name="Outgoing communication" />
+    </Unit>
 
     <Unit Id="1">
       <Capability Name="Toggle scenario event" />
@@ -1624,17 +1693,20 @@
     </Unit>
   </Device>
 
-  <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
+  <Device Id="57ca764a-f04d-4a32-8684-bb4b5f9f5262" Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
     <Identity Brand="Legrand" Collection="Céliane" Model="67224">
       <Description Culture="en" Value="2-gang wireless light control switch" />
       <Description Culture="fr" Value="Interrupteur d'éclairage double sans fil" />
     </Identity>
 
-    <Capability Name="Battery level" />
-    <Capability Name="Firmware version" />
-    <Capability Name="Hardware version" />
-    <Capability Name="Outgoing communication" />
-    <Capability Name="Zigbee end device" />
+    <Setting Name="Zigbee device type" Value="End device" />
+
+    <Unit Id="0">
+      <Capability Name="Battery level" />
+      <Capability Name="Firmware version" />
+      <Capability Name="Hardware version" />
+      <Capability Name="Outgoing communication" />
+    </Unit>
 
     <Unit Id="1">
       <Capability Name="Toggle scenario event" />
@@ -1659,17 +1731,20 @@
     </Unit>
   </Device>
 
-  <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
+  <Device Id="46444a8d-751e-4347-ad09-31d34c040563" Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
     <Identity Brand="Legrand" Collection="Céliane" Model="67229">
       <Description Culture="en" Value="Wireless dimmer control switch" />
       <Description Culture="fr" Value="Intervariateur sans fil" />
     </Identity>
 
-    <Capability Name="Battery level" />
-    <Capability Name="Firmware version" />
-    <Capability Name="Hardware version" />
-    <Capability Name="Outgoing communication" />
-    <Capability Name="Zigbee end device" />
+    <Setting Name="Zigbee device type" Value="End device" />
+
+    <Unit Id="0">
+      <Capability Name="Battery level" />
+      <Capability Name="Firmware version" />
+      <Capability Name="Hardware version" />
+      <Capability Name="Outgoing communication" />
+    </Unit>
 
     <!--
       Note: the dimmer control switch includes a single unit that covers the main toggle button and the dimming
@@ -1690,16 +1765,19 @@
     </Unit>
   </Device>
 
-  <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
+  <Device Id="b53f4fe0-273c-4536-a86c-1a75687b61c8" Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
     <Identity Brand="Legrand" Collection="Céliane" Model="67233">
       <Description Culture="en" Value="1-gang switch" />
       <Description Culture="fr" Value="Interrupteur simple" />
     </Identity>
 
-    <Capability Name="Firmware version" />
-    <Capability Name="Hardware version" />
-    <Capability Name="Outgoing communication" />
-    <Capability Name="Zigbee router" />
+    <Setting Name="Zigbee device type" Value="Router" />
+
+    <Unit Id="0">
+      <Capability Name="Firmware version" />
+      <Capability Name="Hardware version" />
+      <Capability Name="Outgoing communication" />
+    </Unit>
 
     <Unit Id="1">
       <Capability Name="On/off switch state" />
@@ -1715,16 +1793,19 @@
     </Unit>
   </Device>
 
-  <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
+  <Device Id="3f7ef098-4b79-4b0f-bb1a-65c1e8505590" Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
     <Identity Brand="Legrand" Collection="Céliane" Model="67234">
       <Description Culture="en" Value="2-gang switch" />
       <Description Culture="fr" Value="Interrupteur double" />
     </Identity>
 
-    <Capability Name="Firmware version" />
-    <Capability Name="Hardware version" />
-    <Capability Name="Outgoing communication" />
-    <Capability Name="Zigbee router" />
+    <Setting Name="Zigbee device type" Value="Router" />
+
+    <Unit Id="0">
+      <Capability Name="Firmware version" />
+      <Capability Name="Hardware version" />
+      <Capability Name="Outgoing communication" />
+    </Unit>
 
     <Unit Id="1">
       <Capability Name="On/off switch state" />
@@ -1753,17 +1834,20 @@
     </Unit>
   </Device>
 
-  <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
+  <Device Id="3b6dd5ae-6bdd-4285-9adf-32979665b089" Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
     <Identity Brand="Legrand" Collection="Céliane" Model="67265">
       <Description Culture="en" Value="Wireless shutter control switch" />
       <Description Culture="fr" Value="Interrupteur de volet roulant sans fil" />
     </Identity>
 
-    <Capability Name="Battery level" />
-    <Capability Name="Firmware version" />
-    <Capability Name="Hardware version" />
-    <Capability Name="Outgoing communication" />
-    <Capability Name="Zigbee end device" />
+    <Setting Name="Zigbee device type" Value="End device" />
+
+    <Unit Id="0">
+      <Capability Name="Battery level" />
+      <Capability Name="Firmware version" />
+      <Capability Name="Hardware version" />
+      <Capability Name="Outgoing communication" />
+    </Unit>
 
     <Unit Id="1">
       <Capability Name="Stop/up/down scenario event" />
@@ -1777,17 +1861,20 @@
     </Unit>
   </Device>
 
-  <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
+  <Device Id="8753114f-0a2b-4bbc-b19d-4a9f9a69e675" Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
     <Identity Brand="Legrand" Collection="Céliane" Model="67266">
       <Description Culture="en" Value="Wireless scenario switch" />
       <Description Culture="fr" Value="Interscénario sans fil" />
     </Identity>
 
-    <Capability Name="Battery level" />
-    <Capability Name="Firmware version" />
-    <Capability Name="Hardware version" />
-    <Capability Name="Outgoing communication" />
-    <Capability Name="Zigbee end device" />
+    <Setting Name="Zigbee device type" Value="End device" />
+
+    <Unit Id="0">
+      <Capability Name="Battery level" />
+      <Capability Name="Firmware version" />
+      <Capability Name="Hardware version" />
+      <Capability Name="Outgoing communication" />
+    </Unit>
 
     <Unit Id="1">
       <Capability Name="Pressure scenario plus event" />
@@ -1842,16 +1929,19 @@
     </Unit>
   </Device>
 
-  <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
+  <Device Id="771c8be9-e60b-4957-adb6-37e1b4a96f00" Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
     <Identity Brand="Legrand" Model="88306">
       <Description Culture="en" Value="Micromodule light switch" />
       <Description Culture="fr" Value="Micromodule d'éclairage" />
     </Identity>
 
-    <Capability Name="Firmware version" />
-    <Capability Name="Hardware version" />
-    <Capability Name="Outgoing communication" />
-    <Capability Name="Zigbee router" />
+    <Setting Name="Zigbee device type" Value="Router" />
+
+    <Unit Id="0">
+      <Capability Name="Firmware version" />
+      <Capability Name="Hardware version" />
+      <Capability Name="Outgoing communication" />
+    </Unit>
 
     <Unit Id="1">
       <Capability Name="On/off switch state" />
@@ -1867,7 +1957,7 @@
     </Unit>
   </Device>
 
-  <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
+  <Device Id="2b80f748-9f3e-401a-ae11-8e1a54c36856" Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
     <Identity Brand="BTicino" Model="3578">
       <Description Culture="en" Value="Zigbee/USB gateway" />
       <Description Culture="fr" Value="Passerelle Zigbee/USB" />
@@ -1878,31 +1968,37 @@
       <Description Culture="fr" Value="Passerelle Zigbee/USB" />
     </Identity>
 
-    <Capability Name="Firmware version" />
-    <Capability Name="Hardware version" />
-    <Capability Name="MAC address" />
-    <Capability Name="OpenWebNet gateway" />
-    <Capability Name="OpenWebNet generic session" />
-    <Capability Name="Zigbee network management" />
-    <Capability Name="Zigbee router" />
+    <Setting Name="Zigbee device type" Value="Router" />
 
-    <Setting Name="Serial port baud rate" Value="19200" />
-    <Setting Name="Serial port data bits" Value="8" />
-    <Setting Name="Serial port parity" Value="None" />
-    <Setting Name="Serial port stop bits" Value="1" />
+    <Unit Id="0">
+      <Capability Name="Firmware version" />
+      <Capability Name="Hardware version" />
+      <Capability Name="MAC address" />
+      <Capability Name="OpenWebNet gateway" />
+      <Capability Name="OpenWebNet generic session" />
+      <Capability Name="Zigbee network management" />
+
+      <Setting Name="Serial port baud rate" Value="19200" />
+      <Setting Name="Serial port data bits" Value="8" />
+      <Setting Name="Serial port parity" Value="None" />
+      <Setting Name="Serial port stop bits" Value="1" />
+    </Unit>
   </Device>
 
-  <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
+  <Device Id="72a5f96a-5b86-4414-9c95-0c782c5e2e70" Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
     <Identity Brand="Legrand" Model="88331">
       <Description Culture="en" Value="Light control switch with auxiliary inputs" />
       <Description Culture="fr" Value="Commande d'éclairage avec entrées auxiliaires" />
     </Identity>
 
-    <Capability Name="Battery level" />
-    <Capability Name="Firmware version" />
-    <Capability Name="Hardware version" />
-    <Capability Name="Outgoing communication" />
-    <Capability Name="Zigbee end device" />
+    <Setting Name="Zigbee device type" Value="End device" />
+
+    <Unit Id="0">
+      <Capability Name="Battery level" />
+      <Capability Name="Firmware version" />
+      <Capability Name="Hardware version" />
+      <Capability Name="Outgoing communication" />
+    </Unit>
 
     <!--
       Note: the physical switch labelled "2" and the corresponding contact wires are bound to unit 1.
@@ -1935,16 +2031,19 @@
     </Unit>
   </Device>
 
-  <Device Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
+  <Device Id="563cf2db-d5c4-4f69-9797-ada88d078d17" Series="MyHome Play" Protocol="Zigbee" Medium="Radio">
     <Identity Brand="Legrand" Model="88337">
       <Description Culture="en" Value="Switched outlet" />
       <Description Culture="fr" Value="Prisinter" />
     </Identity>
 
-    <Capability Name="Firmware version" />
-    <Capability Name="Hardware version" />
-    <Capability Name="Outgoing communication" />
-    <Capability Name="Zigbee router" />
+    <Setting Name="Zigbee device type" Value="Router" />
+
+    <Unit Id="0">
+      <Capability Name="Firmware version" />
+      <Capability Name="Hardware version" />
+      <Capability Name="Outgoing communication" />
+    </Unit>
 
     <Unit Id="1">
       <Capability Name="On/off switch state" />

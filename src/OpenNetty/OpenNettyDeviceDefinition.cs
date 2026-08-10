@@ -6,50 +6,75 @@
 
 using System.Collections.Immutable;
 using System.Diagnostics.CodeAnalysis;
+using System.Globalization;
 
 namespace OpenNetty;
 
 /// <summary>
 /// Represents an OpenNetty device definition.
 /// </summary>
-public sealed class OpenNettyDeviceDefinition : IEquatable<OpenNettyDeviceDefinition>
+public sealed record class OpenNettyDeviceDefinition : IEquatable<OpenNettyDeviceDefinition>
 {
-    /// <summary>
-    /// Gets or sets the capabilities associated with the device definition.
-    /// </summary>
-    public required ImmutableHashSet<OpenNettyCapability> Capabilities { get; init; } = [];
+    private volatile bool _writable = true;
 
     /// <summary>
-    /// Gets or sets the identities associated with the device definition.
+    /// Gets the unique identifier associated with the device definition.
     /// </summary>
-    public required ImmutableArray<OpenNettyDeviceIdentity> Identities { get; init; }
+    public Guid Id { get; internal set { VerifyMutable(); field = value; } }
 
     /// <summary>
-    /// Gets or sets the medium associated with the device definition.
+    /// Gets the identities associated with the device definition.
     /// </summary>
-    public required OpenNettyMedium Medium { get; init; }
+    public ImmutableArray<OpenNettyDeviceIdentity> Identities { get; internal set { VerifyMutable(); field = value; } } = [];
 
     /// <summary>
-    /// Gets or sets the protocol associated with the device definition.
+    /// Gets a boolean indicating whether the current instance has been locked for user modification.
     /// </summary>
-    public required OpenNettyProtocol Protocol { get; init; }
+    public bool IsReadOnly => !_writable;
 
     /// <summary>
-    /// Gets or sets the series associated with the device definition.
+    /// Gets the medium associated with the device definition.
     /// </summary>
-    public required string Series { get; init; }
+    public OpenNettyMedium Medium { get; internal set { VerifyMutable(); field = value; } }
 
     /// <summary>
-    /// Gets or sets the OpenNetty-defined settings associated with the device definition.
+    /// Gets the protocol associated with the device definition.
     /// </summary>
-    public ImmutableDictionary<OpenNettySetting, string> Settings { get; init; } = [];
+    public OpenNettyProtocol Protocol { get; internal set { VerifyMutable(); field = value; } }
 
     /// <summary>
-    /// Gets or sets the unit definitions associated with the device definition.
+    /// Gets the series associated with the device definition.
     /// </summary>
-    public required ImmutableArray<OpenNettyUnitDefinition> Units { get; init; }
+    public string Series { get; internal set { ArgumentException.ThrowIfNullOrEmpty(value); VerifyMutable(); field = value; } } = default!;
+
+    /// <summary>
+    /// Gets the settings associated with the device definition.
+    /// </summary>
+    /// <remarks>
+    /// Note: the settings defined at the device level are automatically inherited by all units of the device.
+    /// </remarks>
+    public ImmutableDictionary<OpenNettySetting, string> Settings { get; internal set { VerifyMutable(); field = value; } } = [];
+
+    /// <summary>
+    /// Gets the unit definitions associated with the device definition.
+    /// </summary>
+    /// <remarks>
+    /// Note: all device definitions have at least one unit definition, representing the root unit of the device.
+    /// </remarks>
+    public ImmutableArray<OpenNettyUnitDefinition> Units { get; internal set { VerifyMutable(); field = value; } } = [];
+
+    /// <summary>
+    /// Creates a new instance of the <see cref="OpenNettyDeviceDefinition"/> class.
+    /// </summary>
+    internal OpenNettyDeviceDefinition()
+    {
+    }
 
     /// <inheritdoc/>
+    /// <remarks>
+    /// Note: two device definitions are considered equal if they have
+    /// the same unique identifier, regardless of their other properties.
+    /// </remarks>
     public bool Equals([NotNullWhen(true)] OpenNettyDeviceDefinition? other)
     {
         if (ReferenceEquals(this, other))
@@ -57,56 +82,19 @@ public sealed class OpenNettyDeviceDefinition : IEquatable<OpenNettyDeviceDefini
             return true;
         }
 
-        return other is not null &&
-            Capabilities.Count == other.Capabilities.Count && Capabilities.Except(other.Capabilities).IsEmpty &&
-            Identities.Length == other.Identities.Length && !Identities.Except(other.Identities).Any() &&
-            Medium == other.Medium &&
-            Protocol == other.Protocol &&
-            string.Equals(Series, other.Series, StringComparison.OrdinalIgnoreCase) &&
-            Settings.Count == other.Settings.Count && !Settings.Except(other.Settings).Any() &&
-            Units.Length == other.Units.Length && !Units.Except(other.Units).Any();
+        return other is not null && Id == other.Id;
     }
 
     /// <inheritdoc/>
-    public override bool Equals([NotNullWhen(true)] object? obj)
-        => obj is OpenNettyDeviceDefinition definition && Equals(definition);
+    public override int GetHashCode() => Id.GetHashCode();
 
-    /// <inheritdoc/>
-    public override int GetHashCode()
-    {
-        var hash = new HashCode();
-
-        hash.Add(Capabilities.Count);
-        foreach (var capability in Capabilities)
-        {
-            hash.Add(capability);
-        }
-
-        hash.Add(Identities.Length);
-        foreach (var identity in Identities)
-        {
-            hash.Add(identity);
-        }
-
-        hash.Add(Medium);
-        hash.Add(Protocol);
-        hash.Add(Series, StringComparer.OrdinalIgnoreCase);
-
-        hash.Add(Settings.Count);
-        foreach (var (name, value) in Settings)
-        {
-            hash.Add(name);
-            hash.Add(value, StringComparer.Ordinal);
-        }
-
-        hash.Add(Units.Length);
-        foreach (var unit in Units)
-        {
-            hash.Add(unit);
-        }
-
-        return hash.ToHashCode();
-    }
+    /// <summary>
+    /// Resolves the specified boolean setting from the settings.
+    /// </summary>
+    /// <param name="setting">The setting name.</param>
+    /// <returns>The boolean setting if it could be found, <see langword="null"/> otherwise.</returns>
+    public bool? GetBooleanSetting(OpenNettySetting setting)
+        => TryGetSetting(setting, out string? value) && bool.TryParse(value, out bool result) ? result : null;
 
     /// <summary>
     /// Resolves the identity corresponding to the specified brand and model.
@@ -120,23 +108,28 @@ public sealed class OpenNettyDeviceDefinition : IEquatable<OpenNettyDeviceDefini
             : throw new InvalidOperationException(SR.GetResourceString(SR.ID0127));
 
     /// <summary>
-    /// Resolves the unit corresponding to the specified identifier.
+    /// Resolves the specified integer setting from the settings.
+    /// </summary>
+    /// <param name="setting">The setting name.</param>
+    /// <returns>The integer setting if it could be found, <see langword="null"/> otherwise.</returns>
+    public long? GetIntegerSetting(OpenNettySetting setting)
+        => TryGetSetting(setting, out string? value) && long.TryParse(value, CultureInfo.InvariantCulture, out long result) ? result : null;
+
+    /// <summary>
+    /// Resolves the specified string setting from the settings.
+    /// </summary>
+    /// <param name="setting">The setting name.</param>
+    /// <returns>The string setting if it could be found, <see langword="null"/> otherwise.</returns>
+    public string? GetStringSetting(OpenNettySetting setting) => TryGetSetting(setting, out string? value) ? value : null;
+
+    /// <summary>
+    /// Resolves the unit definition corresponding to the specified identifier.
     /// </summary>
     /// <param name="identifier">The unit identifier.</param>
     /// <returns>The definition of the resolved unit.</returns>
-    public OpenNettyUnitDefinition GetUnitDefinition(byte identifier)
-        => TryGetUnitDefinition(identifier, out OpenNettyUnitDefinition? unit)
-            ? unit
-            : throw new InvalidOperationException(SR.FormatID0087(identifier));
-
-    /// <summary>
-    /// Determines whether the device has the specified capability.
-    /// </summary>
-    /// <param name="capability">The capability name.</param>
-    /// <returns>
-    /// <see langword="true"/> if the device has the specified capability, <see langword="false"/> otherwise.
-    /// </returns>
-    public bool HasCapability(OpenNettyCapability capability) => Capabilities.Contains(capability);
+    public OpenNettyUnitDefinition GetUnitDefinition(byte identifier) => TryGetUnitDefinition(identifier, out OpenNettyUnitDefinition? unit)
+        ? unit
+        : throw new InvalidOperationException(SR.FormatID0087(identifier));
 
     /// <summary>
     /// Determines whether the device has has an identity matching the specified brand and model.
@@ -167,6 +160,12 @@ public sealed class OpenNettyDeviceDefinition : IEquatable<OpenNettyDeviceDefini
 
         return false;
     }
+
+    /// <summary>
+    /// Marks the current instance as read-only to prevent any further user modification.
+    /// </summary>
+    /// <remarks>This method is idempotent.</remarks>
+    public void MakeReadOnly() => _writable = false;
 
     /// <summary>
     /// Tries to resolve the identity corresponding to the specified brand and model.
@@ -202,22 +201,28 @@ public sealed class OpenNettyDeviceDefinition : IEquatable<OpenNettyDeviceDefini
     }
 
     /// <summary>
-    /// Tries to resolve the unit corresponding to the specified identifier.
+    /// Tries to resolve the specified setting from the settings.
+    /// </summary>
+    /// <param name="setting">The setting name.</param>
+    /// <param name="value">The setting value, or <see langword="null"/> if it was not found.</param>
+    /// <returns><see langword="true"/> if the setting was found, <see langword="false"/> otherwise.</returns>
+    public bool TryGetSetting(OpenNettySetting setting, [NotNullWhen(true)] out string? value)
+        => Settings.TryGetValue(setting, out value);
+
+    /// <summary>
+    /// Tries to resolve the unit definition corresponding to the specified identifier.
     /// </summary>
     /// <param name="identifier">The unit identifier.</param>
     /// <param name="definition">The definition of the resolved unit if found, <see langword="null"/> otherwise.</param>
     /// <returns>
-    /// <see langword="true"/> if the device has a unit matching the specified identifier, <see langword="false"/> otherwise.
+    /// <see langword="true"/> if the device has a unit definition matching the specified identifier, <see langword="false"/> otherwise.
     /// </returns>
     public bool TryGetUnitDefinition(byte identifier, [NotNullWhen(true)] out OpenNettyUnitDefinition? definition)
     {
-        for (var index = 0; index < Units.Length; index++)
+        if (identifier < Units.Length)
         {
-            if (Units[index].Id == identifier)
-            {
-                definition = Units[index];
-                return true;
-            }
+            definition = Units[identifier];
+            return true;
         }
 
         definition = null;
@@ -225,19 +230,14 @@ public sealed class OpenNettyDeviceDefinition : IEquatable<OpenNettyDeviceDefini
     }
 
     /// <summary>
-    /// Determines whether two <see cref="OpenNettyDeviceDefinition"/> instances are equal.
+    /// Verifies that the current instance is mutable and throws an exception if it is not.
     /// </summary>
-    /// <param name="left">The first instance.</param>
-    /// <param name="right">The second instance.</param>
-    /// <returns><see langword="true"/> if the two instances are equal, <see langword="false"/> otherwise.</returns>
-    public static bool operator ==(OpenNettyDeviceDefinition? left, OpenNettyDeviceDefinition? right)
-        => ReferenceEquals(left, right) || (left is not null && right is not null && left.Equals(right));
-
-    /// <summary>
-    /// Determines whether two <see cref="OpenNettyDeviceDefinition"/> instances are not equal.
-    /// </summary>
-    /// <param name="left">The first instance.</param>
-    /// <param name="right">The second instance.</param>
-    /// <returns><see langword="true"/> if the two instances are not equal, <see langword="false"/> otherwise.</returns>
-    public static bool operator !=(OpenNettyDeviceDefinition? left, OpenNettyDeviceDefinition? right) => !(left == right);
+    /// <exception cref="InvalidOperationException">The current instance is read-only.</exception>
+    private void VerifyMutable()
+    {
+        if (!_writable)
+        {
+            throw new InvalidOperationException(SR.GetResourceString(SR.ID2021));
+        }
+    }
 }

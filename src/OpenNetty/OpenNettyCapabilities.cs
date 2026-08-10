@@ -297,17 +297,7 @@ public static class OpenNettyCapabilities
     public static readonly OpenNettyCapability ZigbeeBinding = new("Zigbee binding");
 
     /// <summary>
-    /// Zigbee end device (ZED).
-    /// </summary>
-    public static readonly OpenNettyCapability ZigbeeEndDevice = new("Zigbee end device");
-
-    /// <summary>
     /// Zigbee network management.
     /// </summary>
     public static readonly OpenNettyCapability ZigbeeNetworkManagement = new("Zigbee network management");
-
-    /// <summary>
-    /// Zigbee router (ZR).
-    /// </summary>
-    public static readonly OpenNettyCapability ZigbeeRouter = new("Zigbee router");
 }

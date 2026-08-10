@@ -124,11 +124,13 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
+        var gateway = endpoint.Gateway ?? throw new InvalidOperationException(SR.FormatID2023(endpoint.Name));
+
         // Note: the Zigbee binding commands are only supported by gateways with firmware version 1.2.3 or higher.
-        var version = await GetGatewayFirmwareVersionAsync(endpoint.Gateway, cancellationToken);
+        var version = await GetGatewayFirmwareVersionAsync(gateway, cancellationToken);
         if (version < new Version(1, 2, 3))
         {
-            throw new InvalidOperationException(SR.FormatID0131("1.2.3", endpoint.Gateway, version.ToString()));
+            throw new InvalidOperationException(SR.FormatID0131("1.2.3", gateway, version.ToString()));
         }
 
         await _service.ExecuteCommandAsync(
@@ -771,6 +773,8 @@ public class OpenNettyController
 
             HashSet<OpenNettyEndpoint> set = [];
 
+            var gateway = endpoint.Gateway ?? throw new InvalidOperationException(SR.FormatID2023(endpoint.Name));
+
             if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
             {
                 // Note: while the brightness level is requested using the "DIMMER SPEED/LEVEL" DIMENSION, the result
@@ -783,7 +787,7 @@ public class OpenNettyController
                         address  : endpoint.Address,
                         medium   : endpoint.Medium,
                         mode     : null),
-                    gateway          : endpoint.Gateway,
+                    gateway          : gateway,
                     options          : GetTransmissionOptions(endpoint),
                     cancellationToken: cancellationToken);
 
@@ -797,7 +801,7 @@ public class OpenNettyController
                     .ToAsyncEnumerable()
                     .WithCancellation(cancellationToken))
                 {
-                    await foreach (var endpoint in _manager.FindEndpointsByAddressAsync(endpoint.Gateway, message.Address!.Value, cancellationToken))
+                    await foreach (var endpoint in _manager.FindEndpointsByAddressAsync(gateway, message.Address!.Value, cancellationToken))
                     {
                         if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState) && set.Add(endpoint))
                         {
@@ -879,6 +883,8 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
 
+        var gateway = endpoint.Gateway ?? throw new InvalidOperationException(SR.FormatID2023(endpoint.Name));
+
         switch (endpoint.Protocol)
         {
             case OpenNettyProtocol.Nitoo:
@@ -901,11 +907,11 @@ public class OpenNettyController
             await foreach (var (address, values) in _service.EnumerateDimensionsAsync(
                 protocol         : endpoint.Protocol,
                 dimension        : OpenNettyDimensions.Automation.ShutterStatus,
-                gateway          : endpoint.Gateway,
+                gateway          : gateway,
                 options          : GetTransmissionOptions(endpoint),
                 cancellationToken: cancellationToken))
             {
-                await foreach (var endpoint in _manager.FindEndpointsByAddressAsync(endpoint.Gateway, address, cancellationToken))
+                await foreach (var endpoint in _manager.FindEndpointsByAddressAsync(gateway, address, cancellationToken))
                 {
                     if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))
                     {
@@ -950,6 +956,8 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
 
+        var gateway = endpoint.Gateway ?? throw new InvalidOperationException(SR.FormatID2023(endpoint.Name));
+
         switch (endpoint.Protocol)
         {
             case OpenNettyProtocol.Nitoo:
@@ -982,11 +990,11 @@ public class OpenNettyController
                 await foreach (var (address, values) in _service.EnumerateDimensionsAsync(
                     protocol         : endpoint.Protocol,
                     dimension        : OpenNettyDimensions.Automation.ShutterStatus,
-                    gateway          : endpoint.Gateway,
+                    gateway          : gateway,
                     options          : GetTransmissionOptions(endpoint),
                     cancellationToken: cancellationToken))
                 {
-                    await foreach (var endpoint in _manager.FindEndpointsByAddressAsync(endpoint.Gateway, address, cancellationToken))
+                    await foreach (var endpoint in _manager.FindEndpointsByAddressAsync(gateway, address, cancellationToken))
                     {
                         if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState) && set.Add(endpoint))
                         {
@@ -1069,6 +1077,8 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
 
+        var gateway = endpoint.Gateway ?? throw new InvalidOperationException(SR.FormatID2023(endpoint.Name));
+
         switch (endpoint.Protocol)
         {
             case OpenNettyProtocol.Nitoo:
@@ -1106,11 +1116,11 @@ public class OpenNettyController
                     command == OpenNettyCommands.Lighting.On80 ||
                     command == OpenNettyCommands.Lighting.On90 ||
                     command == OpenNettyCommands.Lighting.On100),
-                gateway          : endpoint.Gateway,
+                gateway          : gateway,
                 options          : GetTransmissionOptions(endpoint),
                 cancellationToken: cancellationToken))
             {
-                await foreach (var endpoint in _manager.FindEndpointsByAddressAsync(endpoint.Gateway, address, cancellationToken))
+                await foreach (var endpoint in _manager.FindEndpointsByAddressAsync(gateway, address, cancellationToken))
                 {
                     if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
                     {
@@ -1411,7 +1421,7 @@ public class OpenNettyController
         // is not aborted before the device has a chance to wake up and reply, the timeouts are
         // slightly increased but missing acknowledgment frames are explicitly ignored to ensure
         // the session will not be discarded by the worker if no acknowledgment frame is returned.
-        if (endpoint.HasCapability(OpenNettyCapabilities.ZigbeeEndDevice))
+        if (endpoint.GetStringSetting(OpenNettySettings.ZigbeeDeviceType) is OpenNettySettings.ZigbeeDeviceTypes.EndDevice)
         {
             options = options with
             {
@@ -1476,7 +1486,7 @@ public class OpenNettyController
         // is not aborted before the device has a chance to wake up and reply, the timeouts are
         // slightly increased but missing acknowledgment frames are explicitly ignored to ensure
         // the session will not be discarded by the worker if no acknowledgment frame is returned.
-        if (endpoint.HasCapability(OpenNettyCapabilities.ZigbeeEndDevice))
+        if (endpoint.GetStringSetting(OpenNettySettings.ZigbeeDeviceType) is OpenNettySettings.ZigbeeDeviceTypes.EndDevice)
         {
             options = options with
             {
@@ -3001,11 +3011,13 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0069));
         }
 
+        var gateway = endpoint.Gateway ?? throw new InvalidOperationException(SR.FormatID2023(endpoint.Name));
+
         // Note: the Zigbee binding commands are only supported by gateways with firmware version 1.2.3 or higher.
-        var version = await GetGatewayFirmwareVersionAsync(endpoint.Gateway, cancellationToken);
+        var version = await GetGatewayFirmwareVersionAsync(gateway, cancellationToken);
         if (version < new Version(1, 2, 3))
         {
-            throw new InvalidOperationException(SR.FormatID0131("1.2.3", endpoint.Gateway, version.ToString()));
+            throw new InvalidOperationException(SR.FormatID0131("1.2.3", gateway, version.ToString()));
         }
 
         await _service.ExecuteCommandAsync(
@@ -3056,14 +3068,16 @@ public class OpenNettyController
     {
         ArgumentNullException.ThrowIfNull(endpoint);
 
+        var gateway = endpoint.Gateway ?? throw new InvalidOperationException(SR.FormatID2023(endpoint.Name));
+
         return endpoint.GetBooleanSetting(OpenNettySettings.ActionValidation) switch
         {
-            null => endpoint.Gateway.Options.DefaultTransmissionOptions,
-            true => endpoint.Gateway.Options.DefaultTransmissionOptions with
+            null => gateway.Options.DefaultTransmissionOptions,
+            true => gateway.Options.DefaultTransmissionOptions with
             {
                 IgnoreActionValidation = true
             },
-            false => endpoint.Gateway.Options.DefaultTransmissionOptions with
+            false => gateway.Options.DefaultTransmissionOptions with
             {
                 IgnoreActionValidation = false
             }
@@ -3081,18 +3095,17 @@ public class OpenNettyController
     {
         ArgumentNullException.ThrowIfNull(gateway);
 
-        // Resolve the endpoint associated with the specified gateway. If the endpoint cannot be found, an exception is thrown.
-        var endpoint = await GetGatewayEndpointAsync(gateway, _manager, cancellationToken)
+        var endpoint = await GetEndpointAsync(gateway, _manager, cancellationToken)
             ?? throw new InvalidOperationException(SR.FormatID0130(gateway.Device.Name));
 
         return await GetFirmwareVersionAsync(endpoint, cancellationToken);
 
-        static async ValueTask<OpenNettyEndpoint?> GetGatewayEndpointAsync(
+        static async ValueTask<OpenNettyEndpoint?> GetEndpointAsync(
             OpenNettyGateway gateway, OpenNettyManager manager, CancellationToken cancellationToken)
         {
-            await foreach (var endpoint in manager.EnumerateEndpointsAsync(cancellationToken))
+            await foreach (var endpoint in manager.FindEndpointsByDeviceAsync(gateway.Device, cancellationToken).WithCancellation(cancellationToken))
             {
-                if (endpoint.Device == gateway.Device && endpoint.Unit is null)
+                if (endpoint.Unit is { Definition.Id: 0 } unit && unit.HasCapability(OpenNettyCapabilities.FirmwareVersion))
                 {
                     return endpoint;
                 }

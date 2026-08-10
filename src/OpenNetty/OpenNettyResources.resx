@@ -439,7 +439,7 @@
     <value>Gateway devices must declare a '{0}' node with the gateway details.</value>
   </data>
   <data name="ID0108" xml:space="preserve">
-    <value>Device nodes must include a '{0}' attribute when the '{1}' or '{2}' attributes are not specified.</value>
+    <value>Devices must be attached a unique name or a unique device identifier.</value>
   </data>
   <data name="ID0109" xml:space="preserve">
     <value>The specified MAC address contains invalid characters or uses an invalid format.</value>
@@ -519,6 +519,9 @@
   <data name="ID0134" xml:space="preserve">
     <value>The address doesn't represent a valid SCS CEN+ address.</value>
   </data>
+  <data name="ID0135" xml:space="preserve">
+    <value>The '{0}' attribute is not valid for a gateway device.</value>
+  </data>
   <data name="ID2000" xml:space="preserve">
     <value>The endpoint name '{0}' is not valid. Endpoint names cannot contain the '+' or '*' characters.</value>
   </data>
@@ -578,6 +581,18 @@
   </data>
   <data name="ID2020" xml:space="preserve">
     <value>The device name '{0}' is not valid. Device names cannot contain the '+' or '*' characters.</value>
+  </data>
+  <data name="ID2021" xml:space="preserve">
+    <value>This instance has been marked as read-only and cannot be modified.</value>
+  </data>
+  <data name="ID2022" xml:space="preserve">
+    <value>The device '{0}' does not have a gateway assigned or the attached device is not valid.</value>
+  </data>
+  <data name="ID2023" xml:space="preserve">
+    <value>The endpoint '{0}' does not have a gateway assigned or the attached device is not valid.</value>
+  </data>
+  <data name="ID2024" xml:space="preserve">
+    <value>The endpoint '{0}' does not have an address attached, which is not valid except when targeting an OpenWebNet gateway device.</value>
   </data>
   <data name="ID6000" xml:space="preserve">
     <value>The OpenNetty hosted service is starting.</value>

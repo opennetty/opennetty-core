@@ -286,9 +286,9 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
             case not (OpenNettySessionType.Command or OpenNettySessionType.Generic or OpenNettySessionType.Event):
                 throw new ArgumentOutOfRangeException(nameof(type), SR.GetResourceString(SR.ID0016));
 
-            case OpenNettySessionType.Command when !gateway.Device.HasCapability(OpenNettyCapabilities.OpenWebNetCommandSession):
-            case OpenNettySessionType.Generic when !gateway.Device.HasCapability(OpenNettyCapabilities.OpenWebNetGenericSession):
-            case OpenNettySessionType.Event   when !gateway.Device.HasCapability(OpenNettyCapabilities.OpenWebNetEventSession):
+            case OpenNettySessionType.Command when !gateway.Device.GetUnit(0).HasCapability(OpenNettyCapabilities.OpenWebNetCommandSession):
+            case OpenNettySessionType.Generic when !gateway.Device.GetUnit(0).HasCapability(OpenNettyCapabilities.OpenWebNetGenericSession):
+            case OpenNettySessionType.Event   when !gateway.Device.GetUnit(0).HasCapability(OpenNettyCapabilities.OpenWebNetEventSession):
                 throw new InvalidOperationException(SR.GetResourceString(SR.ID0017));
         }
 

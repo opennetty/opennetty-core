@@ -21,64 +21,34 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
     {
         ArgumentNullException.ThrowIfNull(options);
 
+        foreach (var gateway in options.Gateways)
+        {
+            // Note: for devices representing gateways, the gateway attached to the device is always the device itself.
+            gateway.Device.Gateway = gateway;
+        }
+
         foreach (var device in options.Devices)
         {
-            if (device.Identifier is null && !device.HasCapability(OpenNettyCapabilities.OpenWebNetGateway))
-            {
-                continue;
-            }
-
-            // If an endpoint targeting the device was configured by the user, do not overwrite it.
-            if (!options.Endpoints.Exists(endpoint => endpoint.Device == device && endpoint.Unit is null))
-            {
-                var address = device.Definition.Protocol switch
-                {
-                    OpenNettyProtocol.Nitoo  when device.HasCapability(OpenNettyCapabilities.OpenWebNetGateway) => null,
-                    OpenNettyProtocol.Zigbee when device.HasCapability(OpenNettyCapabilities.OpenWebNetGateway) => null,
-
-                    OpenNettyProtocol.Nitoo  when device.Identifier is OpenNettyDeviceIdentifier identifier
-                        => OpenNettyAddress.FromNitooAddress(identifier, unit: 0),
-
-                    OpenNettyProtocol.Zigbee when device.Identifier is OpenNettyDeviceIdentifier identifier
-                        => OpenNettyAddress.FromZigbeeAddress(identifier, unit: 0),
-
-                    _ => null as OpenNettyAddress?
-                };
-
-                if (address is null && !device.HasCapability(OpenNettyCapabilities.OpenWebNetGateway))
-                {
-                    continue;
-                }
-
-                options.Endpoints.Add(new OpenNettyEndpoint
-                {
-                    Address = address,
-                    Capabilities = [],
-                    Device = device,
-                    Gateway = device.Gateway ?? options.Gateways.FirstOrDefault(gateway => gateway.Device == device)
-                        ?? throw new InvalidOperationException(SR.FormatID0107("Gateway")),
-                    Medium = device.Definition.Medium,
-                    Name = OpenNettyUtilities.ComputeDefaultEndpointName(device.Definition.Protocol, address, device, unit: null),
-                    Protocol = device.Definition.Protocol,
-                    Settings = []
-                });
-            }
+            // If no gateway was explicitly configured for the device, find a gateway that matches the device's
+            // protocol: if no gateway can be found, the device will be rejected during the validation phase.
+            device.Gateway ??= GetFirstGateway(options.Gateways, device.Definition.Protocol);
 
             // Add implicit endpoints for all the units that have not been explicitly added by the user.
-            if (device.Definition.Units.Length is not 0 && device.Definition.Protocol is not OpenNettyProtocol.Scs)
+            if (device.Definition.Units is { IsDefaultOrEmpty: false })
             {
                 foreach (var definition in device.Definition.Units)
                 {
                     // If an endpoint targeting the unit was configured by the user, do not override it.
-                    if (options.Endpoints.Exists(endpoint => endpoint.Device == device && endpoint.Unit?.Definition == definition))
+                    if (options.Endpoints.Exists(endpoint => endpoint.Unit?.Device == device && endpoint.Unit?.Definition == definition))
                     {
                         continue;
                     }
 
                     var address = device.Definition.Protocol switch
                     {
-                        OpenNettyProtocol.Nitoo  when device.HasCapability(OpenNettyCapabilities.OpenWebNetGateway) => null,
-                        OpenNettyProtocol.Zigbee when device.HasCapability(OpenNettyCapabilities.OpenWebNetGateway) => null,
+                        OpenNettyProtocol.Nitoo  when device.GetUnit(0).HasCapability(OpenNettyCapabilities.OpenWebNetGateway) => null,
+                        OpenNettyProtocol.Scs    when device.GetUnit(0).HasCapability(OpenNettyCapabilities.OpenWebNetGateway) => null,
+                        OpenNettyProtocol.Zigbee when device.GetUnit(0).HasCapability(OpenNettyCapabilities.OpenWebNetGateway) => null,
 
                         OpenNettyProtocol.Nitoo  when device.Identifier is OpenNettyDeviceIdentifier identifier
                             => OpenNettyAddress.FromNitooAddress(identifier, unit: definition.Id),
@@ -89,33 +59,60 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
                         _ => null as OpenNettyAddress?
                     };
 
-                    if (address is null && !device.HasCapability(OpenNettyCapabilities.OpenWebNetGateway))
+                    if (address is null && !device.GetUnit(0).HasCapability(OpenNettyCapabilities.OpenWebNetGateway))
                     {
                         continue;
                     }
 
-                    var unit = device.Units.SingleOrDefault(unit => unit.Definition == definition) ?? new OpenNettyUnit
-                    {
-                        Definition = definition,
-                        Scenarios = [],
-                        Settings = []
-                    };
-
-                    options.Endpoints.Add(new OpenNettyEndpoint
+                    var endpoint = new OpenNettyEndpoint
                     {
                         Address = address,
                         Capabilities = [],
-                        Device = device,
                         Gateway = device.Gateway ?? options.Gateways.FirstOrDefault(gateway => gateway.Device == device)
                             ?? throw new InvalidOperationException(SR.FormatID0107("Gateway")),
                         Medium = device.Definition.Medium,
-                        Name = OpenNettyUtilities.ComputeDefaultEndpointName(device.Definition.Protocol, address, device, unit),
+                        Name = OpenNettyUtilities.ComputeDefaultEndpointName(device.Definition.Protocol,
+                            address, device.GetUnit(definition.Id)),
                         Protocol = device.Definition.Protocol,
                         Settings = [],
-                        Unit = unit
-                    });
+                        Unit = device.GetUnit(definition.Id)
+                    };
+
+                    options.Endpoints.Add(endpoint);
                 }
             }
+
+            // Mark the device and all its units as read-only to prevent further modifications.
+            device.MakeReadOnly();
+
+            foreach (var unit in device.Units)
+            {
+                unit.MakeReadOnly();
+            }
+        }
+
+        foreach (var endpoint in options.Endpoints)
+        {
+            // If no gateway was explicitly configured for the endpoint, find a gateway that matches the endpoint's
+            // protocol: if no gateway can be found, the endpoint will be rejected during the validation phase.
+            endpoint.Gateway ??= endpoint.Unit?.Device.Gateway ?? GetFirstGateway(options.Gateways, endpoint.Protocol);
+
+            // Mark the endpoint as read-only to prevent further modifications.
+            endpoint.MakeReadOnly();
+        }
+
+        static OpenNettyGateway? GetFirstGateway(IReadOnlyList<OpenNettyGateway> gateways, OpenNettyProtocol protocol)
+        {
+            for (var index = 0; index < gateways.Count; index++)
+            {
+                var gateway = gateways[index];
+                if (gateway.Protocol == protocol)
+                {
+                    return gateway;
+                }
+            }
+
+            return null;
         }
     }
 
@@ -167,6 +164,13 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
 
         foreach (var device in options.Devices)
         {
+            // Ensure a valid gateway device is attached.
+            if (device.Gateway is null ||
+               !device.Gateway.Device.GetUnit(0).HasCapability(OpenNettyCapabilities.OpenWebNetGateway))
+            {
+                builder.AddError(SR.FormatID2022(device.Name));
+            }
+
             switch (device.Name)
             {
                 case string value when value.Contains('+', StringComparison.OrdinalIgnoreCase) ||
@@ -185,6 +189,20 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
 
         foreach (var endpoint in options.Endpoints)
         {
+            // Ensure a valid gateway device is attached.
+            if (endpoint.Gateway is null ||
+               !endpoint.Gateway.Device.GetUnit(0).HasCapability(OpenNettyCapabilities.OpenWebNetGateway))
+            {
+                builder.AddError(SR.FormatID2023(endpoint.Name));
+            }
+
+            // Unless it points to a gateway device, require that an address be attached.
+            if (endpoint.Address is null && (endpoint.Unit is not OpenNettyUnit unit ||
+                !unit.HasCapability(OpenNettyCapabilities.OpenWebNetGateway)))
+            {
+                builder.AddError(SR.FormatID2024(endpoint.Name));
+            }
+
             switch (endpoint.Name)
             {
                 case string value when value.Contains('+', StringComparison.OrdinalIgnoreCase) ||
