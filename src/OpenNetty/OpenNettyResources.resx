@@ -513,6 +513,9 @@
   <data name="ID0135" xml:space="preserve">
     <value>The '{0}' attribute is not valid for a gateway device.</value>
   </data>
+  <data name="ID0136" xml:space="preserve">
+    <value>An explicit address is required when the address cannot be automatically inferred from the unit definition (e.g SCS units).</value>
+  </data>
   <data name="ID2000" xml:space="preserve">
     <value>The endpoint name '{0}' is not valid. Endpoint names cannot contain the '+' or '*' characters.</value>
   </data>

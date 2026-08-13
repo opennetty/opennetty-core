@@ -557,27 +557,24 @@ builder.Services.AddOpenNetty(options =>
         endpoint: IPEndPoint.Parse("192.168.5.10:20000"),
         password: "aJhYiBHk8"));
 
-    options.AddEndpoint(new OpenNettyEndpoint
-    {
-        // SCS light point point-to-point address:
-        Address = OpenNettyAddress.FromScsLightPointAddress(
+    // SCS light point point-to-point endpoint:
+    options.AddEndpoint(OpenNettyEndpoint.Create(
+        unit   : OpenNettyDevice.Create(
+            brand     : OpenNettyBrand.BTicino,
+            model     : "F418U2",
+            name      : null,
+            identifier: OpenNettyDeviceIdentifier.FromScsSerialNumber("00B582A5")).GetUnit(1),
+        name   : "Bathroom/Recessed light",
+        address: OpenNettyAddress.FromScsLightPointAddress(
             extension: 0,
             general  : false,
             group    : null,
             area     : 1,
-            point    : 3),
-        Unit = OpenNettyDevice.Create(
-            brand     : OpenNettyBrand.BTicino,
-            model     : "F418U2",
-            name      : "BTicino F418U2 (00B582A5)",
-            identifier: OpenNettyDeviceIdentifier.FromScsSerialNumber("00B582A5")).GetUnit(1),
-        Name = "Bathroom/Recessed light",
-        Protocol = OpenNettyProtocol.Scs
-    });
+            point    : 3)));
 
+    // SCS light point area endpoint (not tied to a specific device):
     options.AddEndpoint(new OpenNettyEndpoint
     {
-        // SCS light point area address:
         Address = OpenNettyAddress.FromScsLightPointAddress(
             extension: 0,
             general  : false,
@@ -775,15 +772,9 @@ builder.Services.AddOpenNetty(options =>
     // until the configuration is finalized and the device is marked as read-only.
     device.Settings = device.Settings.Add(OpenNettySettings.ActionValidation, bool.FalseString);
 
-    var endpoint = new OpenNettyEndpoint
-    {
-        Address = OpenNettyAddress.FromNitooAddress(identifier: 487932, unit: 4),
-        Name = "Kitchen/Dimmable socket",
-        Protocol = OpenNettyProtocol.Nitoo,
-        Unit = device.GetUnit(4)
-    };
-
-    options.AddEndpoint(endpoint);
+    options.AddEndpoint(OpenNettyEndpoint.Create(
+        unit: device.GetUnit(4),
+        name: "Kitchen/Dimmable socket"));
 });
 ```
 
