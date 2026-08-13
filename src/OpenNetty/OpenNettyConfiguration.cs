@@ -67,14 +67,12 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
                     var endpoint = new OpenNettyEndpoint
                     {
                         Address = address,
-                        Capabilities = [],
                         Gateway = device.Gateway ?? options.Gateways.FirstOrDefault(gateway => gateway.Device == device)
                             ?? throw new InvalidOperationException(SR.FormatID0107("Gateway")),
                         Medium = device.Definition.Medium,
                         Name = OpenNettyUtilities.ComputeDefaultEndpointName(device.Definition.Protocol,
                             address, device.GetUnit(definition.Id)),
                         Protocol = device.Definition.Protocol,
-                        Settings = [],
                         Unit = device.GetUnit(definition.Id)
                     };
 

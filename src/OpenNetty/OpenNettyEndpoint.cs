@@ -182,4 +182,52 @@ public sealed record class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
             throw new InvalidOperationException(SR.GetResourceString(SR.ID2021));
         }
     }
+
+    /// <summary>
+    /// Creates a new endpoint based on the specified unit.
+    /// </summary>
+    /// <remarks>
+    /// Note: the properties of the returned instance can be freely mutated until the
+    /// <see cref="MakeReadOnly"/> method is called (explicitly or implicitly once initialization
+    /// is complete), after which any further modification will throw an exception.
+    /// </remarks>
+    /// <param name="unit">The unit.</param>
+    /// <param name="name">The endpoint name.</param>
+    /// <param name="address">
+    /// The address of the endpoint, or <see langword="null"/> if the address can be inferred automatically.
+    /// </param>
+    /// <returns>A new endpoint based on the specified unit.</returns>
+    public static OpenNettyEndpoint Create(OpenNettyUnit unit, string? name, OpenNettyAddress? address = null)
+    {
+        ArgumentNullException.ThrowIfNull(unit);
+
+        if (address is null && !unit.HasCapability(OpenNettyCapabilities.OpenWebNetGateway))
+        {
+            address = unit.Definition.Device.Protocol switch
+            {
+                OpenNettyProtocol.Nitoo  when unit.Device.Identifier is OpenNettyDeviceIdentifier identifier
+                    => OpenNettyAddress.FromNitooAddress(identifier, unit: unit.Definition.Id),
+
+                OpenNettyProtocol.Zigbee when unit.Device.Identifier is OpenNettyDeviceIdentifier identifier
+                    => OpenNettyAddress.FromZigbeeAddress(identifier, unit: unit.Definition.Id),
+
+                _ => throw new ArgumentException(SR.GetResourceString(SR.ID0136), nameof(address))
+            };
+        }
+
+        if (string.IsNullOrEmpty(name))
+        {
+            name = OpenNettyUtilities.ComputeDefaultEndpointName(unit.Definition.Device.Protocol, address, unit);
+        }
+
+        return new OpenNettyEndpoint
+        {
+            Address = address,
+            Gateway = unit.Device.Gateway,
+            Medium = unit.Device.Definition.Medium,
+            Name = name,
+            Protocol = unit.Device.Definition.Protocol,
+            Unit = unit
+        };
+    }
 }
