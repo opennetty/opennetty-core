@@ -49,7 +49,7 @@ public sealed record class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
     /// <summary>
     /// Gets or sets the name associated with the endpoint.
     /// </summary>
-    public required string Name { get; set { VerifyMutable(); field = value; } }
+    public required string Name { get; set { ArgumentException.ThrowIfNullOrEmpty(value); VerifyMutable(); field = value; } }
 
     /// <summary>
     /// Gets or sets the protocol associated with the endpoint.
