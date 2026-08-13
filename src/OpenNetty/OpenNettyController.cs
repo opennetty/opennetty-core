@@ -2583,7 +2583,8 @@ public class OpenNettyController
 
         if (!Enum.IsDefined(duration))
         {
-            throw new InvalidDataException(SR.GetResourceString(SR.ID0068));
+            throw new InvalidEnumArgumentException(nameof(duration), (int) duration,
+                typeof(OpenNettyModels.TemperatureControl.PilotWireDerogationDuration));
         }
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.PilotWireDerogation))
@@ -2895,7 +2896,8 @@ public class OpenNettyController
 
         if (duration is not null && !Enum.IsDefined(duration.Value))
         {
-            throw new InvalidDataException(SR.GetResourceString(SR.ID0068));
+            throw new InvalidEnumArgumentException(nameof(duration), (int) duration,
+                typeof(OpenNettyModels.Lighting.TimedOnDuration));
         }
 
         if (!endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchControl))

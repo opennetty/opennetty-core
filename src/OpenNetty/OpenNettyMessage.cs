@@ -5,6 +5,7 @@
  */
 
 using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -96,7 +97,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
     {
         if (!Enum.IsDefined(protocol))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0057));
+            throw new InvalidEnumArgumentException(nameof(protocol), (int) protocol, typeof(OpenNettyProtocol));
         }
 
         var message = new OpenNettyMessage
@@ -391,7 +392,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
 
             else
             {
-                throw new InvalidOperationException(SR.GetResourceString(SR.ID0057));
+                throw new InvalidEnumArgumentException(nameof(protocol), (int) protocol, typeof(OpenNettyProtocol));
             }
         }
 
@@ -474,7 +475,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
     {
         if (!Enum.IsDefined(protocol))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0057));
+            throw new InvalidEnumArgumentException(nameof(protocol), (int) protocol, typeof(OpenNettyProtocol));
         }
 
         return CreateFromFrame(protocol, new OpenNettyFrame(
@@ -498,7 +499,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
     {
         if (!Enum.IsDefined(protocol))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0057));
+            throw new InvalidEnumArgumentException(nameof(protocol), (int) protocol, typeof(OpenNettyProtocol));
         }
 
         return CreateFromFrame(protocol, new OpenNettyFrame(
@@ -521,7 +522,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
     {
         if (!Enum.IsDefined(protocol))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0057));
+            throw new InvalidEnumArgumentException(nameof(protocol), (int) protocol, typeof(OpenNettyProtocol));
         }
 
         return CreateFromFrame(protocol, new OpenNettyFrame(
@@ -547,7 +548,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
     {
         if (!Enum.IsDefined(protocol))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0057));
+            throw new InvalidEnumArgumentException(nameof(protocol), (int) protocol, typeof(OpenNettyProtocol));
         }
 
         if (values.Length is 0)
@@ -587,7 +588,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
     {
         if (!Enum.IsDefined(protocol))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0057));
+            throw new InvalidEnumArgumentException(nameof(protocol), (int) protocol, typeof(OpenNettyProtocol));
         }
 
         if (values.IsDefaultOrEmpty)
@@ -954,7 +955,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
             "nitoo"  => OpenNettyProtocol.Nitoo,
             "zigbee" => OpenNettyProtocol.Zigbee,
 
-            _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0057))
+            _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0122))
         };
 
         static string ParseValue(JsonValue? node) => node?.GetValue<string>()
@@ -973,7 +974,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
             {
                 if (node[index]?.GetValue<string>() is not { Length: > 0 } item)
                 {
-                    throw new InvalidOperationException(SR.GetResourceString(SR.ID0057));
+                    throw new InvalidOperationException(SR.GetResourceString(SR.ID0122));
                 }
 
                 builder.Add(item);
@@ -1102,7 +1103,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
             return new OpenNettyField(builder.ToImmutable());
         }
 
-        throw new InvalidOperationException(SR.GetResourceString(SR.ID0057));
+        throw new InvalidEnumArgumentException(nameof(protocol), (int) protocol, typeof(OpenNettyProtocol));
     }
 
     private static OpenNettyField CreateDimensionField(OpenNettyMessageType type, OpenNettyDimension dimension)

@@ -132,9 +132,6 @@
   <data name="ID0005" xml:space="preserve">
     <value>The parameter cannot contain two consecutive '#'.</value>
   </data>
-  <data name="ID0006" xml:space="preserve">
-    <value>The specified brand is not supported.</value>
-  </data>
   <data name="ID0007" xml:space="preserve">
     <value>The connection has been disposed.</value>
   </data>
@@ -231,9 +228,6 @@
   <data name="ID0038" xml:space="preserve">
     <value>A write operation is already being processed.</value>
   </data>
-  <data name="ID0039" xml:space="preserve">
-    <value>The specified address type is not supported.</value>
-  </data>
   <data name="ID0040" xml:space="preserve">
     <value>The identifier must be between 0 and 1048576.</value>
   </data>
@@ -284,9 +278,6 @@
   </data>
   <data name="ID0056" xml:space="preserve">
     <value>The address doesn't represent a valid Zigbee address.</value>
-  </data>
-  <data name="ID0057" xml:space="preserve">
-    <value>The specified protocol is not supported.</value>
   </data>
   <data name="ID0058" xml:space="preserve">
     <value>Busy negative acknowledgements are only valid for Zigbee messages.</value>

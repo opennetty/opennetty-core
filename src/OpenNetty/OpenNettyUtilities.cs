@@ -1,4 +1,5 @@
-﻿using System.Text;
+﻿using System.ComponentModel;
+using System.Text;
 
 namespace OpenNetty;
 
@@ -19,7 +20,7 @@ internal static class OpenNettyUtilities
     {
         if (!Enum.IsDefined(protocol))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0057));
+            throw new InvalidEnumArgumentException(nameof(protocol), (int) protocol, typeof(OpenNettyProtocol));
         }
 
         var builder = new StringBuilder(Enum.GetName(protocol));

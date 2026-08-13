@@ -4,6 +4,7 @@
  * the license and the contributors participating to this project.
  */
 
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -27,7 +28,7 @@ public readonly struct OpenNettyDeviceIdentifier : IEquatable<OpenNettyDeviceIde
 
         if (!Enum.IsDefined(type))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0039));
+            throw new InvalidEnumArgumentException(nameof(type), (int) type, typeof(OpenNettyDeviceIdentifierType));
         }
 
         Type = type;

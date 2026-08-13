@@ -5,6 +5,7 @@
  */
 
 using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 
@@ -144,7 +145,7 @@ public sealed record class OpenNettyDeviceDefinition : IEquatable<OpenNettyDevic
     {
         if (!Enum.IsDefined(brand))
         {
-            throw new ArgumentException(SR.GetResourceString(SR.ID0006), nameof(brand));
+            throw new InvalidEnumArgumentException(nameof(brand), (int) brand, typeof(OpenNettyBrand));
         }
 
         ArgumentException.ThrowIfNullOrEmpty(model);
@@ -181,7 +182,7 @@ public sealed record class OpenNettyDeviceDefinition : IEquatable<OpenNettyDevic
     {
         if (!Enum.IsDefined(brand))
         {
-            throw new ArgumentException(SR.GetResourceString(SR.ID0006), nameof(brand));
+            throw new InvalidEnumArgumentException(nameof(brand), (int) brand, typeof(OpenNettyBrand));
         }
 
         ArgumentException.ThrowIfNullOrEmpty(model);

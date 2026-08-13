@@ -5,6 +5,7 @@
  */
 
 using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Diagnostics;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
@@ -41,7 +42,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
 
         if (!Enum.IsDefined(type))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0039));
+            throw new InvalidEnumArgumentException(nameof(type), (int) type, typeof(OpenNettyAddressType));
         }
 
         // Ensure the value only includes ASCII digits.
