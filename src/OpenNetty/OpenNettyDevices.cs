@@ -5,6 +5,7 @@
  */
 
 using System.Collections.Immutable;
+using System.ComponentModel;
 using System.Diagnostics.CodeAnalysis;
 using System.Globalization;
 using System.Reflection;
@@ -53,7 +54,7 @@ public static class OpenNettyDevices
 
         if (!Enum.IsDefined(brand))
         {
-            throw new ArgumentException(SR.GetResourceString(SR.ID0006), nameof(brand));
+            throw new InvalidEnumArgumentException(nameof(brand), (int) brand, typeof(OpenNettyBrand));
         }
 
         foreach (var device in _devices.Value)

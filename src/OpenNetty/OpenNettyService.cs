@@ -41,7 +41,7 @@ public class OpenNettyService : IOpenNettyService
     }
 
     /// <inheritdoc/>
-    public virtual async IAsyncEnumerable<(OpenNettyAddress Address, ImmutableArray<string> Values)> EnumerateDimensionsAsync(
+    public virtual IAsyncEnumerable<(OpenNettyAddress Address, ImmutableArray<string> Values)> EnumerateDimensionsAsync(
         OpenNettyProtocol protocol,
         OpenNettyDimension dimension,
         OpenNettyAddress? address = null,
@@ -49,11 +49,11 @@ public class OpenNettyService : IOpenNettyService
         OpenNettyMode? mode = null,
         OpenNettyGateway? gateway = null,
         OpenNettyTransmissionOptions? options = null,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default)
     {
         if (!Enum.IsDefined(protocol))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0057));
+            throw new InvalidEnumArgumentException(nameof(protocol), (int) protocol, typeof(OpenNettyProtocol));
         }
 
         if (protocol is OpenNettyProtocol.Nitoo)
@@ -71,98 +71,104 @@ public class OpenNettyService : IOpenNettyService
             ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0028));
         options ??= gateway.Options.DefaultTransmissionOptions;
 
-        var message = OpenNettyMessage.CreateDimensionRequest(protocol, dimension, address, medium, mode);
+        return ExecuteAsync(cancellationToken);
 
-        // Note: acknowledgement validation is deliberately disabled while sending the DIMENSION REQUEST frame
-        // as it's used by the gateway to indicate when it's done pushing additional DIMENSION READ frames.
-        options = options with { IgnoreAcknowledgementValidation = true };
+        async IAsyncEnumerable<(OpenNettyAddress Address, ImmutableArray<string> Values)> ExecuteAsync(
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            var message = OpenNettyMessage.CreateDimensionRequest(protocol, dimension, address, medium, mode);
 
-        var context = ResilienceContextPool.Shared.Get(cancellationToken);
-        context.Properties.Set(new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)), gateway);
-        context.Properties.Set(new ResiliencePropertyKey<ILogger<OpenNettyService>>(nameof(ILogger<>)), _logger);
-        context.Properties.Set(new ResiliencePropertyKey<OpenNettyMessage>(nameof(OpenNettyMessage)), message);
-        context.Properties.Set(new ResiliencePropertyKey<OpenNettyTransmissionOptions>(nameof(OpenNettyTransmissionOptions)), options);
+            // Note: acknowledgement validation is deliberately disabled while sending the DIMENSION REQUEST frame
+            // as it's used by the gateway to indicate when it's done pushing additional DIMENSION READ frames.
+            options = options with { IgnoreAcknowledgementValidation = true };
 
-        var notifications = _pipeline.Where(notification => notification.Gateway == gateway)
-            .SelectMany(notification => notification switch
+            var context = ResilienceContextPool.Shared.Get(cancellationToken);
+            context.Properties.Set(new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)), gateway);
+            context.Properties.Set(new ResiliencePropertyKey<ILogger<OpenNettyService>>(nameof(ILogger<>)), _logger);
+            context.Properties.Set(new ResiliencePropertyKey<OpenNettyMessage>(nameof(OpenNettyMessage)), message);
+            context.Properties.Set(new ResiliencePropertyKey<OpenNettyTransmissionOptions>(nameof(OpenNettyTransmissionOptions)), options);
+
+            var notifications = _pipeline.Where(notification => notification.Gateway == gateway)
+                .SelectMany(notification => notification switch
+                {
+                    OpenNettyNotifications.MessageReceived {
+                        Session: { Protocol: OpenNettyProtocol.Scs, Type: not OpenNettySessionType.Event } session,
+                        Message: { Type    : OpenNettyMessageType.Acknowledgement or
+                                             OpenNettyMessageType.NegativeAcknowledgement } message }
+                        when message.Protocol == protocol
+                            => AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)>((session, message)),
+
+                    OpenNettyNotifications.MessageReceived {
+                        Session: { Protocol : OpenNettyProtocol.Scs, Type: not OpenNettySessionType.Event } session,
+                        Message: { Type     : OpenNettyMessageType.DimensionRead,
+                                   Address  : not null,
+                                   Dimension: not null } message }
+                        when message.Protocol == protocol && message.Dimension == dimension
+                            => AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)>((session, message)),
+
+                    OpenNettyNotifications.MessageReceived {
+                        Session: { Protocol: OpenNettyProtocol.Zigbee, Type: not OpenNettySessionType.Event } session,
+                        Message: { Type    : OpenNettyMessageType.Acknowledgement             or
+                                             OpenNettyMessageType.BusyNegativeAcknowledgement or
+                                             OpenNettyMessageType.NegativeAcknowledgement } message }
+                        when message.Protocol == protocol
+                            => AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)>((session, message)),
+
+                    OpenNettyNotifications.MessageReceived {
+                        Session: { Protocol : OpenNettyProtocol.Zigbee, Type: not OpenNettySessionType.Event } session,
+                        Message: { Type     : OpenNettyMessageType.DimensionRead,
+                                   Address  : not null,
+                                   Dimension: not null } message }
+                        when message.Protocol == protocol && message.Dimension == dimension
+                            => AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)>((session, message)),
+
+                    _ => AsyncObservable.Empty<(OpenNettySession Session, OpenNettyMessage Message)>()
+                })
+                .Replay();
+
+            // Connect the observable before sending the message to ensure
+            // the notifications are not missed due to a race condition.
+            await using var connection = await notifications.ConnectAsync();
+
+            OpenNettySession session;
+
+            try
             {
-                OpenNettyNotifications.MessageReceived {
-                    Session: { Protocol: OpenNettyProtocol.Scs, Type: not OpenNettySessionType.Event } session,
-                    Message: { Type    : OpenNettyMessageType.Acknowledgement or
-                                         OpenNettyMessageType.NegativeAcknowledgement } message }
-                    when message.Protocol == protocol
-                        => AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)>((session, message)),
-
-                OpenNettyNotifications.MessageReceived {
-                    Session: { Protocol : OpenNettyProtocol.Scs, Type: not OpenNettySessionType.Event } session,
-                    Message: { Type     : OpenNettyMessageType.DimensionRead,
-                               Address  : not null,
-                               Dimension: not null } message }
-                    when message.Protocol == protocol && message.Dimension == dimension
-                        => AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)>((session, message)),
-
-                OpenNettyNotifications.MessageReceived {
-                    Session: { Protocol: OpenNettyProtocol.Zigbee, Type: not OpenNettySessionType.Event } session,
-                    Message: { Type    : OpenNettyMessageType.Acknowledgement             or
-                                         OpenNettyMessageType.BusyNegativeAcknowledgement or
-                                         OpenNettyMessageType.NegativeAcknowledgement } message }
-                    when message.Protocol == protocol
-                        => AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)>((session, message)),
-
-                OpenNettyNotifications.MessageReceived {
-                    Session: { Protocol : OpenNettyProtocol.Zigbee, Type: not OpenNettySessionType.Event } session,
-                    Message: { Type     : OpenNettyMessageType.DimensionRead,
-                               Address  : not null,
-                               Dimension: not null } message }
-                    when message.Protocol == protocol && message.Dimension == dimension
-                        => AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)>((session, message)),
-
-                _ => AsyncObservable.Empty<(OpenNettySession Session, OpenNettyMessage Message)>()
-            })
-            .Replay();
-
-        // Connect the observable before sending the message to ensure
-        // the notifications are not missed due to a race condition.
-        await using var connection = await notifications.ConnectAsync();
-
-        OpenNettySession session;
-
-        try
-        {
-            session = await options.OutgoingMessageResiliencePipeline.ExecuteAsync(async context =>
-                await DispatchMessageAsync(message, gateway, options, context.CancellationToken), context);
-        }
-
-        finally
-        {
-            ResilienceContextPool.Shared.Return(context);
-        }
-
-        await foreach (var notification in notifications
-            .Where(notification => notification.Session == session)
-            .OfType<(OpenNettySession Session, OpenNettyMessage Message), (OpenNettySession Session, OpenNettyMessage Message)?>()
-            .Timeout(options.MultipleDimensionReplyTimeout, AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)?>(null))
-            .ToAsyncEnumerable()
-            .WithCancellation(cancellationToken))
-        {
-            switch (notification?.Message.Type)
-            {
-                case null or OpenNettyMessageType.Acknowledgement:
-                    yield break;
-
-                case OpenNettyMessageType.BusyNegativeAcknowledgement:
-                    throw new OpenNettyException(OpenNettyErrorCode.GatewayBusy, SR.GetResourceString(SR.ID0013));
-
-                case OpenNettyMessageType.NegativeAcknowledgement:
-                    throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0014));
+                session = await options.OutgoingMessageResiliencePipeline.ExecuteAsync(async context =>
+                    await DispatchMessageAsync(message, gateway, options, context.CancellationToken), context);
             }
 
-            yield return (notification.Value.Message.Address!.Value, notification.Value.Message.Values);
+            finally
+            {
+                ResilienceContextPool.Shared.Return(context);
+            }
+
+            await foreach (var notification in notifications
+                .Where(notification => notification.Session == session)
+                .OfType<(OpenNettySession Session, OpenNettyMessage Message), (OpenNettySession Session, OpenNettyMessage Message)?>()
+                .Timeout(options.MultipleDimensionReplyTimeout, AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)?>(null))
+                .ToAsyncEnumerable()
+                .WithCancellation(cancellationToken))
+            {
+                switch (notification?.Message.Type)
+                {
+                    case null or OpenNettyMessageType.Acknowledgement:
+                        yield break;
+
+                    case OpenNettyMessageType.BusyNegativeAcknowledgement:
+                        throw new OpenNettyException(OpenNettyErrorCode.GatewayBusy, SR.GetResourceString(SR.ID0013));
+
+                    case OpenNettyMessageType.NegativeAcknowledgement:
+                        throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0014));
+                }
+
+                yield return (notification.Value.Message.Address!.Value, notification.Value.Message.Values);
+            }
         }
     }
 
     /// <inheritdoc/>
-    public virtual async IAsyncEnumerable<(OpenNettyAddress Address, OpenNettyCommand Command)> EnumerateStatusesAsync(
+    public virtual IAsyncEnumerable<(OpenNettyAddress Address, OpenNettyCommand Command)> EnumerateStatusesAsync(
         OpenNettyProtocol protocol,
         OpenNettyCategory category,
         OpenNettyAddress? address = null,
@@ -171,11 +177,11 @@ public class OpenNettyService : IOpenNettyService
         Func<OpenNettyCommand, ValueTask<bool>>? filter = null,
         OpenNettyGateway? gateway = null,
         OpenNettyTransmissionOptions? options = null,
-        [EnumeratorCancellation] CancellationToken cancellationToken = default)
+        CancellationToken cancellationToken = default)
     {
         if (!Enum.IsDefined(protocol))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0057));
+            throw new InvalidEnumArgumentException(nameof(protocol), (int) protocol, typeof(OpenNettyProtocol));
         }
 
         if (protocol is OpenNettyProtocol.Nitoo)
@@ -193,97 +199,103 @@ public class OpenNettyService : IOpenNettyService
             ?? throw new InvalidOperationException(SR.GetResourceString(SR.ID0028));
         options ??= gateway.Options.DefaultTransmissionOptions;
 
-        var message = OpenNettyMessage.CreateStatusRequest(protocol, category, address, medium, mode);
+        return ExecuteAsync(cancellationToken);
 
-        // Note: acknowledgement validation is deliberately disabled while sending the STATUS REQUEST frame
-        // as it's used by the gateway to indicate when it's done pushing additional BUS COMMAND frames.
-        options = options with { IgnoreAcknowledgementValidation = true };
+        async IAsyncEnumerable<(OpenNettyAddress Address, OpenNettyCommand Command)> ExecuteAsync(
+            [EnumeratorCancellation] CancellationToken cancellationToken)
+        {
+            var message = OpenNettyMessage.CreateStatusRequest(protocol, category, address, medium, mode);
 
-        var context = ResilienceContextPool.Shared.Get(cancellationToken);
-        context.Properties.Set(new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)), gateway);
-        context.Properties.Set(new ResiliencePropertyKey<ILogger<OpenNettyService>>(nameof(ILogger<>)), _logger);
-        context.Properties.Set(new ResiliencePropertyKey<OpenNettyMessage>(nameof(OpenNettyMessage)), message);
-        context.Properties.Set(new ResiliencePropertyKey<OpenNettyTransmissionOptions>(nameof(OpenNettyTransmissionOptions)), options);
+            // Note: acknowledgement validation is deliberately disabled while sending the STATUS REQUEST frame
+            // as it's used by the gateway to indicate when it's done pushing additional BUS COMMAND frames.
+            options = options with { IgnoreAcknowledgementValidation = true };
 
-        var notifications = _pipeline.Where(notification => notification.Gateway == gateway)
-            .SelectMany(async notification => notification switch
+            var context = ResilienceContextPool.Shared.Get(cancellationToken);
+            context.Properties.Set(new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)), gateway);
+            context.Properties.Set(new ResiliencePropertyKey<ILogger<OpenNettyService>>(nameof(ILogger<>)), _logger);
+            context.Properties.Set(new ResiliencePropertyKey<OpenNettyMessage>(nameof(OpenNettyMessage)), message);
+            context.Properties.Set(new ResiliencePropertyKey<OpenNettyTransmissionOptions>(nameof(OpenNettyTransmissionOptions)), options);
+
+            var notifications = _pipeline.Where(notification => notification.Gateway == gateway)
+                .SelectMany(async notification => notification switch
+                {
+                    OpenNettyNotifications.MessageReceived {
+                        Session: { Protocol: OpenNettyProtocol.Scs, Type: not OpenNettySessionType.Event } session,
+                        Message: { Type    : OpenNettyMessageType.Acknowledgement or
+                                             OpenNettyMessageType.NegativeAcknowledgement } message }
+                        when message.Protocol == protocol
+                            => AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)>((session, message)),
+
+                    OpenNettyNotifications.MessageReceived {
+                        Session: { Protocol: OpenNettyProtocol.Scs, Type: not OpenNettySessionType.Event } session,
+                        Message: { Type    : OpenNettyMessageType.BusCommand,
+                                   Command : not null,
+                                   Address : not null } message }
+                        when message.Protocol == protocol &&
+                            // Note: if a filter was not explicitly set, filter out commands whose category doesn't match the requested one.
+                            (filter is not null ? await filter(message.Command.Value) : message.Command.Value.Category == category)
+                            => AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)>((session, message)),
+
+                    OpenNettyNotifications.MessageReceived {
+                        Session: { Protocol: OpenNettyProtocol.Zigbee, Type: not OpenNettySessionType.Event } session,
+                        Message: { Type    : OpenNettyMessageType.Acknowledgement             or
+                                             OpenNettyMessageType.BusyNegativeAcknowledgement or
+                                             OpenNettyMessageType.NegativeAcknowledgement } message }
+                        when message.Protocol == protocol
+                            => AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)>((session, message)),
+
+                    OpenNettyNotifications.MessageReceived {
+                        Session: { Protocol: OpenNettyProtocol.Zigbee, Type: not OpenNettySessionType.Event } session,
+                        Message: { Type    : OpenNettyMessageType.BusCommand,
+                                   Command : not null,
+                                   Address : not null } message }
+                        when message.Protocol == protocol &&
+                            // Note: if a filter was not explicitly set, filter out commands whose category doesn't match the requested one.
+                            (filter is not null ? await filter(message.Command.Value) : message.Command.Value.Category == category)
+                            => AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)>((session, message)),
+
+                    _ => AsyncObservable.Empty<(OpenNettySession Session, OpenNettyMessage Message)>()
+                })
+                .Replay();
+
+            // Connect the observable before sending the message to ensure
+            // the notifications are not missed due to a race condition.
+            await using var connection = await notifications.ConnectAsync();
+
+            OpenNettySession session;
+
+            try
             {
-                OpenNettyNotifications.MessageReceived {
-                    Session: { Protocol: OpenNettyProtocol.Scs, Type: not OpenNettySessionType.Event } session,
-                    Message: { Type    : OpenNettyMessageType.Acknowledgement or
-                                         OpenNettyMessageType.NegativeAcknowledgement } message }
-                    when message.Protocol == protocol
-                        => AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)>((session, message)),
-
-                OpenNettyNotifications.MessageReceived {
-                    Session: { Protocol: OpenNettyProtocol.Scs, Type: not OpenNettySessionType.Event } session,
-                    Message: { Type    : OpenNettyMessageType.BusCommand,
-                               Command : not null,
-                               Address : not null } message }
-                    when message.Protocol == protocol &&
-                        // Note: if a filter was not explicitly set, filter out commands whose category doesn't match the requested one.
-                        (filter is not null ? await filter(message.Command.Value) : message.Command.Value.Category == category)
-                        => AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)>((session, message)),
-
-                OpenNettyNotifications.MessageReceived {
-                    Session: { Protocol: OpenNettyProtocol.Zigbee, Type: not OpenNettySessionType.Event } session,
-                    Message: { Type    : OpenNettyMessageType.Acknowledgement             or
-                                         OpenNettyMessageType.BusyNegativeAcknowledgement or
-                                         OpenNettyMessageType.NegativeAcknowledgement } message }
-                    when message.Protocol == protocol
-                        => AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)>((session, message)),
-
-                OpenNettyNotifications.MessageReceived {
-                    Session: { Protocol: OpenNettyProtocol.Zigbee, Type: not OpenNettySessionType.Event } session,
-                    Message: { Type    : OpenNettyMessageType.BusCommand,
-                               Command : not null,
-                               Address : not null } message }
-                    when message.Protocol == protocol &&
-                        // Note: if a filter was not explicitly set, filter out commands whose category doesn't match the requested one.
-                        (filter is not null ? await filter(message.Command.Value) : message.Command.Value.Category == category)
-                        => AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)>((session, message)),
-
-                _ => AsyncObservable.Empty<(OpenNettySession Session, OpenNettyMessage Message)>()
-            })
-            .Replay();
-
-        // Connect the observable before sending the message to ensure
-        // the notifications are not missed due to a race condition.
-        await using var connection = await notifications.ConnectAsync();
-
-        OpenNettySession session;
-
-        try
-        {
-            session = await options.OutgoingMessageResiliencePipeline.ExecuteAsync(async context =>
-                await DispatchMessageAsync(message, gateway, options, context.CancellationToken), context);
-        }
-
-        finally
-        {
-            ResilienceContextPool.Shared.Return(context);
-        }
-
-        await foreach (var notification in notifications
-            .Where(notification => notification.Session == session)
-            .OfType<(OpenNettySession Session, OpenNettyMessage Message), (OpenNettySession Session, OpenNettyMessage Message)?>()
-            .Timeout(options.MultipleStatusReplyTimeout, AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)?>(null))
-            .ToAsyncEnumerable()
-            .WithCancellation(cancellationToken))
-        {
-            switch (notification?.Message.Type)
-            {
-                case null or OpenNettyMessageType.Acknowledgement:
-                    yield break;
-
-                case OpenNettyMessageType.BusyNegativeAcknowledgement:
-                    throw new OpenNettyException(OpenNettyErrorCode.GatewayBusy, SR.GetResourceString(SR.ID0013));
-
-                case OpenNettyMessageType.NegativeAcknowledgement:
-                    throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0014));
+                session = await options.OutgoingMessageResiliencePipeline.ExecuteAsync(async context =>
+                    await DispatchMessageAsync(message, gateway, options, context.CancellationToken), context);
             }
 
-            yield return (notification.Value.Message.Address!.Value, notification.Value.Message.Command!.Value);
+            finally
+            {
+                ResilienceContextPool.Shared.Return(context);
+            }
+
+            await foreach (var notification in notifications
+                .Where(notification => notification.Session == session)
+                .OfType<(OpenNettySession Session, OpenNettyMessage Message), (OpenNettySession Session, OpenNettyMessage Message)?>()
+                .Timeout(options.MultipleStatusReplyTimeout, AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)?>(null))
+                .ToAsyncEnumerable()
+                .WithCancellation(cancellationToken))
+            {
+                switch (notification?.Message.Type)
+                {
+                    case null or OpenNettyMessageType.Acknowledgement:
+                        yield break;
+
+                    case OpenNettyMessageType.BusyNegativeAcknowledgement:
+                        throw new OpenNettyException(OpenNettyErrorCode.GatewayBusy, SR.GetResourceString(SR.ID0013));
+
+                    case OpenNettyMessageType.NegativeAcknowledgement:
+                        throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0014));
+                }
+
+                yield return (notification.Value.Message.Address!.Value, notification.Value.Message.Command!.Value);
+            }
         }
     }
 
@@ -300,7 +312,7 @@ public class OpenNettyService : IOpenNettyService
     {
         if (!Enum.IsDefined(protocol))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0057));
+            throw new InvalidEnumArgumentException(nameof(protocol), (int) protocol, typeof(OpenNettyProtocol));
         }
 
         if (gateway is not null && gateway.Protocol != protocol)
@@ -346,7 +358,7 @@ public class OpenNettyService : IOpenNettyService
     {
         if (!Enum.IsDefined(protocol))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0057));
+            throw new InvalidEnumArgumentException(nameof(protocol), (int) protocol, typeof(OpenNettyProtocol));
         }
 
         if (gateway is not null && gateway.Protocol != protocol)
@@ -446,7 +458,7 @@ public class OpenNettyService : IOpenNettyService
     {
         if (!Enum.IsDefined(protocol))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0057));
+            throw new InvalidEnumArgumentException(nameof(protocol), (int) protocol, typeof(OpenNettyProtocol));
         }
 
         if (gateway is not null && gateway.Protocol != protocol)
@@ -652,7 +664,7 @@ public class OpenNettyService : IOpenNettyService
     {
         if (!Enum.IsDefined(protocol))
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0057));
+            throw new InvalidEnumArgumentException(nameof(protocol), (int) protocol, typeof(OpenNettyProtocol));
         }
 
         if (gateway is not null && gateway.Protocol != protocol)
