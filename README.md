@@ -19,7 +19,7 @@ To date, three variants of OpenWebNet have been developed by the two companies:
 
 OpenNetty offers both low-level primitives for representing OpenWebNet messages and communicating with OpenWebNet
 gateways and a higher-level MQTT integration that can be used directly with home automation software such as
-[Home Assistant](https://www.home-assistant.io/), [openHAB](https://www.openhab.org/)or [FHEM](https://fhem.de/).
+[Home Assistant](https://www.home-assistant.io/), [openHAB](https://www.openhab.org/) or [FHEM](https://fhem.de/).
 
 > [!IMPORTANT]
 > **An OpenWebNet gateway is required for OpenNetty to interact with BTicino and Legrand devices**:
@@ -81,8 +81,8 @@ Compiled binaries packaged as `.zip` archives can be found in the
 >   - ARM32: compatible with single-board computers (such as Raspberry Pis) that do not support 64-bit mode.
 >   - ARM64: best suited for single-board computers that support 64-bit mode (for example, Raspberry Pi 3 and later models running a 64-bit version of Raspberry Pi OS).
 
-First, create a folder on the target machine to host all the files required by OpenNetty. Although OpenNetty can
-be deployed anywhere, a folder under `/usr/local/bin` (for example, `/usr/local/bin/opennetty`) is probably the best option.
+First, create a folder on the target machine to host all the files required by OpenNetty. Although OpenNetty can be
+deployed anywhere, a folder under `/usr/local/bin` (for example, `/usr/local/bin/opennetty`) is probably the best option.
 
 The recommended way to deploy the daemon is to use an SSH/SFTP client (such as [Bitvise SSH Client](https://bitvise.com/ssh-client-download))
 and create the folder over SSH:
@@ -171,8 +171,8 @@ then replace the server/port/username/password attributes with the values used b
 
 > [!TIP]
 > Instead of using a single configuration file, you can split the configuration into multiple files
-> and store them under the `/usr/local/bin/opennetty/configuration` directory. OpenNetty will automatically
-> load all the `.xml` files in this directory and merge their contents at runtime.
+> and store them under the `/usr/local/bin/opennetty/configuration` directory. OpenNetty will
+> automatically load all the `.xml` files in this directory and merge their contents at runtime.
 
 ### If necessary, change the UI culture used in the MQTT discovery payloads
 
@@ -499,7 +499,7 @@ for each configured gateway and dynamically manages sessions, processes incoming
 It also automatically retransmits failed outgoing messages by using a retry policy defined by OpenNetty according to the type of gateway.
 
 Once the OpenNetty services have been registered by using the dedicated `.AddOpenNetty()` extension, the low-level `IOpenNettyService`
-interface can be used to execute arbitrary bus commands, dimension requests, dimension setsor status requests,
+interface can be used to execute arbitrary bus commands, dimension requests, dimension sets or status requests,
 and to extract the corresponding response returned by the gateway when applicable:
 
 ```csharp
@@ -630,18 +630,17 @@ builder.Services.AddSingleton<IOpenNettyHandler, MyEventHandler>();
 var app = builder.Build();
 await app.RunAsync();
 
-class MyEventHandler(OpenNettyEvents events) : IOpenNettyHandler
+file sealed class MyEventHandler(OpenNettyEvents events) : IOpenNettyHandler
 {
     public async ValueTask<IAsyncDisposable> SubscribeAsync() => StableCompositeAsyncDisposable.Create(
     [
-        await events.BrightnessReported
-            .Where(args => !string.IsNullOrEmpty(args.Endpoint.Name))
-            .SubscribeAsync(args => Console.WriteLine($"Brightness on endpoint {args.Endpoint.Name}: {args.Level}.")),
+        await events.BrightnessReported.SubscribeAsync(static args =>
+            Console.WriteLine($"Brightness on endpoint {args.Endpoint.Name}: {args.Level}.")),
 
-        await events.SwitchStateReported
-            .Where(args => !string.IsNullOrEmpty(args.Endpoint.Name))
-            .SubscribeAsync(args => Console.WriteLine($"Switch state on endpoint {args.Endpoint.Name}:" +
-                (args.State is OpenNettyModels.Lighting.SwitchState.On ? "on" : "off")))
+        await events.SwitchStateReported.SubscribeAsync(static args =>
+            Console.WriteLine(args.State is OpenNettyModels.Lighting.SwitchState.On
+                ? $"Switch state on endpoint {args.Endpoint.Name}: ON." 
+                : $"Switch state on endpoint {args.Endpoint.Name}: OFF."));
     ]);
 }
 ```
@@ -718,7 +717,7 @@ change MUST include one or more `<Scenario>` node(s) indicating the name of the 
 > foreach (var data in await controller.GetMemoryDataAsync(receiver))
 > {
 >     // Resolve the endpoint that emits the Nitoo scenario matching the memory entry, if possible.
->     var emitter = await manager.FindEndpointByAddressAsync(receiver.Gateway, data.Address);
+>     var emitter = await manager.FindEndpointsByAddressAsync(receiver.Gateway!, data.Address).FirstOrDefaultAsync();
 >     if (emitter is not null)
 >     {
 >         Console.WriteLine("Nitoo scenario triggered by a known endpoint:");
@@ -749,7 +748,7 @@ change MUST include one or more `<Scenario>` node(s) indicating the name of the 
 OpenNetty allows specific settings to be attached to endpoints to control how events are handled or how commands are sent.
 Although the default settings are generally sufficient, overriding them can be useful for some endpoints.
 
-Settings can be attached programmatically or through the configuration file to devices, unitsor endpoints. For example:
+Settings can be attached programmatically or through the configuration file to devices, units or endpoints. For example:
 
 ```xml
 <Device Brand="Legrand" Model="67222" SerialNumber="487932">
@@ -817,7 +816,7 @@ Because they operate over an unreliable medium (that is, power lines), Nitoo PLC
 OpenWebNet gateway. To mitigate this, these devices automatically report whether a bus command or dimension-set request
 was applied successfully by using special VALID ACTION or INVALID ACTION diagnostic frames. OpenNetty monitors these
 frames to determine whether the requested action was actually performed. When no confirmation is received, the initial message
-is automatically retransmitted by OpenNetty until the maximum number of allowed retransmissions is reached (2 by default)or until
+is automatically retransmitted by OpenNetty until the maximum number of allowed retransmissions is reached (2 by default) or until
 the request is confirmed by the remote device. If no positive confirmation is received, the command is assumed to have failed,
 and the state of the endpoint is assumed to be unchanged. For example, when sending an ON command, the `SwitchStateReported`
 event will not be triggered if the end device does not report that the command was successful after the allowed number of retransmissions.
