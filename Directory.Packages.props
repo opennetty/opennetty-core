@@ -11,7 +11,7 @@
   -->
 
   <ItemGroup Label="Package versions for all targets">
-    <GlobalPackageReference Include="Meziantou.Analyzer"                Version="3.0.136"        />
+    <GlobalPackageReference Include="Meziantou.Analyzer"                Version="3.0.153"        />
   </ItemGroup>
 
   <!--
@@ -24,14 +24,14 @@
 
   <ItemGroup Label="Package versions for .NET 10.0"
     Condition=" '$(TargetFrameworkIdentifier)' == '.NETCoreApp' And $([MSBuild]::VersionEquals($(TargetFrameworkVersion), '10.0')) ">
-    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.10"        />
-    <PackageVersion Include="Microsoft.Extensions.Hosting.Systemd"      Version="10.0.10"        />
-    <PackageVersion Include="Microsoft.Extensions.Logging"              Version="10.0.10"        />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Abstractions" Version="10.0.11"        />
+    <PackageVersion Include="Microsoft.Extensions.Hosting.Systemd"      Version="10.0.11"        />
+    <PackageVersion Include="Microsoft.Extensions.Logging"              Version="10.0.11"        />
     <PackageVersion Include="MQTTnet.Extensions.ManagedClient"          Version="4.3.7.1207"     />
     <PackageVersion Include="Polly.Core"                                Version="8.7.0"          />
     <PackageVersion Include="System.Interactive.Async"                  Version="7.0.1"          />
-    <PackageVersion Include="System.IO.Hashing"                         Version="10.0.10"        />
-    <PackageVersion Include="System.IO.Ports"                           Version="10.0.10"        />
+    <PackageVersion Include="System.IO.Hashing"                         Version="10.0.11"        />
+    <PackageVersion Include="System.IO.Ports"                           Version="10.0.11"        />
     <PackageVersion Include="System.Reactive.Async"                     Version="6.0.0-alpha.18" />
   </ItemGroup>
 
