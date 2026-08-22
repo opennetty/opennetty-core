@@ -79,14 +79,6 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
                     options.Endpoints.Add(endpoint);
                 }
             }
-
-            // Mark the device and all its units as read-only to prevent further modifications.
-            device.MakeReadOnly();
-
-            foreach (var unit in device.Units)
-            {
-                unit.MakeReadOnly();
-            }
         }
 
         foreach (var endpoint in options.Endpoints)
@@ -94,9 +86,6 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
             // If no gateway was explicitly configured for the endpoint, find a gateway that matches the endpoint's
             // protocol: if no gateway can be found, the endpoint will be rejected during the validation phase.
             endpoint.Gateway ??= endpoint.Unit?.Device.Gateway ?? GetFirstGateway(options.Gateways, endpoint.Protocol);
-
-            // Mark the endpoint as read-only to prevent further modifications.
-            endpoint.MakeReadOnly();
         }
 
         static OpenNettyGateway? GetFirstGateway(IReadOnlyList<OpenNettyGateway> gateways, OpenNettyProtocol protocol)
@@ -120,6 +109,23 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
         ArgumentNullException.ThrowIfNull(options);
 
         var builder = new ValidateOptionsResultBuilder();
+
+        // Mark the devices and all their units as read-only to prevent further modifications.
+        foreach (var device in options.Devices)
+        {
+            device.MakeReadOnly();
+
+            foreach (var unit in device.Units)
+            {
+                unit.MakeReadOnly();
+            }
+        }
+
+        // Mark the endpoints as read-only to prevent further modifications.
+        foreach (var endpoint in options.Endpoints)
+        {
+            endpoint.MakeReadOnly();
+        }
 
         if (options.Gateways.Count is 0)
         {
@@ -259,8 +265,8 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
                     builder.AddError(SR.FormatID2015(endpoint.Name));
                     break;
 
-                case string value when value.Split(',', StringSplitOptions.RemoveEmptyEntries) is not [_, ..] array ||
-                    array.Any(number => !byte.TryParse(number, CultureInfo.InvariantCulture, out _)):
+                case string value when value.Split(',', StringSplitOptions.RemoveEmptyEntries) is not [_, ..] values ||
+                    values.Any(static number => !byte.TryParse(number, CultureInfo.InvariantCulture, out _)):
                     builder.AddError(SR.FormatID2016(endpoint.Name));
                     break;
             }
