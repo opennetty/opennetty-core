@@ -1251,6 +1251,26 @@
     </Unit>
   </Device>
 
+  <Device Id="a7876f76-1e4f-432a-9c96-6e10f3de31a0" Series="MyHome" Protocol="Scs" Medium="Bus">
+    <Identity Brand="BTicino" Model="F523">
+      <Description Culture="en" Value="1-gang DIN rail switch" />
+      <Description Culture="fr" Value="Interrupteur modulaire simple" />
+    </Identity>
+
+    <Unit Id="0" />
+
+    <Unit Id="1" />
+
+    <Unit Id="2">
+      <Capability Name="Actuator locking" />
+      <Capability Name="On/off switch state" />
+      <Capability Name="On/off switch control" />
+
+      <Description Culture="en" Value="Output" />
+      <Description Culture="fr" Value="Sortie" />
+    </Unit>
+  </Device>
+
   <Device Id="996c7787-1b70-481f-8c33-6693ed9e63b5" Series="MyHome" Protocol="Scs" Medium="Bus">
     <Identity Brand="BTicino" Model="MH202">
       <Description Culture="en" Value="SCS scenario scheduler" />
@@ -1265,6 +1285,24 @@
     <Unit Id="0">
       <Capability Name="Date/time" />
       <Capability Name="Firmware version" />
+      <Capability Name="MAC address" />
+      <Capability Name="OpenWebNet command session" />
+      <Capability Name="OpenWebNet event session" />
+      <Capability Name="OpenWebNet gateway" />
+      <Capability Name="Uptime" />
+    </Unit>
+  </Device>
+
+  <Device Id="b4a6caaf-9608-4b92-b8c1-bc65be79ae61" Series="MyHome" Protocol="Scs" Medium="Bus">
+    <Identity Brand="BTicino" Model="MyHOMEServer1">
+      <Description Culture="en" Value="SCS/Ethernet gateway" />
+      <Description Culture="fr" Value="Passerelle SCS/Ethernet" />
+    </Identity>
+
+    <Unit Id="0">
+      <Capability Name="Date/time" />
+      <Capability Name="Firmware version" />
+      <Capability Name="Hardware version" />
       <Capability Name="MAC address" />
       <Capability Name="OpenWebNet command session" />
       <Capability Name="OpenWebNet event session" />
