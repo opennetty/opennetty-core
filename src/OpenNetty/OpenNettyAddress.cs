@@ -440,12 +440,13 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
         {
             var builder = new StringBuilder();
 
-            if (area is 0)
-            {
-                builder.Append("00");
-            }
+            // Note: based on the OpenWebNet specification, SCS light point point-to-point addresses pointing to the
+            // special area 0 should be represented using two digits for the area instead of one. Unfortunately, this
+            // standard representation is not used in any OpenWebNet gateway (including the F454, MH202 and MyHOMEServer1).
+            //
+            // To work around this issue, addresses pointing to the area 0 are always represented using a single digit.
 
-            else if (point is >= 10)
+            if (point is >= 10)
             {
                 builder.Append(area.Value.ToString("00", CultureInfo.InvariantCulture));
             }
@@ -455,7 +456,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
                 builder.Append(area);
             }
 
-            if (area is 0 or 10)
+            if (area is 10)
             {
                 builder.Append(point.Value.ToString("00", CultureInfo.InvariantCulture));
             }
@@ -675,10 +676,16 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
                 byte.TryParse(address[2..4], CultureInfo.InvariantCulture, out byte point) && point is >= 1 and <= 15
                 => (0, point),
 
-            // A [1 − 9]; PL [1 − 9]:
-            [>= '1' and <= '9', >= '1' and <= '9'] when
-                byte.TryParse(address[0..1], CultureInfo.InvariantCulture, out byte area) &&
-                byte.TryParse(address[1..2], CultureInfo.InvariantCulture, out byte point)
+            // A [0 − 9]; PL [1 − 9]:
+            //
+            // Note: based on the OpenWebNet specification, SCS light point point-to-point addresses pointing to the
+            // special area 0 should be represented using two digits for the area instead of one. Unfortunately, this
+            // standard representation is not used in any OpenWebNet gateway (including the F454, MH202 and MyHOMEServer1).
+            //
+            // To work around this issue, addresses pointing to the area 0 are always represented using a single digit.
+            [>= '0' and <= '9', >= '1' and <= '9'] when
+                byte.TryParse(address[0..1], CultureInfo.InvariantCulture, out byte area)  && area  is >= 0 and <= 9 &&
+                byte.TryParse(address[1..2], CultureInfo.InvariantCulture, out byte point) && point is >= 1 and <= 9
                 => (area, point),
 
             // A = 10; PL [01 − 15]:
@@ -688,7 +695,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
 
             // A [01 − 09]; PL [10 − 15]:
             ['0', >= '1' and <= '9', '1', >= '0' and <= '5'] when
-                byte.TryParse(address[0..2], CultureInfo.InvariantCulture, out byte area)  &&
+                byte.TryParse(address[0..2], CultureInfo.InvariantCulture, out byte area)  && area  is >= 1 and <= 9 &&
                 byte.TryParse(address[2..4], CultureInfo.InvariantCulture, out byte point) && point is >= 1 and <= 15
                 => (area, point),
 
