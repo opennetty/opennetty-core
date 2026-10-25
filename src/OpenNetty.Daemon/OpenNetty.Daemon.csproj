@@ -26,4 +26,15 @@
     <Using Include="OpenNetty.OpenNettyResources" Alias="SR" />
   </ItemGroup>
 
+  <ItemGroup>
+    <PackageVersion Update="Meziantou.Analyzer" Version="3.0.316" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Update="Meziantou.Analyzer">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers</IncludeAssets>
+    </PackageReference>
+  </ItemGroup>
+
 </Project>

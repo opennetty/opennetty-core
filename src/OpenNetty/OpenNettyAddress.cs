@@ -612,7 +612,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
             };
         }
 
-        else if (address.Value is "0")
+        if (address.Value is "0")
         {
             return address.Parameters switch
             {
@@ -627,7 +627,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
             };
         }
 
-        else if (address.Value is "00" or "1" or "2" or "3" or "4" or "5" or "6" or "7" or "8" or "9" or "10" or "100")
+        if (address.Value is "00" or "1" or "2" or "3" or "4" or "5" or "6" or "7" or "8" or "9" or "10" or "100")
         {
             return address.Parameters switch
             {
@@ -749,7 +749,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
             return (Identifier: 0, unit);
         }
 
-        else if (address.Value is { Length: > 2 })
+        if (address.Value is { Length: > 2 })
         {
             // Note: Zigbee identifiers are 4-byte long and fit exactly in an
             // unsigned 32-bit integer, so a range check is not required.
