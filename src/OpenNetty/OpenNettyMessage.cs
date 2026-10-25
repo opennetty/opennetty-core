@@ -1068,7 +1068,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
             return new OpenNettyField(builder.ToImmutable());
         }
 
-        else if (protocol is OpenNettyProtocol.Zigbee)
+        if (protocol is OpenNettyProtocol.Zigbee)
         {
             if (address.Value.Type is not OpenNettyAddressType.Zigbee)
             {

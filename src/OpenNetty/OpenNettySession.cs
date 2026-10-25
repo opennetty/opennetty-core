@@ -360,9 +360,9 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                     }
                 }
 
-                catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+                catch (OperationCanceledException exception) when (!cancellationToken.IsCancellationRequested)
                 {
-                    throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0101));
+                    throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0101), exception);
                 }
             }
 
@@ -541,11 +541,11 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
             return new OpenNettySession(gateway, type, connection);
         }
 
-        catch (OperationCanceledException) when (!cancellationToken.IsCancellationRequested)
+        catch (OperationCanceledException exception) when (!cancellationToken.IsCancellationRequested)
         {
             await connection.DisposeAsync();
 
-            throw new OpenNettyException(OpenNettyErrorCode.NegotiationTimeout, SR.GetResourceString(SR.ID0024));
+            throw new OpenNettyException(OpenNettyErrorCode.NegotiationTimeout, SR.GetResourceString(SR.ID0024), exception);
         }
 
         catch (Exception)
