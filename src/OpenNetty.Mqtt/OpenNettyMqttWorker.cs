@@ -2924,7 +2924,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         {% set map = {
                             'closed': 'OFF',
                             'created': 'ON',
-                            'joined': 'OFF',
+                            'joined': 'ON',
                             'left': 'OFF',
                             'open': 'ON'
                         } %}

@@ -1140,8 +1140,11 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                          command == OpenNettyCommands.Management.JoinZigbeeNetwork   ||
                          command == OpenNettyCommands.Management.LeaveZigbeeNetwork:
                 {
-                    var endpoints = _manager.FindEndpointsByDeviceAsync(notification.Gateway.Device)
-                        .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement));
+                    var endpoints = message.Address is OpenNettyAddress address
+                        ? _manager.FindEndpointsByAddressAsync(notification.Gateway, address)
+                        : _manager.FindEndpointsByDeviceAsync(notification.Gateway.Device);
+
+                    endpoints = endpoints.Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement));
 
                     await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
                     {
