@@ -68,8 +68,7 @@ public sealed record class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
 
     /// <inheritdoc/>
     /// <remarks>
-    /// Note: two endpoints are considered equal if they have the same
-    /// address and the same unit, regardless of their other properties.
+    /// Note: two endpoints are considered equal if they have the same name, regardless of their other properties.
     /// </remarks>
     public bool Equals([NotNullWhen(true)] OpenNettyEndpoint? other)
     {
@@ -83,7 +82,7 @@ public sealed record class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
             return false;
         }
 
-        return Address == other.Address && Unit == other.Unit;
+        return string.Equals(Name, other.Name, StringComparison.Ordinal);
     }
 
     /// <summary>
@@ -96,7 +95,7 @@ public sealed record class OpenNettyEndpoint : IEquatable<OpenNettyEndpoint>
         => TryGetSetting(setting, out string? value) && bool.TryParse(value, out bool result) ? result : null;
 
     /// <inheritdoc/>
-    public override int GetHashCode() => HashCode.Combine(Address, Unit);
+    public override int GetHashCode() => Name.GetHashCode(StringComparison.Ordinal);
 
     /// <summary>
     /// Resolves the specified integer setting from the settings attached

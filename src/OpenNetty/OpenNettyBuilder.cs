@@ -413,7 +413,7 @@ public sealed class OpenNettyBuilder
                     {
                         int value => value,
 
-                        null when device.Definition.GetUnitDefinition(0).GetIntegerSetting(OpenNettySettings.SerialPortBaudRate) is long setting
+                        null when device.GetUnit(0).GetIntegerSetting(OpenNettySettings.SerialPortBaudRate) is long setting
                             => (int) setting,
 
                         null => throw new InvalidOperationException(SR.FormatID0075("BaudRate")),
@@ -426,7 +426,7 @@ public sealed class OpenNettyBuilder
                         "Mark"  => Parity.Mark,
                         "Space" => Parity.Space,
 
-                        null when device.Definition.GetUnitDefinition(0).GetStringSetting(OpenNettySettings.SerialPortParity) is string value
+                        null when device.GetUnit(0).GetStringSetting(OpenNettySettings.SerialPortParity) is string value
                             => value switch
                             {
                                 "None"  => Parity.None,
@@ -446,7 +446,7 @@ public sealed class OpenNettyBuilder
                     {
                         int value => value,
 
-                        null when device.Definition.GetUnitDefinition(0).GetIntegerSetting(OpenNettySettings.SerialPortDataBits) is long value
+                        null when device.GetUnit(0).GetIntegerSetting(OpenNettySettings.SerialPortDataBits) is long value
                             => (int) value,
 
                         null => throw new InvalidOperationException(SR.FormatID0075("DataBits")),
@@ -457,7 +457,7 @@ public sealed class OpenNettyBuilder
                         "1.5" => StopBits.OnePointFive,
                         "2"   => StopBits.Two,
 
-                        null when device.Definition.GetUnitDefinition(0).GetStringSetting(OpenNettySettings.SerialPortStopBits) is string value
+                        null when device.GetUnit(0).GetStringSetting(OpenNettySettings.SerialPortStopBits) is string value
                             => value switch
                             {
                                 "1"   => StopBits.One,

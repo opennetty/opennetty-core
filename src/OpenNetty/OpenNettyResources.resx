@@ -142,7 +142,7 @@
     <value>The session has been disposed and is no longer usable.</value>
   </data>
   <data name="ID0010" xml:space="preserve">
-    <value>The protocol attached to the message isn't valid.</value>
+    <value>The protocol '{0}' is not supported by the '{1}' gateway.</value>
   </data>
   <data name="ID0011" xml:space="preserve">
     <value>A message is already being sent by this session.</value>
@@ -278,6 +278,9 @@
   </data>
   <data name="ID0056" xml:space="preserve">
     <value>The address doesn't represent a valid Zigbee address.</value>
+  </data>
+  <data name="ID0057" xml:space="preserve">
+    <value>The protocol '{0}' is not valid or is unsupported.</value>
   </data>
   <data name="ID0058" xml:space="preserve">
     <value>Busy negative acknowledgements are only valid for Zigbee messages.</value>
@@ -679,7 +682,7 @@
     <value>Light</value>
   </data>
   <data name="ID8002" xml:space="preserve">
-    <value>Get switch state</value>
+    <value>Get output state</value>
   </data>
   <data name="ID8003" xml:space="preserve">
     <value>Get brightness</value>
@@ -1027,19 +1030,19 @@
     <value>Last communication date</value>
   </data>
   <data name="ID8120" xml:space="preserve">
-    <value>Virtual device</value>
+    <value>Virtual address</value>
   </data>
   <data name="ID8121" xml:space="preserve">
-    <value>Virtual Nitoo device</value>
+    <value>Virtual Nitoo address</value>
   </data>
   <data name="ID8122" xml:space="preserve">
-    <value>Virtual Zigbee device</value>
+    <value>Virtual Zigbee address</value>
   </data>
   <data name="ID8123" xml:space="preserve">
-    <value>Virtual SCS device (light point)</value>
+    <value>Virtual SCS address (light point)</value>
   </data>
   <data name="ID8124" xml:space="preserve">
-    <value>Virtual SCS device (scenario plus)</value>
+    <value>Virtual SCS address (scenario plus)</value>
   </data>
   <data name="ID8125" xml:space="preserve">
     <value>Dispatch dry contact open/detection scenario</value>
@@ -1064,5 +1067,8 @@
   </data>
   <data name="ID8132" xml:space="preserve">
     <value>Unlock actuator</value>
+  </data>
+  <data name="ID8133" xml:space="preserve">
+    <value>Unit {0}</value>
   </data>
 </root>

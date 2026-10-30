@@ -102,6 +102,11 @@ public static class OpenNettySettings
     public static readonly OpenNettySetting HomeAssistantScenarioIcon = new("Home Assistant scenario icon");
 
     /// <summary>
+    /// Home Assistant scenario name.
+    /// </summary>
+    public static readonly OpenNettySetting HomeAssistantScenarioName = new("Home Assistant scenario name");
+
+    /// <summary>
     /// Home Assistant suggested area.
     /// </summary>
     public static readonly OpenNettySetting HomeAssistantSuggestedArea = new("Home Assistant suggested area");
@@ -207,9 +212,9 @@ public static class OpenNettySettings
     public static readonly OpenNettySetting SmartMeterWhiteIndexOffsetOffPeak = new("Smart meter white index offset [off-peak]");
 
     /// <summary>
-    /// Supervision report (Zigbee only).
+    /// Supervision reporting (Zigbee only).
     /// </summary>
-    public static readonly OpenNettySetting SupervisionReport = new("Supervision report");
+    public static readonly OpenNettySetting SupervisionReporting = new("Supervision reporting");
 
     /// <summary>
     /// Switch mode.

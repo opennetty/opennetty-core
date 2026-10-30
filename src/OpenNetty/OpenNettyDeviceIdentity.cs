@@ -94,5 +94,5 @@ public readonly record struct OpenNettyDeviceIdentity : IEquatable<OpenNettyDevi
     /// Computes the <see cref="string"/> representation of the current identity.
     /// </summary>
     /// <returns>The <see cref="string"/> representation of the current identity.</returns>
-    public override string ToString() => $"{Enum.GetName(Brand)} {Collection} ({Model})";
+    public override string ToString() => $"{OpenNettyUtilities.GetBrandName(Brand)} {Collection} ({Model})";
 }

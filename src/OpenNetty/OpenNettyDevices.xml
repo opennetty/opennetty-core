@@ -27,8 +27,8 @@
       <Capability Name="On/off scenario event" />
       <Capability Name="Unit description" />
 
-      <Description Culture="en" Value="ON/OFF/dimming command 1" />
-      <Description Culture="fr" Value="Commande ON/OFF/variation 1" />
+      <Description Culture="en" Value="ON/OFF buttons 1" />
+      <Description Culture="fr" Value="Boutons ON/OFF 1" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -41,8 +41,8 @@
       <Capability Name="On/off scenario event" />
       <Capability Name="Unit description" />
 
-      <Description Culture="en" Value="ON/OFF/dimming command 2" />
-      <Description Culture="fr" Value="Commande ON/OFF/variation 2" />
+      <Description Culture="en" Value="ON/OFF buttons 2" />
+      <Description Culture="fr" Value="Boutons ON/OFF 2" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -88,8 +88,8 @@
       <Capability Name="Action scenario event" />
       <Capability Name="Unit description" />
 
-      <Description Culture="en" Value="Doorbell call" />
-      <Description Culture="fr" Value="Appel platine de rue" />
+      <Description Culture="en" Value="Doorbell call scenario" />
+      <Description Culture="fr" Value="Scénario appel platine de rue" />
 
       <Setting Name="Home Assistant scenario device class" Value="doorbell" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:doorbell" />
@@ -222,8 +222,8 @@
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
 
-      <Description Culture="en" Value="Key 1" />
-      <Description Culture="fr" Value="Touche 1" />
+      <Description Culture="en" Value="Key 1 scenario" />
+      <Description Culture="fr" Value="Scénario touche 1" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:dialpad" />
@@ -233,8 +233,8 @@
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
 
-      <Description Culture="en" Value="Key 2" />
-      <Description Culture="fr" Value="Touche 2" />
+      <Description Culture="en" Value="Key 2 scenario" />
+      <Description Culture="fr" Value="Scénario touche 2" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:dialpad" />
@@ -244,8 +244,8 @@
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
 
-      <Description Culture="en" Value="Alarm armed" />
-      <Description Culture="fr" Value="Mise en service totale" />
+      <Description Culture="en" Value="Alarm armed scenario" />
+      <Description Culture="fr" Value="Scénario mise en service totale" />
 
       <Setting Name="Home Assistant scenario icon" Value="mdi:security" />
     </Unit>
@@ -254,8 +254,8 @@
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
 
-      <Description Culture="en" Value="Alarm disarmed" />
-      <Description Culture="fr" Value="Arrêt" />
+      <Description Culture="en" Value="Alarm disarmed scenario" />
+      <Description Culture="fr" Value="Scénario arrêt" />
 
       <Setting Name="Home Assistant scenario icon" Value="mdi:security" />
     </Unit>
@@ -264,8 +264,8 @@
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
 
-      <Description Culture="en" Value="Alarm partially armed" />
-      <Description Culture="fr" Value="Mise en service partielle" />
+      <Description Culture="en" Value="Alarm partially armed scenario" />
+      <Description Culture="fr" Value="Scénario mise en service partielle" />
 
       <Setting Name="Home Assistant scenario icon" Value="mdi:security" />
     </Unit>
@@ -274,8 +274,8 @@
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
 
-      <Description Culture="en" Value="Alarm triggered" />
-      <Description Culture="fr" Value="Alarme déclenchée" />
+      <Description Culture="en" Value="Alarm triggered scenario" />
+      <Description Culture="fr" Value="Scénario alarme déclenchée" />
 
       <Setting Name="Home Assistant scenario icon" Value="mdi:security" />
     </Unit>
@@ -284,8 +284,8 @@
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
 
-      <Description Culture="en" Value="Exit delay elapsed" />
-      <Description Culture="fr" Value="Temporisation de sortie écoulée" />
+      <Description Culture="en" Value="Exit delay elapsed scenario" />
+      <Description Culture="fr" Value="Scénario temporisation de sortie écoulée" />
 
       <Setting Name="Home Assistant scenario icon" Value="mdi:security" />
     </Unit>
@@ -294,8 +294,8 @@
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
 
-      <Description Culture="en" Value="Event detected" />
-      <Description Culture="fr" Value="Événement détecté" />
+      <Description Culture="en" Value="Event detected scenario" />
+      <Description Culture="fr" Value="Scénario événement détecté" />
 
       <Setting Name="Home Assistant scenario icon" Value="mdi:security" />
     </Unit>
@@ -330,8 +330,8 @@
       <Capability Name="On/off scenario event" />
       <Capability Name="Unit description" />
 
-      <Description Culture="en" Value="ON/OFF command" />
-      <Description Culture="fr" Value="Commande ON/OFF" />
+      <Description Culture="en" Value="ON/OFF buttons" />
+      <Description Culture="fr" Value="Boutons ON/OFF" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -378,8 +378,8 @@
       <Capability Name="On/off scenario event" />
       <Capability Name="Unit description" />
 
-      <Description Culture="en" Value="ON/OFF/dimming command 1" />
-      <Description Culture="fr" Value="Commande ON/OFF/variation 1" />
+      <Description Culture="en" Value="ON/OFF buttons 1" />
+      <Description Culture="fr" Value="Boutons ON/OFF 1" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -392,8 +392,8 @@
       <Capability Name="On/off scenario event" />
       <Capability Name="Unit description" />
 
-      <Description Culture="en" Value="ON/OFF/dimming command 2" />
-      <Description Culture="fr" Value="Commande ON/OFF/variation 2" />
+      <Description Culture="en" Value="ON/OFF buttons 2" />
+      <Description Culture="fr" Value="Boutons ON/OFF 2" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -441,8 +441,8 @@
       <Capability Name="On/off scenario event" />
       <Capability Name="Unit description" />
 
-      <Description Culture="en" Value="ON/OFF/dimming command" />
-      <Description Culture="fr" Value="Commande ON/OFF/variation" />
+      <Description Culture="en" Value="ON/OFF buttons" />
+      <Description Culture="fr" Value="Boutons ON/OFF" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -455,8 +455,8 @@
       <Capability Name="Dimming scenario event" />
       <Capability Name="Unit description" />
 
-      <Description Culture="en" Value="Button 1" />
-      <Description Culture="fr" Value="Bouton 1" />
+      <Description Culture="en" Value="Scenario button 1" />
+      <Description Culture="fr" Value="Bouton scénario 1" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -469,8 +469,8 @@
       <Capability Name="Dimming scenario event" />
       <Capability Name="Unit description" />
 
-      <Description Culture="en" Value="Button 2" />
-      <Description Culture="fr" Value="Bouton 2" />
+      <Description Culture="en" Value="Scenario button 2" />
+      <Description Culture="fr" Value="Bouton scénario 2" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -506,8 +506,8 @@
       <Capability Name="On/off scenario event" />
       <Capability Name="Unit description" />
 
-      <Description Culture="en" Value="ON/OFF/dimming command" />
-      <Description Culture="fr" Value="Commande ON/OFF/variation" />
+      <Description Culture="en" Value="ON/OFF buttons" />
+      <Description Culture="fr" Value="Boutons ON/OFF" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -520,8 +520,8 @@
       <Capability Name="Dimming scenario event" />
       <Capability Name="Unit description" />
 
-      <Description Culture="en" Value="Preset+ command" />
-      <Description Culture="fr" Value="Commande préréglage+" />
+      <Description Culture="en" Value="Preset+ button" />
+      <Description Culture="fr" Value="Bouton préréglage+" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -534,8 +534,8 @@
       <Capability Name="Dimming scenario event" />
       <Capability Name="Unit description" />
 
-      <Description Culture="en" Value="Preset- command" />
-      <Description Culture="fr" Value="Commande préréglage-" />
+      <Description Culture="en" Value="Preset- button" />
+      <Description Culture="fr" Value="Bouton préréglage-" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -623,8 +623,8 @@
       <Capability Name="On/off scenario event" />
       <Capability Name="Unit description" />
 
-      <Description Culture="en" Value="ON/OFF/dimming command" />
-      <Description Culture="fr" Value="Commande ON/OFF/variation" />
+      <Description Culture="en" Value="ON/OFF buttons" />
+      <Description Culture="fr" Value="Boutons ON/OFF" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -666,8 +666,8 @@
       <Capability Name="On/off scenario event" />
       <Capability Name="Unit description" />
 
-      <Description Culture="en" Value="ON/OFF/dimming command" />
-      <Description Culture="fr" Value="Commande ON/OFF/variation" />
+      <Description Culture="en" Value="ON/OFF buttons" />
+      <Description Culture="fr" Value="Boutons ON/OFF" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -680,8 +680,8 @@
       <Capability Name="Dimming scenario event" />
       <Capability Name="Unit description" />
 
-      <Description Culture="en" Value="Preset+ command" />
-      <Description Culture="fr" Value="Commande préréglage+" />
+      <Description Culture="en" Value="Preset+ button" />
+      <Description Culture="fr" Value="Bouton préréglage+" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -694,8 +694,8 @@
       <Capability Name="Dimming scenario event" />
       <Capability Name="Unit description" />
 
-      <Description Culture="en" Value="Preset- command" />
-      <Description Culture="fr" Value="Commande préréglage-" />
+      <Description Culture="en" Value="Preset- button" />
+      <Description Culture="fr" Value="Bouton préréglage-" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -739,8 +739,8 @@
       <Capability Name="Dimming scenario event" />
       <Capability Name="Unit description" />
 
-      <Description Culture="en" Value="Button 1" />
-      <Description Culture="fr" Value="Bouton 1" />
+      <Description Culture="en" Value="Scenario button 1" />
+      <Description Culture="fr" Value="Bouton scénario 1" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -753,8 +753,8 @@
       <Capability Name="Dimming scenario event" />
       <Capability Name="Unit description" />
 
-      <Description Culture="en" Value="Button 2" />
-      <Description Culture="fr" Value="Bouton 2" />
+      <Description Culture="en" Value="Scenario button 2" />
+      <Description Culture="fr" Value="Bouton scénario 2" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -767,8 +767,8 @@
       <Capability Name="Dimming scenario event" />
       <Capability Name="Unit description" />
 
-      <Description Culture="en" Value="Button 4" />
-      <Description Culture="fr" Value="Bouton 4" />
+      <Description Culture="en" Value="Scenario button 4" />
+      <Description Culture="fr" Value="Bouton scénario 4" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -781,8 +781,8 @@
       <Capability Name="Dimming scenario event" />
       <Capability Name="Unit description" />
 
-      <Description Culture="en" Value="Button 4" />
-      <Description Culture="fr" Value="Bouton 4" />
+      <Description Culture="en" Value="Scenario button 4" />
+      <Description Culture="fr" Value="Bouton scénario 4" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -809,8 +809,8 @@
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
 
-      <Description Culture="en" Value="Button 1" />
-      <Description Culture="fr" Value="Bouton 1" />
+      <Description Culture="en" Value="Scenario button 1" />
+      <Description Culture="fr" Value="Bouton scénario 1" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -820,8 +820,8 @@
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
 
-      <Description Culture="en" Value="Button 2" />
-      <Description Culture="fr" Value="Bouton 2" />
+      <Description Culture="en" Value="Scenario button 2" />
+      <Description Culture="fr" Value="Bouton scénario 2" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -831,8 +831,8 @@
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
 
-      <Description Culture="en" Value="Button 3" />
-      <Description Culture="fr" Value="Bouton 3" />
+      <Description Culture="en" Value="Scenario button 3" />
+      <Description Culture="fr" Value="Bouton scénario 3" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -842,8 +842,8 @@
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
 
-      <Description Culture="en" Value="Button 4" />
-      <Description Culture="fr" Value="Bouton 4" />
+      <Description Culture="en" Value="Scenario button 4" />
+      <Description Culture="fr" Value="Bouton scénario 4" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -876,7 +876,7 @@
       <Capability Name="Unit description" />
 
       <Description Culture="en" Value="Pilot wire control" />
-      <Description Culture="fr" Value="Pilotage radiateurs à fil pilote" />
+      <Description Culture="fr" Value="Gestion radiateurs à fil pilote" />
     </Unit>
   </Device>
 
@@ -904,8 +904,8 @@
       <Capability Name="Pilot wire derogation" />
       <Capability Name="Unit description" />
 
-      <Description Culture="en" Value="Wire pilot heating scenario" />
-      <Description Culture="fr" Value="Scénario de chauffe fil pilote" />
+      <Description Culture="en" Value="Wire pilot heating control" />
+      <Description Culture="fr" Value="Gestion chauffe fil pilote" />
     </Unit>
   </Device>
 
@@ -944,8 +944,8 @@
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
 
-      <Description Culture="en" Value="Button 4" />
-      <Description Culture="fr" Value="Bouton 4" />
+      <Description Culture="en" Value="Scenario button 4" />
+      <Description Culture="fr" Value="Bouton scénario 4" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -959,8 +959,8 @@
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
 
-      <Description Culture="en" Value="Button 3" />
-      <Description Culture="fr" Value="Bouton 3" />
+      <Description Culture="en" Value="Scenario button 3" />
+      <Description Culture="fr" Value="Bouton scénario 3" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -974,8 +974,8 @@
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
 
-      <Description Culture="en" Value="Button 2" />
-      <Description Culture="fr" Value="Bouton 2" />
+      <Description Culture="en" Value="Scenario button 2" />
+      <Description Culture="fr" Value="Bouton scénario 2" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -989,8 +989,8 @@
       <Capability Name="Action scenario activation" />
       <Capability Name="Action scenario event" />
 
-      <Description Culture="en" Value="Button 1" />
-      <Description Culture="fr" Value="Bouton 1" />
+      <Description Culture="en" Value="Scenario button 1" />
+      <Description Culture="fr" Value="Bouton scénario 1" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -1631,8 +1631,8 @@
       <Capability Name="Toggle scenario event" />
       <Capability Name="Zigbee binding" />
 
-      <Description Culture="en" Value="Output" />
-      <Description Culture="fr" Value="Sortie" />
+      <Description Culture="en" Value="Button/output" />
+      <Description Culture="fr" Value="Bouton/sortie" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -1663,8 +1663,8 @@
       <Capability Name="Pressure scenario plus event" />
       <Capability Name="Zigbee binding" />
 
-      <Description Culture="en" Value="Button 1" />
-      <Description Culture="fr" Value="Bouton 1" />
+      <Description Culture="en" Value="Scenario button 1" />
+      <Description Culture="fr" Value="Bouton scénario 1" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -1674,8 +1674,8 @@
       <Capability Name="Pressure scenario plus event" />
       <Capability Name="Zigbee binding" />
 
-      <Description Culture="en" Value="Button 2" />
-      <Description Culture="fr" Value="Bouton 2" />
+      <Description Culture="en" Value="Scenario button 2" />
+      <Description Culture="fr" Value="Bouton scénario 2" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -1685,8 +1685,8 @@
       <Capability Name="Pressure scenario plus event" />
       <Capability Name="Zigbee binding" />
 
-      <Description Culture="en" Value="Button 3" />
-      <Description Culture="fr" Value="Bouton 3" />
+      <Description Culture="en" Value="Scenario button 3" />
+      <Description Culture="fr" Value="Bouton scénario 3" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -1696,8 +1696,8 @@
       <Capability Name="Pressure scenario plus event" />
       <Capability Name="Zigbee binding" />
 
-      <Description Culture="en" Value="Button 4" />
-      <Description Culture="fr" Value="Bouton 4" />
+      <Description Culture="en" Value="Scenario button 4" />
+      <Description Culture="fr" Value="Bouton scénario 4" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -1750,8 +1750,8 @@
       <Capability Name="Toggle scenario event" />
       <Capability Name="Zigbee binding" />
 
-      <Description Culture="en" Value="Button 1" />
-      <Description Culture="fr" Value="Bouton 1" />
+      <Description Culture="en" Value="Scenario button 1" />
+      <Description Culture="fr" Value="Bouton scénario 1" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -1761,8 +1761,8 @@
       <Capability Name="Toggle scenario event" />
       <Capability Name="Zigbee binding" />
 
-      <Description Culture="en" Value="Button 2" />
-      <Description Culture="fr" Value="Bouton 2" />
+      <Description Culture="en" Value="Scenario button 2" />
+      <Description Culture="fr" Value="Bouton scénario 2" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -1823,8 +1823,8 @@
       <Capability Name="Toggle scenario event" />
       <Capability Name="Zigbee binding" />
 
-      <Description Culture="en" Value="Output" />
-      <Description Culture="fr" Value="Sortie" />
+      <Description Culture="en" Value="Button/output" />
+      <Description Culture="fr" Value="Bouton/sortie" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -1851,8 +1851,8 @@
       <Capability Name="Toggle scenario event" />
       <Capability Name="Zigbee binding" />
 
-      <Description Culture="en" Value="Output 1" />
-      <Description Culture="fr" Value="Sortie 1" />
+      <Description Culture="en" Value="Button 1/output 1" />
+      <Description Culture="fr" Value="Bouton 1/sortie 1" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -1864,8 +1864,8 @@
       <Capability Name="Toggle scenario event" />
       <Capability Name="Zigbee binding" />
 
-      <Description Culture="en" Value="Output 2" />
-      <Description Culture="fr" Value="Sortie 2" />
+      <Description Culture="en" Value="Button 2/output 2" />
+      <Description Culture="fr" Value="Bouton 2/sortie 2" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -1918,8 +1918,8 @@
       <Capability Name="Pressure scenario plus event" />
       <Capability Name="Zigbee binding" />
 
-      <Description Culture="en" Value="Button 1" />
-      <Description Culture="fr" Value="Bouton 1" />
+      <Description Culture="en" Value="Scenario button 1" />
+      <Description Culture="fr" Value="Bouton scénario 1" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -1929,8 +1929,8 @@
       <Capability Name="Pressure scenario plus event" />
       <Capability Name="Zigbee binding" />
 
-      <Description Culture="en" Value="Button 2" />
-      <Description Culture="fr" Value="Bouton 2" />
+      <Description Culture="en" Value="Scenario button 2" />
+      <Description Culture="fr" Value="Bouton scénario 2" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -1944,8 +1944,8 @@
       <Capability Name="Pressure scenario plus event" />
       <Capability Name="Zigbee binding" />
 
-      <Description Culture="en" Value="Button 4" />
-      <Description Culture="fr" Value="Bouton 4" />
+      <Description Culture="en" Value="Scenario button 4" />
+      <Description Culture="fr" Value="Bouton scénario 4" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -1959,8 +1959,8 @@
       <Capability Name="Pressure scenario plus event" />
       <Capability Name="Zigbee binding" />
 
-      <Description Culture="en" Value="Button 3" />
-      <Description Culture="fr" Value="Bouton 3" />
+      <Description Culture="en" Value="Scenario button 3" />
+      <Description Culture="fr" Value="Bouton scénario 3" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -1987,8 +1987,8 @@
       <Capability Name="Toggle scenario event" />
       <Capability Name="Zigbee binding" />
 
-      <Description Culture="en" Value="Output" />
-      <Description Culture="fr" Value="Sortie" />
+      <Description Culture="en" Value="Button/output" />
+      <Description Culture="fr" Value="Bouton/sortie" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -2046,8 +2046,8 @@
       <Capability Name="Toggle scenario event" />
       <Capability Name="Zigbee binding" />
 
-      <Description Culture="en" Value="Button 2" />
-      <Description Culture="fr" Value="Bouton 2" />
+      <Description Culture="en" Value="Scenario button 2" />
+      <Description Culture="fr" Value="Bouton scénario 2" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -2061,8 +2061,8 @@
       <Capability Name="Toggle scenario event" />
       <Capability Name="Zigbee binding" />
 
-      <Description Culture="en" Value="Button 1" />
-      <Description Culture="fr" Value="Bouton 1" />
+      <Description Culture="en" Value="Scenario button 1" />
+      <Description Culture="fr" Value="Bouton scénario 1" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -2089,8 +2089,8 @@
       <Capability Name="Toggle scenario event" />
       <Capability Name="Zigbee binding" />
 
-      <Description Culture="en" Value="Output" />
-      <Description Culture="fr" Value="Sortie" />
+      <Description Culture="en" Value="Button/output" />
+      <Description Culture="fr" Value="Bouton/sortie" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
