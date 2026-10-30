@@ -227,7 +227,7 @@ public sealed record class OpenNettyDevice : IEquatable<OpenNettyDevice>
                 throw new InvalidOperationException(SR.GetResourceString(SR.ID0108));
             }
 
-            name = $"{Enum.GetName(brand)} {model} ({identifier})";
+            name = $"{OpenNettyUtilities.GetBrandName(brand)} {model} ({identifier})";
         }
 
         var device = new OpenNettyDevice

@@ -28,10 +28,10 @@ public interface IOpenNettyMqttWorker
         CancellationToken cancellationToken);
 
     /// <summary>
-    /// Announces endpoints exposed by OpenNetty using Home Assistant discovery messages.
+    /// Announces devices exposed by OpenNetty using Home Assistant discovery messages.
     /// </summary>
     /// <param name="client">The MQTT client.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>A <see cref="Task"/> that can be used to monitor the asynchronous operation.</returns>
-    Task AnnounceEndpointsAsync(IManagedMqttClient client, CancellationToken cancellationToken);
+    Task AnnounceDevicesAsync(IManagedMqttClient client, CancellationToken cancellationToken);
 }

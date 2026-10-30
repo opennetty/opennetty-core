@@ -1007,7 +1007,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
     }
 
     /// <inheritdoc/>
-    public async Task AnnounceEndpointsAsync(IManagedMqttClient client, CancellationToken cancellationToken)
+    public async Task AnnounceDevicesAsync(IManagedMqttClient client, CancellationToken cancellationToken)
     {
         if (_options.CurrentValue is not { DisableHomeAssistantDiscovery: false } options)
         {
@@ -1018,7 +1018,6 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
             .GetCustomAttribute<AssemblyInformationalVersionAttribute>()
             ?.InformationalVersion;
 
-        // Announce all the endpoints that are associated with a device.
         await foreach (var device in _manager.EnumerateDevicesAsync(cancellationToken))
         {
             if (device.GetBooleanSetting(OpenNettySettings.HomeAssistantDiscovery) is false)
@@ -1033,17 +1032,38 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 _ => options.HomeAssistantDiscoveryUICulture
             };
 
-            var endpoints = await _manager.FindEndpointsByDeviceAsync(device, cancellationToken).ToListAsync(cancellationToken);
-
-            var components = (
-                from endpoint in endpoints
+            // Resolve all the components/entities that are directly associated with the device itself
+            // (i.e. the endpoints that are attached to the first unit of the OpenNetty device).
+            var components = await (
+                from endpoint in _manager.FindEndpointsByUnitAsync(device.GetUnit(0), cancellationToken)
+                where endpoint.GetBooleanSetting(OpenNettySettings.HomeAssistantDiscovery) is not false
                 let topic = $"{options.RootTopic}/{endpoint.GetStringSetting(OpenNettySettings.MqttTopic) ?? endpoint.Name.ToLowerInvariant()}"
-                from component in GetComponents(endpoints, endpoint, topic, culture)
-                select component).ToList();
+                from component in GetComponents(endpoint, topic, culture)
+                select CreateEntityItem(component)).ToListAsync(cancellationToken);
 
-            if (components.Count is 0)
+            // Resolve all the child devices that are associated with the device (i.e. the endpoints
+            // that are attached to the other units of the OpenNetty device, if applicable).
+            var devices = await (
+                from unit in device.Units.ToAsyncEnumerable()
+                where unit.Definition.Id is not 0
+                where unit.GetBooleanSetting(OpenNettySettings.HomeAssistantDiscovery) is not false
+                from endpoint in _manager.FindEndpointsByUnitAsync(unit, cancellationToken)
+                where endpoint.GetBooleanSetting(OpenNettySettings.HomeAssistantDiscovery) is not false
+                let topic = $"{options.RootTopic}/{endpoint.GetStringSetting(OpenNettySettings.MqttTopic) ?? endpoint.Name.ToLowerInvariant()}"
+                let entities = GetComponents(endpoint, topic, culture).Select(CreateEntityItem)
+                select CreateChildDeviceNode(unit, [.. entities], culture)).ToListAsync(cancellationToken);
+
+            // If the device is an OpenWebNet gateway, enumerate all the endpoints that don't
+            // have a device/unit attached and create a virtual child device for each of them.
+            if (device.Gateway is OpenNettyGateway gateway && device.GetUnit(0).HasCapability(OpenNettyCapabilities.OpenWebNetGateway))
             {
-                continue;
+                devices.AddRange(await (
+                    from endpoint in _manager.FindEndpointsByGatewayAsync(gateway, cancellationToken)
+                    where endpoint.Unit is null
+                    where endpoint.GetBooleanSetting(OpenNettySettings.HomeAssistantDiscovery) is not false
+                    let topic = $"{options.RootTopic}/{endpoint.GetStringSetting(OpenNettySettings.MqttTopic) ?? endpoint.Name.ToLowerInvariant()}"
+                    let entities = GetComponents(endpoint, topic, culture).Select(CreateEntityItem)
+                    select CreateVirtualChildDeviceNode(endpoint, [.. entities], culture)).ToListAsync(cancellationToken));
             }
 
             await client.EnqueueAsync(new MqttApplicationMessageBuilder()
@@ -1058,7 +1078,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     },
                     ["device"] = CreateDeviceNode(device, culture),
                     ["qos"] = 2,
-                    ["components"] = new JsonObject(components.Select(CreateEntityNode))
+                    ["components"] = new JsonObject(components),
+                    ["child_devices"] = new JsonArray([.. devices])
                 }.ToJsonString())
                 .WithPayloadFormatIndicator(MqttPayloadFormatIndicator.CharacterData)
                 .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
@@ -1067,7 +1088,14 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     .Append('/')
                     .Append("device")
                     .Append('/')
-                    .Append("opennetty-").Append(Enum.GetName(device.Definition.Protocol)!.ToLowerInvariant())
+                    .Append(device.Definition.Protocol switch
+                    {
+                        OpenNettyProtocol.Nitoo  => "opennetty-nitoo",
+                        OpenNettyProtocol.Scs    => "opennetty-scs",
+                        OpenNettyProtocol.Zigbee => "opennetty-zigbee",
+
+                        _ => throw new InvalidOperationException(SR.FormatID0057(Enum.GetName(device.Definition.Protocol)))
+                    })
                     .Append('/')
                     .Append(device.GetStringSetting(OpenNettySettings.HomeAssistantObjectId)
                         ?? SanitizeDiscoveryObjectId(device.Name))
@@ -1077,63 +1105,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 .Build());
         }
 
-        // Announce all the endpoints that are not associated with any device (and attach them a virtual device).
-        await foreach (var endpoint in _manager.EnumerateEndpointsAsync(cancellationToken))
-        {
-            if (endpoint.Unit is not null || endpoint.GetBooleanSetting(OpenNettySettings.HomeAssistantDiscovery) is false)
-            {
-                continue;
-            }
-
-            var culture = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantDiscoveryUICulture) switch
-            {
-                { Length: > 0 } value => CultureInfo.GetCultureInfo(value),
-
-                _ => options.HomeAssistantDiscoveryUICulture
-            };
-
-            var topic = $"{options.RootTopic}/{endpoint.GetStringSetting(OpenNettySettings.MqttTopic) ?? endpoint.Name.ToLowerInvariant()}";
-
-            var components = GetComponents([], endpoint, topic, culture).ToList();
-            if (components.Count is 0)
-            {
-                continue;
-            }
-
-            await client.EnqueueAsync(new MqttApplicationMessageBuilder()
-                .WithContentType(MediaTypeNames.Application.Json)
-                .WithPayload(new JsonObject
-                {
-                    ["origin"] = new JsonObject
-                    {
-                        ["name"] = "OpenNetty",
-                        ["sw_version"] = version,
-                        ["support_url"] = "https://github.com/opennetty/opennetty-core"
-                    },
-                    ["device"] = CreateVirtualDeviceNode(endpoint, culture),
-                    ["qos"] = 2,
-                    ["components"] = new JsonObject(components.Select(CreateEntityNode))
-                }.ToJsonString())
-                .WithPayloadFormatIndicator(MqttPayloadFormatIndicator.CharacterData)
-                .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
-                .WithRetainFlag()
-                .WithTopic(new StringBuilder(options.HomeAssistantDiscoveryRootTopic)
-                    .Append('/')
-                    .Append("device")
-                    .Append('/')
-                    .Append("opennetty-").Append(Enum.GetName(endpoint.Protocol)!.ToLowerInvariant())
-                    .Append('/')
-                    .Append(endpoint.GetStringSetting(OpenNettySettings.HomeAssistantObjectId)
-                        ?? SanitizeDiscoveryObjectId(endpoint.Name))
-                    .Append('/')
-                    .Append("config")
-                    .ToString())
-                .Build());
-        }
-
-        static IEnumerable<JsonObject> GetComponents(
-            IReadOnlyList<OpenNettyEndpoint> endpoints, OpenNettyEndpoint endpoint,
-            string topic, CultureInfo culture)
+        static IEnumerable<JsonObject> GetComponents(OpenNettyEndpoint endpoint, string topic, CultureInfo culture)
         {
             if (SupportsLightOrSwitchEntity(endpoint))
             {
@@ -1174,13 +1146,9 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 {
                     ["platform"] = platform,
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "feb44223-4814-4652-933c-53dbbaabac3f"u8),
-                    ["name"] = name ?? ComputeEntityDisplayName(
-                        name    : platform is OpenNettySettings.HomeAssistantEntityTypes.Light
-                            ? GetLocalizedString(SR.ID8001, culture)
-                            : GetLocalizedString(SR.ID8000, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(SupportsLightOrSwitchEntity)),
+                    ["name"] = name ?? (platform is OpenNettySettings.HomeAssistantEntityTypes.Light
+                        ? GetLocalizedString(SR.ID8001, culture)
+                        : GetLocalizedString(SR.ID8000, culture)),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.SwitchState}/set"
                 };
@@ -1205,7 +1173,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         component["brightness_command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Brightness}/set";
                         component["brightness_scale"] = 100;
 
-                        // Note: unlike MyHome devices, Nitoo devices do not store the last brightness level enforced and always set
+                        // Note: unlike MyHome devices, Nitoo devices do not store the last brightness level set and always bump
                         // the brightness to 100% when receiving an ON command. To have a consistent behavior across all devices,
                         // Nitoo devices are, by default, configured to use the brightness command topic to turn on the light.
                         component["on_command_type"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantLightOnCommandType) switch
@@ -1240,12 +1208,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "3a10d925-c599-41a9-8a7e-30a04aefec86"u8),
                         ["entity_category"] = "diagnostic",
-                        ["name"] = ComputeEntityDisplayName(
-                            name    : GetLocalizedString(SR.ID8002, culture),
-                            endpoint: endpoint,
-                            culture : culture,
-                            count   : endpoints.Where(SupportsLightOrSwitchEntity)
-                                .Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))),
+                        ["name"] = GetLocalizedString(SR.ID8002, culture),
                         ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.SwitchState}/get",
                         ["payload_press"] = string.Empty
@@ -1260,13 +1223,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "f05ecfb8-70d5-4116-b0a8-2f6d9d02090f"u8),
                         ["entity_category"] = "diagnostic",
-                        ["name"] = ComputeEntityDisplayName(
-                            name    : GetLocalizedString(SR.ID8003, culture),
-                            endpoint: endpoint,
-                            culture : culture,
-                            count   : endpoints.Where(SupportsLightOrSwitchEntity)
-                                .Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) ||
-                                                          endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))),
+                        ["name"] = GetLocalizedString(SR.ID8003, culture),
                         ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Brightness}/get",
                         ["payload_press"] = string.Empty
@@ -1283,11 +1240,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["device_class"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantCoverDeviceClass)
                         ?? OpenNettySettings.HomeAssistantDeviceClasses.Covers.Shutter,
                     ["name"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantCoverName)
-                        ?? ComputeEntityDisplayName(
-                            name    : GetLocalizedString(SR.ID8004, culture),
-                            endpoint: endpoint,
-                            culture : culture,
-                            count   : endpoints.Count(SupportsCoverEntity)),
+                        ?? GetLocalizedString(SR.ID8004, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.ShutterState}/set"
                 };
@@ -1317,13 +1270,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "3a760f9d-ca89-4c9e-9ad4-8ba40ad36f59"u8),
                         ["entity_category"] = "diagnostic",
-                        ["name"] = ComputeEntityDisplayName(
-                            name    : GetLocalizedString(SR.ID8005, culture),
-                            endpoint: endpoint,
-                            culture : culture,
-                            count   : endpoints.Where(SupportsCoverEntity)
-                                .Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState) ||
-                                                          endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))),
+                        ["name"] = GetLocalizedString(SR.ID8005, culture),
                         ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.ShutterState}/get",
                         ["payload_press"] = string.Empty
@@ -1337,12 +1284,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "5731274c-e498-4c7b-8671-6de8c448eb99"u8),
                         ["entity_category"] = "diagnostic",
-                        ["name"] = ComputeEntityDisplayName(
-                            name    : GetLocalizedString(SR.ID8006, culture),
-                            endpoint: endpoint,
-                            culture : culture,
-                            count   : endpoints.Where(SupportsCoverEntity)
-                                .Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState))),
+                        ["name"] = GetLocalizedString(SR.ID8006, culture),
                         ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.ShutterPosition}/get",
                         ["payload_press"] = string.Empty
@@ -1453,29 +1395,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "event",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "7faeaa9a-ae51-43f4-af82-65d2e24e14d0"u8),
                     ["icon"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantScenarioIcon) ?? "mdi:lightning-bolt",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8007, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint =>
-                            endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioEvent)       ||
-                            endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioEvent)      ||
-                            endpoint.HasCapability(OpenNettyCapabilities.DryContactScenarioEvent)   ||
-                            endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioEvent)        ||
-                            endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioEvent)     ||
-                            endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioPlusEvent) ||
-                            endpoint.HasCapability(OpenNettyCapabilities.ProgressiveScenarioEvent)  ||
-                            endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioEvent)   ||
-                            endpoint.HasCapability(OpenNettyCapabilities.TimedScenarioEvent)        ||
-                            endpoint.HasCapability(OpenNettyCapabilities.ToggleScenarioEvent))),
+                    ["name"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantScenarioName)
+                        ?? GetLocalizedString(SR.ID8007, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}",
                     ["json_attributes_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}",
-                    ["event_types"] = new JsonArray([.. types]),
-                    // Unlike Nitoo devices that emit observable scenarios without requiring any preliminary configuration,
-                    // Zigbee devices must be explicitly bound to the OpenWebNet gateway via a push-and-learn binding for
-                    // scenarios to be triggered. As such, scenario entities are not enabled by default for Zigbee devices.
-                    ["enabled_by_default"] = endpoint.Protocol is not OpenNettyProtocol.Zigbee
+                    ["event_types"] = new JsonArray([.. types])
                 };
 
                 if (endpoint.GetStringSetting(OpenNettySettings.HomeAssistantScenarioDeviceClass) is string type)
@@ -1492,11 +1417,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 {
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "63485e4c-a3bd-4fc9-831d-b96bacddade9"u8),
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8008, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioActivation))),
+                    ["name"] = GetLocalizedString(SR.ID8008, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                     ["payload_press"] = "action"
@@ -1506,15 +1427,10 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 {
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "bca953c0-7598-4baa-91df-f14ddc30450f"u8),
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8025, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioActivation))),
+                    ["name"] = GetLocalizedString(SR.ID8025, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}/set",
-                    ["payload_press"] = "stop_action",
-                    ["enabled_by_default"] = false
+                    ["payload_press"] = "stop_action"
                 };
             }
 
@@ -1526,11 +1442,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "e301aa1c-a50e-45ff-b6d2-58d7525e4867"u8),
                     ["entity_category"] = "config",
                     ["icon"] = "mdi:lock",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8131, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ActuatorLocking))),
+                    ["name"] = GetLocalizedString(SR.ID8131, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.ActuatorLock}/set",
                     ["payload_press"] = "lock"
@@ -1542,11 +1454,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "b7092044-74e3-4e9a-b349-655a7caf1b2b"u8),
                     ["entity_category"] = "config",
                     ["icon"] = "mdi:lock-open",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8132, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ActuatorLocking))),
+                    ["name"] = GetLocalizedString(SR.ID8132, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.ActuatorLock}/set",
                     ["payload_press"] = "unlock"
@@ -1559,30 +1467,20 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 {
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "f47365e3-86fa-449f-b84e-a06acc3484b1"u8),
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8111, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioActivation))),
+                    ["name"] = GetLocalizedString(SR.ID8111, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}/set",
-                    ["payload_press"] = new JsonObject { ["event_type"] = "dimming", ["dimming_step"] = 5 }.ToJsonString(),
-                    ["enabled_by_default"] = false
+                    ["payload_press"] = new JsonObject { ["event_type"] = "dimming", ["dimming_step"] = 5 }.ToJsonString()
                 };
 
                 yield return new JsonObject
                 {
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "5c2db171-97b3-451e-a502-8800928b4335"u8),
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8112, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.DimmingScenarioActivation))),
+                    ["name"] = GetLocalizedString(SR.ID8112, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}/set",
-                    ["payload_press"] = new JsonObject { ["event_type"] = "dimming", ["dimming_step"] = -5 }.ToJsonString(),
-                    ["enabled_by_default"] = false
+                    ["payload_press"] = new JsonObject { ["event_type"] = "dimming", ["dimming_step"] = -5 }.ToJsonString()
                 };
             }
 
@@ -1593,11 +1491,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 {
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "91510f47-559b-4a44-a4d2-a0f4d3a634c6"u8),
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8125, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))),
+                    ["name"] = GetLocalizedString(SR.ID8125, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                     ["payload_press"] = new JsonObject { ["event_type"] = "contact_open" }.ToJsonString()
@@ -1607,11 +1501,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 {
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "e1b494f8-ab8b-4635-8f2c-81d354bc83dc"u8),
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8126, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.DryContactScenarioActivation))),
+                    ["name"] = GetLocalizedString(SR.ID8126, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                     ["payload_press"] = new JsonObject { ["event_type"] = "contact_closed" }.ToJsonString()
@@ -1625,11 +1515,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 {
                     ["platform"] = "binary_sensor",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "1aca2cbc-16cb-46df-be3a-ac6a2684910b"u8),
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8127, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.DryContactState))),
+                    ["name"] = GetLocalizedString(SR.ID8127, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.DryContactState}",
                     ["json_attributes_topic"] = $"{topic}/{OpenNettyMqttAttributes.DryContactState}",
@@ -1655,11 +1541,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "00244687-d0b8-4839-a11c-7dcbda9f2f3b"u8),
                     ["entity_category"] = "diagnostic",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8128, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.DryContactState))),
+                    ["name"] = GetLocalizedString(SR.ID8128, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.DryContactState}/get",
                     ["payload_press"] = string.Empty
@@ -1672,11 +1554,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 {
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "f053a594-66fa-42a6-9237-64d570b2bd57"u8),
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8009, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioActivation))),
+                    ["name"] = GetLocalizedString(SR.ID8009, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                     ["payload_press"] = "switch_on"
@@ -1686,11 +1564,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 {
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "d292636e-00d3-442e-b1db-73d60b4085ec"u8),
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8010, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffScenarioActivation))),
+                    ["name"] = GetLocalizedString(SR.ID8010, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                     ["payload_press"] = "switch_off"
@@ -1705,11 +1579,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "9563390d-24c4-48f0-a0de-61fef1e58eca"u8),
                     ["entity_category"] = "diagnostic",
                     ["device_class"] = "timestamp",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8119, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.OutgoingCommunication))),
+                    ["name"] = GetLocalizedString(SR.ID8119, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.LastCommunicationDate}",
                 };
@@ -1732,11 +1602,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .. "be2887c3-f4ae-4935-bad6-1ffb1227d28b"u8,
                                 .. Encoding.UTF8.GetBytes(button.ToString(CultureInfo.InvariantCulture))
                             ]),
-                            ["name"] = ComputeEntityDisplayName(
-                                name    : string.Format(GetLocalizedString(SR.ID8011, culture), button.ToString(CultureInfo.InvariantCulture)),
-                                endpoint: endpoint,
-                                culture : culture,
-                                count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))),
+                            ["name"] = string.Format(GetLocalizedString(SR.ID8011, culture), button.ToString(CultureInfo.InvariantCulture)),
                             ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                             ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                             ["payload_press"] = new JsonObject { ["event_type"] = "pressure", ["scenario_type"] = "basic", ["button"] = button }.ToJsonString()
@@ -1750,11 +1616,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .. "81e3f75a-fab3-4842-bb5e-1531d20290dd"u8,
                                 .. Encoding.UTF8.GetBytes(button.ToString(CultureInfo.InvariantCulture))
                             ]),
-                            ["name"] = ComputeEntityDisplayName(
-                                name    : string.Format(GetLocalizedString(SR.ID8012, culture), button.ToString(CultureInfo.InvariantCulture)),
-                                endpoint: endpoint,
-                                culture : culture,
-                                count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))),
+                            ["name"] = string.Format(GetLocalizedString(SR.ID8012, culture), button.ToString(CultureInfo.InvariantCulture)),
                             ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                             ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                             ["payload_press"] = new JsonObject { ["event_type"] = "release_after_short_pressure", ["scenario_type"] = "evolved", ["button"] = button }.ToJsonString()
@@ -1768,11 +1630,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .. "3f069e7f-7c8f-4730-b067-9a944f61700b"u8,
                                 .. Encoding.UTF8.GetBytes(button.ToString(CultureInfo.InvariantCulture))
                             ]),
-                            ["name"] = ComputeEntityDisplayName(
-                                name    : string.Format(GetLocalizedString(SR.ID8013, culture), button.ToString(CultureInfo.InvariantCulture)),
-                                endpoint: endpoint,
-                                culture : culture,
-                                count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))),
+                            ["name"] = string.Format(GetLocalizedString(SR.ID8013, culture), button.ToString(CultureInfo.InvariantCulture)),
                             ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                             ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                             ["payload_press"] = new JsonObject { ["event_type"] = "release_after_extended_pressure", ["scenario_type"] = "evolved", ["button"] = button }.ToJsonString()
@@ -1786,11 +1644,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .. "23e04eeb-8b35-44c8-87da-aed3829ce07d"u8,
                                 .. Encoding.UTF8.GetBytes(button.ToString(CultureInfo.InvariantCulture))
                             ]),
-                            ["name"] = ComputeEntityDisplayName(
-                                name    : string.Format(GetLocalizedString(SR.ID8014, culture), button.ToString(CultureInfo.InvariantCulture)),
-                                endpoint: endpoint,
-                                culture : culture,
-                                count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))),
+                            ["name"] = string.Format(GetLocalizedString(SR.ID8014, culture), button.ToString(CultureInfo.InvariantCulture)),
                             ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                             ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                             ["payload_press"] = new JsonObject { ["event_type"] = "extended_pressure", ["scenario_type"] = "evolved", ["button"] = button }.ToJsonString()
@@ -1804,11 +1658,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "be2887c3-f4ae-4935-bad6-1ffb1227d28b"u8),
-                        ["name"] = ComputeEntityDisplayName(
-                            name    : GetLocalizedString(SR.ID8015, culture),
-                            endpoint: endpoint,
-                            culture : culture,
-                            count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))),
+                        ["name"] = GetLocalizedString(SR.ID8015, culture),
                         ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                         ["payload_press"] = new JsonObject { ["event_type"] = "pressure", ["scenario_type"] = "basic" }.ToJsonString()
@@ -1818,11 +1668,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "81e3f75a-fab3-4842-bb5e-1531d20290dd"u8),
-                        ["name"] = ComputeEntityDisplayName(
-                            name    : GetLocalizedString(SR.ID8016, culture),
-                            endpoint: endpoint,
-                            culture : culture,
-                            count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))),
+                        ["name"] = GetLocalizedString(SR.ID8016, culture),
                         ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                         ["payload_press"] = new JsonObject { ["event_type"] = "release_after_short_pressure", ["scenario_type"] = "evolved" }.ToJsonString()
@@ -1832,11 +1678,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "3f069e7f-7c8f-4730-b067-9a944f61700b"u8),
-                        ["name"] = ComputeEntityDisplayName(
-                            name    : GetLocalizedString(SR.ID8017, culture),
-                            endpoint: endpoint,
-                            culture : culture,
-                            count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))),
+                        ["name"] = GetLocalizedString(SR.ID8017, culture),
                         ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                         ["payload_press"] = new JsonObject { ["event_type"] = "release_after_extended_pressure", ["scenario_type"] = "evolved" }.ToJsonString()
@@ -1846,11 +1688,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "23e04eeb-8b35-44c8-87da-aed3829ce07d"u8),
-                        ["name"] = ComputeEntityDisplayName(
-                            name    : GetLocalizedString(SR.ID8018, culture),
-                            endpoint: endpoint,
-                            culture : culture,
-                            count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))),
+                        ["name"] = GetLocalizedString(SR.ID8018, culture),
                         ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                         ["payload_press"] = new JsonObject { ["event_type"] = "extended_pressure", ["scenario_type"] = "evolved" }.ToJsonString()
@@ -1875,11 +1713,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .. "63a92ba4-bec3-453e-a44a-9219e4f4d478"u8,
                                 .. Encoding.UTF8.GetBytes(button.ToString(CultureInfo.InvariantCulture))
                             ]),
-                            ["name"] = ComputeEntityDisplayName(
-                                name    : string.Format(GetLocalizedString(SR.ID8019, culture), button.ToString(CultureInfo.InvariantCulture)),
-                                endpoint: endpoint,
-                                culture : culture,
-                                count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))),
+                            ["name"] = string.Format(GetLocalizedString(SR.ID8019, culture), button.ToString(CultureInfo.InvariantCulture)),
                             ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                             ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                             ["payload_press"] = new JsonObject { ["event_type"] = "short_pressure", ["scenario_type"] = "plus", ["button"] = button }.ToJsonString()
@@ -1893,11 +1727,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .. "e524f94b-9862-4da4-8f57-82c220e4560c"u8,
                                 .. Encoding.UTF8.GetBytes(button.ToString(CultureInfo.InvariantCulture))
                             ]),
-                            ["name"] = ComputeEntityDisplayName(
-                                name    : string.Format(GetLocalizedString(SR.ID8020, culture), button.ToString(CultureInfo.InvariantCulture)),
-                                endpoint: endpoint,
-                                culture : culture,
-                                count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))),
+                            ["name"] = string.Format(GetLocalizedString(SR.ID8020, culture), button.ToString(CultureInfo.InvariantCulture)),
                             ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                             ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                             ["payload_press"] = new JsonObject { ["event_type"] = "start_of_extended_pressure", ["scenario_type"] = "plus", ["button"] = button }.ToJsonString()
@@ -1911,11 +1741,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .. "bf90ede8-9078-4817-8ec4-ef762c3e2077"u8,
                                 .. Encoding.UTF8.GetBytes(button.ToString(CultureInfo.InvariantCulture))
                             ]),
-                            ["name"] = ComputeEntityDisplayName(
-                                name    : string.Format(GetLocalizedString(SR.ID8014, culture), button.ToString(CultureInfo.InvariantCulture)),
-                                endpoint: endpoint,
-                                culture : culture,
-                                count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))),
+                            ["name"] = string.Format(GetLocalizedString(SR.ID8014, culture), button.ToString(CultureInfo.InvariantCulture)),
                             ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                             ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                             ["payload_press"] = new JsonObject { ["event_type"] = "extended_pressure", ["scenario_type"] = "plus", ["button"] = button }.ToJsonString()
@@ -1929,11 +1755,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                                 .. "73ff2263-9962-443a-89a1-f209fba81948"u8,
                                 .. Encoding.UTF8.GetBytes(button.ToString(CultureInfo.InvariantCulture))
                             ]),
-                            ["name"] = ComputeEntityDisplayName(
-                                name    : string.Format(GetLocalizedString(SR.ID8021, culture), button.ToString(CultureInfo.InvariantCulture)),
-                                endpoint: endpoint,
-                                culture : culture,
-                                count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))),
+                            ["name"] = string.Format(GetLocalizedString(SR.ID8021, culture), button.ToString(CultureInfo.InvariantCulture)),
                             ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                             ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                             ["payload_press"] = new JsonObject { ["event_type"] = "end_of_extended_pressure", ["scenario_type"] = "plus", ["button"] = button }.ToJsonString()
@@ -1947,11 +1769,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "63a92ba4-bec3-453e-a44a-9219e4f4d478"u8),
-                        ["name"] = ComputeEntityDisplayName(
-                            name    : GetLocalizedString(SR.ID8022, culture),
-                            endpoint: endpoint,
-                            culture : culture,
-                            count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))),
+                        ["name"] = GetLocalizedString(SR.ID8022, culture),
                         ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                         ["payload_press"] = new JsonObject { ["event_type"] = "short_pressure", ["scenario_type"] = "plus" }.ToJsonString()
@@ -1961,11 +1779,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "e524f94b-9862-4da4-8f57-82c220e4560c"u8),
-                        ["name"] = ComputeEntityDisplayName(
-                            name    : GetLocalizedString(SR.ID8023, culture),
-                            endpoint: endpoint,
-                            culture : culture,
-                            count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))),
+                        ["name"] = GetLocalizedString(SR.ID8023, culture),
                         ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                         ["payload_press"] = new JsonObject { ["event_type"] = "start_of_extended_pressure", ["scenario_type"] = "plus" }.ToJsonString()
@@ -1975,11 +1789,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "bf90ede8-9078-4817-8ec4-ef762c3e2077"u8),
-                        ["name"] = ComputeEntityDisplayName(
-                            name    : GetLocalizedString(SR.ID8018, culture),
-                            endpoint: endpoint,
-                            culture : culture,
-                            count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))),
+                        ["name"] = GetLocalizedString(SR.ID8018, culture),
                         ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                         ["payload_press"] = new JsonObject { ["event_type"] = "extended_pressure", ["scenario_type"] = "plus" }.ToJsonString()
@@ -1989,11 +1799,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     {
                         ["platform"] = "button",
                         ["unique_id"] = ComputeEntityUniqueId(endpoint, "73ff2263-9962-443a-89a1-f209fba81948"u8),
-                        ["name"] = ComputeEntityDisplayName(
-                            name    : GetLocalizedString(SR.ID8024, culture),
-                            endpoint: endpoint,
-                            culture : culture,
-                            count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PressureScenarioActivation))),
+                        ["name"] = GetLocalizedString(SR.ID8024, culture),
                         ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                         ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                         ["payload_press"] = new JsonObject { ["event_type"] = "end_of_extended_pressure", ["scenario_type"] = "plus" }.ToJsonString()
@@ -2007,11 +1813,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 {
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "9065ccb4-d2c6-47f5-b118-e3d2ecbe20c3"u8),
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8026, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioActivation))),
+                    ["name"] = GetLocalizedString(SR.ID8026, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                     ["payload_press"] = "shutter_up"
@@ -2021,11 +1823,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 {
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "4006cf9e-620c-49d4-81b3-ab060d376966"u8),
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8027, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioActivation))),
+                    ["name"] = GetLocalizedString(SR.ID8027, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                     ["payload_press"] = "shutter_down"
@@ -2035,11 +1833,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 {
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "d13fdcd2-c974-490a-b544-436a91785ffa"u8),
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8028, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.StopUpDownScenarioActivation))),
+                    ["name"] = GetLocalizedString(SR.ID8028, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}/set",
                     ["payload_press"] = "shutter_stop"
@@ -2054,11 +1848,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "b7dd3824-ddc3-4cf3-b79e-168faa710e43"u8),
                     ["entity_category"] = "diagnostic",
                     ["device_class"] = "battery",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8029, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.BatteryAlert))),
+                    ["name"] = GetLocalizedString(SR.ID8029, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.BatteryAlert}"
                 };
@@ -2069,11 +1859,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "7f7625f0-2461-4804-9cae-829a1040cd93"u8),
                     ["entity_category"] = "diagnostic",
                     ["icon"] = "mdi:battery-check",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8030, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.BatteryAlert))),
+                    ["name"] = GetLocalizedString(SR.ID8030, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.BatteryAlert}/set",
                     ["payload_press"] = "OFF"
@@ -2089,11 +1875,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["entity_category"] = "diagnostic",
                     ["device_class"] = "battery",
                     ["unit_of_measurement"] = "%",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8031, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.BatteryLevel))),
+                    ["name"] = GetLocalizedString(SR.ID8031, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.BatteryLevel}"
                 };
@@ -2106,11 +1888,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "sensor",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "3a92e77f-3910-4a20-9d19-caa1961dc33d"u8),
                     ["entity_category"] = "diagnostic",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8032, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.FirmwareVersion))),
+                    ["name"] = GetLocalizedString(SR.ID8032, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.FirmwareVersion}"
                 };
@@ -2121,11 +1899,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "e4fa32b3-9e9f-43b5-810a-cdb75acf44e5"u8),
                     ["entity_category"] = "diagnostic",
                     ["icon"] = "mdi:help",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8033, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.FirmwareVersion))),
+                    ["name"] = GetLocalizedString(SR.ID8033, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.FirmwareVersion}/get",
                     ["payload_press"] = string.Empty
@@ -2139,11 +1913,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "sensor",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "1091f326-0c22-4c59-af04-d0a6ee429a0c"u8),
                     ["entity_category"] = "diagnostic",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8034, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.HardwareVersion))),
+                    ["name"] = GetLocalizedString(SR.ID8034, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.HardwareVersion}"
                 };
@@ -2154,11 +1924,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "0371ccbb-52fd-4288-a943-b2f04a7b1e8b"u8),
                     ["entity_category"] = "diagnostic",
                     ["icon"] = "mdi:help",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8035, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.HardwareVersion))),
+                    ["name"] = GetLocalizedString(SR.ID8035, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.HardwareVersion}/get",
                     ["payload_press"] = string.Empty
@@ -2172,11 +1938,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "sensor",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "a8de45b2-0bb5-4375-b33b-0869623e40a7"u8),
                     ["entity_category"] = "diagnostic",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8036, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.MacAddress))),
+                    ["name"] = GetLocalizedString(SR.ID8036, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.MacAddress}"
                 };
@@ -2187,11 +1949,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "aa1968e6-f232-4b96-a29f-0e64de093bb0"u8),
                     ["entity_category"] = "diagnostic",
                     ["icon"] = "mdi:help",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8037, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.MacAddress))),
+                    ["name"] = GetLocalizedString(SR.ID8037, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.MacAddress}/get",
                     ["payload_press"] = string.Empty
@@ -2206,11 +1964,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "a4c866e8-8388-4f1b-b300-f5adcbcc818b"u8),
                     ["entity_category"] = "diagnostic",
                     ["icon"] = "mdi:memory",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8129, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.MemoryReading))),
+                    ["name"] = GetLocalizedString(SR.ID8129, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.MemoryData}",
                     ["value_template"] = "{{ value_json | count }}",
@@ -2224,11 +1978,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "314e1f13-f490-459f-852d-cfb1020b534f"u8),
                     ["entity_category"] = "diagnostic",
                     ["icon"] = "mdi:memory-arrow-down",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8130, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.MemoryReading))),
+                    ["name"] = GetLocalizedString(SR.ID8130, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.MemoryData}/get",
                     ["payload_press"] = string.Empty
@@ -2242,11 +1992,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "select",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "205a01a1-ba4c-4e9b-a19a-c1589c445cbb"u8),
                     ["icon"] = "mdi:radiator",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8039, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireControl))),
+                    ["name"] = GetLocalizedString(SR.ID8039, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.PilotWireSetpointMode}/set",
                     ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.PilotWireSetpointMode}",
@@ -2285,11 +2031,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "7a9130b9-675a-437d-b806-cbfe6f6e20a6"u8),
                     ["entity_category"] = "diagnostic",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8062, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireControl))),
+                    ["name"] = GetLocalizedString(SR.ID8062, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.PilotWireSetpointMode}/get",
                     ["payload_press"] = string.Empty
@@ -2303,11 +2045,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "select",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "f5f57920-d758-4ca8-8161-2614d4abeef0"u8),
                     ["icon"] = "mdi:radiator",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8045, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireDerogation))),
+                    ["name"] = GetLocalizedString(SR.ID8045, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.PilotWireDerogationMode}/set",
                     ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.PilotWireDerogationMode}",
@@ -2379,11 +2117,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "787582e8-0c5f-4c97-9277-0ad23dab4024"u8),
                     ["entity_category"] = "diagnostic",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8063, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireDerogation))),
+                    ["name"] = GetLocalizedString(SR.ID8063, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.PilotWireDerogationMode}/get",
                     ["payload_press"] = string.Empty
@@ -2397,11 +2131,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "switch",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "178d9f9b-e87a-4ebf-8db3-80e1e1a091df"u8),
                     ["icon"] = "mdi:radiator-off",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8113, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireShutdown))),
+                    ["name"] = GetLocalizedString(SR.ID8113, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.PilotWireShutdownMode}/set",
                     ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.PilotWireShutdownMode}"
@@ -2412,11 +2142,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "ecc822a6-57ab-4352-8d2c-d85dc73df5da"u8),
                     ["entity_category"] = "diagnostic",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8114, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.PilotWireShutdown))),
+                    ["name"] = GetLocalizedString(SR.ID8114, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.PilotWireShutdownMode}/get",
                     ["payload_press"] = string.Empty
@@ -2433,11 +2159,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["state_class"] = "total_increasing",
                     ["unit_of_measurement"] = "kWh",
                     ["suggested_display_precision"] = 0,
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8064, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))),
+                    ["name"] = GetLocalizedString(SR.ID8064, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.SmartMeterBaseIndex}",
                     ["value_template"] = "{{ value_json.base_index }}"
@@ -2451,11 +2173,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["state_class"] = "total_increasing",
                     ["unit_of_measurement"] = "kWh",
                     ["suggested_display_precision"] = 0,
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8065, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))),
+                    ["name"] = GetLocalizedString(SR.ID8065, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.SmartMeterBlueIndex}",
                     ["value_template"] = "{{ value_json.base_index }}"
@@ -2469,11 +2187,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["state_class"] = "total_increasing",
                     ["unit_of_measurement"] = "kWh",
                     ["suggested_display_precision"] = 0,
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8115, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))),
+                    ["name"] = GetLocalizedString(SR.ID8115, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.SmartMeterBlueIndex}",
                     ["value_template"] = "{{ value_json.off_peak_index }}"
@@ -2487,11 +2201,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["state_class"] = "total_increasing",
                     ["unit_of_measurement"] = "kWh",
                     ["suggested_display_precision"] = 0,
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8066, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))),
+                    ["name"] = GetLocalizedString(SR.ID8066, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.SmartMeterPeakOffPeakIndex}",
                     ["value_template"] = "{{ value_json.base_index }}"
@@ -2505,11 +2215,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["state_class"] = "total_increasing",
                     ["unit_of_measurement"] = "kWh",
                     ["suggested_display_precision"] = 0,
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8116, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))),
+                    ["name"] = GetLocalizedString(SR.ID8116, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.SmartMeterPeakOffPeakIndex}",
                     ["value_template"] = "{{ value_json.off_peak_index }}"
@@ -2523,11 +2229,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["state_class"] = "total_increasing",
                     ["unit_of_measurement"] = "kWh",
                     ["suggested_display_precision"] = 0,
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8067, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))),
+                    ["name"] = GetLocalizedString(SR.ID8067, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.SmartMeterRedIndex}",
                     ["value_template"] = "{{ value_json.base_index }}"
@@ -2541,11 +2243,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["state_class"] = "total_increasing",
                     ["unit_of_measurement"] = "kWh",
                     ["suggested_display_precision"] = 0,
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8117, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))),
+                    ["name"] = GetLocalizedString(SR.ID8117, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.SmartMeterRedIndex}",
                     ["value_template"] = "{{ value_json.off_peak_index }}"
@@ -2559,11 +2257,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["state_class"] = "total_increasing",
                     ["unit_of_measurement"] = "kWh",
                     ["suggested_display_precision"] = 0,
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8068, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))),
+                    ["name"] = GetLocalizedString(SR.ID8068, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.SmartMeterWhiteIndex}",
                     ["value_template"] = "{{ value_json.base_index }}"
@@ -2577,11 +2271,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["state_class"] = "total_increasing",
                     ["unit_of_measurement"] = "kWh",
                     ["suggested_display_precision"] = 0,
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8118, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))),
+                    ["name"] = GetLocalizedString(SR.ID8118, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.SmartMeterWhiteIndex}",
                     ["value_template"] = "{{ value_json.off_peak_index }}"
@@ -2593,11 +2283,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "e07f0687-6ca1-47d9-a5b7-b20c0e79775a"u8),
                     ["device_class"] = "enum",
                     ["icon"] = "mdi:receipt-text-outline",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8069, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))),
+                    ["name"] = GetLocalizedString(SR.ID8069, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.SmartMeterSubscriptionType}",
                     ["options"] = new JsonArray(
@@ -2620,11 +2306,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 {
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "2eddee8f-7c81-47ea-a775-785e9dfb5c26"u8),
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8073, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterIndexes))),
+                    ["name"] = GetLocalizedString(SR.ID8073, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.SmartMeterBaseIndex}/get",
                     ["payload_press"] = string.Empty
@@ -2639,11 +2321,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "31eda1f3-343f-4cd7-9f56-ea792fcaec7f"u8),
                     ["device_class"] = "enum",
                     ["icon"] = "mdi:receipt-text-outline",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8074, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))),
+                    ["name"] = GetLocalizedString(SR.ID8074, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.SmartMeterRateType}",
                     ["options"] = new JsonArray([GetLocalizedString(SR.ID8075, culture), GetLocalizedString(SR.ID8076, culture)]),
@@ -2662,11 +2340,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "280fd1d1-4220-42ec-bf70-69936b728eb2"u8),
                     ["device_class"] = "running",
                     ["icon"] = "mdi:transmission-tower-off",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8077, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))),
+                    ["name"] = GetLocalizedString(SR.ID8077, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.SmartMeterPowerCutMode}"
                 };
@@ -2676,11 +2350,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "91e32508-61fa-46e3-ba57-32166b2de116"u8),
                     ["entity_category"] = "diagnostic",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8078, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))),
+                    ["name"] = GetLocalizedString(SR.ID8078, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.SmartMeterRateType}/get",
                     ["payload_press"] = string.Empty
@@ -2691,11 +2361,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "df24321d-01e8-4d1a-9cca-92ece18934b4"u8),
                     ["entity_category"] = "diagnostic",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8079, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.SmartMeterInformation))),
+                    ["name"] = GetLocalizedString(SR.ID8079, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.SmartMeterPowerCutMode}/get",
                     ["payload_press"] = string.Empty
@@ -2710,11 +2376,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "46c1f892-f9bf-46b6-8658-fed1d7eb177b"u8),
                     ["entity_category"] = "diagnostic",
                     ["device_class"] = "timestamp",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8080, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.Uptime))),
+                    ["name"] = GetLocalizedString(SR.ID8080, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.StartupDate}",
                 };
@@ -2724,11 +2386,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "5e9b5094-b028-492c-8be4-5b73139e2c57"u8),
                     ["entity_category"] = "diagnostic",
-                    ["name"] = ComputeEntityDisplayName(
-                        name: GetLocalizedString(SR.ID8081, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.Uptime))),
+                    ["name"] = GetLocalizedString(SR.ID8081, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.StartupDate}/get",
                     ["payload_press"] = string.Empty
@@ -2742,11 +2400,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "select",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "733d9bf6-fd89-4ce1-bd71-d12a1c6a846e"u8),
                     ["icon"] = "mdi:water-boiler",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8109, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))),
+                    ["name"] = GetLocalizedString(SR.ID8109, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.WaterHeaterSetpointMode}/set",
                     ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.WaterHeaterSetpointMode}",
@@ -2780,11 +2434,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "344b6548-196d-42de-b627-22530cc28f07"u8),
                     ["device_class"] = "running",
                     ["icon"] = "mdi:fire",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8085, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))),
+                    ["name"] = GetLocalizedString(SR.ID8085, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.WaterHeaterState}",
                     ["payload_on"] = "heating",
@@ -2796,11 +2446,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "bb186d7c-f49d-4aa2-8770-a0fdcf9de123"u8),
                     ["entity_category"] = "diagnostic",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8086, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.WaterHeating))),
+                    ["name"] = GetLocalizedString(SR.ID8086, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.WaterHeaterState}/get",
                     ["payload_press"] = string.Empty
@@ -2815,11 +2461,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "2dd476d5-a35a-442a-a3f2-4c2621dcf375"u8),
                     ["device_class"] = "enum",
                     ["icon"] = "mdi:shield-home-outline",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8087, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.WirelessBurglarAlarmState))),
+                    ["name"] = GetLocalizedString(SR.ID8087, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.WirelessBurglarAlarmState}",
                     ["options"] = new JsonArray(
@@ -2854,11 +2496,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["entity_category"] = "diagnostic",
                     ["device_class"] = "running",
                     ["icon"] = "mdi:link-box",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8107, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeBinding))),
+                    ["name"] = GetLocalizedString(SR.ID8107, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.ZigbeeBinding}",
                     ["value_template"] = """
@@ -2877,11 +2515,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "d04dc07d-b614-4e3e-aeac-ccaead40d919"u8),
                     ["entity_category"] = "config",
                     ["icon"] = "mdi:link",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8094, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeBinding))),
+                    ["name"] = GetLocalizedString(SR.ID8094, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.ZigbeeBinding}/set",
                     ["payload_press"] = "bind"
@@ -2893,11 +2527,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "55a25c45-cb7a-4b74-baa4-7f9b87465d1a"u8),
                     ["entity_category"] = "config",
                     ["icon"] = "mdi:link-off",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8095, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeBinding))),
+                    ["name"] = GetLocalizedString(SR.ID8095, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.ZigbeeBinding}/set",
                     ["payload_press"] = "unbind"
@@ -2913,11 +2543,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["entity_category"] = "diagnostic",
                     ["device_class"] = "opening",
                     ["icon"] = "mdi:wifi-strength-lock-open-outline",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8108, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))),
+                    ["name"] = GetLocalizedString(SR.ID8108, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.ZigbeeNetwork}",
                     ["value_template"] = """
@@ -2938,11 +2564,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "5ea35f24-9a6c-4d62-b000-85e6a9ef5380"u8),
                     ["entity_category"] = "diagnostic",
                     ["icon"] = "mdi:sine-wave",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8096, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))),
+                    ["name"] = GetLocalizedString(SR.ID8096, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.ZigbeeChannel}",
                 };
@@ -2953,11 +2575,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "abda41d7-1b4c-41cc-99b9-81b7bc5801d3"u8),
                     ["entity_category"] = "diagnostic",
                     ["icon"] = "mdi:counter",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8105, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))),
+                    ["name"] = GetLocalizedString(SR.ID8105, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.ZigbeeDevicesCount}",
                 };
@@ -2968,11 +2586,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "b7355e3d-0137-41e7-90fa-8b81b9530466"u8),
                     ["entity_category"] = "diagnostic",
                     ["icon"] = "mdi:sine-wave",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8097, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))),
+                    ["name"] = GetLocalizedString(SR.ID8097, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.ZigbeeChannel}/get",
                     ["payload_press"] = string.Empty
@@ -2984,11 +2598,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "6c550d13-cbd5-4a7a-b445-1c30e9b83c65"u8),
                     ["entity_category"] = "diagnostic",
                     ["icon"] = "mdi:counter",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8106, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))),
+                    ["name"] = GetLocalizedString(SR.ID8106, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.ZigbeeDevicesCount}/get",
                     ["payload_press"] = string.Empty
@@ -2999,11 +2609,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "f366a06c-6d7f-4741-a99a-490fedeabf9f"u8),
                     ["icon"] = "mdi:new-box",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8098, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))),
+                    ["name"] = GetLocalizedString(SR.ID8098, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.ZigbeeNetwork}/set",
                     ["payload_press"] = "create"
@@ -3014,11 +2620,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "1c56979a-3ad2-4b9b-9116-cd7321416b6a"u8),
                     ["icon"] = "mdi:download-network",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8099, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))),
+                    ["name"] = GetLocalizedString(SR.ID8099, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.ZigbeeNetwork}/set",
                     ["payload_press"] = "join"
@@ -3029,11 +2631,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "63096c5c-3fba-4ea7-a30d-3568b0680e18"u8),
                     ["icon"] = "mdi:upload-network",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8100, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))),
+                    ["name"] = GetLocalizedString(SR.ID8100, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.ZigbeeNetwork}/set",
                     ["payload_press"] = "leave",
@@ -3045,11 +2643,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "09953b7d-0e18-4fc9-9b8c-2a11b52a15c5"u8),
                     ["icon"] = "mdi:lock-open",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8101, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))),
+                    ["name"] = GetLocalizedString(SR.ID8101, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.ZigbeeNetwork}/set",
                     ["payload_press"] = "open"
@@ -3060,11 +2654,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "7e344b36-199e-4a43-987f-59fccacc859b"u8),
                     ["icon"] = "mdi:lock",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8102, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))),
+                    ["name"] = GetLocalizedString(SR.ID8102, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.ZigbeeNetwork}/set",
                     ["payload_press"] = "close"
@@ -3075,11 +2665,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "f6a3d89f-a3a4-4776-a6b0-a0e3328183ee"u8),
                     ["icon"] = "mdi:eye-check",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8103, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))),
+                    ["name"] = GetLocalizedString(SR.ID8103, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.ZigbeeSupervision}/set",
                     ["payload_press"] = "enable"
@@ -3090,11 +2676,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     ["platform"] = "button",
                     ["unique_id"] = ComputeEntityUniqueId(endpoint, "35f91e70-674d-4977-9475-ba231553051d"u8),
                     ["icon"] = "mdi:eye-remove",
-                    ["name"] = ComputeEntityDisplayName(
-                        name    : GetLocalizedString(SR.ID8104, culture),
-                        endpoint: endpoint,
-                        culture : culture,
-                        count   : endpoints.Count(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.ZigbeeNetworkManagement))),
+                    ["name"] = GetLocalizedString(SR.ID8104, culture),
                     ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
                     ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.ZigbeeSupervision}/set",
                     ["payload_press"] = "disable"
@@ -3102,7 +2684,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
             }
         }
 
-        static KeyValuePair<string, JsonNode?> CreateEntityNode(JsonObject component)
+        static KeyValuePair<string, JsonNode?> CreateEntityItem(JsonObject component)
         {
             var identifier = (string?) component["unique_id"]?.AsValue();
             if (string.IsNullOrEmpty(identifier))
@@ -3123,12 +2705,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     device.GetStringSetting(OpenNettySettings.HomeAssistantObjectId)
                         ?? SanitizeDiscoveryObjectId(device.Name)
                 ]),
-                ["manufacturer"] = Enum.GetName(device.Identity.Brand),
+                ["manufacturer"] = OpenNettyUtilities.GetBrandName(device.Identity.Brand),
                 ["model_id"] = device.Identity.Model,
                 ["name"] = device.GetStringSetting(OpenNettySettings.HomeAssistantDeviceName)
                     ?? (device.Identifier is not null
-                        ? $"{Enum.GetName(device.Identity.Brand)} {device.Identity.Model} ({device.Identifier})"
-                        : $"{Enum.GetName(device.Identity.Brand)} {device.Identity.Model}")
+                        ? $"{OpenNettyUtilities.GetBrandName(device.Identity.Brand)} {device.Identity.Model} ({device.Identifier})"
+                        : $"{OpenNettyUtilities.GetBrandName(device.Identity.Brand)} {device.Identity.Model}")
             };
 
             var description = device.Identity.GetDescription(culture);
@@ -3166,41 +2748,42 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
             return node;
         }
 
-        static JsonObject CreateVirtualDeviceNode(OpenNettyEndpoint endpoint, CultureInfo culture)
+        static JsonObject CreateChildDeviceNode(OpenNettyUnit unit,
+            ImmutableDictionary<string, JsonNode?> components, CultureInfo culture) => new()
         {
-            var node = new JsonObject
-            {
-                ["identifiers"] = new JsonArray(
-                [
-                    // Use the endpoint's object ID if set, otherwise fall back to the endpoint name.
-                    endpoint.GetStringSetting(OpenNettySettings.HomeAssistantObjectId)
-                        ?? SanitizeDiscoveryObjectId(endpoint.Name)
-                ]),
-                ["name"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantDeviceName)
-                    ?? endpoint.Address?.Type switch
-                    {
-                        OpenNettyAddressType.Nitoo           => GetLocalizedString(SR.ID8121, culture),
-                        OpenNettyAddressType.Zigbee          => GetLocalizedString(SR.ID8122, culture),
-                        OpenNettyAddressType.ScsLightPoint   => GetLocalizedString(SR.ID8123, culture),
-                        OpenNettyAddressType.ScsScenarioPlus => GetLocalizedString(SR.ID8124, culture),
+            ["identifiers"] = new JsonArray(
+            [
+                // Use the unit's object ID if set (otherwise fall back to the device name) and append the unit ID.
+                $"{unit.GetStringSetting(OpenNettySettings.HomeAssistantObjectId)
+                    ?? SanitizeDiscoveryObjectId(unit.Device.Name)}_unit_{unit.Definition.Id}"
+            ]),
+            ["name"] = unit.GetStringSetting(OpenNettySettings.HomeAssistantDeviceName)
+                ?? unit.Definition.GetDescription(culture)
+                ?? string.Format(culture, GetLocalizedString(SR.ID8133, culture), unit.Definition.Id),
+            ["components"] = new JsonObject([.. components])
+        };
 
-                        _ => GetLocalizedString(SR.ID8120, culture)
-                    }
-            };
+        static JsonObject CreateVirtualChildDeviceNode(OpenNettyEndpoint endpoint,
+            ImmutableDictionary<string, JsonNode?> components, CultureInfo culture) => new()
+        {
+            ["identifiers"] = new JsonArray(
+            [
+                // Use the endpoint's object ID if set, otherwise fall back to the endpoint name.
+                endpoint.GetStringSetting(OpenNettySettings.HomeAssistantObjectId)
+                    ?? SanitizeDiscoveryObjectId(endpoint.Name)
+            ]),
+            ["name"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantDeviceName)
+                ?? endpoint.Address?.Type switch
+                {
+                    OpenNettyAddressType.Nitoo           => GetLocalizedString(SR.ID8121, culture),
+                    OpenNettyAddressType.Zigbee          => GetLocalizedString(SR.ID8122, culture),
+                    OpenNettyAddressType.ScsLightPoint   => GetLocalizedString(SR.ID8123, culture),
+                    OpenNettyAddressType.ScsScenarioPlus => GetLocalizedString(SR.ID8124, culture),
 
-            if (endpoint.Gateway is OpenNettyGateway gateway)
-            {
-                node["via_device"] = gateway.Device.GetStringSetting(OpenNettySettings.HomeAssistantObjectId)
-                    ?? SanitizeDiscoveryObjectId(gateway.Device.Name);
-            }
-
-            if (endpoint.GetStringSetting(OpenNettySettings.HomeAssistantSuggestedArea) is { Length: > 0 } area)
-            {
-                node["suggested_area"] = area;
-            }
-
-            return node;
-        }
+                    _ => GetLocalizedString(SR.ID8120, culture)
+                },
+            ["components"] = new JsonObject([.. components])
+        };
 
         static string ComputeEntityUniqueId(OpenNettyEndpoint endpoint, ReadOnlySpan<byte> discriminator)
         {
@@ -3209,29 +2792,6 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
             hash.Append(discriminator);
 
             return Base64Url.EncodeToString(hash.GetCurrentHash());
-        }
-
-        static string ComputeEntityDisplayName(string name, OpenNettyEndpoint endpoint, CultureInfo culture, int count)
-        {
-            if (count is < 2)
-            {
-                return name;
-            }
-
-            if (endpoint.Unit?.Definition.Id is not (null or 0))
-            {
-                var description = endpoint.Unit.Definition.GetDescription(culture);
-                if (!string.IsNullOrEmpty(description))
-                {
-                    var info = new StringInfo(description);
-
-                    return culture.TextInfo.IsRightToLeft ?
-                        $"{info.SubstringByTextElements(0, 1).ToLower(culture) + info.SubstringByTextElements(1)} {name}" :
-                        $"{name} {info.SubstringByTextElements(0, 1).ToLower(culture) + info.SubstringByTextElements(1)}";
-                }
-            }
-
-            return name;
         }
 
         static string SanitizeDiscoveryObjectId(string name)
@@ -3274,12 +2834,12 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
 
                 else if (!separator)
                 {
-                    builder.Append('-');
+                    builder.Append('_');
                     separator = true;
                 }
             }
 
-            if (builder.Length is > 0 && builder[^1] is '-')
+            if (builder.Length is > 0 && builder[^1] is '_')
             {
                 builder.Length--;
             }

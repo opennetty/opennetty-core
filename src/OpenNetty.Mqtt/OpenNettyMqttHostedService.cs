@@ -796,7 +796,7 @@ public sealed class OpenNettyMqttHostedService : BackgroundService, IOpenNettyHa
             // Ask the worker to process incoming messages for this MQTT client.
             await Task.WhenAll(
                 _worker.ProcessMessagesAsync(_client, channel.Reader, stoppingToken),
-                _worker.AnnounceEndpointsAsync(_client, stoppingToken));
+                _worker.AnnounceDevicesAsync(_client, stoppingToken));
         }
 
         finally

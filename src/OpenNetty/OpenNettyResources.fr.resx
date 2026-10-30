@@ -124,7 +124,7 @@
     <value>Lumière</value>
   </data>
   <data name="ID8002" xml:space="preserve">
-    <value>Récupérer état de l'interrupteur</value>
+    <value>Récupérer état de la sortie</value>
   </data>
   <data name="ID8003" xml:space="preserve">
     <value>Récupérer luminosité</value>
@@ -136,7 +136,7 @@
     <value>Récupérer état du volet roulant</value>
   </data>
   <data name="ID8006" xml:space="preserve">
-    <value>Récupérer position de l'interrupteur</value>
+    <value>Récupérer position du volet roulant</value>
   </data>
   <data name="ID8007" xml:space="preserve">
     <value>Scénario</value>
@@ -472,19 +472,19 @@
     <value>Date de la dernière communication</value>
   </data>
   <data name="ID8120" xml:space="preserve">
-    <value>Appareil virtuel</value>
+    <value>Adresse virtuelle</value>
   </data>
   <data name="ID8121" xml:space="preserve">
-    <value>Appareil virtuel Nitoo</value>
+    <value>Adresse virtuelle Nitoo</value>
   </data>
   <data name="ID8122" xml:space="preserve">
-    <value>Appareil virtuel Zigbee</value>
+    <value>Adresse virtuelle Zigbee</value>
   </data>
   <data name="ID8123" xml:space="preserve">
-    <value>Appareil virtuel SCS (point de lumière)</value>
+    <value>Adresse virtuelle SCS (point de lumière)</value>
   </data>
   <data name="ID8124" xml:space="preserve">
-    <value>Appareil virtuel SCS (scénario plus)</value>
+    <value>Adresse virtuelle SCS (scénario plus)</value>
   </data>
   <data name="ID8125" xml:space="preserve">
     <value>Activer scénario contact sec ouvert/détection</value>
@@ -509,5 +509,8 @@
   </data>
   <data name="ID8132" xml:space="preserve">
     <value>Déverrouiller actionneur</value>
+  </data>
+  <data name="ID8133" xml:space="preserve">
+    <value>Unité {0}</value>
   </data>
 </root>

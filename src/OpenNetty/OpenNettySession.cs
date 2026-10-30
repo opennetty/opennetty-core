@@ -145,7 +145,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
 
         if (message.Protocol != _gateway.Protocol)
         {
-            throw new InvalidOperationException(SR.GetResourceString(SR.ID0010));
+            throw new InvalidOperationException(SR.FormatID0010(Enum.GetName(message.Protocol), _gateway.Device.Name));
         }
 
         // If no explicit transmissions options were specified, resolve them from the gateway options.

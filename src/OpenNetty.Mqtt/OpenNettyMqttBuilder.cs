@@ -242,9 +242,9 @@ public sealed class OpenNettyMqttBuilder
 
             // Note: on Windows, the client certificate is exported and re-imported to work around a limitation
             // of the cryptographic stack that doesn't allow using an ephemeral key for TLS client authentication.
-            return OperatingSystem.IsWindows() ?
-                [X509CertificateLoader.LoadPkcs12(certificate.Export(X509ContentType.Pkcs12), password: null)] :
-                [certificate];
+            return OperatingSystem.IsWindows()
+                ? [X509CertificateLoader.LoadPkcs12(certificate.Export(X509ContentType.Pkcs12), password: null)]
+                : [certificate];
         }
     }
 

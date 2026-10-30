@@ -4,9 +4,10 @@ using System.Text;
 namespace OpenNetty;
 
 /// <summary>
-/// Exposes internal utilities used by the OpenNetty components.
+/// Exposes common utilities used by the OpenNetty components.
 /// </summary>
-internal static class OpenNettyUtilities
+[EditorBrowsable(EditorBrowsableState.Never)]
+public static class OpenNettyUtilities
 {
     /// <summary>
     /// Computes the default endpoint name for a given combination of protocol, address, device and unit.
@@ -18,12 +19,15 @@ internal static class OpenNettyUtilities
     public static string ComputeDefaultEndpointName(
         OpenNettyProtocol protocol, OpenNettyAddress? address, OpenNettyUnit? unit)
     {
-        if (!Enum.IsDefined(protocol))
+        var builder = new StringBuilder(protocol switch
         {
-            throw new InvalidEnumArgumentException(nameof(protocol), (int) protocol, typeof(OpenNettyProtocol));
-        }
+            OpenNettyProtocol.Nitoo  => "Nitoo",
+            OpenNettyProtocol.Scs    => "SCS",
+            OpenNettyProtocol.Zigbee => "Zigbee",
 
-        var builder = new StringBuilder(Enum.GetName(protocol));
+            _ => throw new InvalidEnumArgumentException(nameof(protocol), (int) protocol, typeof(OpenNettyProtocol))
+        });
+
         builder.Append('/');
 
         switch (protocol)
@@ -101,4 +105,18 @@ internal static class OpenNettyUtilities
 
         return builder.ToString();
     }
+
+    /// <summary>
+    /// Converts the specified <see cref="OpenNettyBrand"/> value to its corresponding brand name string.
+    /// </summary>
+    /// <param name="brand">The brand value.</param>
+    /// <returns>The corresponding brand name string.</returns>
+    /// <exception cref="InvalidEnumArgumentException">The specified brand value is not valid.</exception>
+    public static string GetBrandName(OpenNettyBrand brand) => brand switch
+    {
+        OpenNettyBrand.BTicino => "BTicino",
+        OpenNettyBrand.Legrand => "Legrand",
+
+        _ => throw new InvalidEnumArgumentException(nameof(brand), (int) brand, typeof(OpenNettyBrand))
+    };
 }

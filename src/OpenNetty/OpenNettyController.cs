@@ -1950,13 +1950,13 @@ public class OpenNettyController
         {
             OpenNettyProtocol.Nitoo => await GetUnitDescriptionAsync(endpoint, cancellationToken) switch
             {
-                { FunctionCode: 129, Values: [{ Length: > 0 } value] } => value is "128" or "129" or "130" ?
-                    OpenNettyModels.Lighting.SwitchState.On :
-                    OpenNettyModels.Lighting.SwitchState.Off,
+                { FunctionCode: 129, Values: [{ Length: > 0 } value] } => value is "128" or "129" or "130"
+                    ? OpenNettyModels.Lighting.SwitchState.On
+                    : OpenNettyModels.Lighting.SwitchState.Off,
 
-                { FunctionCode: 143, Values: [{ Length: > 0 } value, ..] } => value is not "0" ?
-                    OpenNettyModels.Lighting.SwitchState.On :
-                    OpenNettyModels.Lighting.SwitchState.Off,
+                { FunctionCode: 143, Values: [{ Length: > 0 } value, ..] } => value is not "0"
+                    ? OpenNettyModels.Lighting.SwitchState.On
+                    : OpenNettyModels.Lighting.SwitchState.Off,
 
                 _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
             },
@@ -1981,9 +1981,9 @@ public class OpenNettyController
                     command == OpenNettyCommands.Lighting.On100),
                 gateway          : endpoint.Gateway,
                 options          : GetTransmissionOptions(endpoint),
-                cancellationToken: cancellationToken) != OpenNettyCommands.Lighting.Off ?
-                    OpenNettyModels.Lighting.SwitchState.On :
-                    OpenNettyModels.Lighting.SwitchState.Off
+                cancellationToken: cancellationToken) != OpenNettyCommands.Lighting.Off
+                    ? OpenNettyModels.Lighting.SwitchState.On
+                    : OpenNettyModels.Lighting.SwitchState.Off
         };
     }
 
@@ -3013,9 +3013,9 @@ public class OpenNettyController
 
             await _service.ExecuteCommandAsync(
                 protocol         : endpoint.Protocol,
-                command          : state is OpenNettyModels.Lighting.SwitchState.On ?
-                    OpenNettyCommands.Lighting.Off :
-                    OpenNettyCommands.Lighting.On,
+                command          : state is OpenNettyModels.Lighting.SwitchState.On
+                    ? OpenNettyCommands.Lighting.Off
+                    : OpenNettyCommands.Lighting.On,
                 address          : endpoint.Address,
                 medium           : endpoint.Medium,
                 mode             : null,
@@ -3126,7 +3126,7 @@ public class OpenNettyController
                 true  => false,
                 false => true
             },
-            IgnoreSupervisionReporting = endpoint.GetBooleanSetting(OpenNettySettings.SupervisionReport) switch
+            IgnoreSupervisionReporting = endpoint.GetBooleanSetting(OpenNettySettings.SupervisionReporting) switch
             {
                 null  => gateway.Options.DefaultTransmissionOptions.IgnoreSupervisionReporting,
                 true  => false,
