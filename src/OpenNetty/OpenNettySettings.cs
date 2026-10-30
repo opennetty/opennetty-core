@@ -207,14 +207,24 @@ public static class OpenNettySettings
     public static readonly OpenNettySetting SmartMeterWhiteIndexOffsetOffPeak = new("Smart meter white index offset [off-peak]");
 
     /// <summary>
+    /// Supervision report (Zigbee only).
+    /// </summary>
+    public static readonly OpenNettySetting SupervisionReport = new("Supervision report");
+
+    /// <summary>
     /// Switch mode.
     /// </summary>
     public static readonly OpenNettySetting SwitchMode = new("Switch mode");
 
     /// <summary>
-    /// Zigbee device type.
+    /// Zigbee device type (Zigbee only).
     /// </summary>
     public static readonly OpenNettySetting ZigbeeDeviceType = new("Zigbee device type");
+
+    /// <summary>
+    /// Zigbee supervision mode (Zigbee only).
+    /// </summary>
+    public static readonly OpenNettySetting ZigbeeSupervisionMode = new("Zigbee supervision mode");
 
     /// <summary>
     /// Exposes common function types.

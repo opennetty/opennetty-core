@@ -21,6 +21,11 @@ public sealed record class OpenNettySessionOptions
     public required TimeSpan ConnectionNegotiationTimeout { get; init; }
 
     /// <summary>
+    /// Gets or sets a boolean indicating whether the supervision mode should be enabled (Zigbee only).
+    /// </summary>
+    public required bool EnableSupervisionMode { get; init; }
+
+    /// <summary>
     /// Gets or sets the <see cref="ResiliencePipeline"/> used to manage sessions.
     /// </summary>
     public required ResiliencePipeline SessionResiliencePipeline { get; init; }
@@ -38,6 +43,10 @@ public sealed record class OpenNettySessionOptions
         return new()
         {
             ConnectionNegotiationTimeout = TimeSpan.FromSeconds(10),
+
+            // Always enable the supervision mode for Zigbee gateways, unless it was explicitly opted out.
+            EnableSupervisionMode = device.Definition.Protocol is OpenNettyProtocol.Zigbee &&
+                device.GetBooleanSetting(OpenNettySettings.ZigbeeSupervisionMode) is not false,
 
             SessionResiliencePipeline = new ResiliencePipelineBuilder()
                 .AddRetry(new RetryStrategyOptions

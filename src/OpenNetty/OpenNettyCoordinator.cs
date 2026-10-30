@@ -89,13 +89,14 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                            Type    : OpenNettyMessageType.BusCommand or OpenNettyMessageType.DimensionSet } message }
                 => AsyncObservable.Return<(OpenNettyNotification Notification, OpenNettyMessage Message)>((notification, message)),
 
-            // Note: while Zigbee devices report back state changes to the gateway when the supervisor mode is
-            // enabled, this mode suffers from two major limitations: it is not recommended to use it on more than
-            // one Zigbee gateway at a time and state changes are generally throttled and are only reported after
-            // a delay of up to 3 seconds following the last state change (intermediate changes are also skipped).
+            // Note: while Zigbee devices report back state changes to the gateway when the supervisor
+            // mode is enabled, this mode suffers from two limitations: it is not recommended to use it on
+            // more than one Zigbee gateway at a time and state changes are generally throttled and can be
+            // reported after a delay of up to 3 seconds following the last state change for some devices.
             //
-            // To mitigate these limitations, the outgoing Zigbee BUS COMMAND and DIMENSION SET messages that
-            // have been acknowledged by the gateway are monitored so that changes can be reported immediately.
+            // To mitigate these limitations, the outgoing Zigbee BUS COMMAND and DIMENSION SET
+            // messages that have been acknowledged by the gateway are monitored so that changes
+            // are always reported, even if the end devices did not report them explicitly.
             OpenNettyNotifications.MessageSent {
                 Session.Type: not OpenNettySessionType.Command,
                 Message: { Protocol: OpenNettyProtocol.Zigbee,

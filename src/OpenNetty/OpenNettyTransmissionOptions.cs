@@ -50,6 +50,32 @@ public sealed record class OpenNettyTransmissionOptions
     public required bool IgnoreActionValidation { get; init; }
 
     /// <summary>
+    /// Gets or sets a boolean indicating whether OpenNetty should not throw
+    /// an exception when an ACK, BUSY NACK or NACK frame is not returned.
+    /// </summary>
+    public required bool IgnoreMissingAcknowledgementFrame { get; init; }
+
+    /// <summary>
+    /// Gets or sets a boolean indicating whether OpenNetty should not throw
+    /// an exception when the gateway returns an ACK frame but the end device
+    /// does not reply with a VALID ACTION or INVALID ACTION frame (Nitoo only).
+    /// </summary>
+    public required bool IgnoreMissingActionValidationFrame { get; init; }
+
+    /// <summary>
+    /// Gets or sets a boolean indicating whether OpenNetty should not throw
+    /// an exception when the end device does not report a change of state
+    /// (Zigbee only, requires enabling supervision on the OpenWebNet gateway).
+    /// </summary>
+    public required bool IgnoreMissingSupervisionReportFrame { get; init; }
+
+    /// <summary>
+    /// Gets or sets a boolean indicating whether OpenNetty should not wait for the end device to report
+    /// a change of state (Zigbee only, requires enabling supervision on the OpenWebNet gateway).
+    /// </summary>
+    public required bool IgnoreSupervisionReporting { get; init; }
+
+    /// <summary>
     /// Gets or sets a value indicating whether the session should remain active
     /// even if no acknowledgement frame was received from the gateway.
     /// </summary>
@@ -79,6 +105,11 @@ public sealed record class OpenNettyTransmissionOptions
     /// Gets or sets the post-sending delay, if applicable.
     /// </summary>
     public required TimeSpan PostSendingDelay { get; init; }
+
+    /// <summary>
+    /// Gets or sets the supervision report timeout (Zigbee only).
+    /// </summary>
+    public required TimeSpan SupervisionReportTimeout { get; init; }
 
     /// <summary>
     /// Gets or sets the <see cref="System.TimeProvider"/> used to retrieve the current time.
@@ -113,11 +144,16 @@ public sealed record class OpenNettyTransmissionOptions
             DisallowUnsafeRetransmissions            = false,
             IgnoreAcknowledgementValidation          = false,
             IgnoreActionValidation                   = false,
+            IgnoreMissingAcknowledgementFrame        = false,
+            IgnoreMissingActionValidationFrame       = false,
+            IgnoreMissingSupervisionReportFrame      = false,
+            IgnoreSupervisionReporting               = device.GetBooleanSetting(OpenNettySettings.ZigbeeSupervisionMode) is false,
             KeepSessionAliveOnMissingAcknowledgement = false,
             MultipleDimensionReplyTimeout            = device.Definition.Protocol is OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee ? TimeSpan.FromSeconds(10) : TimeSpan.Zero,
             MultipleStatusReplyTimeout               = device.Definition.Protocol is OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee ? TimeSpan.FromSeconds(10) : TimeSpan.Zero,
             OutgoingMessageProcessingTimeout         = TimeSpan.FromSeconds(10),
             PostSendingDelay                         = device.Definition.Protocol is OpenNettyProtocol.Nitoo ? TimeSpan.FromMilliseconds(150) : TimeSpan.Zero,
+            SupervisionReportTimeout                 = device.Definition.Protocol is OpenNettyProtocol.Zigbee ? TimeSpan.FromSeconds(5) : TimeSpan.Zero,
             TimeProvider                             = TimeProvider.System,
             UniqueDimensionReplyTimeout              = device.Definition.Protocol is OpenNettyProtocol.Nitoo ? TimeSpan.FromSeconds(7) : TimeSpan.FromSeconds(2),
             UniqueStatusReplyTimeout                 = device.Definition.Protocol is OpenNettyProtocol.Nitoo ? TimeSpan.FromSeconds(7) : TimeSpan.FromSeconds(2),
@@ -197,7 +233,8 @@ public sealed record class OpenNettyTransmissionOptions
                         // explicitly specified that unsafe retransmissions are not allowed for this message.
                         OpenNettyException { ErrorCode: OpenNettyErrorCode.NoActionReceived    or
                                                         OpenNettyErrorCode.NoDimensionReceived or
-                                                        OpenNettyErrorCode.NoStatusReceived }
+                                                        OpenNettyErrorCode.NoStatusReceived    or
+                                                        OpenNettyErrorCode.NoSupervisionReportReceived }
                             when message.Medium is OpenNettyMedium.Powerline or OpenNettyMedium.Radio
                             => !options.DisallowUnsafeRetransmissions && arguments.AttemptNumber is < 2,
 

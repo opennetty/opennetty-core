@@ -721,14 +721,19 @@ public class OpenNettyService : IOpenNettyService
         switch (message)
         {
             // Note: Zigbee gateways are affected by a bug that affects how STATUS REQUEST frames are handled
-            // and prevents a proper acknowledgement frame from being returned. To ensure the session is not
-            // blocked until the timeout is reached when sending STATUS REQUEST frames, acknowledgement validation
-            // is deliberately disabled: in this case, the requests are assumed to be accepted by the gateway.
+            // and prevents a proper acknowledgement frame from being returned when the request is accepted
+            // by the gateway. To ensure the session is not blocked until the timeout is reached when sending
+            // STATUS REQUEST frames, missing acknowledgement frames are ignored and a short timeout is used:
+            // in this case, the requests are assumed to be accepted by the gateway.
             case { Protocol: OpenNettyProtocol.Zigbee, Type: OpenNettyMessageType.StatusRequest }:
-                options = options with { IgnoreAcknowledgementValidation = true };
+                options = options with
+                {
+                    AcknowledgementTimeout = TimeSpan.FromSeconds(2),
+                    IgnoreMissingAcknowledgementFrame = true
+                };
                 break;
 
-            // Note: Nitoo devices don't return action validation frames for these specific commands:
+            // Note: Nitoo devices never return action validation frames for these specific commands:
             case { Protocol : OpenNettyProtocol.Nitoo,
                    Type     : OpenNettyMessageType.BusCommand,
                    Address  : not null,
@@ -737,7 +742,7 @@ public class OpenNettyService : IOpenNettyService
                 options = options with { IgnoreActionValidation = true };
                 break;
 
-            // Note: Nitoo gateways don't return acknowledgement frames for these specific dimensions:
+            // Note: Nitoo gateways never return acknowledgement frames for these specific dimensions:
             case { Protocol : OpenNettyProtocol.Nitoo,
                    Type     : OpenNettyMessageType.DimensionRequest,
                    Address  : null,
@@ -757,12 +762,13 @@ public class OpenNettyService : IOpenNettyService
             .Where(notification => notification.Gateway == gateway)
             .Where(notification => notification switch
             {
-                OpenNettyNotifications.GatewayBusy              value => value.Transaction == transaction,
-                OpenNettyNotifications.InvalidAction            value => value.Transaction == transaction,
-                OpenNettyNotifications.InvalidFrame             value => value.Transaction == transaction,
-                OpenNettyNotifications.MessageSent              value => value.Transaction == transaction,
-                OpenNettyNotifications.NoAcknowledgmentReceived value => value.Transaction == transaction,
-                OpenNettyNotifications.NoActionReceived         value => value.Transaction == transaction,
+                OpenNettyNotifications.GatewayBusy                 value => value.Transaction == transaction,
+                OpenNettyNotifications.InvalidAction               value => value.Transaction == transaction,
+                OpenNettyNotifications.InvalidFrame                value => value.Transaction == transaction,
+                OpenNettyNotifications.MessageSent                 value => value.Transaction == transaction,
+                OpenNettyNotifications.NoAcknowledgmentReceived    value => value.Transaction == transaction,
+                OpenNettyNotifications.NoActionReceived            value => value.Transaction == transaction,
+                OpenNettyNotifications.NoSupervisionReportReceived value => value.Transaction == transaction,
 
                 _ => false
             })
@@ -807,6 +813,9 @@ public class OpenNettyService : IOpenNettyService
 
             case OpenNettyNotifications.NoActionReceived:
                 throw new OpenNettyException(OpenNettyErrorCode.NoActionReceived, SR.GetResourceString(SR.ID0032));
+
+            case OpenNettyNotifications.NoSupervisionReportReceived:
+                throw new OpenNettyException(OpenNettyErrorCode.NoSupervisionReportReceived, SR.GetResourceString(SR.ID0138));
 
             case null or _:
                 throw new OpenNettyException(OpenNettyErrorCode.NoWorkerAvailable, SR.GetResourceString(SR.ID0033));

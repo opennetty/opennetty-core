@@ -335,6 +335,21 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
                 return;
             }
 
+            catch (OpenNettyException exception) when (exception.ErrorCode is OpenNettyErrorCode.NoSupervisionReportReceived)
+            {
+                _logger.LogInformation(6025, SR.GetResourceString(SR.ID6025), gateway, session, message);
+
+                await writer.WriteAsync(cancellationToken: cancellationToken, item: new OpenNettyNotifications.NoSupervisionReportReceived
+                {
+                    Gateway = gateway,
+                    Message = message,
+                    Session = session,
+                    Transaction = transaction
+                });
+
+                return;
+            }
+
             catch (OpenNettyException exception) when (exception.ErrorCode is OpenNettyErrorCode.InvalidFrame)
             {
                 _logger.LogInformation(6015, SR.GetResourceString(SR.ID6015), gateway, session, message);
