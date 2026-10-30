@@ -239,21 +239,21 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                         .RunAsync(cancellationToken))
                     {
                         case null when !options.IgnoreMissingActionValidationFrame:
-                            throw new OpenNettyException(OpenNettyErrorCode.NoActionReceived, SR.GetResourceString(SR.ID0015));
+                            throw new OpenNettyException(OpenNettyErrorCode.NoActionReceived, SR.GetResourceString(SR.ID0031));
 
                         case { Command: OpenNettyCommand command } when command == OpenNettyCommands.Diagnostics.InvalidAction:
-                            throw new OpenNettyException(OpenNettyErrorCode.InvalidAction, SR.GetResourceString(SR.ID0137));
+                            throw new OpenNettyException(OpenNettyErrorCode.InvalidAction, SR.GetResourceString(SR.ID0032));
                     }
                 }
 
-                // Unless supervision reporting was explicitly disabled, check if the end device returned a
+                // Unless state validation was explicitly disabled, check if the end device returned a
                 // BUS COMMAND frame indicating a change of state. Note: this logic requires enabling the
                 // supervision mode on the gateway and is not as reliable as Nitoo's action validation method
                 // since some devices may not always return a BUS COMMAND frame after a successful action.
                 //
-                // To mitigate this issue, callers are encouraged to catch the "missing supervision report"
+                // To mitigate this issue, callers are encouraged to catch the "missing status report"
                 // exception and manually query the end device's state to determine if the action was successful.
-                if (!options.IgnoreSupervisionReporting && IsSupervisionReportingSupported(message))
+                if (!options.IgnoreStatusReportValidation && IsStatusValidationSupported(message))
                 {
                     var category = message.Category;
 
@@ -262,11 +262,11 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                         .Where(message => message.Address == address)
                         .Where(message => message.Category == category)
                         .FirstOrDefault()
-                        .Timeout(options.SupervisionReportTimeout, AsyncObservable.Return<OpenNettyMessage?>(null))
+                        .Timeout(options.StatusReportTimeout, AsyncObservable.Return<OpenNettyMessage?>(null))
                         .RunAsync(cancellationToken))
                     {
-                        case null when !options.IgnoreMissingSupervisionReportFrame:
-                            throw new OpenNettyException(OpenNettyErrorCode.NoSupervisionReportReceived, SR.GetResourceString(SR.ID0138));
+                        case null when !options.IgnoreMissingStatusReportFrame:
+                            throw new OpenNettyException(OpenNettyErrorCode.NoStatusReportReceived, SR.GetResourceString(SR.ID0137));
                     }
                 }
             }
@@ -292,7 +292,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
             Type    : OpenNettyMessageType.BusCommand or OpenNettyMessageType.DimensionSet };
 
         [MethodImpl(MethodImplOptions.AggressiveInlining | MethodImplOptions.AggressiveOptimization)]
-        static bool IsSupervisionReportingSupported(OpenNettyMessage message) => message is {
+        static bool IsStatusValidationSupported(OpenNettyMessage message) => message is {
             Protocol: OpenNettyProtocol.Zigbee,
             Address : OpenNettyAddress address,
             Medium  : OpenNettyMedium.Radio,
@@ -349,7 +349,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
             if (type is OpenNettySessionType.Generic)
             {
                 // For Zigbee gateways, configure the supervision immediately to ensure the connection is
-                // working properly and ensure state changes will be reported by the end devices to the gateway.
+                // working properly and ensure status changes will be reported by the end devices to the gateway.
                 if (gateway.Protocol is OpenNettyProtocol.Zigbee)
                 {
                     await connection.SendAsync(new OpenNettyFrame(

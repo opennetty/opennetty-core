@@ -212,9 +212,9 @@ public static class OpenNettySettings
     public static readonly OpenNettySetting SmartMeterWhiteIndexOffsetOffPeak = new("Smart meter white index offset [off-peak]");
 
     /// <summary>
-    /// Supervision reporting (Zigbee only).
+    /// Status report validation (Zigbee only).
     /// </summary>
-    public static readonly OpenNettySetting SupervisionReporting = new("Supervision reporting");
+    public static readonly OpenNettySetting StatusReportValidation = new("Status report validation");
 
     /// <summary>
     /// Switch mode.

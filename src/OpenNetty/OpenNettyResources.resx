@@ -520,10 +520,7 @@
     <value>An explicit address is required when the address cannot be automatically inferred from the unit definition (e.g SCS units).</value>
   </data>
   <data name="ID0137" xml:space="preserve">
-    <value>The requested action was rejected by the end device.</value>
-  </data>
-  <data name="ID0138" xml:space="preserve">
-    <value>No supervision report frame was received in the allowed time frame.</value>
+    <value>No status report frame was received in the allowed time frame. Make sure the supervision mode is enabled or manually trigger a supervision mode update if the device was added recently.</value>
   </data>
   <data name="ID2000" xml:space="preserve">
     <value>The endpoint name '{0}' is not valid. Endpoint names cannot contain the '+' or '*' characters.</value>
@@ -673,7 +670,7 @@
     <value>An outgoing message is being sent by gateway {Gateway} using session {Session}: {Message}.</value>
   </data>
   <data name="ID6025" xml:space="preserve">
-    <value>An outgoing message was sent by gateway {Gateway} using session {Session} but was no supervision report indicating a change of state was sent by the end device: {Message}.</value>
+    <value>An outgoing message was sent by gateway {Gateway} using session {Session} but was no report indicating a change of state was sent by the end device: {Message}.</value>
   </data>
   <data name="ID8000" xml:space="preserve">
     <value>Switch</value>

@@ -2823,7 +2823,7 @@ public class OpenNettyController
         // If the operation failed because the end device didn't report back its status (e.g, Legrand 67234 switches do
         // not report their state when it doesn't actually change), try to retrieve its current state: if the endpoint is
         // already switched off, assume the operation was successful and ignore the exception caused by the missing report.
-        catch (OpenNettyException exception) when (exception.ErrorCode is OpenNettyErrorCode.NoSupervisionReportReceived)
+        catch (OpenNettyException exception) when (exception.ErrorCode is OpenNettyErrorCode.NoStatusReportReceived)
         {
             if (await GetSwitchStateAsync(endpoint, cancellationToken) is not OpenNettyModels.Lighting.SwitchState.Off)
             {
@@ -2899,7 +2899,7 @@ public class OpenNettyController
         // If the operation failed because the end device didn't report back its status (e.g, Legrand 67234 switches do
         // not report their state when it doesn't actually change), try to retrieve its current state: if the endpoint is
         // already switched on, assume the operation was successful and ignore the exception caused by the missing report.
-        catch (OpenNettyException exception) when (exception.ErrorCode is OpenNettyErrorCode.NoSupervisionReportReceived)
+        catch (OpenNettyException exception) when (exception.ErrorCode is OpenNettyErrorCode.NoStatusReportReceived)
         {
             if (await GetSwitchStateAsync(endpoint, cancellationToken) is not OpenNettyModels.Lighting.SwitchState.On)
             {
@@ -2967,7 +2967,7 @@ public class OpenNettyController
         // If the operation failed because the end device didn't report back its status (e.g, Legrand 67234 switches do
         // not report their state when it doesn't actually change), try to retrieve its current state: if the endpoint is
         // already switched on, assume the operation was successful and ignore the exception caused by the missing report.
-        catch (OpenNettyException exception) when (exception.ErrorCode is OpenNettyErrorCode.NoSupervisionReportReceived)
+        catch (OpenNettyException exception) when (exception.ErrorCode is OpenNettyErrorCode.NoStatusReportReceived)
         {
             if (await GetSwitchStateAsync(endpoint, cancellationToken) is not OpenNettyModels.Lighting.SwitchState.On)
             {
@@ -3126,9 +3126,9 @@ public class OpenNettyController
                 true  => false,
                 false => true
             },
-            IgnoreSupervisionReporting = endpoint.GetBooleanSetting(OpenNettySettings.SupervisionReporting) switch
+            IgnoreStatusReportValidation = endpoint.GetBooleanSetting(OpenNettySettings.StatusReportValidation) switch
             {
-                null  => gateway.Options.DefaultTransmissionOptions.IgnoreSupervisionReporting,
+                null  => gateway.Options.DefaultTransmissionOptions.IgnoreStatusReportValidation,
                 true  => false,
                 false => true
             }

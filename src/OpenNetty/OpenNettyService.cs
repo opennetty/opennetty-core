@@ -434,7 +434,7 @@ public class OpenNettyService : IOpenNettyService
                     .OfType<(OpenNettySession Session, OpenNettyMessage Message), (OpenNettySession Session, OpenNettyMessage Message)?>()
                     .Timeout(options.UniqueDimensionReplyTimeout, AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)?>(null))
                     .RunAsync(cancellationToken))?.Message.Values ?? throw new OpenNettyException(
-                        OpenNettyErrorCode.NoDimensionReceived, SR.GetResourceString(SR.ID0029));
+                        OpenNettyErrorCode.NoDimensionReadReceived, SR.GetResourceString(SR.ID0029));
             }, context);
         }
 
@@ -538,7 +538,7 @@ public class OpenNettyService : IOpenNettyService
                     .OfType<(OpenNettySession Session, OpenNettyMessage Message), (OpenNettySession Session, OpenNettyMessage Message)?>()
                     .Timeout(options.UniqueStatusReplyTimeout, AsyncObservable.Return<(OpenNettySession Session, OpenNettyMessage Message)?>(null))
                     .RunAsync(cancellationToken))?.Message.Command ?? throw new OpenNettyException(
-                        OpenNettyErrorCode.NoStatusReceived, SR.GetResourceString(SR.ID0030));
+                        OpenNettyErrorCode.NoStatusReplyReceived, SR.GetResourceString(SR.ID0030));
             }, context);
         }
 
@@ -762,13 +762,8 @@ public class OpenNettyService : IOpenNettyService
             .Where(notification => notification.Gateway == gateway)
             .Where(notification => notification switch
             {
-                OpenNettyNotifications.GatewayBusy                 value => value.Transaction == transaction,
-                OpenNettyNotifications.InvalidAction               value => value.Transaction == transaction,
-                OpenNettyNotifications.InvalidFrame                value => value.Transaction == transaction,
-                OpenNettyNotifications.MessageSent                 value => value.Transaction == transaction,
-                OpenNettyNotifications.NoAcknowledgmentReceived    value => value.Transaction == transaction,
-                OpenNettyNotifications.NoActionReceived            value => value.Transaction == transaction,
-                OpenNettyNotifications.NoSupervisionReportReceived value => value.Transaction == transaction,
+                OpenNettyNotifications.MessageError value => value.Transaction == transaction,
+                OpenNettyNotifications.MessageSent  value => value.Transaction == transaction,
 
                 _ => false
             })
@@ -799,23 +794,8 @@ public class OpenNettyService : IOpenNettyService
             case OpenNettyNotifications.MessageSent { Session: OpenNettySession session }:
                 return session;
 
-            case OpenNettyNotifications.GatewayBusy:
-                throw new OpenNettyException(OpenNettyErrorCode.GatewayBusy, SR.GetResourceString(SR.ID0013));
-
-            case OpenNettyNotifications.InvalidAction:
-                throw new OpenNettyException(OpenNettyErrorCode.InvalidAction, SR.GetResourceString(SR.ID0031));
-
-            case OpenNettyNotifications.InvalidFrame:
-                throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0014));
-
-            case OpenNettyNotifications.NoAcknowledgmentReceived:
-                throw new OpenNettyException(OpenNettyErrorCode.NoAcknowledgementReceived, SR.GetResourceString(SR.ID0012));
-
-            case OpenNettyNotifications.NoActionReceived:
-                throw new OpenNettyException(OpenNettyErrorCode.NoActionReceived, SR.GetResourceString(SR.ID0032));
-
-            case OpenNettyNotifications.NoSupervisionReportReceived:
-                throw new OpenNettyException(OpenNettyErrorCode.NoSupervisionReportReceived, SR.GetResourceString(SR.ID0138));
+            case OpenNettyNotifications.MessageError { Exception: OpenNettyException exception }:
+                throw exception;
 
             case null or _:
                 throw new OpenNettyException(OpenNettyErrorCode.NoWorkerAvailable, SR.GetResourceString(SR.ID0033));
