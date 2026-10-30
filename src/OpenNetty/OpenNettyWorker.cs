@@ -266,96 +266,47 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
                 await session.SendAsync(message, options, cancellationToken);
             }
 
-            catch (OpenNettyException exception) when (exception.ErrorCode is OpenNettyErrorCode.GatewayBusy)
+            catch (OpenNettyException exception)
             {
-                _logger.LogInformation(6011, SR.GetResourceString(SR.ID6011), gateway, session, message);
-
-                await writer.WriteAsync(cancellationToken: cancellationToken, item: new OpenNettyNotifications.GatewayBusy
+                switch (exception.ErrorCode)
                 {
-                    Gateway = gateway,
-                    Message = message,
-                    Session = session,
-                    Transaction = transaction
-                });
+                    case OpenNettyErrorCode.GatewayBusy:
+                        _logger.LogInformation(6011, SR.GetResourceString(SR.ID6011), gateway, session, message);
+                        break;
 
-                return;
-            }
+                    case OpenNettyErrorCode.InvalidAction:
+                        _logger.LogInformation(6012, SR.GetResourceString(SR.ID6012), gateway, session, message);
+                        break;
 
-            catch (OpenNettyException exception) when (exception.ErrorCode is OpenNettyErrorCode.InvalidAction)
-            {
-                _logger.LogInformation(6012, SR.GetResourceString(SR.ID6012), gateway, session, message);
+                    case OpenNettyErrorCode.NoActionReceived:
+                        _logger.LogInformation(6013, SR.GetResourceString(SR.ID6013), gateway, session, message);
+                        break;
 
-                await writer.WriteAsync(cancellationToken: cancellationToken, item: new OpenNettyNotifications.InvalidAction
-                {
-                    Gateway = gateway,
-                    Message = message,
-                    Session = session,
-                    Transaction = transaction
-                });
+                    case OpenNettyErrorCode.NoAcknowledgementReceived:
+                        _logger.LogInformation(6014, SR.GetResourceString(SR.ID6014), gateway, session, message);
 
-                return;
-            }
+                        // Note: these exceptions may indicate that the session is stale. In this case, unless the service has
+                        // explicitly requested to ignore missing acknowledgments (e.g because a gateway is known to return them
+                        // inconsistently for specific commands), these exceptions are re-thrown to ensure the session is discarded.
 
-            catch (OpenNettyException exception) when (exception.ErrorCode is OpenNettyErrorCode.NoActionReceived)
-            {
-                _logger.LogInformation(6013, SR.GetResourceString(SR.ID6013), gateway, session, message);
+                        if (!options.KeepSessionAliveOnMissingAcknowledgement)
+                        {
+                            throw;
+                        }
+                        break;
 
-                await writer.WriteAsync(cancellationToken: cancellationToken, item: new OpenNettyNotifications.NoActionReceived
-                {
-                    Gateway = gateway,
-                    Message = message,
-                    Session = session,
-                    Transaction = transaction
-                });
+                    case OpenNettyErrorCode.NoStatusReportReceived:
+                        _logger.LogInformation(6025, SR.GetResourceString(SR.ID6025), gateway, session, message);
+                        break;
 
-                return;
-            }
-
-            catch (OpenNettyException exception) when (exception.ErrorCode is OpenNettyErrorCode.NoAcknowledgementReceived)
-            {
-                _logger.LogInformation(6014, SR.GetResourceString(SR.ID6014), gateway, session, message);
-
-                await writer.WriteAsync(cancellationToken: cancellationToken, item: new OpenNettyNotifications.NoAcknowledgmentReceived
-                {
-                    Gateway = gateway,
-                    Message = message,
-                    Session = session,
-                    Transaction = transaction
-                });
-
-                // Note: these exceptions may indicate that the session is stale. In this case, unless the service has
-                // explicitly requested to ignore missing acknowledgments (e.g because a gateway is known to return them
-                // inconsistently for specific commands), these exceptions are re-thrown to ensure the session is discarded.
-
-                if (!options.KeepSessionAliveOnMissingAcknowledgement)
-                {
-                    throw;
+                    case OpenNettyErrorCode.InvalidFrame:
+                        _logger.LogInformation(6015, SR.GetResourceString(SR.ID6015), gateway, session, message);
+                        break;
                 }
 
-                return;
-            }
-
-            catch (OpenNettyException exception) when (exception.ErrorCode is OpenNettyErrorCode.NoSupervisionReportReceived)
-            {
-                _logger.LogInformation(6025, SR.GetResourceString(SR.ID6025), gateway, session, message);
-
-                await writer.WriteAsync(cancellationToken: cancellationToken, item: new OpenNettyNotifications.NoSupervisionReportReceived
+                await writer.WriteAsync(cancellationToken: cancellationToken, item: new OpenNettyNotifications.MessageError
                 {
-                    Gateway = gateway,
-                    Message = message,
-                    Session = session,
-                    Transaction = transaction
-                });
-
-                return;
-            }
-
-            catch (OpenNettyException exception) when (exception.ErrorCode is OpenNettyErrorCode.InvalidFrame)
-            {
-                _logger.LogInformation(6015, SR.GetResourceString(SR.ID6015), gateway, session, message);
-
-                await writer.WriteAsync(cancellationToken: cancellationToken, item: new OpenNettyNotifications.InvalidFrame
-                {
+                    Exception = exception,
                     Gateway = gateway,
                     Message = message,
                     Session = session,

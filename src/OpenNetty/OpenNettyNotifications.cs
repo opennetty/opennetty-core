@@ -12,54 +12,17 @@ namespace OpenNetty;
 public static class OpenNettyNotifications
 {
     /// <summary>
-    /// Represents a notification dispatched when an outgoing message was rejected by a busy gateway.
+    /// Represents a notification dispatched when an outgoing message could not be sent.
     /// </summary>
-    public sealed class GatewayBusy : OpenNettyNotification
+    public sealed class MessageError : OpenNettyNotification
     {
         /// <summary>
-        /// Gets or sets the message that was rejected by the gateway.
+        /// Gets or sets the exception that prevented the message from being sent.
         /// </summary>
-        public required OpenNettyMessage Message { get; init; }
+        public required OpenNettyException Exception { get; init; }
 
         /// <summary>
-        /// Gets or sets the session that was used to send the message.
-        /// </summary>
-        public required OpenNettySession Session { get; init; }
-
-        /// <summary>
-        /// Gets or sets the transaction associated with the notification.
-        /// </summary>
-        public required OpenNettyTransaction Transaction { get; init; }
-    }
-
-    /// <summary>
-    /// Represents a notification dispatched when an outgoing message was rejected by a Nitoo device.
-    /// </summary>
-    public sealed class InvalidAction : OpenNettyNotification
-    {
-        /// <summary>
-        /// Gets or sets the message that was rejected by the device.
-        /// </summary>
-        public required OpenNettyMessage Message { get; init; }
-
-        /// <summary>
-        /// Gets or sets the session that was used to send the message.
-        /// </summary>
-        public required OpenNettySession Session { get; init; }
-
-        /// <summary>
-        /// Gets or sets the transaction associated with the notification.
-        /// </summary>
-        public required OpenNettyTransaction Transaction { get; init; }
-    }
-
-    /// <summary>
-    /// Represents a notification dispatched when an outgoing message was rejected by the gateway.
-    /// </summary>
-    public sealed class InvalidFrame : OpenNettyNotification
-    {
-        /// <summary>
-        /// Gets or sets the message that was rejected by the gateway.
+        /// Gets or sets the message that could not be sent.
         /// </summary>
         public required OpenNettyMessage Message { get; init; }
 
@@ -118,69 +81,6 @@ public static class OpenNettyNotifications
     {
         /// <summary>
         /// Gets or sets the message that was successfully sent.
-        /// </summary>
-        public required OpenNettyMessage Message { get; init; }
-
-        /// <summary>
-        /// Gets or sets the session that was used to send the message.
-        /// </summary>
-        public required OpenNettySession Session { get; init; }
-
-        /// <summary>
-        /// Gets or sets the transaction associated with the notification.
-        /// </summary>
-        public required OpenNettyTransaction Transaction { get; init; }
-    }
-
-    /// <summary>
-    /// Represents a notification dispatched when an outgoing message was not validated by the gateway.
-    /// </summary>
-    public sealed class NoAcknowledgmentReceived : OpenNettyNotification
-    {
-        /// <summary>
-        /// Gets or sets the message that wasn't validated by the device.
-        /// </summary>
-        public required OpenNettyMessage Message { get; init; }
-
-        /// <summary>
-        /// Gets or sets the session that was used to send the message.
-        /// </summary>
-        public required OpenNettySession Session { get; init; }
-
-        /// <summary>
-        /// Gets or sets the transaction associated with the notification.
-        /// </summary>
-        public required OpenNettyTransaction Transaction { get; init; }
-    }
-
-    /// <summary>
-    /// Represents a notification dispatched when an outgoing message was not validated by a Nitoo device.
-    /// </summary>
-    public sealed class NoActionReceived : OpenNettyNotification
-    {
-        /// <summary>
-        /// Gets or sets the message that wasn't validated by the device.
-        /// </summary>
-        public required OpenNettyMessage Message { get; init; }
-
-        /// <summary>
-        /// Gets or sets the session that was used to send the message.
-        /// </summary>
-        public required OpenNettySession Session { get; init; }
-
-        /// <summary>
-        /// Gets or sets the transaction associated with the notification.
-        /// </summary>
-        public required OpenNettyTransaction Transaction { get; init; }
-    }
-
-    /// <summary>
-    /// Represents a notification dispatched when an outgoing message was not validated by a Zigbee device.
-    /// </summary>
-    public sealed class NoSupervisionReportReceived : OpenNettyNotification
-    {
-        /// <summary>
-        /// Gets or sets the message that wasn't validated by the device.
         /// </summary>
         public required OpenNettyMessage Message { get; init; }
 

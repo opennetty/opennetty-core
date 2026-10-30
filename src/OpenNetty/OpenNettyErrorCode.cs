@@ -52,19 +52,19 @@ public enum OpenNettyErrorCode
     NoActionReceived = 7,
 
     /// <summary>
-    /// No supervision report frame was received for this trame.
+    /// No status report frame was received for this trame.
     /// </summary>
-    NoSupervisionReportReceived = 8,
+    NoStatusReportReceived = 8,
 
     /// <summary>
     /// No status reply was received for this status request.
     /// </summary>
-    NoStatusReceived = 9,
+    NoStatusReplyReceived = 9,
 
     /// <summary>
-    /// No dimension frame was received for this dimension request.
+    /// No dimension read frame was received for this dimension request.
     /// </summary>
-    NoDimensionReceived = 10,
+    NoDimensionReadReceived = 10,
 
     /// <summary>
     /// Authentication was required by the gateway but no password was provided.

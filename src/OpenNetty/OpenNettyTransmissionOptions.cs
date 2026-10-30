@@ -67,13 +67,13 @@ public sealed record class OpenNettyTransmissionOptions
     /// an exception when the end device does not report a change of state
     /// (Zigbee only, requires enabling supervision on the OpenWebNet gateway).
     /// </summary>
-    public required bool IgnoreMissingSupervisionReportFrame { get; init; }
+    public required bool IgnoreMissingStatusReportFrame { get; init; }
 
     /// <summary>
     /// Gets or sets a boolean indicating whether OpenNetty should not wait for the end device to report
     /// a change of state (Zigbee only, requires enabling supervision on the OpenWebNet gateway).
     /// </summary>
-    public required bool IgnoreSupervisionReporting { get; init; }
+    public required bool IgnoreStatusReportValidation { get; init; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the session should remain active
@@ -107,9 +107,9 @@ public sealed record class OpenNettyTransmissionOptions
     public required TimeSpan PostSendingDelay { get; init; }
 
     /// <summary>
-    /// Gets or sets the supervision report timeout (Zigbee only).
+    /// Gets or sets the status report timeout (Zigbee only).
     /// </summary>
-    public required TimeSpan SupervisionReportTimeout { get; init; }
+    public required TimeSpan StatusReportTimeout { get; init; }
 
     /// <summary>
     /// Gets or sets the <see cref="System.TimeProvider"/> used to retrieve the current time.
@@ -146,14 +146,14 @@ public sealed record class OpenNettyTransmissionOptions
             IgnoreActionValidation                   = false,
             IgnoreMissingAcknowledgementFrame        = false,
             IgnoreMissingActionValidationFrame       = false,
-            IgnoreMissingSupervisionReportFrame      = false,
-            IgnoreSupervisionReporting               = device.GetBooleanSetting(OpenNettySettings.ZigbeeSupervisionMode) is false,
+            IgnoreMissingStatusReportFrame           = false,
+            IgnoreStatusReportValidation             = device.GetBooleanSetting(OpenNettySettings.ZigbeeSupervisionMode) is false,
             KeepSessionAliveOnMissingAcknowledgement = false,
             MultipleDimensionReplyTimeout            = device.Definition.Protocol is OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee ? TimeSpan.FromSeconds(10) : TimeSpan.Zero,
             MultipleStatusReplyTimeout               = device.Definition.Protocol is OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee ? TimeSpan.FromSeconds(10) : TimeSpan.Zero,
             OutgoingMessageProcessingTimeout         = TimeSpan.FromSeconds(10),
             PostSendingDelay                         = device.Definition.Protocol is OpenNettyProtocol.Nitoo ? TimeSpan.FromMilliseconds(150) : TimeSpan.Zero,
-            SupervisionReportTimeout                 = device.Definition.Protocol is OpenNettyProtocol.Zigbee ? TimeSpan.FromSeconds(5) : TimeSpan.Zero,
+            StatusReportTimeout                      = device.Definition.Protocol is OpenNettyProtocol.Zigbee ? TimeSpan.FromSeconds(5) : TimeSpan.Zero,
             TimeProvider                             = TimeProvider.System,
             UniqueDimensionReplyTimeout              = device.Definition.Protocol is OpenNettyProtocol.Nitoo ? TimeSpan.FromSeconds(7) : TimeSpan.FromSeconds(2),
             UniqueStatusReplyTimeout                 = device.Definition.Protocol is OpenNettyProtocol.Nitoo ? TimeSpan.FromSeconds(7) : TimeSpan.FromSeconds(2),
@@ -231,10 +231,10 @@ public sealed record class OpenNettyTransmissionOptions
                         // For messages sent via powerline or radio (that are prone to interference), always retry
                         // twice if the error was caused by a missing reply from the end device, unless the sender
                         // explicitly specified that unsafe retransmissions are not allowed for this message.
-                        OpenNettyException { ErrorCode: OpenNettyErrorCode.NoActionReceived    or
-                                                        OpenNettyErrorCode.NoDimensionReceived or
-                                                        OpenNettyErrorCode.NoStatusReceived    or
-                                                        OpenNettyErrorCode.NoSupervisionReportReceived }
+                        OpenNettyException { ErrorCode: OpenNettyErrorCode.NoActionReceived      or
+                                                        OpenNettyErrorCode.NoDimensionReadReceived   or
+                                                        OpenNettyErrorCode.NoStatusReportReceived or
+                                                        OpenNettyErrorCode.NoStatusReplyReceived }
                             when message.Medium is OpenNettyMedium.Powerline or OpenNettyMedium.Radio
                             => !options.DisallowUnsafeRetransmissions && arguments.AttemptNumber is < 2,
 
