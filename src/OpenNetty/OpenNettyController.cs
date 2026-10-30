@@ -2790,7 +2790,7 @@ public class OpenNettyController
     /// <param name="endpoint">The endpoint.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
-    public virtual ValueTask SwitchOffAsync(
+    public virtual async ValueTask SwitchOffAsync(
         OpenNettyEndpoint endpoint,
         CancellationToken cancellationToken = default)
     {
@@ -2807,15 +2807,29 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
 
-        return _service.ExecuteCommandAsync(
-            protocol         : endpoint.Protocol,
-            command          : OpenNettyCommands.Lighting.Off,
-            address          : endpoint.Address,
-            medium           : endpoint.Medium,
-            mode             : null,
-            gateway          : endpoint.Gateway,
-            options          : GetTransmissionOptions(endpoint),
-            cancellationToken: cancellationToken);
+        try
+        {
+            await _service.ExecuteCommandAsync(
+                protocol         : endpoint.Protocol,
+                command          : OpenNettyCommands.Lighting.Off,
+                address          : endpoint.Address,
+                medium           : endpoint.Medium,
+                mode             : null,
+                gateway          : endpoint.Gateway,
+                options          : GetTransmissionOptions(endpoint),
+                cancellationToken: cancellationToken);
+        }
+
+        // If the operation failed because the end device didn't report back its status (e.g, Legrand 67234 switches do
+        // not report their state when it doesn't actually change), try to retrieve its current state: if the endpoint is
+        // already switched off, assume the operation was successful and ignore the exception caused by the missing report.
+        catch (OpenNettyException exception) when (exception.ErrorCode is OpenNettyErrorCode.NoSupervisionReportReceived)
+        {
+            if (await GetSwitchStateAsync(endpoint, cancellationToken) is not OpenNettyModels.Lighting.SwitchState.Off)
+            {
+                throw;
+            }
+        }
     }
 
     /// <summary>
@@ -2825,7 +2839,7 @@ public class OpenNettyController
     /// <param name="transition">The optional transition duration.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
-    public virtual ValueTask SwitchOnAsync(
+    public virtual async ValueTask SwitchOnAsync(
         OpenNettyEndpoint endpoint,
         TimeSpan? transition = null,
         CancellationToken cancellationToken = default)
@@ -2854,30 +2868,44 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
 
-        return _service.ExecuteCommandAsync(
-            protocol         : endpoint.Protocol,
-            command          : transition switch
-            {
-                // When explicitly set, use the duration specified by the caller to determine the speed.
-                TimeSpan value => OpenNettyCommands.Lighting.On.WithParameters(
-                [
-                    /* SPEED: */ ((long) (value.TotalSeconds * 5 + .5)).ToString(CultureInfo.InvariantCulture)
-                ]),
+        try
+        {
+            await _service.ExecuteCommandAsync(
+                protocol         : endpoint.Protocol,
+                command          : transition switch
+                {
+                    // When explicitly set, use the duration specified by the caller to determine the speed.
+                    TimeSpan value => OpenNettyCommands.Lighting.On.WithParameters(
+                    [
+                        /* SPEED: */ ((long) (value.TotalSeconds * 5 + .5)).ToString(CultureInfo.InvariantCulture)
+                    ]),
 
-                _ => OpenNettyCommands.Lighting.On
-            },
-            address          : endpoint.Address,
-            medium           : endpoint.Medium,
-            mode             : null,
-            gateway          : endpoint.Gateway,
-            options          : GetTransmissionOptions(endpoint) with
+                    _ => OpenNettyCommands.Lighting.On
+                },
+                address          : endpoint.Address,
+                medium           : endpoint.Medium,
+                mode             : null,
+                gateway          : endpoint.Gateway,
+                options          : GetTransmissionOptions(endpoint) with
+                {
+                    // If the endpoint was configured to use the push-button mode, always disable retransmissions for Nitoo
+                    // devices as ON commands are not idempotent when using this mode, which may result in unwanted results.
+                    DisallowUnsafeRetransmissions = endpoint.Protocol is OpenNettyProtocol.Nitoo &&
+                        endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton
+                },
+                cancellationToken: cancellationToken);
+        }
+
+        // If the operation failed because the end device didn't report back its status (e.g, Legrand 67234 switches do
+        // not report their state when it doesn't actually change), try to retrieve its current state: if the endpoint is
+        // already switched on, assume the operation was successful and ignore the exception caused by the missing report.
+        catch (OpenNettyException exception) when (exception.ErrorCode is OpenNettyErrorCode.NoSupervisionReportReceived)
+        {
+            if (await GetSwitchStateAsync(endpoint, cancellationToken) is not OpenNettyModels.Lighting.SwitchState.On)
             {
-                // If the endpoint was configured to use the push-button mode, always disable retransmissions for Nitoo
-                // devices as ON commands are not idempotent when using this mode, which may result in unwanted results.
-                DisallowUnsafeRetransmissions = endpoint.Protocol is OpenNettyProtocol.Nitoo &&
-                    endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton
-            },
-            cancellationToken: cancellationToken);
+                throw;
+            }
+        }
     }
 
     /// <summary>
@@ -2887,7 +2915,7 @@ public class OpenNettyController
     /// <param name="duration">The duration for which the endpoint should remain on before automatically switching off.</param>
     /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
     /// <returns>A <see cref="ValueTask"/> that can be used to monitor the asynchronous operation.</returns>
-    public virtual ValueTask SwitchOnTimedAsync(
+    public virtual async ValueTask SwitchOnTimedAsync(
         OpenNettyEndpoint endpoint,
         OpenNettyModels.Lighting.TimedOnDuration? duration = null,
         CancellationToken cancellationToken = default)
@@ -2911,27 +2939,41 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
 
-        return _service.ExecuteCommandAsync(
-            protocol         : endpoint.Protocol,
-            command          : duration switch
-            {
-                OpenNettyModels.Lighting.TimedOnDuration.OneMinute               => OpenNettyCommands.Lighting.TimedOn1Minute,
-                OpenNettyModels.Lighting.TimedOnDuration.TwoMinutes              => OpenNettyCommands.Lighting.TimedOn2Minutes,
-                OpenNettyModels.Lighting.TimedOnDuration.ThreeMinutes            => OpenNettyCommands.Lighting.TimedOn3Minutes,
-                OpenNettyModels.Lighting.TimedOnDuration.FourMinutes             => OpenNettyCommands.Lighting.TimedOn4Minutes,
-                OpenNettyModels.Lighting.TimedOnDuration.FiveMinutes             => OpenNettyCommands.Lighting.TimedOn5Minutes,
-                OpenNettyModels.Lighting.TimedOnDuration.FifteenMinutes          => OpenNettyCommands.Lighting.TimedOn15Minutes,
-                OpenNettyModels.Lighting.TimedOnDuration.ThirtySeconds           => OpenNettyCommands.Lighting.TimedOn30Seconds,
-                OpenNettyModels.Lighting.TimedOnDuration.FiveHundredMilliseconds => OpenNettyCommands.Lighting.TimedOn500Milliseconds,
+        try
+        {
+            await _service.ExecuteCommandAsync(
+                protocol         : endpoint.Protocol,
+                command          : duration switch
+                {
+                    OpenNettyModels.Lighting.TimedOnDuration.OneMinute               => OpenNettyCommands.Lighting.TimedOn1Minute,
+                    OpenNettyModels.Lighting.TimedOnDuration.TwoMinutes              => OpenNettyCommands.Lighting.TimedOn2Minutes,
+                    OpenNettyModels.Lighting.TimedOnDuration.ThreeMinutes            => OpenNettyCommands.Lighting.TimedOn3Minutes,
+                    OpenNettyModels.Lighting.TimedOnDuration.FourMinutes             => OpenNettyCommands.Lighting.TimedOn4Minutes,
+                    OpenNettyModels.Lighting.TimedOnDuration.FiveMinutes             => OpenNettyCommands.Lighting.TimedOn5Minutes,
+                    OpenNettyModels.Lighting.TimedOnDuration.FifteenMinutes          => OpenNettyCommands.Lighting.TimedOn15Minutes,
+                    OpenNettyModels.Lighting.TimedOnDuration.ThirtySeconds           => OpenNettyCommands.Lighting.TimedOn30Seconds,
+                    OpenNettyModels.Lighting.TimedOnDuration.FiveHundredMilliseconds => OpenNettyCommands.Lighting.TimedOn500Milliseconds,
 
-                _ => OpenNettyCommands.Lighting.On
-            },
-            address          : endpoint.Address,
-            medium           : endpoint.Medium,
-            mode             : null,
-            gateway          : endpoint.Gateway,
-            options          : GetTransmissionOptions(endpoint),
-            cancellationToken: cancellationToken);
+                    _ => OpenNettyCommands.Lighting.On
+                },
+                address          : endpoint.Address,
+                medium           : endpoint.Medium,
+                mode             : null,
+                gateway          : endpoint.Gateway,
+                options          : GetTransmissionOptions(endpoint),
+                cancellationToken: cancellationToken);
+        }
+
+        // If the operation failed because the end device didn't report back its status (e.g, Legrand 67234 switches do
+        // not report their state when it doesn't actually change), try to retrieve its current state: if the endpoint is
+        // already switched on, assume the operation was successful and ignore the exception caused by the missing report.
+        catch (OpenNettyException exception) when (exception.ErrorCode is OpenNettyErrorCode.NoSupervisionReportReceived)
+        {
+            if (await GetSwitchStateAsync(endpoint, cancellationToken) is not OpenNettyModels.Lighting.SwitchState.On)
+            {
+                throw;
+            }
+        }
     }
 
     /// <summary>
@@ -2991,7 +3033,11 @@ public class OpenNettyController
                 medium           : endpoint.Medium,
                 mode             : null,
                 gateway          : endpoint.Gateway,
-                options          : GetTransmissionOptions(endpoint),
+                options          : GetTransmissionOptions(endpoint) with
+                {
+                    // Always disable retransmissions as TOGGLE commands are not idempotent.
+                    DisallowUnsafeRetransmissions = true
+                },
                 cancellationToken: cancellationToken);
         }
     }
@@ -3072,16 +3118,19 @@ public class OpenNettyController
 
         var gateway = endpoint.Gateway ?? throw new InvalidOperationException(SR.FormatID2023(endpoint.Name));
 
-        return endpoint.GetBooleanSetting(OpenNettySettings.ActionValidation) switch
+        return gateway.Options.DefaultTransmissionOptions with
         {
-            null => gateway.Options.DefaultTransmissionOptions,
-            true => gateway.Options.DefaultTransmissionOptions with
+            IgnoreActionValidation = endpoint.GetBooleanSetting(OpenNettySettings.ActionValidation) switch
             {
-                IgnoreActionValidation = true
+                null  => gateway.Options.DefaultTransmissionOptions.IgnoreActionValidation,
+                true  => false,
+                false => true
             },
-            false => gateway.Options.DefaultTransmissionOptions with
+            IgnoreSupervisionReporting = endpoint.GetBooleanSetting(OpenNettySettings.SupervisionReport) switch
             {
-                IgnoreActionValidation = false
+                null  => gateway.Options.DefaultTransmissionOptions.IgnoreSupervisionReporting,
+                true  => false,
+                false => true
             }
         };
     }

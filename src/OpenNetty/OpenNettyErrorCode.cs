@@ -52,37 +52,42 @@ public enum OpenNettyErrorCode
     NoActionReceived = 7,
 
     /// <summary>
+    /// No supervision report frame was received for this trame.
+    /// </summary>
+    NoSupervisionReportReceived = 8,
+
+    /// <summary>
     /// No status reply was received for this status request.
     /// </summary>
-    NoStatusReceived = 8,
+    NoStatusReceived = 9,
 
     /// <summary>
     /// No dimension frame was received for this dimension request.
     /// </summary>
-    NoDimensionReceived = 9,
+    NoDimensionReceived = 10,
 
     /// <summary>
     /// Authentication was required by the gateway but no password was provided.
     /// </summary>
-    AuthenticationRequired = 10,
+    AuthenticationRequired = 11,
 
     /// <summary>
     /// The authentication method returned by the gateway is not supported.
     /// </summary>
-    AuthenticationMethodUnsupported = 11,
+    AuthenticationMethodUnsupported = 12,
 
     /// <summary>
     /// The authentication data was rejected by the gateway.
     /// </summary>
-    AuthenticationInvalid = 12,
+    AuthenticationInvalid = 13,
 
     /// <summary>
     /// The connection negotiation couldn't be completed in the allowed time frame.
     /// </summary>
-    NegotiationTimeout = 13,
+    NegotiationTimeout = 14,
 
     /// <summary>
     /// The connection was closed.
     /// </summary>
-    ConnectionClosed = 14
+    ConnectionClosed = 15
 }

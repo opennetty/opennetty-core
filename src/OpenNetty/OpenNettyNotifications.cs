@@ -175,6 +175,27 @@ public static class OpenNettyNotifications
     }
 
     /// <summary>
+    /// Represents a notification dispatched when an outgoing message was not validated by a Zigbee device.
+    /// </summary>
+    public sealed class NoSupervisionReportReceived : OpenNettyNotification
+    {
+        /// <summary>
+        /// Gets or sets the message that wasn't validated by the device.
+        /// </summary>
+        public required OpenNettyMessage Message { get; init; }
+
+        /// <summary>
+        /// Gets or sets the session that was used to send the message.
+        /// </summary>
+        public required OpenNettySession Session { get; init; }
+
+        /// <summary>
+        /// Gets or sets the transaction associated with the notification.
+        /// </summary>
+        public required OpenNettyTransaction Transaction { get; init; }
+    }
+
+    /// <summary>
     /// Represents a notification dispatched when a session is closed.
     /// </summary>
     public sealed class SessionClosed : OpenNettyNotification
