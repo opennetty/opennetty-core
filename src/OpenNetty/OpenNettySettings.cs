@@ -132,6 +132,16 @@ public static class OpenNettySettings
     public static readonly OpenNettySetting MqttTopic = new("MQTT topic");
 
     /// <summary>
+    /// ON/OFF command type (Zigbee only).
+    /// </summary>
+    public static readonly OpenNettySetting OnOffCommandType = new("ON/OFF command type");
+
+    /// <summary>
+    /// ON/OFF switch state query (Zigbee only).
+    /// </summary>
+    public static readonly OpenNettySetting OnOffSwitchStateQuery = new("ON/OFF switch state query");
+
+    /// <summary>
     /// Push button numbers.
     /// </summary>
     public static readonly OpenNettySetting PushButtonNumbers = new("Push button numbers");
@@ -375,6 +385,22 @@ public static class OpenNettySettings
         /// Switch.
         /// </summary>
         public const string Switch = "switch";
+    }
+
+    /// <summary>
+    /// Exposes common ON/OFF command types.
+    /// </summary>
+    public static class OnOffCommandTypes
+    {
+        /// <summary>
+        /// Default.
+        /// </summary>
+        public const string Default = "Default";
+
+        /// <summary>
+        /// Toggle.
+        /// </summary>
+        public const string Toggle = "Toggle";
     }
 
     /// <summary>

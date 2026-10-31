@@ -1442,6 +1442,12 @@ public class OpenNettyController
             };
         }
 
+        // Note: Nitoo gateways do not return acknowledgement frames for this dimension.
+        if (endpoint.Protocol is OpenNettyProtocol.Nitoo)
+        {
+            options = options with { DisableAcknowledgementValidation = true };
+        }
+
         var values = await _service.GetDimensionAsync(
             protocol         : endpoint.Protocol,
             dimension        : OpenNettyDimensions.Management.FirmwareVersion,
@@ -1505,6 +1511,12 @@ public class OpenNettyController
                     ? TimeSpan.FromSeconds(10)
                     : options.UniqueDimensionReplyTimeout
             };
+        }
+
+        // Note: Nitoo gateways do not return acknowledgement frames for this dimension.
+        if (endpoint.Protocol is OpenNettyProtocol.Nitoo)
+        {
+            options = options with { DisableAcknowledgementValidation = true };
         }
 
         var values = await _service.GetDimensionAsync(
@@ -1585,7 +1597,8 @@ public class OpenNettyController
                 medium  : endpoint.Medium,
                 mode    : null),
             gateway          : endpoint.Gateway,
-            options          : GetTransmissionOptions(endpoint),
+            // Note: Nitoo end devices do not return action validation frames for this command.
+            options          : GetTransmissionOptions(endpoint) with { DisableActionValidation = true },
             cancellationToken: cancellationToken).Replay();
 
         await using var connection = await messages.ConnectAsync();
@@ -1769,6 +1782,42 @@ public class OpenNettyController
             };
         }
 
+        var options = GetTransmissionOptions(endpoint);
+
+        // Note: Zigbee gateways are affected by a bug that affects how STATUS REQUEST frames are handled
+        // and prevents a proper acknowledgement frame from being returned when the request is accepted
+        // by the gateway. To ensure the session is not blocked until the timeout is reached when sending
+        // STATUS REQUEST frames, the default logic is not used. Instead, incoming messages are monitored
+        // and the command is assumed to be successfully sent if either an ACK/NACK/BUSY NACK frame or a
+        // BUS COMMAND frame matching the category and endpoint address is received from the gateway.
+        if (endpoint.Protocol is OpenNettyProtocol.Zigbee)
+        {
+            options = options with
+            {
+                CustomValidationDelegate = async (messages, cancellationToken) =>
+                {
+                    var message = await messages.Where(message => message.Type switch
+                    {
+                        OpenNettyMessageType.Acknowledgement         or
+                        OpenNettyMessageType.NegativeAcknowledgement or
+                        OpenNettyMessageType.BusyNegativeAcknowledgement => true,
+
+                        OpenNettyMessageType.BusCommand
+                            when message.Category == OpenNettyCategories.Automation &&
+                                 message.Address  == endpoint.Address => true,
+
+                        _ => false
+                    })
+                    .FirstOrDefault()
+                    .Timeout(TimeSpan.FromSeconds(2), AsyncObservable.Return<OpenNettyMessage?>(null))
+                    .RunAsync(cancellationToken);
+
+                    return message is { Type: OpenNettyMessageType.Acknowledgement or OpenNettyMessageType.BusCommand };
+                },
+                DisableAcknowledgementValidation = true
+            };
+        }
+
         return await _service.GetStatusAsync(
             protocol         : endpoint.Protocol,
             category         : OpenNettyCategories.Automation,
@@ -1780,7 +1829,7 @@ public class OpenNettyController
                 command == OpenNettyCommands.Automation.Up   ||
                 command == OpenNettyCommands.Automation.Down),
             gateway          : endpoint.Gateway,
-            options          : GetTransmissionOptions(endpoint),
+            options          : options,
             cancellationToken: cancellationToken) switch
         {
             OpenNettyCommand command when command == OpenNettyCommands.Automation.Stop
@@ -1946,9 +1995,9 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
 
-        return endpoint.Protocol switch
+        if (endpoint.Protocol is OpenNettyProtocol.Nitoo)
         {
-            OpenNettyProtocol.Nitoo => await GetUnitDescriptionAsync(endpoint, cancellationToken) switch
+            return await GetUnitDescriptionAsync(endpoint, cancellationToken) switch
             {
                 { FunctionCode: 129, Values: [{ Length: > 0 } value] } => value is "128" or "129" or "130"
                     ? OpenNettyModels.Lighting.SwitchState.On
@@ -1959,32 +2008,68 @@ public class OpenNettyController
                     : OpenNettyModels.Lighting.SwitchState.Off,
 
                 _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
-            },
+            };
+        }
 
-            _ => await _service.GetStatusAsync(
-                protocol         : endpoint.Protocol,
-                category         : OpenNettyCategories.Lighting,
-                address          : endpoint.Address,
-                medium           : endpoint.Medium,
-                mode             : null,
-                filter           : static command => ValueTask.FromResult(
-                    command == OpenNettyCommands.Lighting.Off  ||
-                    command == OpenNettyCommands.Lighting.On   ||
-                    command == OpenNettyCommands.Lighting.On20 ||
-                    command == OpenNettyCommands.Lighting.On30 ||
-                    command == OpenNettyCommands.Lighting.On40 ||
-                    command == OpenNettyCommands.Lighting.On50 ||
-                    command == OpenNettyCommands.Lighting.On60 ||
-                    command == OpenNettyCommands.Lighting.On70 ||
-                    command == OpenNettyCommands.Lighting.On80 ||
-                    command == OpenNettyCommands.Lighting.On90 ||
-                    command == OpenNettyCommands.Lighting.On100),
-                gateway          : endpoint.Gateway,
-                options          : GetTransmissionOptions(endpoint),
-                cancellationToken: cancellationToken) != OpenNettyCommands.Lighting.Off
-                    ? OpenNettyModels.Lighting.SwitchState.On
-                    : OpenNettyModels.Lighting.SwitchState.Off
-        };
+        var options = GetTransmissionOptions(endpoint);
+
+        // Note: Zigbee gateways are affected by a bug that affects how STATUS REQUEST frames are handled
+        // and prevents a proper acknowledgement frame from being returned when the request is accepted
+        // by the gateway. To ensure the session is not blocked until the timeout is reached when sending
+        // STATUS REQUEST frames, the default logic is not used. Instead, incoming messages are monitored
+        // and the command is assumed to be successfully sent if either an ACK/NACK/BUSY NACK frame or a
+        // BUS COMMAND frame matching the category and endpoint address is received from the gateway.
+        if (endpoint.Protocol is OpenNettyProtocol.Zigbee)
+        {
+            options = options with
+            {
+                CustomValidationDelegate = async (messages, cancellationToken) =>
+                {
+                    var message = await messages.Where(message => message.Type switch
+                    {
+                        OpenNettyMessageType.Acknowledgement         or
+                        OpenNettyMessageType.NegativeAcknowledgement or
+                        OpenNettyMessageType.BusyNegativeAcknowledgement => true,
+
+                        OpenNettyMessageType.BusCommand
+                            when message.Category == OpenNettyCategories.Lighting &&
+                                 message.Address  == endpoint.Address => true,
+
+                        _ => false
+                    })
+                    .FirstOrDefault()
+                    .Timeout(TimeSpan.FromSeconds(2), AsyncObservable.Return<OpenNettyMessage?>(null))
+                    .RunAsync(cancellationToken);
+
+                    return message is { Type: OpenNettyMessageType.Acknowledgement or OpenNettyMessageType.BusCommand };
+                },
+                DisableAcknowledgementValidation = true
+            };
+        }
+
+        return await _service.GetStatusAsync(
+            protocol         : endpoint.Protocol,
+            category         : OpenNettyCategories.Lighting,
+            address          : endpoint.Address,
+            medium           : endpoint.Medium,
+            mode             : null,
+            filter           : static command => ValueTask.FromResult(
+                command == OpenNettyCommands.Lighting.Off  ||
+                command == OpenNettyCommands.Lighting.On   ||
+                command == OpenNettyCommands.Lighting.On20 ||
+                command == OpenNettyCommands.Lighting.On30 ||
+                command == OpenNettyCommands.Lighting.On40 ||
+                command == OpenNettyCommands.Lighting.On50 ||
+                command == OpenNettyCommands.Lighting.On60 ||
+                command == OpenNettyCommands.Lighting.On70 ||
+                command == OpenNettyCommands.Lighting.On80 ||
+                command == OpenNettyCommands.Lighting.On90 ||
+                command == OpenNettyCommands.Lighting.On100),
+            gateway          : endpoint.Gateway,
+            options          : options,
+            cancellationToken: cancellationToken) != OpenNettyCommands.Lighting.Off
+                ? OpenNettyModels.Lighting.SwitchState.On
+                : OpenNettyModels.Lighting.SwitchState.Off;
     }
 
     /// <summary>
@@ -2807,29 +2892,91 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
 
-        try
+        if (endpoint.Protocol is OpenNettyProtocol.Zigbee && endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
         {
-            await _service.ExecuteCommandAsync(
-                protocol         : endpoint.Protocol,
-                command          : OpenNettyCommands.Lighting.Off,
-                address          : endpoint.Address,
-                medium           : endpoint.Medium,
-                mode             : null,
-                gateway          : endpoint.Gateway,
-                options          : GetTransmissionOptions(endpoint),
-                cancellationToken: cancellationToken);
+            // Some Zigbee devices are known no to report their state when it doesn't actually change (e.g, Legrand
+            // 67234 switches do not report their state after an OFF command when they are already switched off).
+            //
+            // To ensure the command won't be rejected due to the missing state report, the current state of the
+            // endpoint is retrieved before sending a command if the device is known to be affected by this issue:
+            // if the endpoint is already switched off, assume the operation was successful and skip sending the command.
+            //
+            // While prone to race conditions, this is the best compromise to ensure a smooth user experience.
+            if (endpoint.GetBooleanSetting(OpenNettySettings.OnOffSwitchStateQuery) is true &&
+                await GetSwitchStateAsync(endpoint, cancellationToken) is OpenNettyModels.Lighting.SwitchState.Off)
+            {
+                return;
+            }
+
+            // Some Zigbee devices are known to delay their state change reports for ON and OFF commands
+            // (e.g the Legrand 88337 outlet has a 3-second delay and intermediate reports are ignored),
+            // which results in a noticeable delay before the final state is reported to the application.
+            // Unlike ON and OFF commands, the TOGGLE command is not affected as the final state is always
+            // immediately reported by the end devices (even when the supervision mode is not enabled).
+            //
+            // As such, the TOGGLE command is by default preferred to regular ON/OFF commands for the devices that are
+            // known to be affected by this issue, even if it's not idempotent and is also prone to race conditions.
+            if (endpoint.GetStringSetting(OpenNettySettings.OnOffCommandType) is OpenNettySettings.OnOffCommandTypes.Toggle)
+            {
+                if (await GetSwitchStateAsync(endpoint, cancellationToken) is OpenNettyModels.Lighting.SwitchState.Off)
+                {
+                    return;
+                }
+
+                await _service.ExecuteCommandAsync(
+                    protocol         : endpoint.Protocol,
+                    command          : OpenNettyCommands.Lighting.Toggle,
+                    address          : endpoint.Address,
+                    medium           : endpoint.Medium,
+                    mode             : null,
+                    gateway          : endpoint.Gateway,
+                    options          : GetTransmissionOptions(endpoint) with
+                    {
+                        // Always disable retransmissions as TOGGLE commands are not idempotent.
+                        DisallowUnsafeRetransmissions = true
+                    },
+                    cancellationToken: cancellationToken);
+            }
+
+            else
+            {
+                try
+                {
+                    await _service.ExecuteCommandAsync(
+                        protocol         : endpoint.Protocol,
+                        command          : OpenNettyCommands.Lighting.Off,
+                        address          : endpoint.Address,
+                        medium           : endpoint.Medium,
+                        mode             : null,
+                        gateway          : endpoint.Gateway,
+                        options          : GetTransmissionOptions(endpoint),
+                        cancellationToken: cancellationToken);
+                }
+
+                // If the operation failed because the end device didn't report back its status (e.g, Legrand 67234 switches do
+                // not report their state when it doesn't actually change), try to retrieve its current state: if the endpoint is
+                // already switched off, assume the operation was successful and ignore the exception caused by the missing report.
+                catch (OpenNettyException exception) when (exception.ErrorCode is OpenNettyErrorCode.NoStatusReportReceived)
+                {
+                    if (await GetSwitchStateAsync(endpoint, cancellationToken) is not OpenNettyModels.Lighting.SwitchState.Off)
+                    {
+                        throw;
+                    }
+                }
+            }
+
+            return;
         }
 
-        // If the operation failed because the end device didn't report back its status (e.g, Legrand 67234 switches do
-        // not report their state when it doesn't actually change), try to retrieve its current state: if the endpoint is
-        // already switched off, assume the operation was successful and ignore the exception caused by the missing report.
-        catch (OpenNettyException exception) when (exception.ErrorCode is OpenNettyErrorCode.NoStatusReportReceived)
-        {
-            if (await GetSwitchStateAsync(endpoint, cancellationToken) is not OpenNettyModels.Lighting.SwitchState.Off)
-            {
-                throw;
-            }
-        }
+        await _service.ExecuteCommandAsync(
+            protocol         : endpoint.Protocol,
+            command          : OpenNettyCommands.Lighting.Off,
+            address          : endpoint.Address,
+            medium           : endpoint.Medium,
+            mode             : null,
+            gateway          : endpoint.Gateway,
+            options          : GetTransmissionOptions(endpoint),
+            cancellationToken: cancellationToken);
     }
 
     /// <summary>
@@ -2868,44 +3015,91 @@ public class OpenNettyController
             throw new InvalidOperationException(SR.GetResourceString(SR.ID0099));
         }
 
-        try
+        if (endpoint.Protocol is OpenNettyProtocol.Zigbee && endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
         {
-            await _service.ExecuteCommandAsync(
-                protocol         : endpoint.Protocol,
-                command          : transition switch
-                {
-                    // When explicitly set, use the duration specified by the caller to determine the speed.
-                    TimeSpan value => OpenNettyCommands.Lighting.On.WithParameters(
-                    [
-                        /* SPEED: */ ((long) (value.TotalSeconds * 5 + .5)).ToString(CultureInfo.InvariantCulture)
-                    ]),
-
-                    _ => OpenNettyCommands.Lighting.On
-                },
-                address          : endpoint.Address,
-                medium           : endpoint.Medium,
-                mode             : null,
-                gateway          : endpoint.Gateway,
-                options          : GetTransmissionOptions(endpoint) with
-                {
-                    // If the endpoint was configured to use the push-button mode, always disable retransmissions for Nitoo
-                    // devices as ON commands are not idempotent when using this mode, which may result in unwanted results.
-                    DisallowUnsafeRetransmissions = endpoint.Protocol is OpenNettyProtocol.Nitoo &&
-                        endpoint.GetStringSetting(OpenNettySettings.SwitchMode) is OpenNettySettings.SwitchModes.PushButton
-                },
-                cancellationToken: cancellationToken);
-        }
-
-        // If the operation failed because the end device didn't report back its status (e.g, Legrand 67234 switches do
-        // not report their state when it doesn't actually change), try to retrieve its current state: if the endpoint is
-        // already switched on, assume the operation was successful and ignore the exception caused by the missing report.
-        catch (OpenNettyException exception) when (exception.ErrorCode is OpenNettyErrorCode.NoStatusReportReceived)
-        {
-            if (await GetSwitchStateAsync(endpoint, cancellationToken) is not OpenNettyModels.Lighting.SwitchState.On)
+            // Some Zigbee devices are known no to report their state when it doesn't actually change (e.g, Legrand
+            // 67234 switches do not report their state after an OFF command when they are already switched off).
+            //
+            // To ensure the command won't be rejected due to the missing state report, the current state of the
+            // endpoint is retrieved before sending a command if the device is known to be affected by this issue:
+            // if the endpoint is already switched on, assume the operation was successful and skip sending the command.
+            //
+            // While prone to race conditions, this is the best compromise to ensure a smooth user experience.
+            if (endpoint.GetBooleanSetting(OpenNettySettings.OnOffSwitchStateQuery) is true &&
+                await GetSwitchStateAsync(endpoint, cancellationToken) is OpenNettyModels.Lighting.SwitchState.On)
             {
-                throw;
+                return;
             }
+
+            // Some Zigbee devices are known to delay their state change reports for ON and OFF commands
+            // (e.g the Legrand 88337 outlet has a 3-second delay and intermediate reports are ignored),
+            // which results in a noticeable delay before the final state is reported to the application.
+            // Unlike ON and OFF commands, the TOGGLE command is not affected as the final state is always
+            // immediately reported by the end devices (even when the supervision mode is not enabled).
+            //
+            // As such, the TOGGLE command is by default preferred to regular ON/OFF commands for the devices that are
+            // known to be affected by this issue, even if it's not idempotent and is also prone to race conditions.
+            if (endpoint.GetStringSetting(OpenNettySettings.OnOffCommandType) is OpenNettySettings.OnOffCommandTypes.Toggle)
+            {
+                if (await GetSwitchStateAsync(endpoint, cancellationToken) is OpenNettyModels.Lighting.SwitchState.On)
+                {
+                    return;
+                }
+
+                await _service.ExecuteCommandAsync(
+                    protocol         : endpoint.Protocol,
+                    command          : OpenNettyCommands.Lighting.Toggle,
+                    address          : endpoint.Address,
+                    medium           : endpoint.Medium,
+                    mode             : null,
+                    gateway          : endpoint.Gateway,
+                    options          : GetTransmissionOptions(endpoint) with
+                    {
+                        // Always disable retransmissions as TOGGLE commands are not idempotent.
+                        DisallowUnsafeRetransmissions = true
+                    },
+                    cancellationToken: cancellationToken);
+            }
+
+            else
+            {
+                try
+                {
+                    await _service.ExecuteCommandAsync(
+                        protocol         : endpoint.Protocol,
+                        command          : OpenNettyCommands.Lighting.On,
+                        address          : endpoint.Address,
+                        medium           : endpoint.Medium,
+                        mode             : null,
+                        gateway          : endpoint.Gateway,
+                        options          : GetTransmissionOptions(endpoint),
+                        cancellationToken: cancellationToken);
+                }
+
+                // If the operation failed because the end device didn't report back its status (e.g, Legrand 67234 switches do
+                // not report their state when it doesn't actually change), try to retrieve its current state: if the endpoint is
+                // already switched on, assume the operation was successful and ignore the exception caused by the missing report.
+                catch (OpenNettyException exception) when (exception.ErrorCode is OpenNettyErrorCode.NoStatusReportReceived)
+                {
+                    if (await GetSwitchStateAsync(endpoint, cancellationToken) is not OpenNettyModels.Lighting.SwitchState.On)
+                    {
+                        throw;
+                    }
+                }
+            }
+
+            return;
         }
+
+        await _service.ExecuteCommandAsync(
+            protocol         : endpoint.Protocol,
+            command          : OpenNettyCommands.Lighting.On,
+            address          : endpoint.Address,
+            medium           : endpoint.Medium,
+            mode             : null,
+            gateway          : endpoint.Gateway,
+            options          : GetTransmissionOptions(endpoint),
+            cancellationToken: cancellationToken);
     }
 
     /// <summary>
@@ -3120,15 +3314,15 @@ public class OpenNettyController
 
         return gateway.Options.DefaultTransmissionOptions with
         {
-            IgnoreActionValidation = endpoint.GetBooleanSetting(OpenNettySettings.ActionValidation) switch
+            DisableActionValidation = endpoint.GetBooleanSetting(OpenNettySettings.ActionValidation) switch
             {
-                null  => gateway.Options.DefaultTransmissionOptions.IgnoreActionValidation,
+                null  => gateway.Options.DefaultTransmissionOptions.DisableActionValidation,
                 true  => false,
                 false => true
             },
-            IgnoreStatusReportValidation = endpoint.GetBooleanSetting(OpenNettySettings.StatusReportValidation) switch
+            DisableStatusReportValidation = endpoint.GetBooleanSetting(OpenNettySettings.StatusReportValidation) switch
             {
-                null  => gateway.Options.DefaultTransmissionOptions.IgnoreStatusReportValidation,
+                null  => gateway.Options.DefaultTransmissionOptions.DisableStatusReportValidation,
                 true  => false,
                 false => true
             }

@@ -92,7 +92,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
             // Note: while Zigbee devices report back state changes to the gateway when the supervisor
             // mode is enabled, this mode suffers from two limitations: it is not recommended to use it on
             // more than one Zigbee gateway at a time and state changes are generally throttled and can be
-            // reported after a delay of up to 3 seconds following the last state change for some devices.
+            // reported after a delay of up to 3 seconds following the last state change on some devices.
             //
             // To mitigate these limitations, the outgoing Zigbee BUS COMMAND and DIMENSION SET
             // messages that have been acknowledged by the gateway are monitored so that changes
