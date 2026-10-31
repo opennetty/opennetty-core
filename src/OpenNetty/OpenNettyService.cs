@@ -80,7 +80,7 @@ public class OpenNettyService : IOpenNettyService
 
             // Note: acknowledgement validation is deliberately disabled while sending the DIMENSION REQUEST frame
             // as it's used by the gateway to indicate when it's done pushing additional DIMENSION READ frames.
-            options = options with { IgnoreAcknowledgementValidation = true };
+            options = options with { DisableAcknowledgementValidation = true };
 
             var context = ResilienceContextPool.Shared.Get(cancellationToken);
             context.Properties.Set(new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)), gateway);
@@ -208,7 +208,7 @@ public class OpenNettyService : IOpenNettyService
 
             // Note: acknowledgement validation is deliberately disabled while sending the STATUS REQUEST frame
             // as it's used by the gateway to indicate when it's done pushing additional BUS COMMAND frames.
-            options = options with { IgnoreAcknowledgementValidation = true };
+            options = options with { DisableAcknowledgementValidation = true };
 
             var context = ResilienceContextPool.Shared.Get(cancellationToken);
             context.Properties.Set(new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)), gateway);
@@ -717,42 +717,6 @@ public class OpenNettyService : IOpenNettyService
     {
         ArgumentNullException.ThrowIfNull(message);
         ArgumentNullException.ThrowIfNull(gateway);
-
-        switch (message)
-        {
-            // Note: Zigbee gateways are affected by a bug that affects how STATUS REQUEST frames are handled
-            // and prevents a proper acknowledgement frame from being returned when the request is accepted
-            // by the gateway. To ensure the session is not blocked until the timeout is reached when sending
-            // STATUS REQUEST frames, missing acknowledgement frames are ignored and a short timeout is used:
-            // in this case, the requests are assumed to be accepted by the gateway.
-            case { Protocol: OpenNettyProtocol.Zigbee, Type: OpenNettyMessageType.StatusRequest }:
-                options = options with
-                {
-                    AcknowledgementTimeout = TimeSpan.FromSeconds(2),
-                    IgnoreMissingAcknowledgementFrame = true
-                };
-                break;
-
-            // Note: Nitoo devices never return action validation frames for these specific commands:
-            case { Protocol : OpenNettyProtocol.Nitoo,
-                   Type     : OpenNettyMessageType.BusCommand,
-                   Address  : not null,
-                   Command  : OpenNettyCommand command }
-                when command == OpenNettyCommands.Diagnostics.MemoryRead:
-                options = options with { IgnoreActionValidation = true };
-                break;
-
-            // Note: Nitoo gateways never return acknowledgement frames for these specific dimensions:
-            case { Protocol : OpenNettyProtocol.Nitoo,
-                   Type     : OpenNettyMessageType.DimensionRequest,
-                   Address  : null,
-                   Dimension: OpenNettyDimension dimension }
-                when dimension == OpenNettyDimensions.Management.FirmwareVersion ||
-                     dimension == OpenNettyDimensions.Management.HardwareVersion ||
-                     dimension == OpenNettyDimensions.Management.DeviceIdentifier:
-                options = options with { IgnoreAcknowledgementValidation = true };
-                break;
-        }
 
         // Create a new transaction that will be used to correlate the
         // incoming notifications with the message that is being sent.

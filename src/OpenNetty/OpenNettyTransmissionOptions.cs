@@ -26,6 +26,16 @@ public sealed record class OpenNettyTransmissionOptions
     public required TimeSpan ActionValidationTimeout { get; init; }
 
     /// <summary>
+    /// Gets or sets a custom validation delegate that can be used
+    /// to validate whether an outgoing message was successfully sent.
+    /// </summary>
+    /// <remarks>
+    /// Note: the session is blocked until the custom validation delegate completes.
+    /// As such, it is strongly recommended to use a timeout when waiting for incoming messages.
+    /// </remarks>
+    public required Func<IAsyncObservable<OpenNettyMessage>, CancellationToken, ValueTask<bool>>? CustomValidationDelegate { get; init; }
+
+    /// <summary>
     /// Gets or sets a boolean indicating whether the message
     /// can be replayed if any error occurs while sending it.
     /// </summary>
@@ -41,39 +51,19 @@ public sealed record class OpenNettyTransmissionOptions
     /// Gets or sets a boolean indicating whether OpenNetty should not
     /// wait for the gateway to return an ACK, BUSY NACK or NACK frame.
     /// </summary>
-    public required bool IgnoreAcknowledgementValidation { get; init; }
+    public required bool DisableAcknowledgementValidation { get; init; }
 
     /// <summary>
     /// Gets or sets a boolean indicating whether OpenNetty should not wait for the
     /// end device to reply with a VALID ACTION or INVALID ACTION frame (Nitoo only).
     /// </summary>
-    public required bool IgnoreActionValidation { get; init; }
-
-    /// <summary>
-    /// Gets or sets a boolean indicating whether OpenNetty should not throw
-    /// an exception when an ACK, BUSY NACK or NACK frame is not returned.
-    /// </summary>
-    public required bool IgnoreMissingAcknowledgementFrame { get; init; }
-
-    /// <summary>
-    /// Gets or sets a boolean indicating whether OpenNetty should not throw
-    /// an exception when the gateway returns an ACK frame but the end device
-    /// does not reply with a VALID ACTION or INVALID ACTION frame (Nitoo only).
-    /// </summary>
-    public required bool IgnoreMissingActionValidationFrame { get; init; }
-
-    /// <summary>
-    /// Gets or sets a boolean indicating whether OpenNetty should not throw
-    /// an exception when the end device does not report a change of state
-    /// (Zigbee only, requires enabling supervision on the OpenWebNet gateway).
-    /// </summary>
-    public required bool IgnoreMissingStatusReportFrame { get; init; }
+    public required bool DisableActionValidation { get; init; }
 
     /// <summary>
     /// Gets or sets a boolean indicating whether OpenNetty should not wait for the end device to report
     /// a change of state (Zigbee only, requires enabling supervision on the OpenWebNet gateway).
     /// </summary>
-    public required bool IgnoreStatusReportValidation { get; init; }
+    public required bool DisableStatusReportValidation { get; init; }
 
     /// <summary>
     /// Gets or sets a value indicating whether the session should remain active
@@ -140,14 +130,12 @@ public sealed record class OpenNettyTransmissionOptions
         {
             AcknowledgementTimeout                   = device.Definition.Protocol is OpenNettyProtocol.Nitoo ? TimeSpan.FromSeconds(7) : TimeSpan.FromSeconds(2),
             ActionValidationTimeout                  = device.Definition.Protocol is OpenNettyProtocol.Nitoo ? TimeSpan.FromSeconds(7) : TimeSpan.Zero,
+            CustomValidationDelegate                 = null,
             DisallowAllRetransmissions               = false,
             DisallowUnsafeRetransmissions            = false,
-            IgnoreAcknowledgementValidation          = false,
-            IgnoreActionValidation                   = false,
-            IgnoreMissingAcknowledgementFrame        = false,
-            IgnoreMissingActionValidationFrame       = false,
-            IgnoreMissingStatusReportFrame           = false,
-            IgnoreStatusReportValidation             = device.GetBooleanSetting(OpenNettySettings.ZigbeeSupervisionMode) is false,
+            DisableAcknowledgementValidation         = false,
+            DisableActionValidation                  = false,
+            DisableStatusReportValidation            = device.GetBooleanSetting(OpenNettySettings.ZigbeeSupervisionMode) is false,
             KeepSessionAliveOnMissingAcknowledgement = false,
             MultipleDimensionReplyTimeout            = device.Definition.Protocol is OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee ? TimeSpan.FromSeconds(10) : TimeSpan.Zero,
             MultipleStatusReplyTimeout               = device.Definition.Protocol is OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee ? TimeSpan.FromSeconds(10) : TimeSpan.Zero,
@@ -231,9 +219,9 @@ public sealed record class OpenNettyTransmissionOptions
                         // For messages sent via powerline or radio (that are prone to interference), always retry
                         // twice if the error was caused by a missing reply from the end device, unless the sender
                         // explicitly specified that unsafe retransmissions are not allowed for this message.
-                        OpenNettyException { ErrorCode: OpenNettyErrorCode.NoActionReceived      or
-                                                        OpenNettyErrorCode.NoDimensionReadReceived   or
-                                                        OpenNettyErrorCode.NoStatusReportReceived or
+                        OpenNettyException { ErrorCode: OpenNettyErrorCode.NoActionReceived        or
+                                                        OpenNettyErrorCode.NoDimensionReadReceived or
+                                                        OpenNettyErrorCode.NoStatusReportReceived  or
                                                         OpenNettyErrorCode.NoStatusReplyReceived }
                             when message.Medium is OpenNettyMedium.Powerline or OpenNettyMedium.Radio
                             => !options.DisallowUnsafeRetransmissions && arguments.AttemptNumber is < 2,

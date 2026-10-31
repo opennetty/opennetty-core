@@ -1826,6 +1826,14 @@
       <Description Culture="en" Value="Button/output" />
       <Description Culture="fr" Value="Bouton/sortie" />
 
+      <!--
+        Note: the Legrand 67233 switch is known to not report its state when it doesn't actually change.
+        To ensure ON/OFF commands are not rejected due to a missing state change report, these devices
+        are always configured by default to query their state before sending an ON/OFF command.
+      -->
+
+      <Setting Name="ON/OFF switch state query" Value="true" />
+
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
     </Unit>
@@ -1866,6 +1874,14 @@
 
       <Description Culture="en" Value="Button 2/output 2" />
       <Description Culture="fr" Value="Bouton 2/sortie 2" />
+
+      <!--
+        Note: the Legrand 67234 switch is known to not report its state when it doesn't actually change.
+        To ensure ON/OFF commands are not rejected due to a missing state change report, these devices
+        are always configured by default to query their state before sending an ON/OFF command.
+      -->
+
+      <Setting Name="ON/OFF switch state query" Value="true" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -2091,6 +2107,15 @@
 
       <Description Culture="en" Value="Button/output" />
       <Description Culture="fr" Value="Bouton/sortie" />
+
+      <!--
+        Note: the Legrand 88337 switched outlet is known to delay its ON/OFF state change reports
+        by a few seconds when receiving an ON/OFF command, which slows down the sending of such
+        messages and degrades the user experience. To mitigate this, the unaffected TOGGLE command
+        is - by default - used instead of the ON/OFF command to control the outlet's state.
+      -->
+
+      <Setting Name="ON/OFF command type" Value="Toggle" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />

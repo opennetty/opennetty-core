@@ -158,36 +158,8 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
 
         try
         {
-            var address = message.Address;
-
-            // Monitor all the relevant frames returned by the gateway after sending the message.
-            var messages = _observable.ObserveOn(TaskPoolAsyncScheduler.Default)
-                .Where(message => message switch
-                {
-                    { Protocol: OpenNettyProtocol.Nitoo or OpenNettyProtocol.Scs,
-                      Type    : OpenNettyMessageType.Acknowledgement or OpenNettyMessageType.NegativeAcknowledgement } => true,
-
-                    { Protocol: OpenNettyProtocol.Zigbee,
-                      Type    : OpenNettyMessageType.Acknowledgement             or
-                                OpenNettyMessageType.BusyNegativeAcknowledgement or
-                                OpenNettyMessageType.NegativeAcknowledgement } => true,
-
-                    { Protocol: OpenNettyProtocol.Nitoo, 
-                      Type    : OpenNettyMessageType.BusCommand,
-                      Command : OpenNettyCommand command,
-                      Address : OpenNettyAddress }
-                        when (command == OpenNettyCommands.Diagnostics.ValidAction ||
-                              command == OpenNettyCommands.Diagnostics.InvalidAction) &&
-                             message.Address == address => true,
-
-                    { Protocol: OpenNettyProtocol.Zigbee, 
-                      Type    : OpenNettyMessageType.BusCommand or OpenNettyMessageType.DimensionRead,
-                      Address : OpenNettyAddress }
-                        when message.Address == address => true,
-
-                    _ => false
-                })
-                .Replay();
+            // Monitor all the frames returned by the gateway immediately before and after sending the message.
+            var messages = _observable.ObserveOn(TaskPoolAsyncScheduler.Default).Replay();
 
             // Connect the observable just before sending the frame to ensure the acknowledgement
             // and validation replies, if applicable, are not missed due to a race condition.
@@ -197,7 +169,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
 
                 // Unless acknowledgement validation was explicitly disabled, check if the gateway returned
                 // an ACK, BUSY NACK or NACK frame indicating whether the message was successfully received.
-                if (!options.IgnoreAcknowledgementValidation)
+                if (!options.DisableAcknowledgementValidation)
                 {
                     switch (await messages
                         .FirstOrDefault(static message => message.Type is OpenNettyMessageType.Acknowledgement             or
@@ -206,7 +178,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                         .Timeout(options.AcknowledgementTimeout, AsyncObservable.Return<OpenNettyMessage?>(null))
                         .RunAsync(cancellationToken))
                     {
-                        case null when !options.IgnoreMissingAcknowledgementFrame:
+                        case null:
                             throw new OpenNettyException(OpenNettyErrorCode.NoAcknowledgementReceived, SR.GetResourceString(SR.ID0012));
 
                         case { Type: OpenNettyMessageType.BusyNegativeAcknowledgement }:
@@ -228,17 +200,20 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
 
                 // Unless action validation was explicitly disabled, check if the end device returned a
                 // VALID or INVALID ACTION frame indicating whether the action was accepted by the device.
-                if (!options.IgnoreActionValidation && IsActionValidationSupported(message))
+                if (!options.DisableActionValidation && IsActionValidationSupported(message))
                 {
+                    var address = message.Address;
+
                     switch (await messages
                         .Where(static message => message.Type is OpenNettyMessageType.BusCommand)
                         .Where(static message => message.Command == OpenNettyCommands.Diagnostics.ValidAction ||
                                                  message.Command == OpenNettyCommands.Diagnostics.InvalidAction)
+                        .Where(message => message.Address == address)
                         .FirstOrDefault()
                         .Timeout(options.ActionValidationTimeout, AsyncObservable.Return<OpenNettyMessage?>(null))
                         .RunAsync(cancellationToken))
                     {
-                        case null when !options.IgnoreMissingActionValidationFrame:
+                        case null:
                             throw new OpenNettyException(OpenNettyErrorCode.NoActionReceived, SR.GetResourceString(SR.ID0031));
 
                         case { Command: OpenNettyCommand command } when command == OpenNettyCommands.Diagnostics.InvalidAction:
@@ -253,9 +228,9 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                 //
                 // To mitigate this issue, callers are encouraged to catch the "missing status report"
                 // exception and manually query the end device's state to determine if the action was successful.
-                if (!options.IgnoreStatusReportValidation && IsStatusValidationSupported(message))
+                if (!options.DisableStatusReportValidation && IsStatusValidationSupported(message))
                 {
-                    var category = message.Category;
+                    var (address, category) = (message.Address, message.Category);
 
                     switch (await messages
                         .Where(message => message.Type is OpenNettyMessageType.BusCommand)
@@ -265,9 +240,15 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                         .Timeout(options.StatusReportTimeout, AsyncObservable.Return<OpenNettyMessage?>(null))
                         .RunAsync(cancellationToken))
                     {
-                        case null when !options.IgnoreMissingStatusReportFrame:
+                        case null:
                             throw new OpenNettyException(OpenNettyErrorCode.NoStatusReportReceived, SR.GetResourceString(SR.ID0137));
                     }
+                }
+
+                // If a custom validation delegate was specified, invoke it to determine whether the outgoing message was successfully sent.
+                if (options.CustomValidationDelegate is not null && !await options.CustomValidationDelegate(messages, cancellationToken))
+                {
+                    throw new OpenNettyException(OpenNettyErrorCode.CustomValidationFailed, SR.GetResourceString(SR.ID0138));
                 }
             }
 

@@ -89,5 +89,11 @@ public enum OpenNettyErrorCode
     /// <summary>
     /// The connection was closed.
     /// </summary>
-    ConnectionClosed = 15
+    ConnectionClosed = 15,
+
+    /// <summary>
+    /// The custom validation delegate throw an exception indicating
+    /// that the outgoing message was not successfully sent.
+    /// </summary>
+    CustomValidationFailed = 16,
 }
