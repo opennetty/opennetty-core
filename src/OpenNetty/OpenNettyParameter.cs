@@ -61,10 +61,10 @@ public readonly struct OpenNettyParameter : IEquatable<OpenNettyParameter>
         // Note: parameters can be omitted. In this case, they are represented as empty values.
         if (buffer.IsEmpty)
         {
-            return new(string.Empty);
+            return Empty;
         }
 
-        return new(Encoding.ASCII.GetString(buffer));
+        return Encoding.ASCII.GetString(buffer);
     }
 
     /// <inheritdoc/>
@@ -98,4 +98,11 @@ public readonly struct OpenNettyParameter : IEquatable<OpenNettyParameter>
     /// <param name="right">The second instance.</param>
     /// <returns><see langword="true"/> if the two instances are not equal, <see langword="false"/> otherwise.</returns>
     public static bool operator !=(OpenNettyParameter left, OpenNettyParameter right) => !(left == right);
+
+    /// <summary>
+    /// Converts a string to an <see cref="OpenNettyParameter"/> instance.
+    /// </summary>
+    /// <param name="value">The value to convert.</param>
+    /// <returns>An <see cref="OpenNettyParameter"/> instance.</returns>
+    public static implicit operator OpenNettyParameter(string value) => new(value);
 }
