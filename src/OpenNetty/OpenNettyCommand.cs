@@ -203,13 +203,13 @@ public readonly struct OpenNettyCommand : IEquatable<OpenNettyCommand>
         }
 
         var builder = ImmutableArray.CreateBuilder<OpenNettyParameter>();
-        builder.Add(new OpenNettyParameter(Value));
+        builder.Add(Value);
 
         if (!Parameters.IsDefaultOrEmpty)
         {
             for (var index = 0; index < Parameters.Length; index++)
             {
-                builder.Add(new OpenNettyParameter(Parameters[index]));
+                builder.Add(Parameters[index]);
             }
         }
 

@@ -334,8 +334,8 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                 if (gateway.Protocol is OpenNettyProtocol.Zigbee)
                 {
                     await connection.SendAsync(new OpenNettyFrame(
-                        new OpenNettyField(new OpenNettyParameter("13")),
-                        new OpenNettyField(new OpenNettyParameter(options.EnableSupervisionMode ? "66" : "67")),
+                        new OpenNettyField("13"),
+                        new OpenNettyField(options.EnableSupervisionMode ? "66" : "67"),
                         new OpenNettyField(OpenNettyParameter.Empty)), source.Token);
 
                     try
@@ -364,9 +364,9 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                 else
                 {
                     await connection.SendAsync(new OpenNettyFrame(
-                        new OpenNettyField(OpenNettyParameter.Empty, new OpenNettyParameter("13")),
+                        new OpenNettyField(OpenNettyParameter.Empty, "13"),
                         new OpenNettyField(OpenNettyParameter.Empty),
-                        new OpenNettyField(new OpenNettyParameter("16"))), source.Token);
+                        new OpenNettyField("16")), source.Token);
 
                     try
                     {
@@ -435,13 +435,13 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
 
                 // Negotiate the requested session type.
                 await connection.SendAsync(new OpenNettyFrame(
-                    new OpenNettyField(new OpenNettyParameter("99")),
-                    new OpenNettyField(new OpenNettyParameter(type switch
+                    new OpenNettyField("99"),
+                    new OpenNettyField(type switch
                     {
                         OpenNettySessionType.Command => "9",
                         OpenNettySessionType.Event   => "1",
                                      _               => "0"
-                    }))), source.Token);
+                    })), source.Token);
 
                 switch (await connection.ReceiveAsync(source.Token))
                 {
@@ -499,14 +499,14 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
 
                         // Compute and send the digest used to authenticate the client.
                         await connection.SendAsync(new OpenNettyFrame(
-                            new OpenNettyField(OpenNettyParameter.Empty, new OpenNettyParameter(ConvertToDigits(parameters.ClientNonce))),
-                            new OpenNettyField(new OpenNettyParameter(ConvertToDigits(algorithm.ComputeHash(Encoding.UTF8.GetBytes(new StringBuilder()
+                            new OpenNettyField(OpenNettyParameter.Empty, ConvertToDigits(parameters.ClientNonce)),
+                            new OpenNettyField(ConvertToDigits(algorithm.ComputeHash(Encoding.UTF8.GetBytes(new StringBuilder()
                                 .Append(parameters.ServerNonce)
                                 .Append(Convert.ToHexStringLower(parameters.ClientNonce))
                                 .Append("736F70653E")
                                 .Append("636F70653E")
                                 .Append(password)
-                                .ToString())))))), source.Token);
+                                .ToString()))))), source.Token);
 
                         // Extract the server authentication digest returned by the gateway
                         // and validate it to ensure it matches the expected value.
@@ -558,7 +558,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                         await connection.SendAsync(new OpenNettyFrame(
                             new OpenNettyField(
                                 OpenNettyParameter.Empty,
-                                new OpenNettyParameter(nonce.Aggregate(password, static (password, character) => character switch
+                                nonce.Aggregate(password, static (password, character) => character switch
                                 {
                                     '1' => (password >> 7) | (password << 25),
                                     '2' => (password >> 4) | (password << 28),
@@ -570,7 +570,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                                     '8' => (password << 16) | (password >> 24) | ((password & 0x00FF0000) >> 8),
                                     '9' => ~password,
                                      _  => password
-                                }).ToString(CultureInfo.InvariantCulture)))), source.Token);
+                                }).ToString(CultureInfo.InvariantCulture))), source.Token);
 
                         // Ensure the server acknowledged the authentication demand.
                         switch (await connection.ReceiveAsync(source.Token))

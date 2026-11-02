@@ -565,7 +565,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
 
         for (var index = 0; index < values.Length; index++)
         {
-            fields.Add(new OpenNettyField(new OpenNettyParameter(values[index])));
+            fields.Add(new OpenNettyField(values[index]));
         }
 
         return CreateFromFrame(protocol, new OpenNettyFrame(fields.ToImmutableArray()));
@@ -605,7 +605,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
 
         for (var index = 0; index < values.Length; index++)
         {
-            fields.Add(new OpenNettyField(new OpenNettyParameter(values[index])));
+            fields.Add(new OpenNettyField(values[index]));
         }
 
         return CreateFromFrame(protocol, new OpenNettyFrame(fields.ToImmutableArray()));
@@ -1047,7 +1047,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
                 // Note: broadcast is always the default transmission mode for WHO=25 messages (scenarios).
                 case OpenNettyMode.Broadcast:
                 case null when category == OpenNettyCategories.ScenariosPlus:
-                    builder.Add(new OpenNettyParameter("0"));
+                    builder.Add("0");
                     break;
             }
 
@@ -1056,13 +1056,13 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
             // Note: when using the default powerline transmission medium, adding an explicit parameter is not required.
             if (medium is not null and not OpenNettyMedium.Powerline)
             {
-                builder.Add(new OpenNettyParameter(medium switch
+                builder.Add(medium switch
                 {
                     OpenNettyMedium.Radio    => "1",
                     OpenNettyMedium.Infrared => "2",
 
                     _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0062))
-                }));
+                });
             }
 
             return new OpenNettyField(builder.ToImmutable());
@@ -1087,18 +1087,18 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
                 // sent to an address that doesn't include a device identifier part.
                 case OpenNettyMode.Broadcast:
                 case null when OpenNettyAddress.ToZigbeeAddress(address.Value) is { Identifier: 0 }:
-                    builder.Add(new OpenNettyParameter("0"));
+                    builder.Add("0");
                     break;
             }
 
             builder.AddRange(address.Value.ToParameters());
 
-            builder.Add(new OpenNettyParameter(medium switch
+            builder.Add(medium switch
             {
                 OpenNettyMedium.Radio or null => "9",
 
                 _ => throw new InvalidOperationException(SR.GetResourceString(SR.ID0062))
-            }));
+            });
 
             return new OpenNettyField(builder.ToImmutable());
         }
