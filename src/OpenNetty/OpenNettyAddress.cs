@@ -55,7 +55,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
         }
 
         // Ensure the parameters only include ASCII digits.
-        if (!Parameters.IsDefaultOrEmpty)
+        if (!parameters.IsDefaultOrEmpty)
         {
             for (var index = 0; index < parameters.Length; index++)
             {
@@ -63,7 +63,7 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
                 {
                     if (!char.IsAsciiDigit(character))
                     {
-                        throw new ArgumentException(SR.GetResourceString(SR.ID0004), nameof(value));
+                        throw new ArgumentException(SR.GetResourceString(SR.ID0004), nameof(parameters));
                     }
                 }
             }
@@ -269,9 +269,9 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
             return new OpenNettyAddress(OpenNettyAddressType.Zigbee, unit is 0 ? "00" : unit.ToString("00", CultureInfo.InvariantCulture));
         }
 
-        return new OpenNettyAddress(OpenNettyAddressType.Zigbee, unit is 0 ?
-            identifier.ToString(CultureInfo.InvariantCulture) + "00" :
-            identifier.ToString(CultureInfo.InvariantCulture) + unit.ToString("00", CultureInfo.InvariantCulture));
+        return new OpenNettyAddress(OpenNettyAddressType.Zigbee, unit is 0
+            ? identifier.ToString(CultureInfo.InvariantCulture) + "00"
+            : identifier.ToString(CultureInfo.InvariantCulture) + unit.ToString("00", CultureInfo.InvariantCulture));
     }
 
     /// <summary>
@@ -498,8 +498,9 @@ public readonly struct OpenNettyAddress : IEquatable<OpenNettyAddress>
     /// <returns>A Zigbee address based on the specified device identifier and unit.</returns>
     /// <exception cref="ArgumentException">The identifier is not a valid hexadecimal string.</exception>
     public static OpenNettyAddress FromZigbeeAddress(OpenNettyDeviceIdentifier? identifier, byte unit)
-        => FromHexadecimalZigbeeAddress(identifier is not null ?
-            OpenNettyDeviceIdentifier.ToZigbeeSerialNumber(identifier.Value) : null, unit);
+        => FromHexadecimalZigbeeAddress(identifier is not null
+            ? OpenNettyDeviceIdentifier.ToZigbeeSerialNumber(identifier.Value)
+            : null, unit);
 
     /// <summary>
     /// Determines whether the specified address is a SCS light point area address.

@@ -89,7 +89,9 @@ public readonly struct OpenNettyField : IEquatable<OpenNettyField>
             else
             {
                 builder ??= ImmutableArray.CreateBuilder<OpenNettyParameter>(initialCapacity: 1);
-                builder.Add(OpenNettyParameter.Parse(reader.UnreadSpan));
+                builder.Add(OpenNettyParameter.Parse(reader.UnreadSequence.IsSingleSegment
+                    ? reader.UnreadSequence.FirstSpan
+                    : reader.UnreadSequence.ToArray()));
                 reader.AdvanceToEnd();
             }
         }
@@ -107,7 +109,7 @@ public readonly struct OpenNettyField : IEquatable<OpenNettyField>
             return other.Parameters.IsDefaultOrEmpty;
         }
 
-        if (Parameters.Length != other.Parameters.Length)
+        if (other.Parameters.IsDefaultOrEmpty || Parameters.Length != other.Parameters.Length)
         {
             return false;
         }

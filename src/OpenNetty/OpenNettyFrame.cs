@@ -68,6 +68,12 @@ public readonly struct OpenNettyFrame : IEquatable<OpenNettyFrame>
             {
                 builder ??= ImmutableArray.CreateBuilder<OpenNettyField>(initialCapacity: 1);
                 builder.Add(OpenNettyField.Parse(in field));
+
+                // If no data follows the last '*', the frame is not terminated by '##'.
+                if (reader.End)
+                {
+                    throw new ArgumentException(SR.GetResourceString(SR.ID0003), nameof(buffer));
+                }
             }
 
             // If no '*' can be found, this means there's no additional field: in this case,
@@ -105,7 +111,7 @@ public readonly struct OpenNettyFrame : IEquatable<OpenNettyFrame>
             return other.Fields.IsDefaultOrEmpty;
         }
 
-        if (Fields.Length != other.Fields.Length)
+        if (other.Fields.IsDefaultOrEmpty || Fields.Length != other.Fields.Length)
         {
             return false;
         }

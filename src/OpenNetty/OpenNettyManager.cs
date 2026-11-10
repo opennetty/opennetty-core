@@ -201,7 +201,8 @@ public class OpenNettyManager
 
                 await foreach (var endpoint in EnumerateEndpointsAsync(cancellationToken))
                 {
-                    if (endpoint.Protocol is not OpenNettyProtocol.Scs || endpoint.Gateway != gateway || endpoint.Address is null)
+                    if (endpoint.Protocol is not OpenNettyProtocol.Scs || endpoint.Gateway != gateway ||
+                        endpoint.Address is not { Type: OpenNettyAddressType.ScsLightPoint })
                     {
                         continue;
                     }
@@ -386,7 +387,7 @@ public class OpenNettyManager
                 if (gateway is not null)
                 {
                     return ValueTask.FromException<OpenNettyGateway?>(
-                        new InvalidOperationException(SR.GetResourceString(SR.ID0102)));
+                        new InvalidOperationException(SR.GetResourceString(SR.ID0103)));
                 }
 
                 gateway = _options.CurrentValue.Gateways[index];

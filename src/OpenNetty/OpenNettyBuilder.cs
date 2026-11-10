@@ -499,7 +499,7 @@ public sealed class OpenNettyBuilder
         static ImmutableDictionary<OpenNettySetting, string> CreateSettings(XElement element)
             => element.Elements("Setting").ToImmutableDictionary(
                 static element => new OpenNettySetting((string?) element.Attribute("Name") ?? throw new InvalidOperationException(SR.FormatID0086("Name"))),
-                static element => (string?) element.Attribute("Value") ?? throw new InvalidOperationException(SR.FormatID0086("Name")));
+                static element => (string?) element.Attribute("Value") ?? throw new InvalidOperationException(SR.FormatID0086("Value")));
 
         static OpenNettyGateway FindGatewayByName(IReadOnlyList<OpenNettyGateway> gateways, string name)
         {

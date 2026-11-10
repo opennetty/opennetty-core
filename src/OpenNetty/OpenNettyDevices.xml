@@ -1750,8 +1750,8 @@
       <Capability Name="Toggle scenario event" />
       <Capability Name="Zigbee binding" />
 
-      <Description Culture="en" Value="Scenario button 1" />
-      <Description Culture="fr" Value="Bouton scénario 1" />
+      <Description Culture="en" Value="Button 1" />
+      <Description Culture="fr" Value="Bouton 1" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />
@@ -1761,8 +1761,8 @@
       <Capability Name="Toggle scenario event" />
       <Capability Name="Zigbee binding" />
 
-      <Description Culture="en" Value="Scenario button 2" />
-      <Description Culture="fr" Value="Bouton scénario 2" />
+      <Description Culture="en" Value="Button 2" />
+      <Description Culture="fr" Value="Bouton 2" />
 
       <Setting Name="Home Assistant scenario device class" Value="button" />
       <Setting Name="Home Assistant scenario icon" Value="mdi:gesture-tap-button" />

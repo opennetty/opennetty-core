@@ -48,53 +48,66 @@ public sealed record class OpenNettySessionOptions
             EnableSupervisionMode = device.Definition.Protocol is OpenNettyProtocol.Zigbee &&
                 device.GetBooleanSetting(OpenNettySettings.ZigbeeSupervisionMode) is not false,
 
-            SessionResiliencePipeline = new ResiliencePipelineBuilder()
-                .AddRetry(new RetryStrategyOptions
-                {
-                    MaxRetryAttempts = int.MaxValue,
-                    ShouldHandle = static arguments => ValueTask.FromResult(
-                        !arguments.Context.CancellationToken.IsCancellationRequested)
-                })
-                .AddRetry(new RetryStrategyOptions
-                {
-                    BackoffType = DelayBackoffType.Constant,
-                    Delay = TimeSpan.FromSeconds(10),
-                    MaxRetryAttempts = int.MaxValue,
-                    ShouldHandle = static arguments =>
-                    {
-                        if (!arguments.Context.Properties.TryGetValue(
-                            key  : new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)),
-                            value: out OpenNettyGateway? gateway))
-                        {
-                            throw new InvalidOperationException(SR.GetResourceString(SR.ID0067));
-                        }
-
-                        if (!arguments.Context.Properties.TryGetValue(
-                            key  : new ResiliencePropertyKey<ILogger<OpenNettyWorker>>(nameof(ILogger<>)),
-                            value: out ILogger<OpenNettyWorker>? logger))
-                        {
-                            throw new InvalidOperationException(SR.GetResourceString(SR.ID0067));
-                        }
-
-                        if (!arguments.Context.Properties.TryGetValue(
-                            key  : new ResiliencePropertyKey<OpenNettySessionType>(nameof(OpenNettySessionType)),
-                            value: out OpenNettySessionType type))
-                        {
-                            throw new InvalidOperationException(SR.GetResourceString(SR.ID0067));
-                        }
-
-                        if (arguments.Outcome.Exception is not Exception exception)
-                        {
-                            return ValueTask.FromResult(false);
-                        }
-
-                        logger.LogInformation(6020, exception, SR.GetResourceString(SR.ID6020), type, gateway);
-
-                        // Always recreate new sessions on failed attempts, unless the operation was canceled by the worker.
-                        return ValueTask.FromResult(!arguments.Context.CancellationToken.IsCancellationRequested);
-                    }
-                })
-                .Build()
+            SessionResiliencePipeline = CreateDefaultResiliencePipeline(TimeProvider.System)
         };
+    }
+
+    /// <summary>
+    /// Creates the default <see cref="ResiliencePipeline"/> used to manage sessions,
+    /// which relies on the specified <see cref="TimeProvider"/> to compute its retry delays.
+    /// </summary>
+    /// <param name="provider">The <see cref="TimeProvider"/> used by the pipeline.</param>
+    /// <returns>The default <see cref="ResiliencePipeline"/>.</returns>
+    public static ResiliencePipeline CreateDefaultResiliencePipeline(TimeProvider provider)
+    {
+        ArgumentNullException.ThrowIfNull(provider);
+
+        return new ResiliencePipelineBuilder { TimeProvider = provider }
+            .AddRetry(new RetryStrategyOptions
+            {
+                MaxRetryAttempts = int.MaxValue,
+                ShouldHandle = static arguments => ValueTask.FromResult(
+                    !arguments.Context.CancellationToken.IsCancellationRequested)
+            })
+            .AddRetry(new RetryStrategyOptions
+            {
+                BackoffType = DelayBackoffType.Constant,
+                Delay = TimeSpan.FromSeconds(10),
+                MaxRetryAttempts = int.MaxValue,
+                ShouldHandle = static arguments =>
+                {
+                    if (!arguments.Context.Properties.TryGetValue(
+                        key  : new ResiliencePropertyKey<OpenNettyGateway>(nameof(OpenNettyGateway)),
+                        value: out OpenNettyGateway? gateway))
+                    {
+                        throw new InvalidOperationException(SR.GetResourceString(SR.ID0067));
+                    }
+
+                    if (!arguments.Context.Properties.TryGetValue(
+                        key  : new ResiliencePropertyKey<ILogger<OpenNettyWorker>>(nameof(ILogger<>)),
+                        value: out ILogger<OpenNettyWorker>? logger))
+                    {
+                        throw new InvalidOperationException(SR.GetResourceString(SR.ID0067));
+                    }
+
+                    if (!arguments.Context.Properties.TryGetValue(
+                        key  : new ResiliencePropertyKey<OpenNettySessionType>(nameof(OpenNettySessionType)),
+                        value: out OpenNettySessionType type))
+                    {
+                        throw new InvalidOperationException(SR.GetResourceString(SR.ID0067));
+                    }
+
+                    if (arguments.Outcome.Exception is not Exception exception)
+                    {
+                        return ValueTask.FromResult(false);
+                    }
+
+                    logger.LogInformation(6020, exception, SR.GetResourceString(SR.ID6020), type, gateway);
+
+                    // Always recreate new sessions on failed attempts, unless the operation was canceled by the worker.
+                    return ValueTask.FromResult(!arguments.Context.CancellationToken.IsCancellationRequested);
+                }
+            })
+            .Build();
     }
 }

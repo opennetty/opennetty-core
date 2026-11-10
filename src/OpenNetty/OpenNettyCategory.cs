@@ -46,7 +46,7 @@ public readonly struct OpenNettyCategory : IEquatable<OpenNettyCategory>
         }
 
         // Ensure the parameters only include ASCII digits.
-        if (!Parameters.IsDefaultOrEmpty)
+        if (!parameters.IsDefaultOrEmpty)
         {
             for (var index = 0; index < parameters.Length; index++)
             {
@@ -54,7 +54,7 @@ public readonly struct OpenNettyCategory : IEquatable<OpenNettyCategory>
                 {
                     if (!char.IsAsciiDigit(character))
                     {
-                        throw new ArgumentException(SR.GetResourceString(SR.ID0004), nameof(value));
+                        throw new ArgumentException(SR.GetResourceString(SR.ID0004), nameof(parameters));
                     }
                 }
             }
@@ -118,7 +118,7 @@ public readonly struct OpenNettyCategory : IEquatable<OpenNettyCategory>
 
     /// <inheritdoc/>
     public override bool Equals([NotNullWhen(true)] object? obj)
-        => obj is OpenNettyAddress address && Equals(address);
+        => obj is OpenNettyCategory category && Equals(category);
 
     /// <inheritdoc/>
     public override int GetHashCode()

@@ -29,9 +29,12 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
 
         foreach (var device in options.Devices)
         {
-            // If no gateway was explicitly configured for the device, find a gateway that matches the device's
-            // protocol: if no gateway can be found, the device will be rejected during the validation phase.
-            device.Gateway ??= GetFirstGateway(options.Gateways, device.Definition.Protocol);
+            // If no gateway was explicitly configured for the device and the device is not
+            // itself an OpenWebNet gateway, find a gateway that matches the device's protocol:
+            // if no gateway can be found, the device will be rejected during the validation phase.
+            device.Gateway ??= device.GetUnit(0).HasCapability(OpenNettyCapabilities.OpenWebNetGateway)
+                ? options.Gateways.SingleOrDefault(gateway => gateway.Device == device)
+                : GetFirstGateway(options.Gateways, device.Definition.Protocol);
 
             // Add implicit endpoints for all the units that have not been explicitly added by the user.
             if (device.Definition.Units is { IsDefaultOrEmpty: false })
@@ -67,8 +70,7 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
                     var endpoint = new OpenNettyEndpoint
                     {
                         Address = address,
-                        Gateway = device.Gateway ?? options.Gateways.FirstOrDefault(gateway => gateway.Device == device)
-                            ?? throw new InvalidOperationException(SR.FormatID0107("Gateway")),
+                        Gateway = device.Gateway,
                         Medium = device.Definition.Medium,
                         Name = OpenNettyUtilities.ComputeDefaultEndpointName(device.Definition.Protocol,
                             address, device.GetUnit(definition.Id)),
@@ -83,9 +85,13 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
 
         foreach (var endpoint in options.Endpoints)
         {
-            // If no gateway was explicitly configured for the endpoint, find a gateway that matches the endpoint's
-            // protocol: if no gateway can be found, the endpoint will be rejected during the validation phase.
-            endpoint.Gateway ??= endpoint.Unit?.Device.Gateway ?? GetFirstGateway(options.Gateways, endpoint.Protocol);
+            // If no gateway was explicitly configured for the endpoint, use the gateway of its device or find a
+            // gateway that matches the endpoint's protocol: if no gateway can be found, the endpoint will be
+            // rejected during the validation phase. Endpoints attached to a gateway device never fall back to
+            // another gateway: they can only use the gateway represented by the device itself.
+            endpoint.Gateway ??= endpoint.Unit?.Device is OpenNettyDevice device && device.GetUnit(0).HasCapability(OpenNettyCapabilities.OpenWebNetGateway)
+                ? device.Gateway
+                : endpoint.Unit?.Device.Gateway ?? GetFirstGateway(options.Gateways, endpoint.Protocol);
         }
 
         static OpenNettyGateway? GetFirstGateway(IReadOnlyList<OpenNettyGateway> gateways, OpenNettyProtocol protocol)
@@ -168,9 +174,8 @@ public sealed class OpenNettyConfiguration : IPostConfigureOptions<OpenNettyOpti
 
         foreach (var device in options.Devices)
         {
-            // Ensure a valid gateway device is attached.
-            if (device.Gateway is null ||
-               !device.Gateway.Device.GetUnit(0).HasCapability(OpenNettyCapabilities.OpenWebNetGateway))
+            // Ensure a gateway is attached.
+            if (device.Gateway is null)
             {
                 builder.AddError(SR.FormatID2022(device.Name));
             }

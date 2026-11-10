@@ -132,6 +132,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     .WithPayload("offline")
                     .WithPayloadFormatIndicator(MqttPayloadFormatIndicator.CharacterData)
                     .WithQualityOfServiceLevel(MqttQualityOfServiceLevel.ExactlyOnce)
+                    .WithRetainFlag()
                     .WithTopic($"{_options.CurrentValue.RootTopic}/{topic}/{OpenNettyMqttAttributes.Availability}")
                     .Build());
             });
@@ -537,7 +538,8 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 {
                     var parameters = TryParseAsJsonObject(message.ConvertPayloadToString());
 
-                    switch ((string?) parameters?["event_type"] ?? message.ConvertPayloadToString()?.ToLowerInvariant())
+                    switch ((string?) parameters?["event_type"] ?? message.ConvertPayloadToString()?.ToLowerInvariant()
+                        ?? throw new InvalidDataException(SR.GetResourceString(SR.ID0068)))
                     {
                         case "action":
                             await _controller.DispatchActionScenarioAsync(endpoint,
@@ -611,7 +613,7 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                         case "short_pressure":
                             await _controller.DispatchPressureScenarioPlusAsync(endpoint,
                                 OpenNettyModels.ScenariosPlus.PressureScenarioType.ShortPressure,
-                                (byte?) parameters?["button"] ?? throw new InvalidDataException(SR.GetResourceString(SR.ID0068)), cancellationToken);
+                                (byte?) parameters?["button"], cancellationToken);
                             break;
 
                         case "shutter_down":
@@ -720,7 +722,13 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     {
                         await ReportAsync(endpoint, OpenNettyMqttAttributes.SmartMeterBaseIndex, builder =>
                         {
-                            builder.WithPayload(indexes.BaseIndex.BaseIndex.ToString(CultureInfo.InvariantCulture));
+                            var node = new JsonObject
+                            {
+                                ["base_index"] = indexes.BaseIndex.BaseIndex
+                            };
+
+                            builder.WithContentType(MediaTypeNames.Application.Json);
+                            builder.WithPayload(node.ToJsonString());
                             builder.WithRetainFlag();
                         });
                     }
@@ -958,11 +966,16 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 }
             }
 
-            static JsonArray? TryParseAsJsonArray(string value)
+            static JsonArray? TryParseAsJsonArray(string? value)
             {
+                if (string.IsNullOrEmpty(value))
+                {
+                    return null;
+                }
+
                 try
                 {
-                    return JsonArray.Parse(value)?.AsArray();
+                    return JsonNode.Parse(value) as JsonArray;
                 }
 
                 catch (JsonException)
@@ -971,11 +984,16 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                 }
             }
 
-            static JsonObject? TryParseAsJsonObject(string value)
+            static JsonObject? TryParseAsJsonObject(string? value)
             {
+                if (string.IsNullOrEmpty(value))
+                {
+                    return null;
+                }
+
                 try
                 {
-                    return JsonObject.Parse(value)?.AsObject();
+                    return JsonNode.Parse(value) as JsonObject;
                 }
 
                 catch (JsonException)
@@ -1260,6 +1278,11 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     component["position_topic"] = $"{topic}/{OpenNettyMqttAttributes.ShutterPosition}";
                 }
 
+                if (endpoint.GetStringSetting(OpenNettySettings.HomeAssistantCoverIcon) is string icon)
+                {
+                    component["icon"] = icon;
+                }
+
                 yield return component;
 
                 if (endpoint.HasCapability(OpenNettyCapabilities.BasicShutterState) ||
@@ -1390,25 +1413,28 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                     types.Add("switch_toggle");
                 }
 
-                var component = new JsonObject
+                if (types.Count is not 0)
                 {
-                    ["platform"] = "event",
-                    ["unique_id"] = ComputeEntityUniqueId(endpoint, "7faeaa9a-ae51-43f4-af82-65d2e24e14d0"u8),
-                    ["icon"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantScenarioIcon) ?? "mdi:lightning-bolt",
-                    ["name"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantScenarioName)
-                        ?? GetLocalizedString(SR.ID8007, culture),
-                    ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
-                    ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}",
-                    ["json_attributes_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}",
-                    ["event_types"] = new JsonArray([.. types])
-                };
+                    var component = new JsonObject
+                    {
+                        ["platform"] = "event",
+                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "7faeaa9a-ae51-43f4-af82-65d2e24e14d0"u8),
+                        ["icon"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantScenarioIcon) ?? "mdi:lightning-bolt",
+                        ["name"] = endpoint.GetStringSetting(OpenNettySettings.HomeAssistantScenarioName)
+                            ?? GetLocalizedString(SR.ID8007, culture),
+                        ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
+                        ["state_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}",
+                        ["json_attributes_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}",
+                        ["event_types"] = new JsonArray([.. types])
+                    };
 
-                if (endpoint.GetStringSetting(OpenNettySettings.HomeAssistantScenarioDeviceClass) is string type)
-                {
-                    component["device_class"] = type;
+                    if (endpoint.GetStringSetting(OpenNettySettings.HomeAssistantScenarioDeviceClass) is string type)
+                    {
+                        component["device_class"] = type;
+                    }
+
+                    yield return component;
                 }
-
-                yield return component;
             }
 
             if (endpoint.HasCapability(OpenNettyCapabilities.ActionScenarioActivation))
@@ -1650,49 +1676,6 @@ public sealed class OpenNettyMqttWorker : IOpenNettyMqttWorker
                             ["payload_press"] = new JsonObject { ["event_type"] = "extended_pressure", ["scenario_type"] = "evolved", ["button"] = button }.ToJsonString()
                         };
                     }
-                }
-
-                else
-                {
-                    yield return new JsonObject
-                    {
-                        ["platform"] = "button",
-                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "be2887c3-f4ae-4935-bad6-1ffb1227d28b"u8),
-                        ["name"] = GetLocalizedString(SR.ID8015, culture),
-                        ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
-                        ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}/set",
-                        ["payload_press"] = new JsonObject { ["event_type"] = "pressure", ["scenario_type"] = "basic" }.ToJsonString()
-                    };
-
-                    yield return new JsonObject
-                    {
-                        ["platform"] = "button",
-                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "81e3f75a-fab3-4842-bb5e-1531d20290dd"u8),
-                        ["name"] = GetLocalizedString(SR.ID8016, culture),
-                        ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
-                        ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}/set",
-                        ["payload_press"] = new JsonObject { ["event_type"] = "release_after_short_pressure", ["scenario_type"] = "evolved" }.ToJsonString()
-                    };
-
-                    yield return new JsonObject
-                    {
-                        ["platform"] = "button",
-                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "3f069e7f-7c8f-4730-b067-9a944f61700b"u8),
-                        ["name"] = GetLocalizedString(SR.ID8017, culture),
-                        ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
-                        ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}/set",
-                        ["payload_press"] = new JsonObject { ["event_type"] = "release_after_extended_pressure", ["scenario_type"] = "evolved" }.ToJsonString()
-                    };
-
-                    yield return new JsonObject
-                    {
-                        ["platform"] = "button",
-                        ["unique_id"] = ComputeEntityUniqueId(endpoint, "23e04eeb-8b35-44c8-87da-aed3829ce07d"u8),
-                        ["name"] = GetLocalizedString(SR.ID8018, culture),
-                        ["availability_topic"] = $"{topic}/{OpenNettyMqttAttributes.Availability}",
-                        ["command_topic"] = $"{topic}/{OpenNettyMqttAttributes.Scenario}/set",
-                        ["payload_press"] = new JsonObject { ["event_type"] = "extended_pressure", ["scenario_type"] = "evolved" }.ToJsonString()
-                    };
                 }
             }
 

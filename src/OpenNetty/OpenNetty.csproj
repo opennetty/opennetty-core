@@ -20,6 +20,10 @@
   </ItemGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="OpenNetty.Tests" Key="$(PublicKey)" />
+  </ItemGroup>
+
+  <ItemGroup>
     <Using Include="OpenNetty" />
     <Using Include="OpenNetty.OpenNettyResources" Alias="SR" />
   </ItemGroup>

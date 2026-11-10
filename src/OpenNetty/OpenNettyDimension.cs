@@ -48,7 +48,7 @@ public readonly struct OpenNettyDimension : IEquatable<OpenNettyDimension>
         }
 
         // Ensure the parameters only include ASCII digits.
-        if (!Parameters.IsDefaultOrEmpty)
+        if (!parameters.IsDefaultOrEmpty)
         {
             for (var index = 0; index < parameters.Length; index++)
             {
@@ -56,7 +56,7 @@ public readonly struct OpenNettyDimension : IEquatable<OpenNettyDimension>
                 {
                     if (!char.IsAsciiDigit(character))
                     {
-                        throw new ArgumentException(SR.GetResourceString(SR.ID0004), nameof(value));
+                        throw new ArgumentException(SR.GetResourceString(SR.ID0004), nameof(parameters));
                     }
                 }
             }

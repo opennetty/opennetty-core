@@ -176,7 +176,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                                                                           OpenNettyMessageType.BusyNegativeAcknowledgement or
                                                                           OpenNettyMessageType.NegativeAcknowledgement)
                         .Timeout(options.AcknowledgementTimeout, AsyncObservable.Return<OpenNettyMessage?>(null))
-                        .RunAsync(cancellationToken))
+                        .RunWithCancellationAsync(cancellationToken))
                     {
                         case null:
                             throw new OpenNettyException(OpenNettyErrorCode.NoAcknowledgementReceived, SR.GetResourceString(SR.ID0012));
@@ -186,7 +186,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                             throw await messages
                                 .FirstOrDefault(static message => message.Type is OpenNettyMessageType.NegativeAcknowledgement)
                                 .Timeout(options.AcknowledgementTimeout, AsyncObservable.Return<OpenNettyMessage?>(null))
-                                .RunAsync(cancellationToken) switch
+                                .RunWithCancellationAsync(cancellationToken) switch
                                 {
                                     null => new OpenNettyException(OpenNettyErrorCode.NoAcknowledgementReceived, SR.GetResourceString(SR.ID0012)),
 
@@ -211,13 +211,13 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                         .Where(message => message.Address == address)
                         .FirstOrDefault()
                         .Timeout(options.ActionValidationTimeout, AsyncObservable.Return<OpenNettyMessage?>(null))
-                        .RunAsync(cancellationToken))
+                        .RunWithCancellationAsync(cancellationToken))
                     {
                         case null:
-                            throw new OpenNettyException(OpenNettyErrorCode.NoActionReceived, SR.GetResourceString(SR.ID0031));
+                            throw new OpenNettyException(OpenNettyErrorCode.NoActionReceived, SR.GetResourceString(SR.ID0032));
 
                         case { Command: OpenNettyCommand command } when command == OpenNettyCommands.Diagnostics.InvalidAction:
-                            throw new OpenNettyException(OpenNettyErrorCode.InvalidAction, SR.GetResourceString(SR.ID0032));
+                            throw new OpenNettyException(OpenNettyErrorCode.InvalidAction, SR.GetResourceString(SR.ID0031));
                     }
                 }
 
@@ -238,7 +238,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
                         .Where(message => message.Category == category)
                         .FirstOrDefault()
                         .Timeout(options.StatusReportTimeout, AsyncObservable.Return<OpenNettyMessage?>(null))
-                        .RunAsync(cancellationToken))
+                        .RunWithCancellationAsync(cancellationToken))
                     {
                         case null:
                             throw new OpenNettyException(OpenNettyErrorCode.NoStatusReportReceived, SR.GetResourceString(SR.ID0137));
@@ -486,12 +486,7 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
 
                         // Ensure the returned nonce has a correct size and generate a random client nonce using a CSP.
                         var parameters = (
-                            ServerNonce: ConvertFromDigits(nonce) switch
-                            {
-                                { Length: int length } result when length * 4 == algorithm.HashSize => result,
-
-                                _ => throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0021)),
-                            },
+                            ServerNonce: ComputeServerNonce(algorithm, nonce),
                             ClientNonce: RandomNumberGenerator.GetBytes(algorithm.HashSize / 8));
 
                         // Compute the hash of the OPEN password and convert it to its lowercase hexadecimal representation.
@@ -608,6 +603,27 @@ public sealed class OpenNettySession : IConnectableAsyncObservable<OpenNettyMess
             await connection.DisposeAsync();
 
             throw;
+        }
+
+        static string ComputeServerNonce(HashAlgorithm algorithm, ReadOnlySpan<char> value)
+        {
+            string nonce;
+
+            // Ensure the returned nonce is correctly encoded.
+            try
+            {
+                nonce = ConvertFromDigits(value);
+            }
+
+            catch (ArgumentException exception)
+            {
+                throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0021), exception);
+            }
+
+            // Ensure the returned nonce has a correct size.
+            return nonce.Length * 4 == algorithm.HashSize
+                ? nonce
+                : throw new OpenNettyException(OpenNettyErrorCode.InvalidFrame, SR.GetResourceString(SR.ID0021));
         }
 
         static string ConvertFromDigits(ReadOnlySpan<char> value)
