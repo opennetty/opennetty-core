@@ -432,9 +432,9 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
 
             else
             {
-                var parameters = new List<string>(capacity: field.Parameters.Length - 1);
+                var parameters = new List<string>(capacity: field.Parameters.Length - 2);
 
-                for (var index = 1; index < field.Parameters.Length; index++)
+                for (var index = 2; index < field.Parameters.Length; index++)
                 {
                     parameters.Add(field.Parameters[index].Value);
                 }
@@ -680,24 +680,30 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
             case OpenNettyMessageType.DimensionRequest:
             case OpenNettyMessageType.DimensionSet:
             case OpenNettyMessageType.StatusRequest:
-                result["medium"] = Medium switch
+                if (Medium is not null)
                 {
-                    OpenNettyMedium.Bus       => "bus",
-                    OpenNettyMedium.Infrared  => "infrared",
-                    OpenNettyMedium.Powerline => "powerline",
-                    OpenNettyMedium.Radio     => "radio",
+                    result["medium"] = Medium switch
+                    {
+                        OpenNettyMedium.Bus       => "bus",
+                        OpenNettyMedium.Infrared  => "infrared",
+                        OpenNettyMedium.Powerline => "powerline",
+                        OpenNettyMedium.Radio     => "radio",
 
-                    _ => "unknown"
-                };
+                        _ => "unknown"
+                    };
+                }
 
-                result["mode"] = Mode switch
+                if (Mode is not null)
                 {
-                    OpenNettyMode.Unicast   => "unicast",
-                    OpenNettyMode.Multicast => "multicast",
-                    OpenNettyMode.Broadcast => "broadcast",
+                    result["mode"] = Mode switch
+                    {
+                        OpenNettyMode.Unicast   => "unicast",
+                        OpenNettyMode.Multicast => "multicast",
+                        OpenNettyMode.Broadcast => "broadcast",
 
-                    _ => "unknown"
-                };
+                        _ => "unknown"
+                    };
+                }
                 break;
         }
 
@@ -731,7 +737,7 @@ public sealed class OpenNettyMessage : IEquatable<OpenNettyMessage>
                     break;
 
                 case OpenNettyAddressType.ScsDryContact:
-                    result["address"]?["contact"] = OpenNettyAddress.ToScsDryContactAddress(address);
+                    result["address"]?["contact"] = (byte) OpenNettyAddress.ToScsDryContactAddress(address);
                     break;
 
                 case OpenNettyAddressType.ScsLightPoint when OpenNettyAddress.ToScsLightPointAddress(address)

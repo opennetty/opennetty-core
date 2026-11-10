@@ -487,7 +487,7 @@
     <value>No configuration file was found. For the OpenNetty daemon to work correctly, a configuration file named '{0}' must be present in the application directory. Alternatively, one or more configuration files ending with '{1}' can be placed in the '{2}' directory.</value>
   </data>
   <data name="ID0126" xml:space="preserve">
-    <value>Multiple endpoints matching the specified criteria were found.</value>
+    <value>Multiple devices matching the specified criteria were found.</value>
   </data>
   <data name="ID0127" xml:space="preserve">
     <value>The specified identity is not valid for this device.</value>
@@ -719,15 +719,6 @@
   </data>
   <data name="ID8014" xml:space="preserve">
     <value>Dispatch extended pressure scenario (button n°{0})</value>
-  </data>
-  <data name="ID8015" xml:space="preserve">
-    <value>Dispatch pressure scenario</value>
-  </data>
-  <data name="ID8016" xml:space="preserve">
-    <value>Dispatch release after short pressure scenario</value>
-  </data>
-  <data name="ID8017" xml:space="preserve">
-    <value>Dispatch release after extended pressure scenario</value>
   </data>
   <data name="ID8018" xml:space="preserve">
     <value>Dispatch extended pressure scenario</value>

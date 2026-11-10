@@ -140,13 +140,27 @@ public sealed record class OpenNettyTransmissionOptions
             MultipleDimensionReplyTimeout            = device.Definition.Protocol is OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee ? TimeSpan.FromSeconds(10) : TimeSpan.Zero,
             MultipleStatusReplyTimeout               = device.Definition.Protocol is OpenNettyProtocol.Scs or OpenNettyProtocol.Zigbee ? TimeSpan.FromSeconds(10) : TimeSpan.Zero,
             OutgoingMessageProcessingTimeout         = TimeSpan.FromSeconds(10),
+            OutgoingMessageResiliencePipeline        = CreateDefaultResiliencePipeline(TimeProvider.System),
             PostSendingDelay                         = device.Definition.Protocol is OpenNettyProtocol.Nitoo ? TimeSpan.FromMilliseconds(150) : TimeSpan.Zero,
             StatusReportTimeout                      = device.Definition.Protocol is OpenNettyProtocol.Zigbee ? TimeSpan.FromSeconds(5) : TimeSpan.Zero,
             TimeProvider                             = TimeProvider.System,
             UniqueDimensionReplyTimeout              = device.Definition.Protocol is OpenNettyProtocol.Nitoo ? TimeSpan.FromSeconds(7) : TimeSpan.FromSeconds(2),
-            UniqueStatusReplyTimeout                 = device.Definition.Protocol is OpenNettyProtocol.Nitoo ? TimeSpan.FromSeconds(7) : TimeSpan.FromSeconds(2),
+            UniqueStatusReplyTimeout                 = device.Definition.Protocol is OpenNettyProtocol.Nitoo ? TimeSpan.FromSeconds(7) : TimeSpan.FromSeconds(2)
+        };
+    }
 
-            OutgoingMessageResiliencePipeline = new ResiliencePipelineBuilder().AddRetry(new RetryStrategyOptions
+    /// <summary>
+    /// Creates the default <see cref="ResiliencePipeline"/> used to send an outgoing message,
+    /// which relies on the specified <see cref="System.TimeProvider"/> to compute its retry delays.
+    /// </summary>
+    /// <param name="provider">The <see cref="System.TimeProvider"/> used by the pipeline.</param>
+    /// <returns>The default <see cref="ResiliencePipeline"/>.</returns>
+    public static ResiliencePipeline CreateDefaultResiliencePipeline(TimeProvider provider)
+    {
+        ArgumentNullException.ThrowIfNull(provider);
+
+        return new ResiliencePipelineBuilder { TimeProvider = provider }
+            .AddRetry(new RetryStrategyOptions
             {
                 DelayGenerator = static arguments => new(arguments.AttemptNumber switch
                 {
@@ -264,7 +278,6 @@ public sealed record class OpenNettyTransmissionOptions
 
                     return ValueTask.CompletedTask;
                 }
-            }).Build()
-        };
+            }).Build();
     }
 }

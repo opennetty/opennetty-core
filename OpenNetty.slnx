@@ -27,9 +27,14 @@
   </Folder>
 
   <Folder Name="/src/">
-    <Project Path="src/OpenNetty/OpenNetty.csproj" />
     <Project Path="src/OpenNetty.Daemon/OpenNetty.Daemon.csproj" />
     <Project Path="src/OpenNetty.Mqtt/OpenNetty.Mqtt.csproj" />
+    <Project Path="src/OpenNetty/OpenNetty.csproj" />
+  </Folder>
+
+  <Folder Name="/test/">
+    <Project Path="test/OpenNetty.Mqtt.Tests/OpenNetty.Mqtt.Tests.csproj" />
+    <Project Path="test/OpenNetty.Tests/OpenNetty.Tests.csproj" />
   </Folder>
 
   <Folder Name="/workflows/">

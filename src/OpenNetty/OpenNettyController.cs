@@ -2631,7 +2631,7 @@ public class OpenNettyController
                 {
                     TimeSpan offset when offset  > TimeSpan.Zero => "0" + offset.TotalHours.ToString("00", CultureInfo.InvariantCulture),
                     TimeSpan offset when offset == TimeSpan.Zero => "000",
-                    TimeSpan offset when offset  < TimeSpan.Zero => "1" + offset.TotalHours.ToString("00", CultureInfo.InvariantCulture),
+                    TimeSpan offset when offset  < TimeSpan.Zero => "1" + Math.Abs(offset.TotalHours).ToString("00", CultureInfo.InvariantCulture),
 
                     _ => throw new InvalidDataException(SR.GetResourceString(SR.ID0068))
                 },

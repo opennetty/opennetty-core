@@ -162,15 +162,6 @@
   <data name="ID8014" xml:space="preserve">
     <value>Activer scénario pression prolongée (bouton n°{0})</value>
   </data>
-  <data name="ID8015" xml:space="preserve">
-    <value>Activer scénario pression</value>
-  </data>
-  <data name="ID8016" xml:space="preserve">
-    <value>Activer scénario relâchement après pression courte</value>
-  </data>
-  <data name="ID8017" xml:space="preserve">
-    <value>Activer scénario relâchement après pression prolongée</value>
-  </data>
   <data name="ID8018" xml:space="preserve">
     <value>Activer scénario pression prolongée</value>
   </data>

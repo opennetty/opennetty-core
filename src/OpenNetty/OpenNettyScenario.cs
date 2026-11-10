@@ -44,7 +44,7 @@ public sealed class OpenNettyScenario : IEquatable<OpenNettyScenario>
     public override int GetHashCode()
     {
         var hash = new HashCode();
-        hash.Add(EndpointName, StringComparer.Ordinal);
+        hash.Add(EndpointName, StringComparer.OrdinalIgnoreCase);
         hash.Add(FunctionCode);
 
         return hash.ToHashCode();

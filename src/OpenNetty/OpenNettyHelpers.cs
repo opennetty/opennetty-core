@@ -5,6 +5,7 @@
  */
 
 using System.Collections.Concurrent;
+using System.Reactive.Linq;
 
 namespace OpenNetty;
 
@@ -27,6 +28,26 @@ internal static class OpenNettyHelpers
         ArgumentNullException.ThrowIfNull(source);
 
         return new AsyncObservableAsyncEnumerable<TSource>(source);
+    }
+
+    /// <summary>
+    /// Runs the async-observable sequence and returns its last element, and throws an
+    /// <see cref="OperationCanceledException"/> as soon as the specified token is canceled.
+    /// </summary>
+    /// <typeparam name="TSource">The type of the elements in the source sequence.</typeparam>
+    /// <param name="source">The async-observable sequence to run.</param>
+    /// <param name="cancellationToken">The <see cref="CancellationToken"/> that can be used to abort the operation.</param>
+    /// <returns>A <see cref="Task{TResult}"/> that can be used to monitor the asynchronous operation.</returns>
+    /// <exception cref="ArgumentNullException"><paramref name="source"/> is null.</exception>
+    public static Task<TSource> RunWithCancellationAsync<TSource>(this IAsyncObservable<TSource> source, CancellationToken cancellationToken)
+    {
+        ArgumentNullException.ThrowIfNull(source);
+
+        // Note: awaiting the subject returned by RunAsync() doesn't stop waiting when the token is
+        // canceled, so the operation is explicitly abandoned as soon as the cancellation is requested.
+        return RunAsync().WaitAsync(cancellationToken);
+
+        async Task<TSource> RunAsync() => await source.RunAsync(cancellationToken);
     }
 
     // REVIEW: The base class below was introduced to avoid the overhead of storing a field of type TSource if the
@@ -255,6 +276,13 @@ internal static class OpenNettyHelpers
 
         public override async ValueTask DisposeAsync()
         {
+            await ReleaseAsync();
+
+            await base.DisposeAsync();
+        }
+
+        private async ValueTask ReleaseAsync()
+        {
             await _ctr.DisposeAsync();
             await DisposeSubscriptionAsync();
 
@@ -268,7 +296,9 @@ internal static class OpenNettyHelpers
         {
             var cancelledTcs = default(TaskCompletionSource<bool>);
 
-            await DisposeAsync();
+            // Note: the iterator is not marked as disposed to ensure the cancellation is
+            // surfaced to the caller when MoveNextAsync() is called instead of returning false.
+            await ReleaseAsync();
 
             while (true)
             {

@@ -230,7 +230,8 @@ public sealed class OpenNettyWorker : IOpenNettyWorker
 
                         // If an additional message is ready to be sent, re-use the current session
                         // to send it. Otherwise, stop iterating so that the session can be closed.
-                        while (reader.TryRead(out notification) || stopwatch.Elapsed < options.CommandSessionMaximumLifetime);
+                        while (!source.Token.IsCancellationRequested &&
+                              (reader.TryRead(out notification) || stopwatch.Elapsed < options.CommandSessionMaximumLifetime));
 
                         _logger.LogDebug(6008, SR.GetResourceString(SR.ID6008), session);
 

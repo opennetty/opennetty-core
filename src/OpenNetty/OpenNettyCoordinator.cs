@@ -209,7 +209,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                             return;
                         }
 
-                        if (command == OpenNettyCommands.Lighting.On)
+                        if (command.WithoutParameters() == OpenNettyCommands.Lighting.On)
                         {
                             await _events.PublishAsync(new SwitchStateReportedEventArgs(endpoint,
                                 OpenNettyModels.Lighting.SwitchState.On), cancellationToken);
@@ -232,7 +232,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                         }
 
                         // Note: for Nitoo devices supporting dimming, an ON command always changes the brightness to 100%.
-                        if (command == OpenNettyCommands.Lighting.On && endpoint.Protocol is OpenNettyProtocol.Nitoo &&
+                        if (command.WithoutParameters() == OpenNettyCommands.Lighting.On && endpoint.Protocol is OpenNettyProtocol.Nitoo &&
                            (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) ||
                             endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState)))
                         {
@@ -577,7 +577,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     break;
                 }
 
-                case { Type     : OpenNettyMessageType.DimensionSet,
+                case { Type     : OpenNettyMessageType.DimensionRead,
                        Address  : OpenNettyAddress address,
                        Dimension: OpenNettyDimension dimension,
                        Values   : [{ Length: > 0 } status, { Length: > 0 } position, ..] }
@@ -588,7 +588,7 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                     await Parallel.ForEachAsync(endpoints, async (endpoint, cancellationToken) =>
                     {
                         if (endpoint.HasCapability(OpenNettyCapabilities.AdvancedShutterState) &&
-                            endpoint.GetStringSetting(OpenNettySettings.FunctionType) is not (null or OpenNettySettings.FunctionTypes.AutomationActuator))
+                            endpoint.GetStringSetting(OpenNettySettings.FunctionType) is null or OpenNettySettings.FunctionTypes.AutomationActuator)
                         {
                             await _events.PublishAsync(new ShutterStateReportedEventArgs(endpoint,
                                 (status, byte.Parse(position, CultureInfo.InvariantCulture)) switch
@@ -1390,80 +1390,83 @@ public sealed class OpenNettyCoordinator : IOpenNettyHandler
                             await _events.PublishAsync(new ProgressiveScenarioReportedEventArgs(endpoint, TimeSpan.FromSeconds(duration)), cancellationToken);
                         }
 
-                        // Note: on endpoints that don't support dimming, a "SCENARIO ACTION", "SCENARIO ACTION IN TIME" or
-                        // "SCENARIO ACTION FOR TIME" BUS COMMAND always results in the associated unit being switched on.
-                        //
-                        // For endpoints that support dimming, the actual brightness level is retrieved asynchronously
-                        // by a dedicated event handler to ensure the exact brightness level is correctly reported.
-                        if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState) &&
-                           !endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) &&
-                           !endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
-                        {
-                            tasks.Add(ReportOnStateAsync(endpoint, cancellationToken).AsTask());
-                        }
-
-                        if (endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit.Definition.AssociatedUnitId: byte unit })
+                        if (command.WithoutParameters() != OpenNettyCommands.ScenariosPlus.StopAction)
                         {
                             // Note: on endpoints that don't support dimming, a "SCENARIO ACTION", "SCENARIO ACTION IN TIME" or
                             // "SCENARIO ACTION FOR TIME" BUS COMMAND always results in the associated unit being switched on.
                             //
                             // For endpoints that support dimming, the actual brightness level is retrieved asynchronously
                             // by a dedicated event handler to ensure the exact brightness level is correctly reported.
-                            var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway,
-                                OpenNettyAddress.FromNitooAddress(
-                                    OpenNettyAddress.ToNitooAddress(message.Address.Value).Identifier, unit), cancellationToken)
-                                .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
-                                .Where(static endpoint => !endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) &&
-                                                          !endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState));
-
-                            tasks.Add(Parallel.ForEachAsync(endpoints, cancellationToken, ReportOnStateAsync));
-                        }
-
-                        if (endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit.Scenarios: [_, ..] scenarios })
-                        {
-                            tasks.Add(Parallel.ForEachAsync(scenarios, cancellationToken, async (scenario, cancellationToken) =>
+                            if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState) &&
+                               !endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) &&
+                               !endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
                             {
-                                var endpoint = await _manager.FindEndpointByNameAsync(scenario.EndpointName, cancellationToken);
-                                if (endpoint is null)
+                                tasks.Add(ReportOnStateAsync(endpoint, cancellationToken).AsTask());
+                            }
+
+                            if (endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit.Definition.AssociatedUnitId: byte unit })
+                            {
+                                // Note: on endpoints that don't support dimming, a "SCENARIO ACTION", "SCENARIO ACTION IN TIME" or
+                                // "SCENARIO ACTION FOR TIME" BUS COMMAND always results in the associated unit being switched on.
+                                //
+                                // For endpoints that support dimming, the actual brightness level is retrieved asynchronously
+                                // by a dedicated event handler to ensure the exact brightness level is correctly reported.
+                                var endpoints = _manager.FindEndpointsByAddressAsync(notification.Gateway,
+                                    OpenNettyAddress.FromNitooAddress(
+                                        OpenNettyAddress.ToNitooAddress(message.Address.Value).Identifier, unit), cancellationToken)
+                                    .Where(static endpoint => endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
+                                    .Where(static endpoint => !endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) &&
+                                                              !endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState));
+
+                                tasks.Add(Parallel.ForEachAsync(endpoints, cancellationToken, ReportOnStateAsync));
+                            }
+
+                            if (endpoint is { Protocol: OpenNettyProtocol.Nitoo, Unit.Scenarios: [_, ..] scenarios })
+                            {
+                                tasks.Add(Parallel.ForEachAsync(scenarios, cancellationToken, async (scenario, cancellationToken) =>
                                 {
-                                    return;
-                                }
-
-                                if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
-                                {
-                                    if (scenario.FunctionCode is 101 or 103 or (>= 0 and <= 100))
+                                    var endpoint = await _manager.FindEndpointByNameAsync(scenario.EndpointName, cancellationToken);
+                                    if (endpoint is null)
                                     {
-                                        await ReportOnStateAsync(endpoint, cancellationToken);
+                                        return;
                                     }
 
-                                    else if (scenario.FunctionCode is 102 or 104)
+                                    if (endpoint.HasCapability(OpenNettyCapabilities.OnOffSwitchState))
                                     {
-                                        await _events.PublishAsync(new SwitchStateReportedEventArgs(endpoint,
-                                            OpenNettyModels.Lighting.SwitchState.Off), cancellationToken);
-                                    }
-                                }
+                                        if (scenario.FunctionCode is 101 or 103 or (>= 0 and <= 100))
+                                        {
+                                            await ReportOnStateAsync(endpoint, cancellationToken);
+                                        }
 
-                                if (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) ||
-                                    endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
-                                {
-                                    // Note: for Nitoo devices supporting dimming, an ON scenario always changes the brightness to 100%.
-                                    if (scenario.FunctionCode is 101 or 103)
-                                    {
-                                        await _events.PublishAsync(new BrightnessReportedEventArgs(endpoint, 100), cancellationToken);
+                                        else if (scenario.FunctionCode is 102 or 104)
+                                        {
+                                            await _events.PublishAsync(new SwitchStateReportedEventArgs(endpoint,
+                                                OpenNettyModels.Lighting.SwitchState.Off), cancellationToken);
+                                        }
                                     }
 
-                                    // Note: the special brightness level "0" always indicates that the output is switched off.
-                                    // To avoid overriding the last known level (which is typically restored by SCS devices when
-                                    // receiving an ON command), the brightness level is only reported if it's higher than zero.
-                                    // 
-                                    // Note: while Nitoo devices normally don't restore the last known brightness level when
-                                    // receiving an ON command, the same rule applies for consistency with MyHome/SCS devices.
-                                    else if (scenario.FunctionCode is >= 1 and <= 100)
+                                    if (endpoint.HasCapability(OpenNettyCapabilities.BasicDimmingState) ||
+                                        endpoint.HasCapability(OpenNettyCapabilities.AdvancedDimmingState))
                                     {
-                                        await _events.PublishAsync(new BrightnessReportedEventArgs(endpoint, scenario.FunctionCode), cancellationToken);
+                                        // Note: for Nitoo devices supporting dimming, an ON scenario always changes the brightness to 100%.
+                                        if (scenario.FunctionCode is 101 or 103)
+                                        {
+                                            await _events.PublishAsync(new BrightnessReportedEventArgs(endpoint, 100), cancellationToken);
+                                        }
+
+                                        // Note: the special brightness level "0" always indicates that the output is switched off.
+                                        // To avoid overriding the last known level (which is typically restored by SCS devices when
+                                        // receiving an ON command), the brightness level is only reported if it's higher than zero.
+                                        // 
+                                        // Note: while Nitoo devices normally don't restore the last known brightness level when
+                                        // receiving an ON command, the same rule applies for consistency with MyHome/SCS devices.
+                                        else if (scenario.FunctionCode is >= 1 and <= 100)
+                                        {
+                                            await _events.PublishAsync(new BrightnessReportedEventArgs(endpoint, scenario.FunctionCode), cancellationToken);
+                                        }
                                     }
-                                }
-                            }));
+                                }));
+                            }
                         }
 
                         await Task.WhenAll(tasks);

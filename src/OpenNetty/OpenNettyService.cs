@@ -598,6 +598,14 @@ public class OpenNettyService : IOpenNettyService
                     await DispatchMessageAsync(message, gateway, options, context.CancellationToken), context);
             }
 
+            catch
+            {
+                // Ensure the connection to the pipeline is not leaked if the message cannot be dispatched.
+                await connection.DisposeAsync();
+
+                throw;
+            }
+
             finally
             {
                 ResilienceContextPool.Shared.Return(context);

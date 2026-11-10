@@ -65,7 +65,7 @@ public sealed record class OpenNettyGateway : IEquatable<OpenNettyGateway>
         return other is not null &&
             ConnectionType == other.ConnectionType &&
             Device == other.Device &&
-            Endpoint == other.Endpoint &&
+            Equals(Endpoint, other.Endpoint) &&
             Protocol == other.Protocol &&
             string.Equals(SerialPort?.PortName, other.SerialPort?.PortName, StringComparison.OrdinalIgnoreCase);
     }
@@ -76,7 +76,7 @@ public sealed record class OpenNettyGateway : IEquatable<OpenNettyGateway>
         var hash = new HashCode();
         hash.Add(ConnectionType);
         hash.Add(Device);
-        hash.Add(Endpoint?.Serialize());
+        hash.Add(Endpoint);
         hash.Add(Protocol);
         hash.Add(SerialPort?.PortName, StringComparer.OrdinalIgnoreCase);
 

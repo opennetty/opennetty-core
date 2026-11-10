@@ -71,7 +71,6 @@ public static class OpenNettyUtilities
                     builder.Append(point);
                 }
 
-                builder.Append(address.Value.ToString());
                 break;
 
             case OpenNettyProtocol.Scs when address?.Type is OpenNettyAddressType.ScsScenarioPlus:
