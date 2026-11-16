@@ -5,6 +5,7 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Microsoft.CodeAnalysis.ResxSourceGenerator" PrivateAssets="all" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" />
     <PackageReference Include="Microsoft.Extensions.Logging" />
     <PackageReference Include="Polly.Core" />
@@ -15,8 +16,13 @@
 
   <ItemGroup>
     <EmbeddedResource Include="*.xml" />
-    <EmbeddedResource Update="**\*.resx" GenerateSource="true" GenerateResourcesCodeAsConstants="true" />
-    <EmbeddedResource Update="**\*.*.resx" GenerateSource="false" GenerateResourcesCodeAsConstants="false" />
+    <EmbeddedResource Update="OpenNettyResources.resx"
+                      AsConstants="true"
+                      ClassName="OpenNetty.OpenNettyResources"
+                      EmitFormatMethods="true"
+                      ManifestResourceName="OpenNetty.OpenNettyResources"
+                      OmitGetResourceString="true"
+                      Public="true" />
   </ItemGroup>
 
   <ItemGroup>

@@ -119,15 +119,28 @@ public abstract class OpenNettyConnection : IAsyncDisposable
             NoDelay = true
         };
 
-        socket.SetSocketOption(SocketOptionLevel.IP,     SocketOptionName.TypeOfService, 46 << 2);
-        socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
-        socket.SetSocketOption(SocketOptionLevel.Tcp,    SocketOptionName.TcpKeepAliveInterval, 1);
-        socket.SetSocketOption(SocketOptionLevel.Tcp,    SocketOptionName.TcpKeepAliveTime, 2);
-        socket.SetSocketOption(SocketOptionLevel.Tcp,    SocketOptionName.TcpKeepAliveRetryCount, 2);
+        try
+        {
+            if (!OperatingSystem.IsMacOS())
+            {
+                socket.SetSocketOption(SocketOptionLevel.IP, SocketOptionName.TypeOfService, 46 << 2);
+            }
 
-        var connection = new SocketConnection(endpoint, socket);
-        await connection.InitializeAsync(cancellationToken);
-        return connection;
+            socket.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.KeepAlive, true);
+            socket.SetSocketOption(SocketOptionLevel.Tcp,    SocketOptionName.TcpKeepAliveInterval, 1);
+            socket.SetSocketOption(SocketOptionLevel.Tcp,    SocketOptionName.TcpKeepAliveTime, 2);
+            socket.SetSocketOption(SocketOptionLevel.Tcp,    SocketOptionName.TcpKeepAliveRetryCount, 2);
+
+            var connection = new SocketConnection(endpoint, socket);
+            await connection.InitializeAsync(cancellationToken);
+            return connection;
+        }
+
+        catch
+        {
+            socket.Dispose();
+            throw;
+        }
     }
 
     /// <summary>

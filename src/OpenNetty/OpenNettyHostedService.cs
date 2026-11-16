@@ -52,6 +52,7 @@ public sealed class OpenNettyHostedService : BackgroundService
         _worker = worker ?? throw new ArgumentNullException(nameof(worker));
     }
 
+    /// <inheritdoc/>
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         _logger.LogInformation(6000, SR.GetResourceString(SR.ID6000));
