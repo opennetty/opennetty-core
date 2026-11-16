@@ -521,11 +521,11 @@ public sealed class OpenNettyWorkerTests
         await harness.PublishAsync(harness.CreateMessageReady(ScsFrame));
         var peer = await harness.AcceptAsync();
         await peer.ExpectAsync(ScsFrame);
-        await peer.SendAsync("*1*0*22##");
-        await peer.SendAsync(Ack);
-
         await harness.NextAsync<OpenNettyNotifications.SessionOpen>();
+
+        await peer.SendAsync("*1*0*22##");
         var received = await harness.NextAsync<OpenNettyNotifications.MessageReceived>();
+        await peer.SendAsync(Ack);
         await harness.NextAsync<OpenNettyNotifications.MessageSent>();
 
         Assert.Equal(OpenNettyFrame.Parse("*1*0*22##"), received.Message.Frame);

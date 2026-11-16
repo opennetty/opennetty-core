@@ -165,6 +165,5 @@ $RECYCLE.BIN/
 # Mac desktop service store files
 .DS_Store
 
-# Arcade-related folders
-.dotnet/
+# Build output folders
 artifacts/

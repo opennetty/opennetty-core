@@ -136,10 +136,12 @@ public sealed class OpenNettyHostedServiceTests
         var observer = new RecordingObserver<OpenNettyEvents.BatteryAlertReportedEventArgs>();
         await using var subscription = await harness.Events.BatteryAlertReported.SubscribeAsync(observer);
         var arguments = new OpenNettyEvents.BatteryAlertReportedEventArgs(Endpoint);
+        harness.AddGateway(20001);
 
         await harness.Events.PublishAsync(arguments, TestContext.Current.CancellationToken);
         Assert.False(observer.TryNext(out _));
         await harness.StartAsync();
+        await harness.Worker.NextCallAsync();
         await harness.Logger.WaitAsync(6001);
 
         Assert.Same(arguments, await observer.NextAsync());
